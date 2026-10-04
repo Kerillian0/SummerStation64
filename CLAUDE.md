@@ -47,6 +47,13 @@ libdragon. Think ES-DE / Pegasus, on a real N64.
   "Safe Mode" label on the Files screen only, centered between the tabs and
   the cover (in `carousel_draw()`). Nothing on
   the SD card is changed.
+- `src/menu/crash_screen.c/.h` — friendly crash screen (exception handler
+  registered at the top of `menu_init()`), drawn with libdragon's CPU
+  `graphics_*` calls on a 320x240 surface via `vi_show()`. Needs
+  `vi_write_end_forced()` + `vi_reset()` first (as libdragon's inspector
+  does), or the picture comes out repeated and striped. START continues to
+  libdragon's technical inspector. Failed assertions still go straight to the
+  inspector (libdragon owns that syscall range).
 - `src/menu/controls.c/.h` — button layout for the three tabbed screens:
   L/R switch tabs, Z is Options (was R), left/right scroll the carousel,
   up/down do nothing there unless the `updown_scroll` feature is on. It
@@ -98,7 +105,10 @@ libdragon. Think ES-DE / Pegasus, on a real N64.
   check these before publishing. Box art lives in `sd:/menu/metadata/`; the
   old flat `sd:/menu/boxart/XXXX.png` style is compiled out upstream.
 - Done and tested on hardware: safe mode.
-- **Next (v0.1):** friendly crash screen.
+- Done and tested on hardware: friendly crash screen (tested with a temporary
+  "crash now" menu entry, since removed).
+- **v0.1 feature list is complete.** Before publishing, the user still wants
+  to test Japanese (tall) and 64DD-shaped cover art. Next: v0.2.
 
 ## theme.ini format (v1)
 ```ini

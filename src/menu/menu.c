@@ -22,6 +22,7 @@
 #include "png_decoder.h"
 #include "settings.h"
 #include "safe_mode.h"
+#include "crash_screen.h"
 #include "sound.h"
 #include "usb_comm.h"
 #include "utils/fs.h"
@@ -48,6 +49,7 @@ static bool interlaced = true;
  * @param boot_params Pointer to the boot parameters structure.
  */
 static void menu_init (boot_params_t *boot_params) {
+    crash_screen_init();
     menu = calloc(1, sizeof(menu_t));
     assert(menu != NULL);
 
