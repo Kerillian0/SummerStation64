@@ -5,7 +5,7 @@
  * Each feature is decided in layers, the most specific one winning:
  *   1. built-in default
  *   2. the theme's [features] section (theme.ini)
- *   3. the user's own setting (added in a later step)
+ *   3. the user's own setting (Settings screen, saved to features.ini)
  * Features that need the Expansion Pak are always off without one.
  */
 
@@ -44,5 +44,11 @@ bool features_available (feature_t feature);
 
 /** True if the feature is currently turned on. */
 bool features_enabled (feature_t feature);
+
+/** The user's own choice: FEATURE_UNSET (follow the theme), 0 or 1. */
+int features_user_get (feature_t feature);
+
+/** Store the user's choice and save it to the SD card. */
+void features_user_set (feature_t feature, int value);
 
 #endif /* MENU_FEATURES_H__ */

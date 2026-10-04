@@ -1,7 +1,9 @@
 #include <libdragon.h>
+#include <stdio.h>
 #include <string.h>
 #include <strings.h>
 
+#include "ini_parser.h"
 #include "menu_features.h"
 #include "theme.h"
 
@@ -23,6 +25,12 @@ static const feature_info_t feature_info[FEATURE_COUNT] = {
     [FEATURE_SIDE_COVERS]         = { "side_covers",         false, false },
     [FEATURE_FRAME_BORDERS]       = { "frame_borders",       true,  false },
 };
+
+#define FEATURES_USER_PATH      "sd:/menu/features.ini"
+#define FEATURES_USER_TMP_PATH  "sd:/menu/features.tmp"
+
+static int8_t user[FEATURE_COUNT];
+static bool user_loaded = false;
 
 static bool detected = false;
 static bool expansion_pak = false;
@@ -75,7 +83,70 @@ bool features_enabled (feature_t feature) {
         on = (theme_value != 0);
     }
 
-    /* User setting override goes here in a later step. */
+    int user_value = features_user_get(feature);
+    if (user_value != FEATURE_UNSET) {
+        on = (user_value != 0);
+    }
 
     return on;
+}
+
+static void features_user_load (void) {
+    if (user_loaded) {
+        return;
+    }
+    user_loaded = true;
+
+    /* If power was cut between remove and rename, the temp file is the good copy. */
+    ini_t *ini = ini_load(FEATURES_USER_PATH);
+    if (!ini) {
+        ini = ini_try_load(FEATURES_USER_TMP_PATH);
+    }
+    for (int i = 0; i < FEATURE_COUNT; i++) {
+        int value = ini_get_int(ini, "features", feature_info[i].key, FEATURE_UNSET);
+        user[i] = (value == FEATURE_UNSET) ? FEATURE_UNSET : (value != 0);
+    }
+    ini_free(ini);
+}
+
+/* Written to a temporary file first, so a power cut can't leave half a file. */
+static void features_user_save (void) {
+    ini_t *ini = ini_create();
+    bool any = false;
+    for (int i = 0; i < FEATURE_COUNT; i++) {
+        if (user[i] != FEATURE_UNSET) {
+            ini_set_int(ini, "features", feature_info[i].key, user[i]);
+            any = true;
+        }
+    }
+
+    if (!any) {
+        remove(FEATURES_USER_PATH);
+    } else if (ini_save(ini, FEATURES_USER_TMP_PATH)) {
+        remove(FEATURES_USER_PATH);
+        if (rename(FEATURES_USER_TMP_PATH, FEATURES_USER_PATH) != 0) {
+            debugf("features: could not replace %s\n", FEATURES_USER_PATH);
+        }
+    } else {
+        debugf("features: could not write %s\n", FEATURES_USER_TMP_PATH);
+    }
+
+    ini_free(ini);
+}
+
+int features_user_get (feature_t feature) {
+    if (feature < 0 || feature >= FEATURE_COUNT) {
+        return FEATURE_UNSET;
+    }
+    features_user_load();
+    return user[feature];
+}
+
+void features_user_set (feature_t feature, int value) {
+    if (feature < 0 || feature >= FEATURE_COUNT) {
+        return;
+    }
+    features_user_load();
+    user[feature] = (value == FEATURE_UNSET) ? FEATURE_UNSET : (value != 0);
+    features_user_save();
 }

@@ -2,6 +2,7 @@
 #include "../sound.h"
 #include "../settings.h"
 #include "views.h"
+#include "features_menu.h"
 
 static bool show_message_reset_settings = false;
 
@@ -329,6 +330,7 @@ static component_context_menu_t options_context_menu = { .list = {
     { .text = "Rumble Feedback", .submenu = &set_rumble_enabled_type_context_menu },
     // { .text = "Restore Defaults", .action = set_use_default_settings },
 #endif
+    { .text = "Menu Features", .submenu = &features_context_menu },
     { .text = "Remove Background", .action = remove_background_image },
 
     COMPONENT_CONTEXT_MENU_LIST_END,

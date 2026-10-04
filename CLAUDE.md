@@ -60,11 +60,16 @@ libdragon. Think ES-DE / Pegasus, on a real N64.
 - Still open from part 3: the web Theme Maker (not in this repo) needs matching
   fields and a "current layout" preview, and the share code format must bump to
   v2 (v1 codes must keep working).
-- **Built, awaiting hardware test:** features `side_covers` (default off) and
+- Done and tested on hardware: features `side_covers` (default off) and
   `frame_borders` (default on), settable in theme `[features]`. The user
   dislikes both on their CRT but wants others to be able to enable them; side
   covers also sit too close to the overscan edge.
-- Then step 3b: user toggles in the Settings screen.
+- **Built, awaiting hardware test: step 3b.** Settings > "Menu Features"
+  (`src/menu/views/features_menu.c`) offers Theme Default / On / Off per
+  feature. Choices are saved to `sd:/menu/features.ini` (temp file + rename)
+  and override the theme. Only features that already do something are listed.
+  The Settings summary text does not show feature states yet. Labels
+  ("Side Covers", "Frame Borders") are provisional; the user is choosing names.
 
 ## theme.ini format (v1)
 ```ini
