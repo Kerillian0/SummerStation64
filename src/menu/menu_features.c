@@ -24,6 +24,7 @@ static const feature_info_t feature_info[FEATURE_COUNT] = {
     [FEATURE_PREBUILT_BACKGROUND] = { "prebuilt_background", true,  true  },
     [FEATURE_SIDE_COVERS]         = { "side_covers",         false, false },
     [FEATURE_FRAME_BORDERS]       = { "frame_borders",       true,  false },
+    [FEATURE_UPDOWN_SCROLL]       = { "updown_scroll",       false, false },
 };
 
 #define FEATURES_USER_PATH      "sd:/menu/features.ini"

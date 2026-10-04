@@ -35,8 +35,12 @@ libdragon. Think ES-DE / Pegasus, on a real N64.
 
 ## What we've changed so far
 - `src/menu/views/browser.c` — carousel prototype (`BROWSER_CAROUSEL` switch,
-  `carousel_draw()`), uses theme colors; up/down rotates; left/right still
-  switch the History/Favorites tabs.
+  `carousel_draw()`), uses theme colors.
+- `src/menu/controls.c/.h` — button layout for the three tabbed screens:
+  L/R switch tabs, Z is Options (was R), left/right scroll the carousel,
+  up/down do nothing there unless the `updown_scroll` feature is on. It
+  rewrites the action flags so the stock screen code is untouched (one-line
+  hooks in `browser.c` and `history_favorites.c`).
 - `src/menu/theme.c/.h` — reads `sd:/menu/theme/theme.ini` (or `theme.txt`),
   falls back to built-in defaults. Builds the gradient + pattern background
   once (RGBA16 with 4x4 Bayer dither) on first draw.
@@ -68,8 +72,11 @@ libdragon. Think ES-DE / Pegasus, on a real N64.
   (`src/menu/views/features_menu.c`) offers Theme Default / On / Off per
   feature. Choices are saved to `sd:/menu/features.ini` (temp file + rename)
   and override the theme. Only features that already do something are listed.
-  The Settings summary text does not show feature states yet. Labels
-  ("Side Covers", "Frame Borders") are provisional; the user is choosing names.
+  The Settings summary text does not show feature states yet. `side_covers`
+  is labelled "Previous/Next Covers" (user's choice).
+- Done and tested on hardware: new controls (`controls.c`) and the
+  `updown_scroll` feature; the temporary `4MB`/`8MB` readout is removed (the
+  user may bring it back later as an optional display).
 
 ## theme.ini format (v1)
 ```ini

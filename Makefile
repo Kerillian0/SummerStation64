@@ -45,6 +45,7 @@ SRCS = \
 	libs/miniz/miniz.c \
 	menu/ini_parser.c \
 	menu/actions.c \
+	menu/controls.c \
 	menu/audio_player.c \
 	menu/bookkeeping.c \
 	menu/cart_load.c \

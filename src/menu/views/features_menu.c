@@ -46,9 +46,11 @@ static int row_for (feature_t feature) {
 
 FEATURE_SUBMENU(side_covers, FEATURE_SIDE_COVERS);
 FEATURE_SUBMENU(frame_borders, FEATURE_FRAME_BORDERS);
+FEATURE_SUBMENU(updown_scroll, FEATURE_UPDOWN_SCROLL);
 
 component_context_menu_t features_context_menu = { .list = {
-    { .text = "Side Covers", .submenu = &side_covers_context_menu },
+    { .text = "Previous/Next Covers", .submenu = &side_covers_context_menu },
     { .text = "Frame Borders", .submenu = &frame_borders_context_menu },
+    { .text = "Up/Down Also Scroll", .submenu = &updown_scroll_context_menu },
     COMPONENT_CONTEXT_MENU_LIST_END,
 }};

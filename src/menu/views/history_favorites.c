@@ -4,6 +4,7 @@
 #include "../ui_components/constants.h"
 #include "../sound.h"
 #include "views.h"
+#include "../controls.h"
 
 
 typedef enum {
@@ -64,6 +65,7 @@ static void item_move_previous() {
 }
 
 static void process(menu_t *menu) {
+    controls_remap_tabs(menu, false); // L/R tabs, Z options
     if(menu->actions.go_down) {
         item_move_next();   
     } else if(menu->actions.go_up) {
@@ -181,7 +183,7 @@ static void draw(menu_t *menu, surface_t *display) {
             ui_components_actions_bar_text_draw(
                 STL_DEFAULT,
                 ALIGN_RIGHT, VALIGN_TOP,
-                "R: Remove item\n"
+                "Z: Remove item\n"
                 "\n"
             );
         }

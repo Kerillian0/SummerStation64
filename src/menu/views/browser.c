@@ -13,6 +13,7 @@
 #include "views.h"
 #include "../sound.h"
 #include "../theme.h"
+#include "../controls.h"
 
 static const char *archive_extensions[] = { "zip", NULL };
 static const char *cheat_extensions[] = {"cht", "cheats", "datel", "gameshark", NULL};
@@ -568,6 +569,8 @@ static void process (menu_t *menu) {
         return;
     }
 
+    controls_remap_tabs(menu, true); // carousel: left/right scroll, L/R tabs, Z options
+
     int scroll_speed = menu->actions.go_fast ? 10 : 1;
 
     if (menu->browser.entries > 1) {
@@ -802,8 +805,7 @@ static void carousel_draw (menu_t *menu) {
         .align = ALIGN_CENTER,
         .style_id = STL_GRAY,
     }, FNT_DEFAULT, 40, CAROUSEL_CENTER_Y + CAROUSEL_CENTER_H / 2 + 52,
-        "%d / %d   %s", (int) (menu->browser.selected + 1), (int) menu->browser.entries,
-        features_expansion_pak() ? "8MB" : "4MB"); // temporary: Expansion Pak check
+        "%d / %d", (int) (menu->browser.selected + 1), (int) menu->browser.entries);
 }
 #endif
 
@@ -850,7 +852,7 @@ static void draw (menu_t *menu, surface_t *d) {
         STL_DEFAULT,
         ALIGN_RIGHT, VALIGN_TOP,
         "^%02XStart: Settings^00\n"
-        "^%02XR:  Options^00",
+        "^%02XZ:  Options^00",
         menu->browser.entries == 0 ? STL_GRAY : STL_DEFAULT
     );
 
@@ -858,7 +860,7 @@ static void draw (menu_t *menu, surface_t *d) {
         ui_components_actions_bar_text_draw(
             STL_DEFAULT,
             ALIGN_CENTER, VALIGN_TOP,
-            "C-▼▲ Fast Scroll | ◀ Tabs ▶ \n"
+            "C-◀▶ Fast Scroll | L Tabs R \n"
             "%s",
             ctime(&menu->current_time)
         );
@@ -866,7 +868,7 @@ static void draw (menu_t *menu, surface_t *d) {
         ui_components_actions_bar_text_draw(
             STL_DEFAULT,
             ALIGN_CENTER, VALIGN_TOP,
-            "C-▼▲ Fast Scroll | ◀ Tabs ▶ \n"
+            "C-◀▶ Fast Scroll | L Tabs R \n"
             "\n"
         );
     }
