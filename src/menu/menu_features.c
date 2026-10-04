@@ -20,6 +20,8 @@ static const feature_info_t feature_info[FEATURE_COUNT] = {
     [FEATURE_CLOCK]               = { "clock",               true,  false },
     [FEATURE_ATTRACT_MODE]        = { "attract_mode",        false, false },
     [FEATURE_PREBUILT_BACKGROUND] = { "prebuilt_background", true,  true  },
+    [FEATURE_SIDE_COVERS]         = { "side_covers",         false, false },
+    [FEATURE_FRAME_BORDERS]       = { "frame_borders",       true,  false },
 };
 
 static bool detected = false;

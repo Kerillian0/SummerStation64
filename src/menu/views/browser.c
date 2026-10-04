@@ -727,6 +727,7 @@ static void carousel_draw (menu_t *menu) {
 
     const int screen_w = (int) display_get_width();
     const int cx = screen_w / 2;
+    const bool side_covers = features_enabled(FEATURE_SIDE_COVERS);
 
     // Draw outer covers first so the center one sits on top.
     for (int dist = 2; dist >= 0; dist--) {
@@ -735,6 +736,9 @@ static void carousel_draw (menu_t *menu) {
                 continue; // center is drawn once
             }
             int offset = dist * sign;
+            if (offset != 0 && !side_covers) {
+                continue;
+            }
             int i = menu->browser.selected + offset;
             if (i < 0 || i >= menu->browser.entries) {
                 continue;

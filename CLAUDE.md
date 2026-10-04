@@ -53,16 +53,17 @@ libdragon. Think ES-DE / Pegasus, on a real N64.
 - Done and tested on hardware: step 1 (theme loader), step 2 (text colors),
   step 3a parts 1-2 (features + `theme.txt`, hollow ring, see-through side
   covers; `8MB` readout confirmed, counter still shows it temporarily).
-- **Built, awaiting hardware test: step 3a part 3 (console side).**
+- **Done and tested on hardware: step 3a part 3 (console side).**
   `constants.h` frame colors now read from the theme: `border`, `highlight`,
   `tab_active`, `tab_inactive`, `tab_active_border`, `tab_inactive_border`.
   Defaults match the stock menu.
 - Still open from part 3: the web Theme Maker (not in this repo) needs matching
   fields and a "current layout" preview, and the share code format must bump to
   v2 (v1 codes must keep working).
-- The user dislikes the carousel side covers and the frame borders on their
-  CRT. Both must become toggles (theme `[features]` + Settings) so others can
-  keep them; side covers also sit too close to the overscan edge.
+- **Built, awaiting hardware test:** features `side_covers` (default off) and
+  `frame_borders` (default on), settable in theme `[features]`. The user
+  dislikes both on their CRT but wants others to be able to enable them; side
+  covers also sit too close to the overscan edge.
 - Then step 3b: user toggles in the Settings screen.
 
 ## theme.ini format (v1)
