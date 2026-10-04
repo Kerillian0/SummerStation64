@@ -710,8 +710,13 @@ static const char *carousel_type_label (entry_type_t type) {
     }
 }
 
-static color_t carousel_dim (color_t c, int percent) {
-    return RGBA32((c.r * percent) / 100, (c.g * percent) / 100, (c.b * percent) / 100, 0xFF);
+// Hollow frame: four thin bars, so whatever is behind stays visible.
+static void carousel_ring (int x0, int y0, int x1, int y1, int thickness, color_t color) {
+    rdpq_set_mode_fill(color);
+    rdpq_fill_rectangle(x0, y0, x1, y0 + thickness);
+    rdpq_fill_rectangle(x0, y1 - thickness, x1, y1);
+    rdpq_fill_rectangle(x0, y0 + thickness, x0 + thickness, y1 - thickness);
+    rdpq_fill_rectangle(x1 - thickness, y0 + thickness, x1, y1 - thickness);
 }
 
 static void carousel_draw (menu_t *menu) {
@@ -749,18 +754,20 @@ static void carousel_draw (menu_t *menu) {
             int x0 = x_mid - w / 2;
             int y0 = CAROUSEL_CENTER_Y - h / 2;
 
-            // Selection ring (3px) around the center cover.
+            // Placeholder cover: solid in the center, more see-through the
+            // further out, so the themed background shows through the sides.
             if (center) {
-                rdpq_set_mode_fill(t->accent);
-                rdpq_fill_rectangle(x0 - 5, y0 - 5, x0 + w + 5, y0 + h + 5);
-                rdpq_set_mode_fill(t->color1);
-                rdpq_fill_rectangle(x0 - 2, y0 - 2, x0 + w + 2, y0 + h + 2);
+                carousel_ring(x0 - 5, y0 - 5, x0 + w + 5, y0 + h + 5, 3, t->accent);
+                rdpq_set_mode_fill(t->panel);
+                rdpq_fill_rectangle(x0, y0, x0 + w, y0 + h);
+            } else {
+                int alpha = (dist == 1) ? 0xB0 : 0x70;
+                rdpq_set_mode_standard();
+                rdpq_set_prim_color(RGBA32(t->panel.r, t->panel.g, t->panel.b, alpha));
+                rdpq_mode_combiner(RDPQ_COMBINER_FLAT);
+                rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+                rdpq_fill_rectangle(x0, y0, x0 + w, y0 + h);
             }
-
-            // Placeholder cover: dimmer the further from center.
-            int shade = center ? 100 : (dist == 1 ? 75 : 55);
-            rdpq_set_mode_fill(carousel_dim(t->panel, shade));
-            rdpq_fill_rectangle(x0, y0, x0 + w, y0 + h);
 
             entry_t *e = &menu->browser.list[i];
 
@@ -791,7 +798,8 @@ static void carousel_draw (menu_t *menu) {
         .align = ALIGN_CENTER,
         .style_id = STL_GRAY,
     }, FNT_DEFAULT, 40, CAROUSEL_CENTER_Y + CAROUSEL_CENTER_H / 2 + 52,
-        "%d / %d", (int) (menu->browser.selected + 1), (int) menu->browser.entries);
+        "%d / %d   %s", (int) (menu->browser.selected + 1), (int) menu->browser.entries,
+        features_expansion_pak() ? "8MB" : "4MB"); // temporary: Expansion Pak check
 }
 #endif
 
