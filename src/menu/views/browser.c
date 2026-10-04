@@ -12,6 +12,7 @@
 #include "utils/fs.h"
 #include "views.h"
 #include "../sound.h"
+#include "../theme.h"
 
 static const char *archive_extensions[] = { "zip", NULL };
 static const char *cheat_extensions[] = {"cht", "cheats", "datel", "gameshark", NULL};
@@ -686,6 +687,112 @@ static void process (menu_t *menu) {
     }
 }
 
+// --- Carousel prototype (step 1: placeholder boxes, no box art yet) ---
+// Set to 0 to fall back to the stock file list.
+#define BROWSER_CAROUSEL 1
+
+#if BROWSER_CAROUSEL
+#define CAROUSEL_CENTER_Y   200
+#define CAROUSEL_CENTER_W   224
+#define CAROUSEL_CENTER_H   160
+#define CAROUSEL_SIDE_W     144
+#define CAROUSEL_SIDE_H     104
+#define CAROUSEL_GAP        16
+
+static const char *carousel_type_label (entry_type_t type) {
+    switch (type) {
+        case ENTRY_TYPE_DIR: return "FOLDER";
+        case ENTRY_TYPE_ROM: return "N64";
+        case ENTRY_TYPE_DISK: return "64DD";
+        case ENTRY_TYPE_EMULATOR: return "EMU";
+        case ENTRY_TYPE_ARCHIVE: return "ZIP";
+        default: return "FILE";
+    }
+}
+
+static color_t carousel_dim (color_t c, int percent) {
+    return RGBA32((c.r * percent) / 100, (c.g * percent) / 100, (c.b * percent) / 100, 0xFF);
+}
+
+static void carousel_draw (menu_t *menu) {
+    const theme_t *t = theme_get();
+    if (menu->browser.entries <= 0 || menu->browser.selected < 0) {
+        return;
+    }
+
+    const int screen_w = (int) display_get_width();
+    const int cx = screen_w / 2;
+
+    // Draw outer covers first so the center one sits on top.
+    for (int dist = 2; dist >= 0; dist--) {
+        for (int sign = -1; sign <= 1; sign += 2) {
+            if (dist == 0 && sign == 1) {
+                continue; // center is drawn once
+            }
+            int offset = dist * sign;
+            int i = menu->browser.selected + offset;
+            if (i < 0 || i >= menu->browser.entries) {
+                continue;
+            }
+
+            bool center = (offset == 0);
+            int w = center ? CAROUSEL_CENTER_W : CAROUSEL_SIDE_W;
+            int h = center ? CAROUSEL_CENTER_H : CAROUSEL_SIDE_H;
+
+            // Horizontal center of this cover.
+            int x_mid = cx;
+            if (!center) {
+                int first = CAROUSEL_CENTER_W / 2 + CAROUSEL_GAP + CAROUSEL_SIDE_W / 2;
+                int step = CAROUSEL_SIDE_W + CAROUSEL_GAP;
+                x_mid = cx + sign * (first + (dist - 1) * step);
+            }
+            int x0 = x_mid - w / 2;
+            int y0 = CAROUSEL_CENTER_Y - h / 2;
+
+            // Selection ring (3px) around the center cover.
+            if (center) {
+                rdpq_set_mode_fill(t->accent);
+                rdpq_fill_rectangle(x0 - 5, y0 - 5, x0 + w + 5, y0 + h + 5);
+                rdpq_set_mode_fill(t->color1);
+                rdpq_fill_rectangle(x0 - 2, y0 - 2, x0 + w + 2, y0 + h + 2);
+            }
+
+            // Placeholder cover: dimmer the further from center.
+            int shade = center ? 100 : (dist == 1 ? 75 : 55);
+            rdpq_set_mode_fill(carousel_dim(t->panel, shade));
+            rdpq_fill_rectangle(x0, y0, x0 + w, y0 + h);
+
+            entry_t *e = &menu->browser.list[i];
+
+            rdpq_text_printf(&(rdpq_textparms_t) {
+                .width = w - 16,
+                .wrap = WRAP_ELLIPSES,
+            }, FNT_DEFAULT, x0 + 8, y0 + 18, "%s", carousel_type_label(e->type));
+
+            rdpq_text_printf(&(rdpq_textparms_t) {
+                .width = w - 16,
+                .height = h - 40,
+                .wrap = WRAP_WORD,
+            }, FNT_DEFAULT, x0 + 8, y0 + 44, "%s", e->name);
+        }
+    }
+
+    // Full name and position under the carousel.
+    rdpq_text_printf(&(rdpq_textparms_t) {
+        .width = screen_w - 80,
+        .align = ALIGN_CENTER,
+        .wrap = WRAP_ELLIPSES,
+    }, FNT_DEFAULT, 40, CAROUSEL_CENTER_Y + CAROUSEL_CENTER_H / 2 + 30,
+        "%s", menu->browser.entry ? menu->browser.entry->name : "");
+
+    rdpq_text_printf(&(rdpq_textparms_t) {
+        .width = screen_w - 80,
+        .align = ALIGN_CENTER,
+    }, FNT_DEFAULT, 40, CAROUSEL_CENTER_Y + CAROUSEL_CENTER_H / 2 + 52,
+        "%d / %d", (int) (menu->browser.selected + 1), (int) menu->browser.entries);
+}
+#endif
+
 static void draw (menu_t *menu, surface_t *d) {
     rdpq_attach(d, NULL);
 
@@ -695,7 +802,11 @@ static void draw (menu_t *menu, surface_t *d) {
 
     ui_components_layout_draw_tabbed();
 
+#if BROWSER_CAROUSEL
+    carousel_draw(menu);
+#else
     ui_components_file_list_draw(menu->browser.list, menu->browser.entries, menu->browser.selected);
+#endif
 
     const char *action = NULL;
 

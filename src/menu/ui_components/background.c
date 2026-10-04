@@ -10,6 +10,7 @@
 #include "../ui_components.h"
 #include "constants.h"
 #include "utils/fs.h"
+#include "../theme.h"
 
 #define CACHE_METADATA_MAGIC    (0x424B4731)
 
@@ -274,13 +275,16 @@ void ui_components_background_replace_image(surface_t *image) {
 }
 
 /**
- * @brief Draw the background image or clear the screen if not available.
+ * @brief Draw the background image, or the theme background if none is set.
+ *
+ * A background image the user set from the image viewer takes priority.
+ * Otherwise the theme's generated background is drawn on every screen.
  */
 void ui_components_background_draw(void) {
     if (background && background->image_display_list) {
         rspq_block_run(background->image_display_list);
     } else {
-        rdpq_clear(BACKGROUND_EMPTY_COLOR);
+        theme_background_draw();
     }
 }
 
