@@ -13,7 +13,10 @@
 #include <stdbool.h>
 #include <libdragon.h>
 
+#include "menu_features.h"
+
 #define THEME_INI_PATH  "sd:/menu/theme/theme.ini"
+#define THEME_TXT_PATH  "sd:/menu/theme/theme.txt"  /* as saved by the Theme Maker */
 
 typedef enum {
     THEME_BG_SOLID,
@@ -60,9 +63,11 @@ typedef struct {
     color_t pattern_color;
     int pattern_size;
     int pattern_opacity; /* 0-100 */
+
+    int8_t features[FEATURE_COUNT]; /* FEATURE_UNSET, 0 or 1 */
 } theme_t;
 
-/** Load the theme and build the background. Safe to call more than once. */
+/** Load theme settings from the SD card. Safe to call more than once. */
 void theme_init (void);
 
 /** Current theme (defaults if nothing was loaded). */

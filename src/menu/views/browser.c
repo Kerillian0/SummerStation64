@@ -767,6 +767,7 @@ static void carousel_draw (menu_t *menu) {
             rdpq_text_printf(&(rdpq_textparms_t) {
                 .width = w - 16,
                 .wrap = WRAP_ELLIPSES,
+                .style_id = STL_GRAY,
             }, FNT_DEFAULT, x0 + 8, y0 + 18, "%s", carousel_type_label(e->type));
 
             rdpq_text_printf(&(rdpq_textparms_t) {
@@ -788,6 +789,7 @@ static void carousel_draw (menu_t *menu) {
     rdpq_text_printf(&(rdpq_textparms_t) {
         .width = screen_w - 80,
         .align = ALIGN_CENTER,
+        .style_id = STL_GRAY,
     }, FNT_DEFAULT, 40, CAROUSEL_CENTER_Y + CAROUSEL_CENTER_H / 2 + 52,
         "%d / %d", (int) (menu->browser.selected + 1), (int) menu->browser.entries);
 }

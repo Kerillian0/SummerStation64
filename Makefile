@@ -61,6 +61,7 @@ SRCS = \
 	menu/settings.c \
 	menu/sound.c \
 	menu/theme.c \
+	menu/menu_features.c \
 	menu/zip_entry_count.c \
 	menu/ui_components/background.c \
 	menu/ui_components/boxart.c \

@@ -9,7 +9,8 @@
 
 static theme_t theme;
 static surface_t background;
-static bool initialized = false;
+static bool initialized = false;     /* settings loaded */
+static bool background_built = false;
 static bool from_sd = false;
 
 static const uint8_t bayer4[16] = {
@@ -39,6 +40,9 @@ static void theme_set_defaults (theme_t *t) {
     t->pattern_color = RGBA32(0xFF, 0xFF, 0xFF, 0xFF);
     t->pattern_size = 16;
     t->pattern_opacity = 10;
+    for (int i = 0; i < FEATURE_COUNT; i++) {
+        t->features[i] = FEATURE_UNSET;
+    }
 }
 
 /* ---------- INI parsing ---------- */
@@ -115,6 +119,11 @@ static void apply_key (theme_t *t, const char *section, const char *key, const c
             t->dither = (atoi(v) != 0);
         } else if (!strcasecmp(key, "image")) {
             copy_str(t->image, sizeof(t->image), v);
+        }
+    } else if (!strcasecmp(section, "features")) {
+        feature_t f = feature_from_key(key);
+        if (f < FEATURE_COUNT) {
+            t->features[f] = (atoi(v) != 0) ? 1 : 0;
         }
     } else if (!strcasecmp(section, "pattern")) {
         if (!strcasecmp(key, "style")) {
@@ -296,7 +305,16 @@ void theme_init (void) {
     initialized = true;
 
     theme_set_defaults(&theme);
-    from_sd = theme_load_ini(&theme, THEME_INI_PATH);
+    from_sd = theme_load_ini(&theme, THEME_INI_PATH) || theme_load_ini(&theme, THEME_TXT_PATH);
+}
+
+/* Built on first draw, so the display is guaranteed to be set up by then. */
+static void theme_ensure_background (void) {
+    if (background_built) {
+        return;
+    }
+    background_built = true;
+    theme_init();
     theme_build_background(&theme);
 }
 
@@ -312,9 +330,7 @@ bool theme_loaded_from_sd (void) {
 }
 
 void theme_background_draw (void) {
-    if (!initialized) {
-        theme_init();
-    }
+    theme_ensure_background();
     rdpq_mode_push();
     if (background.buffer) {
         rdpq_set_mode_copy(false);
