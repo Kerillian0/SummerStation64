@@ -6,6 +6,7 @@
 #include "boot/boot.h"
 #include "utils/fs.h"
 #include "views.h"
+#include "../controls.h"
 #include <string.h>
 
 static bool show_extra_info_message = false;
@@ -914,6 +915,7 @@ void view_load_rom_init (menu_t *menu) {
     }
 #endif
 
+    if (controls_consume_launch_request() && !rom_requires_missing_expansion_pak(menu)) menu->load_pending.rom_file = true; // quick launch
 }
 
 void view_load_rom_display (menu_t *menu, surface_t *display) {

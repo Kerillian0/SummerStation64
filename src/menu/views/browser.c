@@ -493,6 +493,14 @@ static void show_properties (menu_t *menu, void *arg) {
     menu->next_mode = menu->browser.entry->type == ENTRY_TYPE_ARCHIVED ? MENU_MODE_EXTRACT_FILE : MENU_MODE_FILE_INFO;
 }
 
+static void show_game_info (menu_t *menu, void *arg) {
+    if (menu->browser.entry->type == ENTRY_TYPE_ROM) {
+        menu->next_mode = MENU_MODE_LOAD_ROM;
+    } else {
+        show_properties(menu, arg);
+    }
+}
+
 static void delete_entry (menu_t *menu, void *arg) {
     path_t *path = path_clone_push(menu->browser.directory, menu->browser.entry->name);
 
@@ -528,6 +536,7 @@ static void set_default_directory (menu_t *menu, void *arg) {
 
 static component_context_menu_t entry_context_menu = {
     .list = {
+        { .text = "Game info", .action = show_game_info },
         { .text = "Show entry properties", .action = show_properties },
         { .text = "Delete selected entry", .action = delete_entry },
         { .text = "Set current directory as default", .action = set_default_directory },

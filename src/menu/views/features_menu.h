@@ -8,7 +8,7 @@
 
 #include "../ui_components.h"
 
-/** Lists every switchable feature; each one opens Theme Default / On / Off. */
+/** Lists every switchable feature; each one opens Profile Default / On / Off. */
 extern component_context_menu_t features_context_menu;
 
 #endif /* FEATURES_MENU_H__ */

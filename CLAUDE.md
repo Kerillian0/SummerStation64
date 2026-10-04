@@ -40,7 +40,10 @@ libdragon. Think ES-DE / Pegasus, on a real N64.
   L/R switch tabs, Z is Options (was R), left/right scroll the carousel,
   up/down do nothing there unless the `updown_scroll` feature is on. It
   rewrites the action flags so the stock screen code is untouched (one-line
-  hooks in `browser.c` and `history_favorites.c`).
+  hooks in `browser.c` and `history_favorites.c`). Also tells a tap of A from
+  a hold (500 ms) for `quick_launch` (tap starts, hold = info) and
+  `hold_launch` (tap = info, hold starts); `load_rom.c` has a one-line hook
+  that starts the game when asked. Browser Options has a "Game info" entry.
 - `src/menu/theme.c/.h` — reads `sd:/menu/theme/theme.ini` (or `theme.txt`),
   falls back to built-in defaults. Builds the gradient + pattern background
   once (RGBA16 with 4x4 Bayer dither) on first draw.
@@ -69,14 +72,17 @@ libdragon. Think ES-DE / Pegasus, on a real N64.
   dislikes both on their CRT but wants others to be able to enable them; side
   covers also sit too close to the overscan edge.
 - Done and tested on hardware: step 3b. Settings > "Menu Features"
-  (`src/menu/views/features_menu.c`) offers Theme Default / On / Off per
+  (`src/menu/views/features_menu.c`) offers Profile Default / On / Off per
   feature. Choices are saved to `sd:/menu/features.ini` (temp file + rename)
-  and override the theme. Only features that already do something are listed.
+  and override the theme. "Profile Default" (user's wording) means "no
+  override, follow the theme / built-in default". Only features that already do something are listed.
   The Settings summary text does not show feature states yet. `side_covers`
   is labelled "Previous/Next Covers" (user's choice).
 - Done and tested on hardware: new controls (`controls.c`) and the
   `updown_scroll` feature; the temporary `4MB`/`8MB` readout is removed (the
   user may bring it back later as an optional display).
+- Done and tested on hardware: quick launch and hold-to-launch (hybrid).
+- **Next (v0.1):** box art on covers, then safe mode + friendly crash screen.
 
 ## theme.ini format (v1)
 ```ini

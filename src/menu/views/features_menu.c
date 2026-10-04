@@ -20,7 +20,7 @@ static void set_feature (menu_t *menu, void *arg) {
     features_context_menu.submenu = NULL;
 }
 
-/* Row to start on: 0 = Theme Default, 1 = On, 2 = Off. */
+/* Row to start on: 0 = Profile Default (follow the theme), 1 = On, 2 = Off. */
 static int row_for (feature_t feature) {
     switch (features_user_get(feature)) {
         case FEATURE_UNSET: return 0;
@@ -37,7 +37,7 @@ static int row_for (feature_t feature) {
     static component_context_menu_t name##_context_menu = { \
         .get_default_selection = name##_selection, \
         .list = { \
-            { .text = "Theme Default", .action = set_feature, .arg = CHOICE(feature, FEATURE_UNSET) }, \
+            { .text = "Profile Default", .action = set_feature, .arg = CHOICE(feature, FEATURE_UNSET) }, \
             { .text = "On", .action = set_feature, .arg = CHOICE(feature, 1) }, \
             { .text = "Off", .action = set_feature, .arg = CHOICE(feature, 0) }, \
             COMPONENT_CONTEXT_MENU_LIST_END, \
@@ -47,10 +47,14 @@ static int row_for (feature_t feature) {
 FEATURE_SUBMENU(side_covers, FEATURE_SIDE_COVERS);
 FEATURE_SUBMENU(frame_borders, FEATURE_FRAME_BORDERS);
 FEATURE_SUBMENU(updown_scroll, FEATURE_UPDOWN_SCROLL);
+FEATURE_SUBMENU(quick_launch, FEATURE_QUICK_LAUNCH);
+FEATURE_SUBMENU(hold_launch, FEATURE_HOLD_LAUNCH);
 
 component_context_menu_t features_context_menu = { .list = {
     { .text = "Previous/Next Covers", .submenu = &side_covers_context_menu },
     { .text = "Frame Borders", .submenu = &frame_borders_context_menu },
     { .text = "Up/Down Also Scroll", .submenu = &updown_scroll_context_menu },
+    { .text = "Quick Launch", .submenu = &quick_launch_context_menu },
+    { .text = "Hold A To Launch", .submenu = &hold_launch_context_menu },
     COMPONENT_CONTEXT_MENU_LIST_END,
 }};
