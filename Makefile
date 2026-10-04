@@ -46,6 +46,7 @@ SRCS = \
 	menu/ini_parser.c \
 	menu/actions.c \
 	menu/controls.c \
+	menu/carousel_art.c \
 	menu/audio_player.c \
 	menu/bookkeeping.c \
 	menu/cart_load.c \

@@ -49,6 +49,7 @@ FEATURE_SUBMENU(frame_borders, FEATURE_FRAME_BORDERS);
 FEATURE_SUBMENU(updown_scroll, FEATURE_UPDOWN_SCROLL);
 FEATURE_SUBMENU(quick_launch, FEATURE_QUICK_LAUNCH);
 FEATURE_SUBMENU(hold_launch, FEATURE_HOLD_LAUNCH);
+FEATURE_SUBMENU(cover_art, FEATURE_COVER_ART);
 
 component_context_menu_t features_context_menu = { .list = {
     { .text = "Previous/Next Covers", .submenu = &side_covers_context_menu },
@@ -56,5 +57,6 @@ component_context_menu_t features_context_menu = { .list = {
     { .text = "Up/Down Also Scroll", .submenu = &updown_scroll_context_menu },
     { .text = "Quick Launch", .submenu = &quick_launch_context_menu },
     { .text = "Hold A To Launch", .submenu = &hold_launch_context_menu },
+    { .text = "Cover Art", .submenu = &cover_art_context_menu },
     COMPONENT_CONTEXT_MENU_LIST_END,
 }};

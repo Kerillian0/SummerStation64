@@ -14,6 +14,7 @@
 #include "../sound.h"
 #include "../theme.h"
 #include "../controls.h"
+#include "../carousel_art.h"
 
 static const char *archive_extensions[] = { "zip", NULL };
 static const char *cheat_extensions[] = {"cht", "cheats", "datel", "gameshark", NULL};
@@ -741,6 +742,8 @@ static void carousel_draw (menu_t *menu) {
     const int cx = screen_w / 2;
     const bool side_covers = features_enabled(FEATURE_SIDE_COVERS);
 
+    carousel_art_update(menu);
+
     // Draw outer covers first so the center one sits on top.
     for (int dist = 2; dist >= 0; dist--) {
         for (int sign = -1; sign <= 1; sign += 2) {
@@ -776,6 +779,9 @@ static void carousel_draw (menu_t *menu) {
                 carousel_ring(x0 - 5, y0 - 5, x0 + w + 5, y0 + h + 5, 3, t->accent);
                 rdpq_set_mode_fill(t->panel);
                 rdpq_fill_rectangle(x0, y0, x0 + w, y0 + h);
+                if (carousel_art_draw(x0, y0, w, h)) {
+                    continue; // box art replaces the placeholder text
+                }
             } else {
                 int alpha = (dist == 1) ? 0xB0 : 0x70;
                 rdpq_set_mode_standard();
@@ -941,4 +947,6 @@ void view_browser_display (menu_t *menu, surface_t *display) {
     process(menu);
 
     draw(menu, display);
+
+    if (menu->next_mode != MENU_MODE_BROWSER) carousel_art_reset(); // free the cover before another screen loads its own
 }

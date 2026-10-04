@@ -36,6 +36,11 @@ libdragon. Think ES-DE / Pegasus, on a real N64.
 ## What we've changed so far
 - `src/menu/views/browser.c` — carousel prototype (`BROWSER_CAROUSEL` switch,
   `carousel_draw()`), uses theme colors.
+- `src/menu/carousel_art.c/.h` — box art on the center cover. Reads the game
+  code from the ROM header itself, reuses the stock boxart loader, keeps one
+  image in memory, loads 250 ms after the selection settles, and is freed
+  when leaving the browser (the PNG decoder handles one image at a time).
+  Feature `cover_art` (default on).
 - `src/menu/controls.c/.h` — button layout for the three tabbed screens:
   L/R switch tabs, Z is Options (was R), left/right scroll the carousel,
   up/down do nothing there unless the `updown_scroll` feature is on. It
@@ -82,7 +87,11 @@ libdragon. Think ES-DE / Pegasus, on a real N64.
   `updown_scroll` feature; the temporary `4MB`/`8MB` readout is removed (the
   user may bring it back later as an optional display).
 - Done and tested on hardware: quick launch and hold-to-launch (hybrid).
-- **Next (v0.1):** box art on covers, then safe mode + friendly crash screen.
+- Done and tested on hardware: box art on the center cover (US/EU-shaped
+  art). Not yet tested: Japanese (tall) and 64DD-shaped art — the user will
+  check these before publishing. Box art lives in `sd:/menu/metadata/`; the
+  old flat `sd:/menu/boxart/XXXX.png` style is compiled out upstream.
+- **Next (v0.1):** safe mode + friendly crash screen.
 
 ## theme.ini format (v1)
 ```ini
