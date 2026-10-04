@@ -50,6 +50,14 @@ typedef struct {
     color_t accent;
     color_t panel;
 
+    /* Original frame, tabs and list highlight. */
+    color_t border;
+    color_t highlight;
+    color_t tab_active;
+    color_t tab_inactive;
+    color_t tab_active_border;
+    color_t tab_inactive_border;
+
     theme_bg_type_t bg_type;
     theme_dir_t direction;
     color_t color1;

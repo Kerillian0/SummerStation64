@@ -9,6 +9,8 @@
 #ifndef COMPONENTS_CONSTANTS_H__
 #define COMPONENTS_CONSTANTS_H__
 
+#include "../theme.h" /* frame colors come from the theme */
+
 /**
  * @def TAB_HEIGHT
  * @brief Height of the tabs in the main menu (pixels).
@@ -288,7 +290,7 @@
  * @def BORDER_COLOR
  * @brief Color of UI borders (RGBA8888).
  */
-#define BORDER_COLOR                    RGBA32(0xFF, 0xFF, 0xFF, 0xFF)
+#define BORDER_COLOR                    (theme_get()->border)
 
 /**
  * @def PROGRESSBAR_BG_COLOR
@@ -333,33 +335,33 @@
  * @def FILE_LIST_HIGHLIGHT_COLOR
  * @brief Highlight color for file list entries (RGBA8888).
  */
-#define FILE_LIST_HIGHLIGHT_COLOR       RGBA32(0x7F, 0x7F, 0x7F, 0xFF)
+#define FILE_LIST_HIGHLIGHT_COLOR       (theme_get()->highlight)
 
 /**
  * @def CONTEXT_MENU_HIGHLIGHT_COLOR
  * @brief Highlight color for context menu entries (RGBA8888).
  */
-#define CONTEXT_MENU_HIGHLIGHT_COLOR    RGBA32(0x7F, 0x7F, 0x7F, 0xFF)
+#define CONTEXT_MENU_HIGHLIGHT_COLOR    (theme_get()->highlight)
 
 /**
  * @def TAB_INACTIVE_BORDER_COLOR
  * @brief Border color for inactive tabs (RGBA8888).
  */
-#define TAB_INACTIVE_BORDER_COLOR       RGBA32(0x5F, 0x5F, 0x5F, 0xFF)
+#define TAB_INACTIVE_BORDER_COLOR       (theme_get()->tab_inactive_border)
 /**
  * @def TAB_ACTIVE_BORDER_COLOR
  * @brief Border color for active tabs (RGBA8888).
  */
-#define TAB_ACTIVE_BORDER_COLOR         RGBA32(0xFF, 0xFF, 0xFF, 0xFF)
+#define TAB_ACTIVE_BORDER_COLOR         (theme_get()->tab_active_border)
 /**
  * @def TAB_INACTIVE_BACKGROUND_COLOR
  * @brief Background color for inactive tabs (RGBA8888).
  */
-#define TAB_INACTIVE_BACKGROUND_COLOR   RGBA32(0x3F, 0x3F, 0x3F, 0xFF)
+#define TAB_INACTIVE_BACKGROUND_COLOR   (theme_get()->tab_inactive)
 /**
  * @def TAB_ACTIVE_BACKGROUND_COLOR
  * @brief Background color for active tabs (RGBA8888).
  */
-#define TAB_ACTIVE_BACKGROUND_COLOR     RGBA32(0x6F, 0x6F, 0x6F, 0xFF)
+#define TAB_ACTIVE_BACKGROUND_COLOR     (theme_get()->tab_active)
 
 #endif /* COMPONENTS_CONSTANTS_H__ */

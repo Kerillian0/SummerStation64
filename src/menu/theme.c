@@ -29,6 +29,13 @@ static void theme_set_defaults (theme_t *t) {
     t->text_dim = RGBA32(0xA7, 0xB0, 0xBB, 0xFF);
     t->accent = RGBA32(0xF2, 0xB1, 0x34, 0xFF);
     t->panel = RGBA32(0x1B, 0x20, 0x28, 0xFF);
+    /* Same as the stock menu, so an old theme.ini looks unchanged. */
+    t->border = RGBA32(0xFF, 0xFF, 0xFF, 0xFF);
+    t->highlight = RGBA32(0x7F, 0x7F, 0x7F, 0xFF);
+    t->tab_active = RGBA32(0x6F, 0x6F, 0x6F, 0xFF);
+    t->tab_inactive = RGBA32(0x3F, 0x3F, 0x3F, 0xFF);
+    t->tab_active_border = RGBA32(0xFF, 0xFF, 0xFF, 0xFF);
+    t->tab_inactive_border = RGBA32(0x5F, 0x5F, 0x5F, 0xFF);
     t->bg_type = THEME_BG_GRADIENT;
     t->direction = THEME_DIR_VERTICAL;
     t->color1 = RGBA32(0x1B, 0x2A, 0x4A, 0xFF);
@@ -99,6 +106,12 @@ static void apply_key (theme_t *t, const char *section, const char *key, const c
         else if (!strcasecmp(key, "text_dim")) parse_hex_color(v, &t->text_dim);
         else if (!strcasecmp(key, "accent")) parse_hex_color(v, &t->accent);
         else if (!strcasecmp(key, "panel")) parse_hex_color(v, &t->panel);
+        else if (!strcasecmp(key, "border")) parse_hex_color(v, &t->border);
+        else if (!strcasecmp(key, "highlight")) parse_hex_color(v, &t->highlight);
+        else if (!strcasecmp(key, "tab_active")) parse_hex_color(v, &t->tab_active);
+        else if (!strcasecmp(key, "tab_inactive")) parse_hex_color(v, &t->tab_inactive);
+        else if (!strcasecmp(key, "tab_active_border")) parse_hex_color(v, &t->tab_active_border);
+        else if (!strcasecmp(key, "tab_inactive_border")) parse_hex_color(v, &t->tab_inactive_border);
     } else if (!strcasecmp(section, "background")) {
         if (!strcasecmp(key, "type")) {
             if (!strcasecmp(v, "solid")) t->bg_type = THEME_BG_SOLID;

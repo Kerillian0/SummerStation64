@@ -50,17 +50,19 @@ libdragon. Think ES-DE / Pegasus, on a real N64.
   clashing with the system `features.h`.
 
 ## Status
-- Done and tested on hardware: step 1 (theme loader), step 2 (text colors).
-- **Next: step 3a bundle**
-  1. menu_features + theme `[features]` + `theme.txt` support (code written,
-     not yet built). Browser counter shows `4MB`/`8MB` temporarily.
-  2. See-through side covers and hollow selection ring in `browser.c`
-     (code written, not yet built).
-  3. Theme the original frame, tabs and bottom bar: read
-     `src/menu/ui_components/constants.h`, map each frame color to new
-     `[colors]` keys in theme.ini, so the community can edit them. The web
-     Theme Maker needs matching fields and a "current layout" preview, and the
-     share code format must bump to v2 (v1 codes must keep working).
+- Done and tested on hardware: step 1 (theme loader), step 2 (text colors),
+  step 3a parts 1-2 (features + `theme.txt`, hollow ring, see-through side
+  covers; `8MB` readout confirmed, counter still shows it temporarily).
+- **Built, awaiting hardware test: step 3a part 3 (console side).**
+  `constants.h` frame colors now read from the theme: `border`, `highlight`,
+  `tab_active`, `tab_inactive`, `tab_active_border`, `tab_inactive_border`.
+  Defaults match the stock menu.
+- Still open from part 3: the web Theme Maker (not in this repo) needs matching
+  fields and a "current layout" preview, and the share code format must bump to
+  v2 (v1 codes must keep working).
+- The user dislikes the carousel side covers and the frame borders on their
+  CRT. Both must become toggles (theme `[features]` + Settings) so others can
+  keep them; side covers also sit too close to the overscan edge.
 - Then step 3b: user toggles in the Settings screen.
 
 ## theme.ini format (v1)
@@ -74,6 +76,12 @@ text = E9EDF2
 text_dim = A7B0BB
 accent = F2B134
 panel = 1B2028
+border = FFFFFF              ; frame lines (optional, stock values shown)
+highlight = 7F7F7F           ; selected row in lists and context menus
+tab_active = 6F6F6F
+tab_inactive = 3F3F3F
+tab_active_border = FFFFFF
+tab_inactive_border = 5F5F5F
 
 [background]
 type = gradient        ; solid | gradient | image
