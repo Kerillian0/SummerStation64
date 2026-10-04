@@ -6,6 +6,7 @@
 #include <ctype.h>
 
 #include "theme.h"
+#include "safe_mode.h"
 
 static theme_t theme;
 static surface_t background;
@@ -318,7 +319,7 @@ void theme_init (void) {
     initialized = true;
 
     theme_set_defaults(&theme);
-    from_sd = theme_load_ini(&theme, THEME_INI_PATH) || theme_load_ini(&theme, THEME_TXT_PATH);
+    from_sd = !safe_mode_active() && (theme_load_ini(&theme, THEME_INI_PATH) || theme_load_ini(&theme, THEME_TXT_PATH));
 }
 
 /* Built on first draw, so the display is guaranteed to be set up by then. */

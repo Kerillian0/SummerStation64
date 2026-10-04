@@ -5,6 +5,7 @@
 
 #include "ini_parser.h"
 #include "menu_features.h"
+#include "safe_mode.h"
 #include "theme.h"
 
 typedef struct {
@@ -80,6 +81,12 @@ bool features_enabled (feature_t feature) {
     }
 
     bool on = feature_info[feature].default_on;
+
+    /* Safe mode: built-in defaults only. Choices can still be changed and
+       saved in Settings; they take effect on the next normal start. */
+    if (safe_mode_active()) {
+        return on;
+    }
 
     int theme_value = theme_get()->features[feature];
     if (theme_value != FEATURE_UNSET) {

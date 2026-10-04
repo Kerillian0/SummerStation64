@@ -15,6 +15,8 @@
 #include "../theme.h"
 #include "../controls.h"
 #include "../carousel_art.h"
+#include "../safe_mode.h"
+#include "../ui_components/constants.h"
 
 static const char *archive_extensions[] = { "zip", NULL };
 static const char *cheat_extensions[] = {"cht", "cheats", "datel", "gameshark", NULL};
@@ -805,6 +807,19 @@ static void carousel_draw (menu_t *menu) {
                 .wrap = WRAP_WORD,
             }, FNT_DEFAULT, x0 + 8, y0 + 44, "%s", e->name);
         }
+    }
+
+    // Safe mode reminder, centered between the tabs and the cover.
+    if (safe_mode_active()) {
+        int top = VISIBLE_AREA_Y0 + TAB_HEIGHT + BORDER_THICKNESS;
+        int bottom = CAROUSEL_CENTER_Y - CAROUSEL_CENTER_H / 2 - 5;
+        rdpq_text_print(&(rdpq_textparms_t) {
+            .width = screen_w,
+            .height = bottom - top,
+            .align = ALIGN_CENTER,
+            .valign = VALIGN_CENTER,
+            .style_id = STL_ORANGE,
+        }, FNT_DEFAULT, 0, top, "Safe Mode");
     }
 
     // Full name and position under the carousel.

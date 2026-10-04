@@ -11,6 +11,7 @@
 #include "constants.h"
 #include "utils/fs.h"
 #include "../theme.h"
+#include "../safe_mode.h"
 
 #define CACHE_METADATA_MAGIC    (0x424B4731)
 
@@ -281,7 +282,7 @@ void ui_components_background_replace_image(surface_t *image) {
  * Otherwise the theme's generated background is drawn on every screen.
  */
 void ui_components_background_draw(void) {
-    if (background && background->image_display_list) {
+    if (background && background->image_display_list && !safe_mode_active()) {
         rspq_block_run(background->image_display_list);
     } else {
         theme_background_draw();

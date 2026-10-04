@@ -21,6 +21,7 @@
 #include "audio_player.h"
 #include "png_decoder.h"
 #include "settings.h"
+#include "safe_mode.h"
 #include "sound.h"
 #include "usb_comm.h"
 #include "utils/fs.h"
@@ -61,6 +62,7 @@ static void menu_init (boot_params_t *boot_params) {
     }
 
     joypad_init();
+    safe_mode_detect();
     timer_init();
     rtc_init();
     rspq_init();

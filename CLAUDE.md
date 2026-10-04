@@ -41,6 +41,12 @@ libdragon. Think ES-DE / Pegasus, on a real N64.
   image in memory, loads 250 ms after the selection settles, and is freed
   when leaving the browser (the PNG decoder handles one image at a time).
   Feature `cover_art` (default on).
+- `src/menu/safe_mode.c/.h` — hold Z at boot (read once, synchronously, right
+  after `joypad_init()` in `menu.c`). Skips theme.ini/theme.txt, the theme and
+  user feature layers, and the custom background image. Shows an orange
+  "Safe Mode" label on the Files screen only, centered between the tabs and
+  the cover (in `carousel_draw()`). Nothing on
+  the SD card is changed.
 - `src/menu/controls.c/.h` — button layout for the three tabbed screens:
   L/R switch tabs, Z is Options (was R), left/right scroll the carousel,
   up/down do nothing there unless the `updown_scroll` feature is on. It
@@ -91,7 +97,8 @@ libdragon. Think ES-DE / Pegasus, on a real N64.
   art). Not yet tested: Japanese (tall) and 64DD-shaped art — the user will
   check these before publishing. Box art lives in `sd:/menu/metadata/`; the
   old flat `sd:/menu/boxart/XXXX.png` style is compiled out upstream.
-- **Next (v0.1):** safe mode + friendly crash screen.
+- Done and tested on hardware: safe mode.
+- **Next (v0.1):** friendly crash screen.
 
 ## theme.ini format (v1)
 ```ini
