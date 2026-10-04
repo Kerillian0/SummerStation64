@@ -64,7 +64,7 @@ libdragon. Think ES-DE / Pegasus, on a real N64.
   `frame_borders` (default on), settable in theme `[features]`. The user
   dislikes both on their CRT but wants others to be able to enable them; side
   covers also sit too close to the overscan edge.
-- **Built, awaiting hardware test: step 3b.** Settings > "Menu Features"
+- Done and tested on hardware: step 3b. Settings > "Menu Features"
   (`src/menu/views/features_menu.c`) offers Theme Default / On / Off per
   feature. Choices are saved to `sd:/menu/features.ini` (temp file + rename)
   and override the theme. Only features that already do something are listed.

@@ -14,6 +14,10 @@ static void set_feature (menu_t *menu, void *arg) {
     feature_t feature = (feature_t)((packed >> 8) - 1);
     int value = (int8_t)(packed & 0xFF);
     features_user_set(feature, value);
+
+    // The menu closes after a choice; forget which feature was open so that
+    // "Menu Features" shows the feature list again next time.
+    features_context_menu.submenu = NULL;
 }
 
 /* Row to start on: 0 = Theme Default, 1 = On, 2 = Off. */
