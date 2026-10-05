@@ -166,11 +166,14 @@ Claude builds in the container and the user deploys from Windows.
   a worked-out 4MB column. Open: confirm on a real 4MB run, fix the safe mode
   + custom background risk, and free memory before v0.2's cover features.
 - Done and tested on hardware: cover slide animation (the user found the
-  160 ms timing and the text pop natural). The Theme Maker and the v2 share
-  code don't know `carousel_animation` yet.
+  160 ms timing and the text pop natural).
 - Done and tested on hardware: box flip (up/down shows the back of the box).
 - Done and tested on hardware: art on the previous/next covers (cover
   cache). Cost with side covers on: up to 4 x 35 KB.
+- Done and tested (console and Theme Maker): feature `see_through_covers`
+  (default on; off draws the side covers solid), "See-through Side Covers" in
+  Settings > Display. The Theme Maker (version 6) offers it and
+  `carousel_animation`, using share code bits 6 and 7.
 - **v0.1 user-facing features are complete.** Two dev-tooling items were
   added to v0.1 afterwards and are not started: the debug overlay and the
   PC-side tests. Before publishing, the user still wants to test Japanese
@@ -212,7 +215,8 @@ opacity = 10           ; 0-100
 [features]
 quick_launch = 1       ; any key from menu_features.c: quick_launch,
                        ; hold_launch, side_covers, frame_borders,
-                       ; updown_scroll, cover_art (0 or 1; leave out = default)
+                       ; updown_scroll, cover_art, carousel_animation,
+                       ; see_through_covers (0 or 1; leave out = default)
 ```
 
 ## Share codes (v1, used by the web Theme Maker)
@@ -227,7 +231,8 @@ bit4 color3 on, bit5 dither; [26] pattern; [27] size; [28] opacity;
 RGB: border, highlight, tab_active, tab_inactive, tab_active_border,
 tab_inactive_border; [47] feature "is set" mask; [48] feature values, same bit
 order: 0 quick_launch, 1 hold_launch, 2 side_covers, 3 frame_borders,
-4 updown_scroll, 5 cover_art; [49] reserved; [50..51] CRC-16/CCITT-FALSE of
+4 updown_scroll, 5 cover_art, 6 carousel_animation, 7 see_through_covers
+(bits 6-7 added 2026-10-05; older v2 codes leave them unset); [49] reserved; [50..51] CRC-16/CCITT-FALSE of
 bytes 0..49. The Theme Maker writes v1 when the frame colors are stock and no
 feature is set, so simple themes keep the short code. Both versions decode.
 

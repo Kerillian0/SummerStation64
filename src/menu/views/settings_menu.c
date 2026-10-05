@@ -97,6 +97,7 @@ static const char *default_folder (menu_t *menu) {
 static const item_t display_items[] = {
     FEATURE("Cover Art", FEATURE_COVER_ART, "Show box art on the selected cover."),
     FEATURE("Previous/Next Covers", FEATURE_SIDE_COVERS, "Show smaller covers either side of the selected one."),
+    FEATURE("See-through Side Covers", FEATURE_SEE_THROUGH_COVERS, "Let the background show through the previous and next covers. Off draws them solid."),
     FEATURE("Cover Slide", FEATURE_CAROUSEL_ANIMATION, "Covers slide into place when you move left or right."),
     FEATURE("Frame Borders", FEATURE_FRAME_BORDERS, "Draw the frame around the screen and the line above the button hints."),
     CHOICE("Video Output", force_progressive_scan, false, "480i", "240p", NULL,

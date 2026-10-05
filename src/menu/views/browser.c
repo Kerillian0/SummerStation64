@@ -803,6 +803,7 @@ static void carousel_draw (menu_t *menu) {
     const int screen_w = (int) display_get_width();
     const int cx = screen_w / 2;
     const bool side_covers = features_enabled(FEATURE_SIDE_COVERS);
+    const bool see_through = features_enabled(FEATURE_SEE_THROUGH_COVERS);
 
     carousel_art_update(menu, side_covers);
 
@@ -831,7 +832,10 @@ static void carousel_draw (menu_t *menu) {
             // themed background shows through. Without side covers a cover
             // simply fades out as it leaves the center.
             float alpha;
-            if (side_covers) {
+            if (side_covers && !see_through) {
+                // Solid side covers; they still fade out as they leave the row.
+                alpha = (away < 2.0f) ? 255.0f : carousel_lerp(255.0f, 0.0f, away - 2.0f);
+            } else if (side_covers) {
                 if (away < 1.0f) alpha = carousel_lerp(255.0f, 176.0f, away);
                 else if (away < 2.0f) alpha = carousel_lerp(176.0f, 112.0f, away - 1.0f);
                 else alpha = carousel_lerp(112.0f, 0.0f, away - 2.0f);
