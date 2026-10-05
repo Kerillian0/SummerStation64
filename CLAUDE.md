@@ -266,13 +266,17 @@ Fixed (built, awaiting hardware test): safe mode no longer loads the custom
 background picture at all (`load_from_cache()` in `background.c`), so it
 can't sit in RAM next to the theme background.
 
-Known risk, not yet tested or fixed: the theme background (600 KB) is never
-freed once built. The stock image viewer frees the user's background picture
-before decoding a picture, to make room on 4MB; it knows nothing about the
-theme background. With only about 344 KB free, opening a full-screen picture
-in the image viewer, or setting one as the background, probably fails on a
-4MB console. Fix idea: a `theme_background_free()` called from those places
-(it is rebuilt on the next draw), and/or the 320x240 theme background.
+Image viewer on 4MB (tested on 8MB 2026-10-05: used RAM stays at 2774 KB on
+the Files screen and inside the viewer): the theme background
+(600 KB) used to stay in RAM while the image viewer decoded a full-screen
+picture, which cannot fit in the roughly 344 KB free on 4MB. The stock viewer
+already frees the user's background picture first; `theme_background_suspend()`
+/ `theme_background_resume()` now do the same for the theme background, hooked
+into the three stock functions in `background.c` that the viewer calls. The
+loading screen shows a plain color meanwhile, and the gradient is rebuilt on
+return, which takes about 1.25 s (noticeable; the user would welcome it
+faster). The user has a Jumper Pak on the way, so real 4MB runs become
+possible; until then everything 4MB-specific is worked out, not tested.
 
 Still to measure: a real 4MB run, a folder with many entries, the image
 viewer and the music player.

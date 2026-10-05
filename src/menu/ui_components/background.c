@@ -256,6 +256,7 @@ void ui_components_background_clear(void) {
  * @param image Pointer to the new background image surface.
  */
 void ui_components_background_replace_image(surface_t *image) {
+    theme_background_resume();
     if (!background) {
         return;
     }
@@ -294,6 +295,7 @@ surface_t *ui_components_background_get_image(void) {
 }
 
 void ui_components_background_reload(void) {
+    theme_background_resume();
     if (!background || !background->cache_location) {
         return;
     }
@@ -304,6 +306,7 @@ void ui_components_background_reload(void) {
 }
 
 void ui_components_background_image_free_only(void) {
+    theme_background_suspend(); // the theme background has to make room too
     if (!background) {
         return;
     }

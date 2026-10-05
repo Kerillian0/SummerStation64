@@ -13,6 +13,7 @@ static surface_t background;
 static bool initialized = false;     /* settings loaded */
 static bool background_built = false;
 static bool from_sd = false;
+static bool suspended = false;        /* memory lent to another screen */
 
 static const uint8_t bayer4[16] = {
     0, 8, 2, 10,
@@ -343,8 +344,24 @@ bool theme_loaded_from_sd (void) {
     return from_sd;
 }
 
+void theme_background_suspend (void) {
+    suspended = true;
+    if (background.buffer) {
+        rspq_wait(); /* nothing may still be drawing from it */
+        surface_free(&background);
+        memset(&background, 0, sizeof(background));
+    }
+    background_built = false;
+}
+
+void theme_background_resume (void) {
+    suspended = false;
+}
+
 void theme_background_draw (void) {
-    theme_ensure_background();
+    if (!suspended) {
+        theme_ensure_background();
+    }
     rdpq_mode_push();
     if (background.buffer) {
         rdpq_set_mode_copy(false);

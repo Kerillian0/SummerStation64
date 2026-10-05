@@ -87,4 +87,13 @@ bool theme_loaded_from_sd (void);
 /** Draw the pre-built background. Call right after rdpq_attach(). */
 void theme_background_draw (void);
 
+/**
+ * Give the background's memory (600 KB) back, for screens that need the
+ * room, such as the image viewer. A plain color is drawn until
+ * theme_background_resume() is called; the background is then rebuilt the
+ * next time it is drawn.
+ */
+void theme_background_suspend (void);
+void theme_background_resume (void);
+
 #endif /* THEME_H__ */
