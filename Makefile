@@ -46,6 +46,7 @@ SRCS = \
 	menu/ini_parser.c \
 	menu/actions.c \
 	menu/controls.c \
+	menu/debug_stats.c \
 	menu/crash_screen.c \
 	menu/safe_mode.c \
 	menu/carousel_art.c \

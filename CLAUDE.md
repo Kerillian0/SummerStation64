@@ -76,6 +76,11 @@ Claude builds in the container and the user deploys from Windows.
   the player hasn't chosen, so it's visible whether the theme or the player
   decides. Rows are table-driven: add a `SWITCH`/`FEATURE`/`ACTION`/`INFO`
   line to a category.
+- `src/menu/debug_stats.c/.h` — prints a `stats:` line to the debug log every
+  two seconds (heap size, used, free, average and worst frame time), restarted
+  on each screen change. One-line hook in the `menu.c` main loop. Screen
+  numbers are `menu_mode_t` values: 2 Files, 9 Settings, 15 game info,
+  21 Favorites, 22 History. Read it with `localdeploy.bat /dur`.
 - `src/menu/controls.c/.h` — button layout for the three tabbed screens:
   L/R switch tabs, Z is Options (was R), left/right scroll the carousel,
   up/down do nothing there unless the `updown_scroll` feature is on. It
@@ -143,9 +148,10 @@ Claude builds in the container and the user deploys from Windows.
   `force_progressive_scan` setting (640x480 buffer shown non-interlaced, so
   the picture is scaled to 240 lines); it applies after a restart. A native
   320x240 layout is still the separate "240p mode" item in v0.5.
-- Memory budget table created (see "Memory budget"); every dynamic row is
-  still an estimate. Next for it: print real free RAM with debugf and fill in
-  measured numbers, and deal with the safe mode + custom background risk.
+- Done and tested on hardware: `debug_stats.c` (free RAM and frame time in
+  the debug log). The memory budget table now holds measured 8MB numbers and
+  a worked-out 4MB column. Open: confirm on a real 4MB run, fix the safe mode
+  + custom background risk, and free memory before v0.2's cover features.
 - **v0.1 user-facing features are complete.** Two dev-tooling items were
   added to v0.1 afterwards and are not started: the debug overlay and the
   PC-side tests. Before publishing, the user still wants to test Japanese
@@ -212,44 +218,57 @@ feature is set, so simple themes keep the short code. Both versions decode.
 - Print free RAM and frame time with debugf on every hardware test.
 
 ## Memory budget (4MB console = 4096 KB)
-First version, 2026-10-05. "Measured" rows come from the built ELF or file
-sizes; "calculated" from width x height x 2 bytes; "estimate" rows are
-guesses that still need a real number from hardware (`sys_get_heap_stats()`
-printed with debugf). Nothing here has been measured on the console yet.
+Measured 2026-10-05 on the user's console **with the Expansion Pak** (8MB,
+240p output, commit 987db388 + debug_stats) from the `stats:` debug lines.
+The 4MB column is worked out from those numbers, not yet run on a 4MB
+console: the same allocations are assumed, with 4096 KB fewer to give.
 
 | What | KB | Basis |
 |---|---:|---|
-| Program: code + data + bss | 930 | measured (`mips64-elf-size`, commit 987db388) |
+| Outside the heap: program (930) + stack and startup | 974 | measured (8192 - heap 7218) |
 | Screen buffers: 2 x 640x480, 16-bit | 1200 | calculated |
 | Background: theme gradient, or the user's picture | 600 | calculated |
-| Font: `Firple-Bold.font64`, loaded whole | 465 | measured (file size) |
-| **Always in use** | **3195** | |
-| Stack | 64 | estimate |
-| Audio: output buffers (44.1 kHz, 4 buffers) + 16-channel mixer | 100 | estimate |
-| Graphics command queues (rspq/rdpq) | 50 | estimate |
-| File list: up to 1024 entries on 4MB | 100 | estimate, worst case |
-| Center cover: 158x112 (tall art 158x158 = 49) | 35 | calculated |
-| PNG decoding while a cover loads | 100 | estimate, temporary |
-| Settings, history, favorites, paths | 30 | estimate |
-| **Files screen, worst case** | **3674** | |
-| **Left over** | **about 420** | |
+| Everything else at rest: font, audio, graphics queues, file list, settings | 978 | measured (2778 used - 1800), not broken down |
+| **Files screen, no cover loaded** | **3752** | measured |
+| Center cover (US/EU art) | 35 | measured |
+| Extra while a cover is decoding | 54+ | measured at 2 s samples; the true peak may be higher |
+| **Files screen, cover loading (worst seen)** | **3841** | measured |
 
-Rules of thumb until real numbers exist:
-- Keep at least 256 KB free on the Files screen on a 4MB console.
-- A full-screen 16-bit image costs 600 KB. There is room for exactly one
-  besides the two screen buffers; a second one does not fit.
-- A cover-sized image costs 35-49 KB, so about 5 could be held at once before
-  eating into the 256 KB reserve. This limits cover caching and art on the
-  previous/next covers.
-- Program size grows with every feature; re-measure it when updating the table.
+| On a 4MB console (heap 3122 KB) | Free KB |
+|---|---:|
+| Files screen, no cover | 344 |
+| Files screen, cover shown | 309 |
+| Files screen, while a cover decodes | 255 or less |
+| Settings screen | 344 |
+| Game info screen with its box art | 309 |
 
-Known risk found while writing this: in safe mode with a custom background
-picture set, the picture is still loaded (600 KB) although safe mode draws the
-theme background instead (another 600 KB). On 4MB that is about 180 KB more
-than the console has. Not yet tested or fixed.
+What this means:
+- The first estimate was about 110 KB too optimistic (420 free guessed, 309
+  projected). The "everything else" bucket is 978 KB, not the 745 guessed.
+- Reserve rule: keep at least 256 KB free on the Files screen on 4MB. We are
+  already at that line while a cover decodes. **There is room for about one
+  more cover-sized image, not five.** v0.2 items that hold more images (cover
+  cache, art on previous/next covers, slide animation with two covers) need
+  memory freed first.
+- A full-screen 16-bit image costs 600 KB; a second one does not fit.
+- Candidates for freeing memory, biggest first: break down the 978 KB bucket
+  (the font is stored compressed, so it may be well over its 465 KB file
+  size); build the theme background at 320x240 and scale it up (saves about
+  450 KB); fewer or smaller audio buffers.
+- Program size grows with every feature; re-measure when updating the table.
 
-Other screens to budget when they are touched: the image viewer (decodes a
-full-screen picture) and the music player.
+Frame time (30 fps cap, so 33.3 ms is on target): steady 33.4 ms on every
+screen. One frame of about 50 ms roughly every 6 s on the Files and game info
+screens (cause unknown). Loading a cover costs one hitch of 70-75 ms. Opening
+the first folder took 1.4 s.
+
+Known risk, now backed by numbers: in safe mode with a custom background
+picture set, the picture is still loaded (600 KB) while safe mode also builds
+the theme background (600 KB). On 4MB only about 344 KB is free, so this
+cannot fit. Not yet tested or fixed.
+
+Still to measure: a real 4MB run, a folder with many entries, the image
+viewer and the music player.
 
 ## Release plan
 - **v0.1 usable carousel:** theme loader ✓, text colors ✓, feature toggles +
