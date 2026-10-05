@@ -15,12 +15,11 @@ static bool background_built = false;
 static bool from_sd = false;
 static bool suspended = false;        /* memory lent to another screen */
 
-static const uint8_t bayer4[16] = {
-    0, 8, 2, 10,
-    12, 4, 14, 6,
-    3, 11, 1, 9,
-    15, 7, 13, 5,
-};
+/* The background is built at 1/BG_SCALE of the screen size and stretched when
+   drawn. It is kept in full 32-bit color (300 KB instead of the 600 KB a
+   full-size 16-bit one took), and the graphics chip dithers it down to the
+   16-bit screen at full resolution, so the dither grain stays fine. */
+#define BG_SCALE    (2)
 
 /* ---------- defaults ---------- */
 
@@ -252,21 +251,22 @@ static bool pattern_hit (const theme_t *t, int x, int y) {
     }
 }
 
-static uint8_t quantize5 (float v, float bias) {
-    v += bias;
+static uint32_t to_byte (float v) {
     if (v < 0.0f) v = 0.0f;
     if (v > 255.0f) v = 255.0f;
-    return (uint8_t) lroundf(v / 255.0f * 31.0f);
+    return (uint32_t) lroundf(v);
 }
 
 static void theme_build_background (const theme_t *t) {
     int w = display_get_width();
     int h = display_get_height();
+    int bw = w / BG_SCALE;
+    int bh = h / BG_SCALE;
 
-    background = surface_alloc(FMT_RGBA16, w, h);
+    background = surface_alloc(FMT_RGBA32, bw, bh);
 
     /* Build each row in cached RAM, then copy it out in one go. */
-    uint16_t *row = malloc(w * sizeof(uint16_t));
+    uint32_t *row = malloc(bw * sizeof(uint32_t));
     if (!row || !background.buffer) {
         free(row);
         return;
@@ -281,8 +281,12 @@ static void theme_build_background (const theme_t *t) {
     /* Image backgrounds aren't decoded yet: fall back to color1. */
     theme_bg_type_t type = (t->bg_type == THEME_BG_IMAGE) ? THEME_BG_SOLID : t->bg_type;
 
-    for (int y = 0; y < h; y++) {
-        for (int x = 0; x < w; x++) {
+    for (int by = 0; by < bh; by++) {
+        for (int bx = 0; bx < bw; bx++) {
+            /* Gradient and pattern are worked out in screen positions, so
+               pattern sizes in theme.ini still mean screen pixels. */
+            int x = bx * BG_SCALE;
+            int y = by * BG_SCALE;
             rgbf_t c;
             if (type == THEME_BG_GRADIENT) {
                 float p = gradient_pos(t, x, y, w, h);
@@ -299,13 +303,9 @@ static void theme_build_background (const theme_t *t) {
                 c = lerp(c, pc, pa);
             }
 
-            float bias = t->dither ? ((bayer4[(y & 3) * 4 + (x & 3)] / 16.0f) - 0.5f) * 8.0f : 0.0f;
-            uint8_t r = quantize5(c.r, bias);
-            uint8_t g = quantize5(c.g, bias);
-            uint8_t b = quantize5(c.b, bias);
-            row[x] = (r << 11) | (g << 6) | (b << 1) | 1;
+            row[bx] = (to_byte(c.r) << 24) | (to_byte(c.g) << 16) | (to_byte(c.b) << 8) | 0xFF;
         }
-        memcpy((uint8_t *) background.buffer + y * background.stride, row, w * sizeof(uint16_t));
+        memcpy((uint8_t *) background.buffer + by * background.stride, row, bw * sizeof(uint32_t));
     }
 
     free(row);
@@ -364,8 +364,14 @@ void theme_background_draw (void) {
     }
     rdpq_mode_push();
     if (background.buffer) {
-        rdpq_set_mode_copy(false);
-        rdpq_tex_blit(&background, 0, 0, NULL);
+        /* Stretching needs the standard mode; the fast copy mode can't scale. */
+        rdpq_set_mode_standard();
+        rdpq_mode_combiner(RDPQ_COMBINER_TEX);
+        rdpq_mode_dithering(theme.dither ? DITHER_BAYER_NONE : DITHER_NONE_NONE);
+        rdpq_tex_blit(&background, 0, 0, &(rdpq_blitparms_t) {
+            .scale_x = BG_SCALE,
+            .scale_y = BG_SCALE,
+        });
     } else {
         rdpq_set_mode_fill(theme.color1);
         rdpq_fill_rectangle(0, 0, display_get_width(), display_get_height());

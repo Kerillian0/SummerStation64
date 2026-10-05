@@ -219,7 +219,8 @@ feature is set, so simple themes keep the short code. Both versions decode.
 
 ## Memory budget (4MB console = 4096 KB)
 Measured 2026-10-05 on the user's console **with the Expansion Pak** (8MB,
-240p output, commit 987db388 + debug_stats) from the `stats:` debug lines.
+240p output) from the `stats:` debug lines. Updated the same day after the
+theme background went from 600 KB to 300 KB.
 The 4MB column is worked out from those numbers, not yet run on a 4MB
 console: the same allocations are assumed, with 4096 KB fewer to give.
 
@@ -227,34 +228,42 @@ console: the same allocations are assumed, with 4096 KB fewer to give.
 |---|---:|---|
 | Outside the heap: program (930) + stack and startup | 974 | measured (8192 - heap 7218) |
 | Screen buffers: 2 x 640x480, 16-bit | 1200 | calculated |
-| Background: theme gradient, or the user's picture | 600 | calculated |
-| Everything else at rest: font, audio, graphics queues, file list, settings | 978 | measured (2778 used - 1800), not broken down |
-| **Files screen, no cover loaded** | **3752** | measured |
+| Background: theme gradient (300), or the user's picture (600) | 300 | calculated; 305 KB drop measured |
+| Everything else at rest: font, audio, graphics queues, file list, settings | 969 | measured (2469 used - 1500), not broken down |
+| **Files screen, no cover loaded** | **3443** | measured (974 + 2469) |
 | Center cover (US/EU art) | 35 | measured |
 | Extra while a cover is decoding | 54+ | measured at 2 s samples; the true peak may be higher |
-| **Files screen, cover loading (worst seen)** | **3841** | measured |
+| **Files screen, cover loading (worst seen)** | **3532** | worked out (cover numbers measured before the change) |
 
 | On a 4MB console (heap 3122 KB) | Free KB |
 |---|---:|
-| Files screen, no cover | 344 |
-| Files screen, cover shown | 309 |
-| Files screen, while a cover decodes | 255 or less |
-| Settings screen | 344 |
-| Game info screen with its box art | 309 |
+| Files screen, no cover | 653 |
+| Files screen, cover shown | 618 |
+| Files screen, while a cover decodes | 564 or less |
+| Settings screen | 653 |
+| Game info screen with its box art | 618 |
 
 What this means:
 - The first estimate was about 110 KB too optimistic (420 free guessed, 309
   projected). The "everything else" bucket is 978 KB, not the 745 guessed.
-- Reserve rule: keep at least 256 KB free on the Files screen on 4MB. We are
-  already at that line while a cover decodes. **There is room for about one
-  more cover-sized image, not five.** v0.2 items that hold more images (cover
-  cache, art on previous/next covers, slide animation with two covers) need
-  memory freed first.
+- Reserve rule: keep at least 256 KB free on the Files screen on 4MB. With
+  about 564 KB free at the worst moment there is roughly 300 KB to spend,
+  which is about six more cover-sized images. That is the budget for v0.2's
+  cover cache, art on previous/next covers and the slide animation.
+- With a user background picture (600 KB) instead of the theme background,
+  subtract 300 KB from every "free" figure: about 264 KB at the worst moment,
+  i.e. nothing to spare. Cover extras must cope with that case.
 - A full-screen 16-bit image costs 600 KB; a second one does not fit.
-- Candidates for freeing memory, biggest first: break down the 978 KB bucket
-  (the font is stored compressed, so it may be well over its 465 KB file
-  size); build the theme background at 320x240 and scale it up (saves about
-  450 KB); fewer or smaller audio buffers.
+- Theme background: built at 320x240 in 32-bit color (`BG_SCALE` in
+  `theme.c`), stretched 2x when drawn, dithered by the RDP at full resolution
+  (`DITHER_BAYER_NONE`). Tried first as 16-bit with baked dither (150 KB): the
+  dither looked coarse on the CRT. The 32-bit version looks almost identical
+  to the original full-size one, frame time unchanged (33.1-33.4 ms). The
+  user prefers saving RAM over keeping the full-size background.
+  `dither = 0` themes are not yet checked with this version.
+- Remaining candidates for freeing memory: break down the 969 KB bucket (the
+  font is stored compressed, so it may be well over its 465 KB file size);
+  fewer or smaller audio buffers.
 - Program size grows with every feature; re-measure when updating the table.
 
 Frame time (30 fps cap, so 33.3 ms is on target): steady 33.4 ms on every
@@ -269,13 +278,13 @@ can't sit in RAM next to the theme background.
 Image viewer on 4MB (tested on 8MB 2026-10-05: used RAM stays at 2774 KB on
 the Files screen and inside the viewer): the theme background
 (600 KB) used to stay in RAM while the image viewer decoded a full-screen
-picture, which cannot fit in the roughly 344 KB free on 4MB. The stock viewer
+picture, which could not fit in the free memory on 4MB. The stock viewer
 already frees the user's background picture first; `theme_background_suspend()`
 / `theme_background_resume()` now do the same for the theme background, hooked
 into the three stock functions in `background.c` that the viewer calls. The
 loading screen shows a plain color meanwhile, and the gradient is rebuilt on
-return, which takes about 1.25 s (noticeable; the user would welcome it
-faster). The user has a Jumper Pak on the way, so real 4MB runs become
+return. That took about 1.25 s at full size; the half-size background made
+it visibly faster. The user has a Jumper Pak on the way, so real 4MB runs become
 possible; until then everything 4MB-specific is worked out, not tested.
 
 Still to measure: a real 4MB run, a folder with many entries, the image
