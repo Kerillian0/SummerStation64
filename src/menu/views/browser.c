@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <math.h>
 #include <miniz.h>
 #include <miniz_zip.h>
 #include <stdlib.h>
@@ -734,6 +735,64 @@ static void carousel_ring (int x0, int y0, int x1, int y1, int thickness, color_
     rdpq_fill_rectangle(x1 - thickness, y0 + thickness, x1, y1 - thickness);
 }
 
+static float carousel_lerp (float a, float b, float t) {
+    return a + (b - a) * t;
+}
+
+#define CAROUSEL_SLIDE_MS   160     // how long a slide takes
+#define CAROUSEL_RAPID_MS   120     // moves closer together than this snap instead of sliding
+
+static int slide_selected = -1;
+static entry_t *slide_list = NULL;
+static int slide_entries = 0;
+static int slide_dir = 0;
+static uint64_t slide_start_ms = 0;
+static uint64_t slide_last_move_ms = 0;
+
+// How far the covers still have to travel, in cover positions: +1 or -1 at
+// the start of a slide, 0 at rest. Timed by the clock, not by frames, so it
+// takes the same time at 50 and 60 Hz.
+static float carousel_slide (menu_t *menu) {
+    uint64_t now = get_ticks_ms();
+    int selected = menu->browser.selected;
+    bool same_folder = (menu->browser.list == slide_list) && (menu->browser.entries == slide_entries);
+
+    if (!same_folder || slide_selected < 0) {
+        slide_dir = 0;
+    } else if (selected != slide_selected) {
+        int delta = selected - slide_selected;
+        bool rapid = (now - slide_last_move_ms) < CAROUSEL_RAPID_MS;
+        if (features_enabled(FEATURE_CAROUSEL_ANIMATION) && !rapid) {
+            // Wrapping from the last item to the first still counts as "next".
+            if (menu->settings.wrap_file_list_scrolling && (delta == menu->browser.entries - 1 || delta == 1 - menu->browser.entries)) {
+                delta = -delta;
+            }
+            slide_dir = (delta > 0) ? 1 : -1;
+            slide_start_ms = now;
+        } else {
+            slide_dir = 0; // holding the direction or fast scroll: keep up, don't slide
+        }
+        slide_last_move_ms = now;
+    }
+
+    slide_list = menu->browser.list;
+    slide_entries = menu->browser.entries;
+    slide_selected = selected;
+
+    if (slide_dir == 0) {
+        return 0.0f;
+    }
+
+    float progress = (float) (now - slide_start_ms) / CAROUSEL_SLIDE_MS;
+    if (progress >= 1.0f) {
+        slide_dir = 0;
+        return 0.0f;
+    }
+
+    float remaining = (1.0f - progress) * (1.0f - progress); // fast at first, easing into place
+    return slide_dir * remaining;
+}
+
 static void carousel_draw (menu_t *menu) {
     const theme_t *t = theme_get();
     if (menu->browser.entries <= 0 || menu->browser.selected < 0) {
@@ -746,51 +805,69 @@ static void carousel_draw (menu_t *menu) {
 
     carousel_art_update(menu);
 
-    // Draw outer covers first so the center one sits on top.
-    for (int dist = 2; dist >= 0; dist--) {
+    const float slide = carousel_slide(menu);
+    const int first = CAROUSEL_CENTER_W / 2 + CAROUSEL_GAP + CAROUSEL_SIDE_W / 2;
+    const int step = CAROUSEL_SIDE_W + CAROUSEL_GAP;
+
+    // Draw outer covers first so the center one sits on top. While sliding,
+    // every cover sits a fraction of a position away from where it will rest.
+    for (int dist = 3; dist >= 0; dist--) {
         for (int sign = -1; sign <= 1; sign += 2) {
             if (dist == 0 && sign == 1) {
                 continue; // center is drawn once
             }
             int offset = dist * sign;
-            if (offset != 0 && !side_covers) {
-                continue;
-            }
             int i = menu->browser.selected + offset;
             if (i < 0 || i >= menu->browser.entries) {
                 continue;
             }
 
-            bool center = (offset == 0);
-            int w = center ? CAROUSEL_CENTER_W : CAROUSEL_SIDE_W;
-            int h = center ? CAROUSEL_CENTER_H : CAROUSEL_SIDE_H;
+            float pos = offset + slide;         // 0 = center, +1/-1 = next to it, ...
+            float away = fabsf(pos);
+            bool resting_center = (offset == 0) && (slide == 0.0f);
+
+            // Solid in the center, more see-through the further out, so the
+            // themed background shows through. Without side covers a cover
+            // simply fades out as it leaves the center.
+            float alpha;
+            if (side_covers) {
+                if (away < 1.0f) alpha = carousel_lerp(255.0f, 176.0f, away);
+                else if (away < 2.0f) alpha = carousel_lerp(176.0f, 112.0f, away - 1.0f);
+                else alpha = carousel_lerp(112.0f, 0.0f, away - 2.0f);
+            } else {
+                alpha = carousel_lerp(255.0f, 0.0f, away);
+            }
+            if (alpha <= 0.0f) {
+                continue;
+            }
+
+            // Size shrinks from the center size to the side size over the first position.
+            float grow = (away < 1.0f) ? (1.0f - away) : 0.0f;
+            int w = (int) carousel_lerp(CAROUSEL_SIDE_W, CAROUSEL_CENTER_W, grow);
+            int h = (int) carousel_lerp(CAROUSEL_SIDE_H, CAROUSEL_CENTER_H, grow);
 
             // Horizontal center of this cover.
-            int x_mid = cx;
-            if (!center) {
-                int first = CAROUSEL_CENTER_W / 2 + CAROUSEL_GAP + CAROUSEL_SIDE_W / 2;
-                int step = CAROUSEL_SIDE_W + CAROUSEL_GAP;
-                x_mid = cx + sign * (first + (dist - 1) * step);
-            }
-            int x0 = x_mid - w / 2;
+            float mid = (away < 1.0f) ? (pos * first) : ((pos < 0.0f ? -1.0f : 1.0f) * (first + (away - 1.0f) * step));
+            int x0 = cx + (int) mid - w / 2;
             int y0 = CAROUSEL_CENTER_Y - h / 2;
 
-            // Placeholder cover: solid in the center, more see-through the
-            // further out, so the themed background shows through the sides.
-            if (center) {
-                carousel_ring(x0 - 5, y0 - 5, x0 + w + 5, y0 + h + 5, 3, t->accent);
+            if (alpha >= 255.0f) {
                 rdpq_set_mode_fill(t->panel);
                 rdpq_fill_rectangle(x0, y0, x0 + w, y0 + h);
-                if (carousel_art_draw(x0, y0, w, h)) {
+                if (resting_center && carousel_art_draw(x0, y0, w, h)) {
                     continue; // box art replaces the placeholder text
                 }
             } else {
-                int alpha = (dist == 1) ? 0xB0 : 0x70;
                 rdpq_set_mode_standard();
-                rdpq_set_prim_color(RGBA32(t->panel.r, t->panel.g, t->panel.b, alpha));
+                rdpq_set_prim_color(RGBA32(t->panel.r, t->panel.g, t->panel.b, (int) alpha));
                 rdpq_mode_combiner(RDPQ_COMBINER_FLAT);
                 rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
                 rdpq_fill_rectangle(x0, y0, x0 + w, y0 + h);
+            }
+
+            // Text can't fade, so a cover that is fading out loses its text early.
+            if (!side_covers && away >= 0.5f) {
+                continue;
             }
 
             entry_t *e = &menu->browser.list[i];
@@ -808,6 +885,13 @@ static void carousel_draw (menu_t *menu) {
             }, FNT_DEFAULT, x0 + 8, y0 + 44, "%s", e->name);
         }
     }
+
+    // The selection ring stays put in the center; covers slide through it.
+    carousel_ring(
+        cx - CAROUSEL_CENTER_W / 2 - 5, CAROUSEL_CENTER_Y - CAROUSEL_CENTER_H / 2 - 5,
+        cx + CAROUSEL_CENTER_W / 2 + 5, CAROUSEL_CENTER_Y + CAROUSEL_CENTER_H / 2 + 5,
+        3, t->accent
+    );
 
     // Safe mode reminder, centered between the tabs and the cover.
     if (safe_mode_active()) {

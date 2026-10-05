@@ -49,7 +49,12 @@ Claude builds in the container and the user deploys from Windows.
 
 ## What we've changed so far
 - `src/menu/views/browser.c` — carousel prototype (`BROWSER_CAROUSEL` switch,
-  `carousel_draw()`), uses theme colors.
+  `carousel_draw()`), uses theme colors. Slide animation (`carousel_slide()`):
+  160 ms, clock-based, ease-out; covers are drawn at fractional positions and
+  the selection ring stays fixed in the center. Moves less than 120 ms apart
+  (held direction, fast scroll) snap instead of sliding. Feature
+  `carousel_animation` (default on), "Cover Slide" in Settings > Display. Uses
+  no extra memory: sliding covers are placeholders, art loads after settling.
 - `src/menu/carousel_art.c/.h` — box art on the center cover. Reads the game
   code from the ROM header itself, reuses the stock boxart loader, keeps one
   image in memory, loads 250 ms after the selection settles, and is freed
@@ -152,6 +157,9 @@ Claude builds in the container and the user deploys from Windows.
   the debug log). The memory budget table now holds measured 8MB numbers and
   a worked-out 4MB column. Open: confirm on a real 4MB run, fix the safe mode
   + custom background risk, and free memory before v0.2's cover features.
+- Done and tested on hardware: cover slide animation (the user found the
+  160 ms timing and the text pop natural). The Theme Maker and the v2 share
+  code don't know `carousel_animation` yet.
 - **v0.1 user-facing features are complete.** Two dev-tooling items were
   added to v0.1 afterwards and are not started: the debug overlay and the
   PC-side tests. Before publishing, the user still wants to test Japanese
