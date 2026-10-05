@@ -262,10 +262,17 @@ screen. One frame of about 50 ms roughly every 6 s on the Files and game info
 screens (cause unknown). Loading a cover costs one hitch of 70-75 ms. Opening
 the first folder took 1.4 s.
 
-Known risk, now backed by numbers: in safe mode with a custom background
-picture set, the picture is still loaded (600 KB) while safe mode also builds
-the theme background (600 KB). On 4MB only about 344 KB is free, so this
-cannot fit. Not yet tested or fixed.
+Fixed (built, awaiting hardware test): safe mode no longer loads the custom
+background picture at all (`load_from_cache()` in `background.c`), so it
+can't sit in RAM next to the theme background.
+
+Known risk, not yet tested or fixed: the theme background (600 KB) is never
+freed once built. The stock image viewer frees the user's background picture
+before decoding a picture, to make room on 4MB; it knows nothing about the
+theme background. With only about 344 KB free, opening a full-screen picture
+in the image viewer, or setting one as the background, probably fails on a
+4MB console. Fix idea: a `theme_background_free()` called from those places
+(it is rebuilt on the next draw), and/or the 320x240 theme background.
 
 Still to measure: a real 4MB run, a folder with many entries, the image
 viewer and the music player.

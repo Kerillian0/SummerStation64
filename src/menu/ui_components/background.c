@@ -42,7 +42,7 @@ static component_background_t *background = NULL;
  * @param c Pointer to the background component structure.
  */
 static void load_from_cache(component_background_t *c) {
-    if (!c->cache_location) {
+    if (!c->cache_location || safe_mode_active()) { // safe mode shows the theme background; don't hold both in RAM
         return;
     }
 
