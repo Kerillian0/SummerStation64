@@ -98,6 +98,15 @@ Claude builds in the container and the user deploys from Windows.
   on each screen change. One-line hook in the `menu.c` main loop. Screen
   numbers are `menu_mode_t` values: 2 Files, 9 Settings, 15 game info,
   21 Favorites, 22 History. Read it with `localdeploy.bat /dur`.
+- `src/menu/folder_memory.c/.h` — remembers the selected entry per folder
+  (16 most recent folders, by entry name). Restores it when a folder is
+  entered with the selection still on the first entry, so the stock "select
+  the folder you came out of" behaviour is left alone. Saved to
+  `sd:/menu/folders.ini` (temp file + rename) only when leaving the Files
+  screen and only if something changed. Feature `remember_selection`
+  (default on), "Remember Position" in Settings > Files. Two hook lines in
+  `view_browser_display()`. Uses 8 KB of static memory. The file path is not
+  profile-aware yet (see "Decide early").
 - `src/menu/controls.c/.h` — button layout for the three tabbed screens:
   L/R switch tabs, Z is Options (was R), left/right scroll the carousel,
   up/down do nothing there unless the `updown_scroll` feature is on. It
@@ -178,6 +187,7 @@ Claude builds in the container and the user deploys from Windows.
   (default on; off draws the side covers solid), "See-through Side Covers" in
   Settings > Display. The Theme Maker (version 6) offers it and
   `carousel_animation`, using share code bits 6 and 7.
+- Done and tested on hardware: remember the selected game per folder.
 - **v0.1 user-facing features are complete.** Two dev-tooling items were
   added to v0.1 afterwards and are not started: the debug overlay and the
   PC-side tests. Before publishing, the user still wants to test Japanese
@@ -220,7 +230,8 @@ opacity = 10           ; 0-100
 quick_launch = 1       ; any key from menu_features.c: quick_launch,
                        ; hold_launch, side_covers, frame_borders,
                        ; updown_scroll, cover_art, carousel_animation,
-                       ; see_through_covers (0 or 1; leave out = default)
+                       ; see_through_covers, remember_selection
+                       ; (0 or 1; leave out = default)
 ```
 
 ## Share codes (v1, used by the web Theme Maker)

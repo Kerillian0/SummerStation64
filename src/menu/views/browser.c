@@ -17,6 +17,7 @@
 #include "../controls.h"
 #include "../carousel_art.h"
 #include "../safe_mode.h"
+#include "../folder_memory.h"
 #include "../ui_components/constants.h"
 
 static const char *archive_extensions[] = { "zip", NULL };
@@ -1055,8 +1056,10 @@ void view_browser_init (menu_t *menu) {
 
 void view_browser_display (menu_t *menu, surface_t *display) {
     process(menu);
+    folder_memory_update(menu); // put the selection back where it was left in this folder
 
     draw(menu, display);
 
     if (menu->next_mode != MENU_MODE_BROWSER) carousel_art_reset(); // free the cover before another screen loads its own
+    if (menu->next_mode != MENU_MODE_BROWSER) folder_memory_flush();
 }

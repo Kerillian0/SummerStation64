@@ -29,6 +29,7 @@ static const feature_info_t feature_info[FEATURE_COUNT] = {
     [FEATURE_HOLD_LAUNCH]         = { "hold_launch",         false, false },
     [FEATURE_COVER_ART]           = { "cover_art",           true,  false },
     [FEATURE_SEE_THROUGH_COVERS]  = { "see_through_covers",  true,  false },
+    [FEATURE_REMEMBER_SELECTION]  = { "remember_selection",  true,  false },
 };
 
 #define FEATURES_USER_PATH      "sd:/menu/features.ini"

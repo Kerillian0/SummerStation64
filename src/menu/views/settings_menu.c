@@ -120,6 +120,7 @@ static const item_t sound_items[] = {
 };
 
 static const item_t file_items[] = {
+    FEATURE("Remember Position", FEATURE_REMEMBER_SELECTION, "Going back into a folder returns to the game you had selected there, also after playing."),
     SWITCH("Show Hidden Files", show_protected_entries, false, reload_browser, "Show files and folders the menu normally hides."),
     SWITCH("Use Saves Folder", use_saves_folder, true, NULL, "Keep game saves in a separate saves folder."),
     SWITCH("Show Saves Folder", show_saves_folder, false, reload_browser, "Show saves folders in the file list."),
