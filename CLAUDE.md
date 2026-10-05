@@ -85,9 +85,12 @@ libdragon. Think ES-DE / Pegasus, on a real N64.
   `constants.h` frame colors now read from the theme: `border`, `highlight`,
   `tab_active`, `tab_inactive`, `tab_active_border`, `tab_inactive_border`.
   Defaults match the stock menu.
-- Still open from part 3: the web Theme Maker (not in this repo) needs matching
-  fields and a "current layout" preview, and the share code format must bump to
-  v2 (v1 codes must keep working).
+- Web Theme Maker updated (2026-10-05): frame/tab color fields, a "Menu
+  features" section that writes `[features]`, a preview of the current layout
+  (Files and History screens) and v2 share codes. It is a claude.ai artifact,
+  not in this repo: https://claude.ai/artifact/HxMPCpbZTSRZURJfWswAma
+  The v2 code logic was not run before publishing (no JS runtime in the dev
+  container); the user is checking it in the browser.
 - Done and tested on hardware: features `side_covers` (default off) and
   `frame_borders` (default on), settable in theme `[features]`. The user
   dislikes both on their CRT but wants others to be able to enable them; side
@@ -116,7 +119,7 @@ libdragon. Think ES-DE / Pegasus, on a real N64.
 - **v0.1 feature list is complete.** Before publishing, the user still wants
   to test Japanese (tall) and 64DD-shaped cover art. Next: v0.2.
 
-## theme.ini format (v1)
+## theme.ini format
 ```ini
 [theme]
 name = Midnight Gradient
@@ -150,7 +153,9 @@ size = 16
 opacity = 10           ; 0-100
 
 [features]
-quick_launch = 1       ; any key from menu_features.c
+quick_launch = 1       ; any key from menu_features.c: quick_launch,
+                       ; hold_launch, side_covers, frame_borders,
+                       ; updown_scroll, cover_art (0 or 1; leave out = default)
 ```
 
 ## Share codes (v1, used by the web Theme Maker)
@@ -158,7 +163,16 @@ quick_launch = 1       ; any key from menu_features.c
 [0] version=1; [1..24] colors RGB: text, text_dim, accent, panel, color1,
 color2, color3, pattern color; [25] bits0-1 bg type, bits2-3 direction,
 bit4 color3 on, bit5 dither; [26] pattern; [27] size; [28] opacity;
-[29] feature toggles (reserved); [30..31] CRC-16/CCITT-FALSE of bytes 0..29.
+[29] reserved; [30..31] CRC-16/CCITT-FALSE of bytes 0..29.
+
+## Share codes (v2)
+52 bytes (84 characters). Bytes 1..28 as v1. [0] version=2; [29..46] colors
+RGB: border, highlight, tab_active, tab_inactive, tab_active_border,
+tab_inactive_border; [47] feature "is set" mask; [48] feature values, same bit
+order: 0 quick_launch, 1 hold_launch, 2 side_covers, 3 frame_borders,
+4 updown_scroll, 5 cover_art; [49] reserved; [50..51] CRC-16/CCITT-FALSE of
+bytes 0..49. The Theme Maker writes v1 when the frame colors are stock and no
+feature is set, so simple themes keep the short code. Both versions decode.
 
 ## Release plan
 - **v0.1 usable carousel:** theme loader ✓, text colors ✓, feature toggles +
