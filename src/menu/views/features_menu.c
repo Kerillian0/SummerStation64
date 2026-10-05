@@ -15,13 +15,6 @@ static void set_feature (menu_t *menu, void *arg) {
     int value = (int8_t)(packed & 0xFF);
     features_user_set(feature, value);
 
-    // The two launch modes exclude each other: turning one on turns the other off.
-    if (value == 1 && feature == FEATURE_QUICK_LAUNCH) {
-        features_user_set(FEATURE_HOLD_LAUNCH, 0);
-    } else if (value == 1 && feature == FEATURE_HOLD_LAUNCH) {
-        features_user_set(FEATURE_QUICK_LAUNCH, 0);
-    }
-
     // The menu closes after a choice; forget which feature was open so that
     // "Menu Features" shows the feature list again next time.
     features_context_menu.submenu = NULL;

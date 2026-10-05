@@ -48,6 +48,9 @@ bool features_available (feature_t feature);
 /** True if the feature is currently turned on. */
 bool features_enabled (feature_t feature);
 
+/** What the feature would be without the user's own choice (built-in + theme). */
+bool features_profile_default (feature_t feature);
+
 /** The user's own choice: FEATURE_UNSET (follow the theme), 0 or 1. */
 int features_user_get (feature_t feature);
 

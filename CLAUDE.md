@@ -54,6 +54,14 @@ libdragon. Think ES-DE / Pegasus, on a real N64.
   does), or the picture comes out repeated and striped. START continues to
   libdragon's technical inspector. Failed assertions still go straight to the
   inspector (libdragon owns that syscall range).
+- `src/menu/views/settings_menu.c/.h` — game-style settings screen
+  (categories left, that category's settings in the middle, help text below).
+  Replaces the stock editor via one line in the `menu.c` view table; the stock
+  `settings_editor.c` and the older `features_menu.c` submenu stay in the
+  source but are no longer reachable. Features show `Default (On/Off)` when
+  the player hasn't chosen, so it's visible whether the theme or the player
+  decides. Rows are table-driven: add a `SWITCH`/`FEATURE`/`ACTION`/`INFO`
+  line to a category.
 - `src/menu/controls.c/.h` — button layout for the three tabbed screens:
   L/R switch tabs, Z is Options (was R), left/right scroll the carousel,
   up/down do nothing there unless the `updown_scroll` feature is on. It
@@ -116,8 +124,17 @@ libdragon. Think ES-DE / Pegasus, on a real N64.
 - Done and tested on hardware: launch-mode hint text and the quick/hold
   exclusion. The Files hint bar is tight: the middle hint was cut down to
   `C: Fast | L Tabs R` to clear the longest left hint.
-- **v0.1 feature list is complete.** Before publishing, the user still wants
-  to test Japanese (tall) and 64DD-shaped cover art. Next: v0.2.
+- Done and tested on hardware: new settings screen (`settings_menu.c`),
+  including Display > "Video Output" (480i / 240p). That row exposes the stock
+  `force_progressive_scan` setting (640x480 buffer shown non-interlaced, so
+  the picture is scaled to 240 lines); it applies after a restart. A native
+  320x240 layout is still the separate "240p mode" item in v0.5.
+- **Next after the settings screen / 240p test:** create the memory budget
+  table (see Practices).
+- **v0.1 user-facing features are complete.** Two dev-tooling items were
+  added to v0.1 afterwards and are not started: the debug overlay and the
+  PC-side tests. Before publishing, the user still wants to test Japanese
+  (tall) and 64DD-shaped cover art.
 
 ## theme.ini format
 ```ini
@@ -174,23 +191,90 @@ order: 0 quick_launch, 1 hold_launch, 2 side_covers, 3 frame_borders,
 bytes 0..49. The Theme Maker writes v1 when the frame colors are stock and no
 feature is set, so simple themes keep the short code. Both versions decode.
 
+## Practices (apply throughout)
+- Keep a memory budget table in CLAUDE.md (screen buffers, code, covers,
+  fonts, audio) and check each new feature against it.
+- Print free RAM and frame time with debugf on every hardware test.
+
 ## Release plan
 - **v0.1 usable carousel:** theme loader ✓, text colors ✓, feature toggles +
   Expansion Pak check, safe mode + friendly crash screen, left/right browsing,
   quick launch (skip the ROM info screen), box art on covers.
+  - Dev tooling: debug overlay, a hidden toggle showing frame time and free
+    RAM.
+  - Dev tooling: PC-side automated tests for the theme parser and share code
+    decoder.
 - **v0.2 smooth and safe:** metadata index, cover cache, perspective covers +
   slide animation, SteamOS-style boot animation, save backups, sort options,
   4MB-friendly live background, asset prep tool.
+  - Extra game details in the metadata index: year, developer, publisher,
+    genre. Plan the index format with these fields from the start.
+  - Verified ROM badges: the asset prep tool (on PC) checks ROMs against known
+    good dumps and stores a "verified" flag in the index. No ROM hashing on
+    the console.
+  - Compatibility warnings before launch: warn if a game needs the Expansion
+    Pak and none is detected; badges for Controller Pak, Rumble Pak, Transfer
+    Pak (data from the metadata index).
+  - Remember the selected game per folder.
+  - Automated screenshots in the ares emulator for the README and for
+    catching visual regressions.
 - **v0.3 organizing:** continue row, launch stats, smart collections, region
   dedupe, letter-wheel search, random game, homebrew/64DD shelves, party mode,
   clock.
+  - Missing art report: a screen listing games without box art, screenshots
+    or descriptions.
+  - Screenshot button: a button combo saves the current screen to the SD card
+    as an image (use safe file writes).
+  - Custom collections (user-made lists, alongside smart collections).
+  - Recently added collection (newest files first).
+  - Hide individual entries without deleting them.
+  - Emulator shelves for NES, SNES, GB, GBC with matching cover shapes.
+  - 64DD pairing: link a disk to its cartridge so both launch together.
+  - Game variants: base game plus hacks/translations under one cover, with a
+    picker for which version to boot.
 - **v0.4 themes:** theme picker, codes + QR on console, box art tinting, blurred
   art background, music, seasonal themes, profiles, settings backup.
+  - Font and sound packs: theme.ini can point to a custom font and UI sounds.
+    Build on the existing custom font support in `fonts.c`.
+  - Theme Maker: suggest a palette from a box art image or photo.
+  - Theme author guide: a doc explaining every theme.ini key, with CRT tips
+    (contrast, avoid 1px lines, overscan safe areas).
+  - Separate volume controls for UI sounds and music.
+  - Theme Maker: contrast auto-fix button and randomize button.
+  - Installable web app: turn the Theme Maker into an installable page. The
+    companion app comes after this.
+  - Community theme repo on GitHub: one folder per theme, issue-form
+    submissions (paste a share code), an Action that validates, renders
+    previews, and rebuilds index.json. License themes CC0/CC-BY; no
+    copyrighted images.
 - **v0.5 polish:** setup wizard, accessibility, overscan + CRT test patterns,
   240p mode, wraparound scrolling, rumble, attract mode, what's new screen,
   README/FAQ, theme gallery, acknowledgements + AI disclosure.
+  - Controller test screen: button presses and stick range. Put it in the
+    same settings area as screen calibration (overscan + CRT test patterns).
+  - Widescreen layout: optional 16:9 anamorphic layout for stretched TVs.
+  - System info screen with a QR code (version, RAM, region, video mode,
+    theme) for bug reports.
+  - Beta channel: test builds published separately from stable releases.
+  - Autoboot: boot straight into the last game; hold a button for the menu.
 - **Later:** on-console theme editor, video previews (screenshot slideshow
   fallback), save-file achievements, PNG backgrounds, cover grid layout.
+  - Manual viewer: browse pre-converted manual page images one at a time.
+    Must fit in 4MB (load one page at a time).
+- **After that: Analogue 3D support.** A new phase once v0.5 and the "Later"
+  items are done. Do not start it before the native N64 menu is finished.
+  - Detect when running on an Analogue 3D.
+  - When detected, use 32-bit color for backgrounds and covers; keep the
+    16-bit dithered path everywhere else.
+  - Make sure the menu draws full frames so it looks right with the A3D's
+    "Force Progressive Output" setting on and off.
+  - The A3D's built-in Expansion Pak is already handled by the Expansion Pak
+    check; just verify it.
+  - Add Analogue 3D to the release test checklist.
+- **Companion app** (separate repo, after the installable web app): SD card
+  setup wizard, update checker, asset prep tool merged in, save manager,
+  settings editor, theme gallery browser (QR scanning on Android), collection
+  overview.
 
 ## Decide early
 - 240p vs 480i (affects every layout).

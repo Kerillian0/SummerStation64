@@ -27,6 +27,7 @@
 #include "usb_comm.h"
 #include "utils/fs.h"
 #include "views/views.h"
+#include "views/settings_menu.h"
 
 #define MENU_DIRECTORY              "/menu"
 #define MENU_SETTINGS_FILE          "config.ini"
@@ -201,7 +202,7 @@ static view_t menu_views[] = {
     { MENU_MODE_TEXT_VIEWER, view_text_viewer_init, view_text_viewer_display },
     { MENU_MODE_MUSIC_PLAYER, view_music_player_init, view_music_player_display },
     { MENU_MODE_CREDITS, view_credits_init, view_credits_display },
-    { MENU_MODE_SETTINGS_EDITOR, view_settings_init, view_settings_display },
+    { MENU_MODE_SETTINGS_EDITOR, view_settings_menu_init, view_settings_menu_display },
     { MENU_MODE_RTC, view_rtc_init, view_rtc_display },
     { MENU_MODE_CONTROLLER_PAKFS, view_controller_pakfs_init, view_controller_pakfs_display },
     { MENU_MODE_CONTROLLER_PAK_DUMP_INFO, view_controller_pak_dump_info_init, view_controller_pak_dump_info_display },

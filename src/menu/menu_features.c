@@ -75,6 +75,26 @@ bool features_available (feature_t feature) {
     return !feature_info[feature].needs_expansion || features_expansion_pak();
 }
 
+bool features_profile_default (feature_t feature) {
+    if (!features_available(feature)) {
+        return false;
+    }
+
+    bool on = feature_info[feature].default_on;
+
+    /* Safe mode: built-in defaults only. */
+    if (safe_mode_active()) {
+        return on;
+    }
+
+    int theme_value = theme_get()->features[feature];
+    if (theme_value != FEATURE_UNSET) {
+        on = (theme_value != 0);
+    }
+
+    return on;
+}
+
 bool features_enabled (feature_t feature) {
     if (!features_available(feature)) {
         return false;
@@ -86,17 +106,12 @@ bool features_enabled (feature_t feature) {
         return false;
     }
 
-    bool on = feature_info[feature].default_on;
+    bool on = features_profile_default(feature);
 
-    /* Safe mode: built-in defaults only. Choices can still be changed and
+    /* Safe mode ignores the user's choices too. They can still be changed and
        saved in Settings; they take effect on the next normal start. */
     if (safe_mode_active()) {
         return on;
-    }
-
-    int theme_value = theme_get()->features[feature];
-    if (theme_value != FEATURE_UNSET) {
-        on = (theme_value != 0);
     }
 
     int user_value = features_user_get(feature);
@@ -164,5 +179,13 @@ void features_user_set (feature_t feature, int value) {
     }
     features_user_load();
     user[feature] = (value == FEATURE_UNSET) ? FEATURE_UNSET : (value != 0);
+
+    /* The two launch modes exclude each other: turning one on turns the other off. */
+    if (value == 1 && feature == FEATURE_QUICK_LAUNCH) {
+        user[FEATURE_HOLD_LAUNCH] = 0;
+    } else if (value == 1 && feature == FEATURE_HOLD_LAUNCH) {
+        user[FEATURE_QUICK_LAUNCH] = 0;
+    }
+
     features_user_save();
 }
