@@ -11,6 +11,10 @@ libdragon. Think ES-DE / Pegasus, on a real N64.
 - Keep the fork easy to merge with upstream: put features in new files and keep
   edits to original files small (one-line hooks where possible).
 - Branch: `carousel-ui`. Commit after each working step.
+- Remotes: `origin` is upstream (Polprzewodnikowy/N64FlashcartMenu) — fetch
+  only, never push there. `fork` is the user's public fork
+  (https://github.com/Kerillian0/SummerStation64); `carousel-ui` tracks
+  `fork/carousel-ui`. Push only when the user asks.
 
 ## Build and test
 - Build inside this dev container: `make sc64`
