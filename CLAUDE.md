@@ -21,6 +21,20 @@ libdragon. Think ES-DE / Pegasus, on a real N64.
 - New .c files must be added to the source list in the Makefile next to
   `menu/sound.c \` (same format, trailing backslash).
 
+### Sending a build to the cart over USB (works, set up 2026-10-05)
+The dev container can't see USB devices and can't run the Windows tool, so
+Claude builds in the container and the user deploys from Windows.
+- `sc64deployer.exe` lives in `tools\sc64` (not committed). Cart firmware must
+  be v2.20.2 or newer (`.\sc64deployer.exe info` shows it).
+- Run these in a Windows PowerShell opened outside VS Code, from the repo's
+  top folder, with the SC64's USB cable connected:
+  - `.\localdeploy.bat` — sends the build into the cart; toggle the N64's
+    power to boot it. The SD card is not changed.
+  - `.\localdeploy.bat /dur` — same, then copies `output\sc64menu.n64` to the
+    SD card as `/sc64menu.n64`, reboots, and stays connected showing the
+    menu's `debugf` output.
+- In PowerShell a program in the current folder needs `.\` in front.
+
 ## Hard constraints
 - Target a stock N64 **without** the Expansion Pak (4MB). Everything must run on
   real hardware. 8MB-only extras are allowed but must be gated by
@@ -129,8 +143,9 @@ libdragon. Think ES-DE / Pegasus, on a real N64.
   `force_progressive_scan` setting (640x480 buffer shown non-interlaced, so
   the picture is scaled to 240 lines); it applies after a restart. A native
   320x240 layout is still the separate "240p mode" item in v0.5.
-- **Next after the settings screen / 240p test:** create the memory budget
-  table (see Practices).
+- Memory budget table created (see "Memory budget"); every dynamic row is
+  still an estimate. Next for it: print real free RAM with debugf and fill in
+  measured numbers, and deal with the safe mode + custom background risk.
 - **v0.1 user-facing features are complete.** Two dev-tooling items were
   added to v0.1 afterwards and are not started: the debug overlay and the
   PC-side tests. Before publishing, the user still wants to test Japanese
@@ -195,6 +210,46 @@ feature is set, so simple themes keep the short code. Both versions decode.
 - Keep a memory budget table in CLAUDE.md (screen buffers, code, covers,
   fonts, audio) and check each new feature against it.
 - Print free RAM and frame time with debugf on every hardware test.
+
+## Memory budget (4MB console = 4096 KB)
+First version, 2026-10-05. "Measured" rows come from the built ELF or file
+sizes; "calculated" from width x height x 2 bytes; "estimate" rows are
+guesses that still need a real number from hardware (`sys_get_heap_stats()`
+printed with debugf). Nothing here has been measured on the console yet.
+
+| What | KB | Basis |
+|---|---:|---|
+| Program: code + data + bss | 930 | measured (`mips64-elf-size`, commit 987db388) |
+| Screen buffers: 2 x 640x480, 16-bit | 1200 | calculated |
+| Background: theme gradient, or the user's picture | 600 | calculated |
+| Font: `Firple-Bold.font64`, loaded whole | 465 | measured (file size) |
+| **Always in use** | **3195** | |
+| Stack | 64 | estimate |
+| Audio: output buffers (44.1 kHz, 4 buffers) + 16-channel mixer | 100 | estimate |
+| Graphics command queues (rspq/rdpq) | 50 | estimate |
+| File list: up to 1024 entries on 4MB | 100 | estimate, worst case |
+| Center cover: 158x112 (tall art 158x158 = 49) | 35 | calculated |
+| PNG decoding while a cover loads | 100 | estimate, temporary |
+| Settings, history, favorites, paths | 30 | estimate |
+| **Files screen, worst case** | **3674** | |
+| **Left over** | **about 420** | |
+
+Rules of thumb until real numbers exist:
+- Keep at least 256 KB free on the Files screen on a 4MB console.
+- A full-screen 16-bit image costs 600 KB. There is room for exactly one
+  besides the two screen buffers; a second one does not fit.
+- A cover-sized image costs 35-49 KB, so about 5 could be held at once before
+  eating into the 256 KB reserve. This limits cover caching and art on the
+  previous/next covers.
+- Program size grows with every feature; re-measure it when updating the table.
+
+Known risk found while writing this: in safe mode with a custom background
+picture set, the picture is still loaded (600 KB) although safe mode draws the
+theme background instead (another 600 KB). On 4MB that is about 180 KB more
+than the console has. Not yet tested or fixed.
+
+Other screens to budget when they are touched: the image viewer (decodes a
+full-screen picture) and the music player.
 
 ## Release plan
 - **v0.1 usable carousel:** theme loader ✓, text colors ✓, feature toggles +
