@@ -55,14 +55,19 @@ Claude builds in the container and the user deploys from Windows.
   (held direction, fast scroll) snap instead of sliding. Feature
   `carousel_animation` (default on), "Cover Slide" in Settings > Display. Uses
   no extra memory: sliding covers are placeholders, art loads after settling.
-- `src/menu/carousel_art.c/.h` — box art on the center cover. Reads the game
-  code from the ROM header itself, reuses the stock boxart loader, keeps one
-  image in memory, loads 250 ms after the selection settles, and is freed
-  when leaving the browser (the PNG decoder handles one image at a time).
+- `src/menu/carousel_art.c/.h` — box art on the covers, as a five-slot cache
+  (selected cover plus two either side when `side_covers` is on; one slot
+  otherwise). Reads the game code from the ROM header itself and reuses the
+  stock boxart loader. One decode at a time (the PNG decoder handles one
+  image), started 250 ms after the selection settles, most important cover
+  first. Moving one step reuses the cached pictures. Side covers only load
+  art while 384 KB of heap stays free (`SIDE_ART_MIN_FREE`), so they fall
+  back to placeholders when memory is short. Everything is freed when leaving
+  the browser.
   Feature `cover_art` (default on). Up/down (when `updown_scroll` is off)
   turn the box over to `boxart_back.png`: the cover squashes flat (110 ms),
-  the front is freed, the back is decoded, and the cover opens again. Still
-  one image in memory. Falls back to the front if a game has no back picture.
+  the front is freed, the back is decoded, and the cover opens again, so a
+  flip adds no memory. Falls back to the front if a game has no back picture.
 - `src/menu/safe_mode.c/.h` — hold Z at boot (read once, synchronously, right
   after `joypad_init()` in `menu.c`). Skips theme.ini/theme.txt, the theme and
   user feature layers, and the custom background image. Shows an orange
@@ -164,6 +169,8 @@ Claude builds in the container and the user deploys from Windows.
   160 ms timing and the text pop natural). The Theme Maker and the v2 share
   code don't know `carousel_animation` yet.
 - Done and tested on hardware: box flip (up/down shows the back of the box).
+- Done and tested on hardware: art on the previous/next covers (cover
+  cache). Cost with side covers on: up to 4 x 35 KB.
 - **v0.1 user-facing features are complete.** Two dev-tooling items were
   added to v0.1 afterwards and are not started: the debug overlay and the
   PC-side tests. Before publishing, the user still wants to test Japanese

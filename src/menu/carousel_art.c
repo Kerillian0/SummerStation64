@@ -8,16 +8,31 @@
 #include "path.h"
 #include "ui_components.h"
 
-/* How long the selection must rest before its art is loaded. */
+/* How long the selection must rest before any art is loaded. */
 #define SETTLE_TIME_MS      (250)
+
+/* The selected cover plus two either side. */
+#define SLOT_COUNT          (5)
+
+/* Side covers only get art while at least this much memory stays free:
+   the 256 KB reserve from the memory budget plus room to decode a picture. */
+#define SIDE_ART_MIN_FREE   (384 * 1024)
+
+/* Half of a flip: the time to squash the box flat, and again to open it. */
+#define FLIP_HALF_MS        (110)
 
 #define ROM_HEADER_SIZE     (0x40)
 #define ROM_TITLE_OFFSET    (0x20)
 #define ROM_TITLE_LENGTH    (20)
 #define ROM_CODE_OFFSET     (0x3B)
 
-/* Half of a flip: the time to squash the box flat, and again to open it. */
-#define FLIP_HALF_MS        (110)
+typedef struct {
+    bool used;
+    int index;                  /* position in the file list */
+    entry_t *entry;             /* with the name hash: is it still the same file? */
+    uint32_t hash;
+    component_boxart_t *art;    /* NULL: this entry has no art, or it wasn't loaded */
+} slot_t;
 
 typedef enum {
     FLIP_NONE,      /* at rest */
@@ -26,22 +41,76 @@ typedef enum {
     FLIP_OPENING,   /* widening with the new side */
 } flip_state_t;
 
-static component_boxart_t *art = NULL;
-static entry_t *watched_entry = NULL;
-static char *watched_name = NULL;
-static bool load_pending = false;
-static uint64_t changed_at;
+static slot_t slots[SLOT_COUNT];
 
 static menu_t *art_menu = NULL;
+static int center_index = -1;
+static entry_t *center_entry = NULL;
+static uint32_t center_hash = 0;
+static uint64_t changed_at;
+
 static file_image_type_t side = IMAGE_BOXART_FRONT;
 static flip_state_t flip = FLIP_NONE;
 static uint64_t flip_at;
 
-static void art_free (void) {
-    if (art) {
-        ui_components_boxart_free(art);
-        art = NULL;
+/* ---------- small helpers ---------- */
+
+static uint32_t name_hash (const char *name) {
+    uint32_t hash = 2166136261u;
+    while (*name) {
+        hash = (hash ^ (uint8_t) *name++) * 16777619u;
     }
+    return hash;
+}
+
+static bool art_ready (component_boxart_t *art) {
+    return art && art->image && art->image->width > 0 && art->image->height > 0;
+}
+
+static void slot_clear (slot_t *slot) {
+    if (slot->art) {
+        ui_components_boxart_free(slot->art); /* also stops a decode in progress */
+    }
+    memset(slot, 0, sizeof(*slot));
+}
+
+/* The slot holding list entry `index`, if it is still the same file. */
+static slot_t *slot_find (menu_t *menu, int index) {
+    if (index < 0 || index >= menu->browser.entries) {
+        return NULL;
+    }
+    entry_t *entry = &menu->browser.list[index];
+    for (int i = 0; i < SLOT_COUNT; i++) {
+        slot_t *slot = &slots[i];
+        if (slot->used && slot->index == index && slot->entry == entry && slot->hash == name_hash(entry->name)) {
+            return slot;
+        }
+    }
+    return NULL;
+}
+
+static slot_t *slot_free (void) {
+    for (int i = 0; i < SLOT_COUNT; i++) {
+        if (!slots[i].used) {
+            return &slots[i];
+        }
+    }
+    return NULL;
+}
+
+static bool any_loading (void) {
+    for (int i = 0; i < SLOT_COUNT; i++) {
+        if (slots[i].used && slots[i].art && slots[i].art->loading) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool memory_for_side_art (void) {
+    heap_stats_t heap;
+    sys_get_heap_stats(&heap);
+    return (heap.total - heap.used) >= SIDE_ART_MIN_FREE;
 }
 
 /* ROM dumps come in three byte orders; put the header back in the native one. */
@@ -58,19 +127,20 @@ static void fix_header_byte_order (uint8_t *h) {
     }
 }
 
-static void art_load (menu_t *menu, entry_t *entry) {
+/* Start decoding the art for an entry. Returns NULL if it has none. */
+static component_boxart_t *art_load (menu_t *menu, entry_t *entry, file_image_type_t *which) {
     uint8_t header[ROM_HEADER_SIZE];
 
     path_t *path = path_clone_push(menu->browser.directory, entry->name);
     FILE *f = fopen(path_get(path), "rb");
     path_free(path);
     if (!f) {
-        return;
+        return NULL;
     }
     size_t read = fread(header, 1, sizeof(header), f);
     fclose(f);
     if (read != sizeof(header)) {
-        return;
+        return NULL;
     }
 
     fix_header_byte_order(header);
@@ -79,31 +149,26 @@ static void art_load (menu_t *menu, entry_t *entry) {
     memcpy(title, &header[ROM_TITLE_OFFSET], ROM_TITLE_LENGTH);
     title[ROM_TITLE_LENGTH] = '\0';
 
-    art = ui_components_boxart_init(menu->storage_prefix, (const char *) &header[ROM_CODE_OFFSET], title, side);
+    const char *code = (const char *) &header[ROM_CODE_OFFSET];
+    component_boxart_t *art = ui_components_boxart_init(menu->storage_prefix, code, title, *which);
 
     /* No picture of the back for this game: show the front again. */
-    if (!art && side != IMAGE_BOXART_FRONT) {
-        side = IMAGE_BOXART_FRONT;
-        art = ui_components_boxart_init(menu->storage_prefix, (const char *) &header[ROM_CODE_OFFSET], title, side);
+    if (!art && *which != IMAGE_BOXART_FRONT) {
+        *which = IMAGE_BOXART_FRONT;
+        art = ui_components_boxart_init(menu->storage_prefix, code, title, *which);
     }
+
+    return art;
 }
 
-void carousel_art_reset (void) {
-    art_free();
-    free(watched_name);
-    watched_name = NULL;
-    watched_entry = NULL;
-    load_pending = false;
-    side = IMAGE_BOXART_FRONT;
-    flip = FLIP_NONE;
-}
-
-static bool art_ready (void) {
-    return art && art->image && art->image->width > 0 && art->image->height > 0;
-}
+/* ---------- flipping the selected box ---------- */
 
 bool carousel_art_flip (void) {
-    if (flip != FLIP_NONE || !art_ready()) {
+    if (flip != FLIP_NONE || !art_menu) {
+        return false;
+    }
+    slot_t *center = slot_find(art_menu, center_index);
+    if (!center || !art_ready(center->art)) {
         return false;
     }
     flip = FLIP_CLOSING;
@@ -112,24 +177,41 @@ bool carousel_art_flip (void) {
 }
 
 /* Moves the flip along. With the slide animation switched off the flip is instant too. */
-static void flip_update (void) {
+static void flip_update (menu_t *menu) {
+    if (flip == FLIP_NONE) {
+        return;
+    }
+
     uint64_t half = features_enabled(FEATURE_CAROUSEL_ANIMATION) ? FLIP_HALF_MS : 0;
     uint64_t now = get_ticks_ms();
+    slot_t *center = slot_find(menu, center_index);
+
+    if (!center) {
+        flip = FLIP_NONE;
+        return;
+    }
 
     if (flip == FLIP_CLOSING && (now - flip_at) >= half) {
-        /* Let go of this side before loading the other: one image in memory at a time. */
-        art_free();
-        side = (side == IMAGE_BOXART_FRONT) ? IMAGE_BOXART_BACK : IMAGE_BOXART_FRONT;
-        if (art_menu && watched_entry) {
-            art_load(art_menu, watched_entry);
+        /* The decoder handles one picture at a time: a side cover that is
+           still loading has to wait (it is picked up again afterwards). */
+        for (int i = 0; i < SLOT_COUNT; i++) {
+            if (&slots[i] != center && slots[i].used && slots[i].art && slots[i].art->loading) {
+                slot_clear(&slots[i]);
+            }
         }
+        /* Let go of this side before loading the other: no extra memory. */
+        if (center->art) {
+            ui_components_boxart_free(center->art);
+        }
+        side = (side == IMAGE_BOXART_FRONT) ? IMAGE_BOXART_BACK : IMAGE_BOXART_FRONT;
+        center->art = art_load(menu, center->entry, &side);
         flip = FLIP_LOADING;
     }
 
     if (flip == FLIP_LOADING) {
-        if (!art || (!art->loading && !art->image)) {
+        if (!center->art || (!center->art->loading && !center->art->image)) {
             flip = FLIP_NONE; /* nothing could be loaded: back to the placeholder */
-        } else if (art_ready()) {
+        } else if (art_ready(center->art)) {
             flip = FLIP_OPENING;
             flip_at = now;
         }
@@ -153,63 +235,149 @@ float carousel_art_flip_width (void) {
     }
 }
 
-void carousel_art_update (menu_t *menu) {
-    if (!features_enabled(FEATURE_COVER_ART)) {
+/* ---------- the cache ---------- */
+
+void carousel_art_reset (void) {
+    for (int i = 0; i < SLOT_COUNT; i++) {
+        slot_clear(&slots[i]);
+    }
+    center_index = -1;
+    center_entry = NULL;
+    center_hash = 0;
+    side = IMAGE_BOXART_FRONT;
+    flip = FLIP_NONE;
+}
+
+void carousel_art_update (menu_t *menu, bool side_covers) {
+    art_menu = menu;
+
+    if (!features_enabled(FEATURE_COVER_ART) || menu->browser.entries <= 0 || menu->browser.selected < 0) {
         carousel_art_reset();
         return;
     }
 
-    entry_t *entry = menu->browser.entry;
-    art_menu = menu;
+    uint64_t now = get_ticks_ms();
+    int selected = menu->browser.selected;
+    entry_t *entry = &menu->browser.list[selected];
+    uint32_t hash = name_hash(entry->name);
 
-    bool changed = (entry != watched_entry) ||
-        (entry && (!watched_name || strcmp(entry->name, watched_name) != 0));
-
-    if (changed) {
-        carousel_art_reset();
-        watched_entry = entry;
-        watched_name = entry ? strdup(entry->name) : NULL;
-        load_pending = entry && (entry->type == ENTRY_TYPE_ROM);
-        changed_at = get_ticks_ms();
+    if (selected != center_index || entry != center_entry || hash != center_hash) {
+        /* A box left showing its back would turn up as a side cover that way round. */
+        if (side != IMAGE_BOXART_FRONT) {
+            for (int i = 0; i < SLOT_COUNT; i++) {
+                if (slots[i].used && slots[i].index == center_index && slots[i].entry == center_entry) {
+                    slot_clear(&slots[i]);
+                }
+            }
+        }
+        side = IMAGE_BOXART_FRONT;
+        flip = FLIP_NONE;
+        center_index = selected;
+        center_entry = entry;
+        center_hash = hash;
+        changed_at = now;
     }
 
-    if (load_pending && (get_ticks_ms() - changed_at) >= SETTLE_TIME_MS) {
-        load_pending = false;
-        art_load(menu, entry);
+    /* The covers we want art for, most important first. */
+    static const int order[SLOT_COUNT] = { 0, 1, -1, 2, -2 };
+    int wanted[SLOT_COUNT];
+    int wanted_count = 0;
+    for (int i = 0; i < (side_covers ? SLOT_COUNT : 1); i++) {
+        int index = selected + order[i];
+        if (index >= 0 && index < menu->browser.entries) {
+            wanted[wanted_count++] = index;
+        }
     }
 
-    flip_update();
+    /* Let go of everything that has scrolled out of view (or belongs to another folder). */
+    for (int i = 0; i < SLOT_COUNT; i++) {
+        slot_t *slot = &slots[i];
+        if (!slot->used) {
+            continue;
+        }
+        bool keep = false;
+        for (int j = 0; j < wanted_count; j++) {
+            if (slot_find(menu, wanted[j]) == slot) {
+                keep = true;
+                break;
+            }
+        }
+        if (!keep) {
+            slot_clear(slot);
+        }
+    }
+
+    /* Start at most one new decode, once the selection has settled. */
+    if (flip == FLIP_NONE && !any_loading() && (now - changed_at) >= SETTLE_TIME_MS) {
+        for (int j = 0; j < wanted_count; j++) {
+            int index = wanted[j];
+            if (slot_find(menu, index)) {
+                continue; /* already loaded, or already known to have no art */
+            }
+            slot_t *slot = slot_free();
+            if (!slot) {
+                break;
+            }
+            entry_t *e = &menu->browser.list[index];
+            slot->used = true;
+            slot->index = index;
+            slot->entry = e;
+            slot->hash = name_hash(e->name);
+            slot->art = NULL;
+            if (e->type == ENTRY_TYPE_ROM && (index == selected || memory_for_side_art())) {
+                file_image_type_t which = IMAGE_BOXART_FRONT;
+                slot->art = art_load(menu, e, &which);
+            }
+            if (slot->art) {
+                break;
+            }
+        }
+    }
+
+    flip_update(menu);
 }
 
-bool carousel_art_draw (int x0, int y0, int w, int h) {
-    if (!art_ready()) {
+bool carousel_art_draw (menu_t *menu, int index, int x0, int y0, int w, int h, int alpha, bool center) {
+    slot_t *slot = slot_find(menu, index);
+    bool flipping = center && (flip != FLIP_NONE);
+
+    if (!slot || !art_ready(slot->art)) {
         /* Mid-flip there is nothing to show, but the placeholder text must stay away. */
-        return flip != FLIP_NONE;
+        return flipping;
     }
     if (w < 2) {
         return true; /* squashed flat */
     }
 
+    surface_t *image = slot->art->image;
+
     /* Fit the art to the cover at its full width, then squash it sideways
        by the same amount the cover itself is squashed during a flip. */
-    float squash = carousel_art_flip_width();
+    float squash = flipping ? carousel_art_flip_width() : 1.0f;
     float full_w = (squash > 0.0f) ? (w / squash) : w;
-    float fit_x = full_w / art->image->width;
-    float fit_y = (float) h / art->image->height;
+    float fit_x = full_w / image->width;
+    float fit_y = (float) h / image->height;
     float fit = (fit_x < fit_y) ? fit_x : fit_y;
     float scale_x = fit * squash;
     float scale_y = fit;
-    int draw_w = (int) (art->image->width * scale_x);
-    int draw_h = (int) (art->image->height * scale_y);
+    int draw_w = (int) (image->width * scale_x);
+    int draw_h = (int) (image->height * scale_y);
     if (draw_w < 1) {
         return true;
     }
 
     rdpq_mode_push();
         rdpq_set_mode_standard();
-        rdpq_mode_combiner(RDPQ_COMBINER_TEX);
         rdpq_mode_filter(FILTER_BILINEAR);
-        rdpq_tex_blit(art->image, x0 + (w - draw_w) / 2, y0 + (h - draw_h) / 2, &(rdpq_blitparms_t) {
+        if (alpha >= 255) {
+            rdpq_mode_combiner(RDPQ_COMBINER_TEX);
+        } else {
+            /* See-through, like the placeholder covers at the sides. */
+            rdpq_set_prim_color(RGBA32(0xFF, 0xFF, 0xFF, alpha));
+            rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);
+            rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+        }
+        rdpq_tex_blit(image, x0 + (w - draw_w) / 2, y0 + (h - draw_h) / 2, &(rdpq_blitparms_t) {
             .scale_x = scale_x,
             .scale_y = scale_y,
         });

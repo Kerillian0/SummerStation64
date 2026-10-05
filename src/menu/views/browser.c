@@ -804,7 +804,7 @@ static void carousel_draw (menu_t *menu) {
     const int cx = screen_w / 2;
     const bool side_covers = features_enabled(FEATURE_SIDE_COVERS);
 
-    carousel_art_update(menu);
+    carousel_art_update(menu, side_covers);
 
     const float slide = carousel_slide(menu);
     const int first = CAROUSEL_CENTER_W / 2 + CAROUSEL_GAP + CAROUSEL_SIDE_W / 2;
@@ -858,7 +858,7 @@ static void carousel_draw (menu_t *menu) {
                 int fx0 = x0 + (w - fw) / 2;
                 rdpq_set_mode_fill(t->panel);
                 rdpq_fill_rectangle(fx0, y0, fx0 + fw, y0 + h);
-                if (resting_center && carousel_art_draw(fx0, y0, fw, h)) {
+                if (carousel_art_draw(menu, i, fx0, y0, fw, h, 255, resting_center)) {
                     continue; // box art replaces the placeholder text
                 }
             } else {
@@ -867,6 +867,9 @@ static void carousel_draw (menu_t *menu) {
                 rdpq_mode_combiner(RDPQ_COMBINER_FLAT);
                 rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
                 rdpq_fill_rectangle(x0, y0, x0 + w, y0 + h);
+                if (carousel_art_draw(menu, i, x0, y0, w, h, (int) alpha, false)) {
+                    continue; // box art replaces the placeholder text
+                }
             }
 
             // Text can't fade, so a cover that is fading out loses its text early.
