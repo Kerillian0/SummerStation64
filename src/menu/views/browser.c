@@ -583,6 +583,7 @@ static void process (menu_t *menu) {
     }
 
     controls_remap_tabs(menu, true); // carousel: left/right scroll, L/R tabs, Z options
+    if (controls_consume_flip_request() && carousel_art_flip()) sound_play_effect(SFX_CURSOR); // up/down: turn the box over
 
     int scroll_speed = menu->actions.go_fast ? 10 : 1;
 
@@ -852,9 +853,12 @@ static void carousel_draw (menu_t *menu) {
             int y0 = CAROUSEL_CENTER_Y - h / 2;
 
             if (alpha >= 255.0f) {
+                // While the box turns over, the cover is squashed sideways.
+                int fw = resting_center ? (int) (w * carousel_art_flip_width()) : w;
+                int fx0 = x0 + (w - fw) / 2;
                 rdpq_set_mode_fill(t->panel);
-                rdpq_fill_rectangle(x0, y0, x0 + w, y0 + h);
-                if (resting_center && carousel_art_draw(x0, y0, w, h)) {
+                rdpq_fill_rectangle(fx0, y0, fx0 + fw, y0 + h);
+                if (resting_center && carousel_art_draw(fx0, y0, fw, h)) {
                     continue; // box art replaces the placeholder text
                 }
             } else {

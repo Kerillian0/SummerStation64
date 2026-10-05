@@ -63,6 +63,26 @@ const char *controls_rom_hint (void) {
     return "A: Load";
 }
 
+static bool flip_request = false;
+static bool was_vertical = false;
+
+bool controls_consume_flip_request (void) {
+    bool request = flip_request;
+    flip_request = false;
+    return request;
+}
+
+/* Straight up or straight down only, so a sloppy sideways push doesn't flip the box. */
+static bool vertical_is_held (void) {
+    JOYPAD_PORT_FOREACH (i) {
+        joypad_8way_t dir = joypad_get_direction(i, JOYPAD_2D_DPAD | JOYPAD_2D_STICK);
+        if (dir == JOYPAD_8WAY_UP || dir == JOYPAD_8WAY_DOWN) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool controls_consume_launch_request (void) {
     bool request = launch_request;
     launch_request = false;
@@ -85,6 +105,11 @@ void controls_remap_tabs (menu_t *menu, bool horizontal) {
         bool next = menu->actions.go_right || (updown && menu->actions.go_down);
         menu->actions.go_up = previous;
         menu->actions.go_down = next;
+
+        /* One flip per press, however long the direction is held. */
+        bool vertical = vertical_is_held();
+        flip_request = !updown && vertical && !was_vertical;
+        was_vertical = vertical;
     }
 
     menu->actions.go_left = pressed.l;

@@ -5,8 +5,8 @@
  *   L / R        previous / next tab
  *   Z            options (was R)
  *   Left/Right   scroll the carousel (do nothing in a vertical list)
- *   Up/Down      scroll a vertical list; in the carousel only when the
- *                "updown_scroll" feature is on
+ *   Up/Down      scroll a vertical list; in the carousel they turn the box
+ *                over, or scroll when the "updown_scroll" feature is on
  *   A            "quick_launch" on: tap starts the game, hold shows its info
  *                "hold_launch" on:  tap shows its info, hold starts the game
  *                both off:          shows the game info (stock behaviour)
@@ -27,6 +27,12 @@
  * @param horizontal True if the screen scrolls sideways (carousel).
  */
 void controls_remap_tabs (menu_t *menu, bool horizontal);
+
+/**
+ * True once when up or down was pressed on the carousel while those don't
+ * scroll ("updown_scroll" off): the box should turn over.
+ */
+bool controls_consume_flip_request (void);
 
 /** Hint bar text for A on a game, matching the launch mode in use. */
 const char *controls_rom_hint (void);

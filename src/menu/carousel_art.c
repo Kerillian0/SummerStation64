@@ -16,11 +16,26 @@
 #define ROM_TITLE_LENGTH    (20)
 #define ROM_CODE_OFFSET     (0x3B)
 
+/* Half of a flip: the time to squash the box flat, and again to open it. */
+#define FLIP_HALF_MS        (110)
+
+typedef enum {
+    FLIP_NONE,      /* at rest */
+    FLIP_CLOSING,   /* squashing the side that was showing */
+    FLIP_LOADING,   /* flat, waiting for the other side to decode */
+    FLIP_OPENING,   /* widening with the new side */
+} flip_state_t;
+
 static component_boxart_t *art = NULL;
 static entry_t *watched_entry = NULL;
 static char *watched_name = NULL;
 static bool load_pending = false;
 static uint64_t changed_at;
+
+static menu_t *art_menu = NULL;
+static file_image_type_t side = IMAGE_BOXART_FRONT;
+static flip_state_t flip = FLIP_NONE;
+static uint64_t flip_at;
 
 static void art_free (void) {
     if (art) {
@@ -64,7 +79,13 @@ static void art_load (menu_t *menu, entry_t *entry) {
     memcpy(title, &header[ROM_TITLE_OFFSET], ROM_TITLE_LENGTH);
     title[ROM_TITLE_LENGTH] = '\0';
 
-    art = ui_components_boxart_init(menu->storage_prefix, (const char *) &header[ROM_CODE_OFFSET], title, IMAGE_BOXART_FRONT);
+    art = ui_components_boxart_init(menu->storage_prefix, (const char *) &header[ROM_CODE_OFFSET], title, side);
+
+    /* No picture of the back for this game: show the front again. */
+    if (!art && side != IMAGE_BOXART_FRONT) {
+        side = IMAGE_BOXART_FRONT;
+        art = ui_components_boxart_init(menu->storage_prefix, (const char *) &header[ROM_CODE_OFFSET], title, side);
+    }
 }
 
 void carousel_art_reset (void) {
@@ -73,6 +94,63 @@ void carousel_art_reset (void) {
     watched_name = NULL;
     watched_entry = NULL;
     load_pending = false;
+    side = IMAGE_BOXART_FRONT;
+    flip = FLIP_NONE;
+}
+
+static bool art_ready (void) {
+    return art && art->image && art->image->width > 0 && art->image->height > 0;
+}
+
+bool carousel_art_flip (void) {
+    if (flip != FLIP_NONE || !art_ready()) {
+        return false;
+    }
+    flip = FLIP_CLOSING;
+    flip_at = get_ticks_ms();
+    return true;
+}
+
+/* Moves the flip along. With the slide animation switched off the flip is instant too. */
+static void flip_update (void) {
+    uint64_t half = features_enabled(FEATURE_CAROUSEL_ANIMATION) ? FLIP_HALF_MS : 0;
+    uint64_t now = get_ticks_ms();
+
+    if (flip == FLIP_CLOSING && (now - flip_at) >= half) {
+        /* Let go of this side before loading the other: one image in memory at a time. */
+        art_free();
+        side = (side == IMAGE_BOXART_FRONT) ? IMAGE_BOXART_BACK : IMAGE_BOXART_FRONT;
+        if (art_menu && watched_entry) {
+            art_load(art_menu, watched_entry);
+        }
+        flip = FLIP_LOADING;
+    }
+
+    if (flip == FLIP_LOADING) {
+        if (!art || (!art->loading && !art->image)) {
+            flip = FLIP_NONE; /* nothing could be loaded: back to the placeholder */
+        } else if (art_ready()) {
+            flip = FLIP_OPENING;
+            flip_at = now;
+        }
+    }
+
+    if (flip == FLIP_OPENING && (now - flip_at) >= half) {
+        flip = FLIP_NONE;
+    }
+}
+
+float carousel_art_flip_width (void) {
+    float t = (float) (get_ticks_ms() - flip_at) / FLIP_HALF_MS;
+    if (t > 1.0f) {
+        t = 1.0f;
+    }
+    switch (flip) {
+        case FLIP_CLOSING: return 1.0f - t;
+        case FLIP_LOADING: return 0.0f;
+        case FLIP_OPENING: return t;
+        default: return 1.0f;
+    }
 }
 
 void carousel_art_update (menu_t *menu) {
@@ -82,6 +160,7 @@ void carousel_art_update (menu_t *menu) {
     }
 
     entry_t *entry = menu->browser.entry;
+    art_menu = menu;
 
     bool changed = (entry != watched_entry) ||
         (entry && (!watched_name || strcmp(entry->name, watched_name) != 0));
@@ -98,26 +177,41 @@ void carousel_art_update (menu_t *menu) {
         load_pending = false;
         art_load(menu, entry);
     }
+
+    flip_update();
 }
 
 bool carousel_art_draw (int x0, int y0, int w, int h) {
-    if (!art || !art->image || art->image->width == 0 || art->image->height == 0) {
-        return false;
+    if (!art_ready()) {
+        /* Mid-flip there is nothing to show, but the placeholder text must stay away. */
+        return flip != FLIP_NONE;
+    }
+    if (w < 2) {
+        return true; /* squashed flat */
     }
 
-    float scale_x = (float) w / art->image->width;
-    float scale_y = (float) h / art->image->height;
-    float scale = (scale_x < scale_y) ? scale_x : scale_y;
-    int draw_w = (int) (art->image->width * scale);
-    int draw_h = (int) (art->image->height * scale);
+    /* Fit the art to the cover at its full width, then squash it sideways
+       by the same amount the cover itself is squashed during a flip. */
+    float squash = carousel_art_flip_width();
+    float full_w = (squash > 0.0f) ? (w / squash) : w;
+    float fit_x = full_w / art->image->width;
+    float fit_y = (float) h / art->image->height;
+    float fit = (fit_x < fit_y) ? fit_x : fit_y;
+    float scale_x = fit * squash;
+    float scale_y = fit;
+    int draw_w = (int) (art->image->width * scale_x);
+    int draw_h = (int) (art->image->height * scale_y);
+    if (draw_w < 1) {
+        return true;
+    }
 
     rdpq_mode_push();
         rdpq_set_mode_standard();
         rdpq_mode_combiner(RDPQ_COMBINER_TEX);
         rdpq_mode_filter(FILTER_BILINEAR);
         rdpq_tex_blit(art->image, x0 + (w - draw_w) / 2, y0 + (h - draw_h) / 2, &(rdpq_blitparms_t) {
-            .scale_x = scale,
-            .scale_y = scale,
+            .scale_x = scale_x,
+            .scale_y = scale_y,
         });
     rdpq_mode_pop();
 

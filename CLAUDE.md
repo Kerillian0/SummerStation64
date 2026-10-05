@@ -59,7 +59,10 @@ Claude builds in the container and the user deploys from Windows.
   code from the ROM header itself, reuses the stock boxart loader, keeps one
   image in memory, loads 250 ms after the selection settles, and is freed
   when leaving the browser (the PNG decoder handles one image at a time).
-  Feature `cover_art` (default on).
+  Feature `cover_art` (default on). Up/down (when `updown_scroll` is off)
+  turn the box over to `boxart_back.png`: the cover squashes flat (110 ms),
+  the front is freed, the back is decoded, and the cover opens again. Still
+  one image in memory. Falls back to the front if a game has no back picture.
 - `src/menu/safe_mode.c/.h` — hold Z at boot (read once, synchronously, right
   after `joypad_init()` in `menu.c`). Skips theme.ini/theme.txt, the theme and
   user feature layers, and the custom background image. Shows an orange
@@ -160,6 +163,7 @@ Claude builds in the container and the user deploys from Windows.
 - Done and tested on hardware: cover slide animation (the user found the
   160 ms timing and the text pop natural). The Theme Maker and the v2 share
   code don't know `carousel_animation` yet.
+- Done and tested on hardware: box flip (up/down shows the back of the box).
 - **v0.1 user-facing features are complete.** Two dev-tooling items were
   added to v0.1 afterwards and are not started: the debug overlay and the
   PC-side tests. Before publishing, the user still wants to test Japanese
