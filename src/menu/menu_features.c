@@ -80,6 +80,12 @@ bool features_enabled (feature_t feature) {
         return false;
     }
 
+    /* The two launch modes can't both be on; Quick Launch wins (a theme
+       could still ask for both). */
+    if (feature == FEATURE_HOLD_LAUNCH && features_enabled(FEATURE_QUICK_LAUNCH)) {
+        return false;
+    }
+
     bool on = feature_info[feature].default_on;
 
     /* Safe mode: built-in defaults only. Choices can still be changed and

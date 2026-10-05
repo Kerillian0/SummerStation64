@@ -175,8 +175,9 @@ static void draw(menu_t *menu, surface_t *display) {
         ui_components_actions_bar_text_draw(
             STL_DEFAULT,
             ALIGN_LEFT, VALIGN_TOP,
-            "A: Load Game\n"
-            "\n"
+            "%s\n"
+            "\n",
+            controls_rom_hint()
         );
         
         if(tab_context == BOOKKEEPING_TAB_CONTEXT_FAVORITE && selected_item != -1) {
@@ -192,7 +193,7 @@ static void draw(menu_t *menu, surface_t *display) {
     ui_components_actions_bar_text_draw(
         STL_DEFAULT,
         ALIGN_CENTER, VALIGN_TOP,
-        "◀ Change Tab ▶\n"
+        "L Change Tab R\n"
         "\n"
     );    
 

@@ -28,6 +28,9 @@
  */
 void controls_remap_tabs (menu_t *menu, bool horizontal);
 
+/** Hint bar text for A on a game, matching the launch mode in use. */
+const char *controls_rom_hint (void);
+
 /**
  * True once if the A press that opened the game info screen asked to start
  * the game straight away. Asked by the game info screen when it opens.

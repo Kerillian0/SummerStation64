@@ -53,6 +53,16 @@ static void controls_tap_or_hold (menu_t *menu) {
     }
 }
 
+const char *controls_rom_hint (void) {
+    if (features_enabled(FEATURE_QUICK_LAUNCH)) {
+        return "A: Start, Hold: Info";
+    }
+    if (features_enabled(FEATURE_HOLD_LAUNCH)) {
+        return "A: Info, Hold: Start";
+    }
+    return "A: Load";
+}
+
 bool controls_consume_launch_request (void) {
     bool request = launch_request;
     launch_request = false;

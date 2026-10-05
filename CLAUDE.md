@@ -62,6 +62,9 @@ libdragon. Think ES-DE / Pegasus, on a real N64.
   a hold (500 ms) for `quick_launch` (tap starts, hold = info) and
   `hold_launch` (tap = info, hold starts); `load_rom.c` has a one-line hook
   that starts the game when asked. Browser Options has a "Game info" entry.
+  `controls_rom_hint()` gives the hint-bar text for the launch mode in use.
+  The two launch modes exclude each other: Settings turns the other off, and
+  `features_enabled()` lets Quick Launch win if a theme asks for both.
 - `src/menu/theme.c/.h` — reads `sd:/menu/theme/theme.ini` (or `theme.txt`),
   falls back to built-in defaults. Builds the gradient + pattern background
   once (RGBA16 with 4x4 Bayer dither) on first draw.
@@ -107,6 +110,9 @@ libdragon. Think ES-DE / Pegasus, on a real N64.
 - Done and tested on hardware: safe mode.
 - Done and tested on hardware: friendly crash screen (tested with a temporary
   "crash now" menu entry, since removed).
+- Done and tested on hardware: launch-mode hint text and the quick/hold
+  exclusion. The Files hint bar is tight: the middle hint was cut down to
+  `C: Fast | L Tabs R` to clear the longest left hint.
 - **v0.1 feature list is complete.** Before publishing, the user still wants
   to test Japanese (tall) and 64DD-shaped cover art. Next: v0.2.
 
