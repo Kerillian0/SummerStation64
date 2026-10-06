@@ -3,7 +3,10 @@
 #include <stdio.h>
 
 #include "../fonts.h"
+#include "../folder_memory.h"
 #include "../menu_features.h"
+#include "../menu_options.h"
+#include "../sort_order.h"
 #include "../settings.h"
 #include "../sound.h"
 #include "../theme.h"
@@ -16,6 +19,7 @@
 typedef enum {
     ITEM_SWITCH,    /* an On/Off value in settings_t */
     ITEM_FEATURE,   /* a menu feature: Default / On / Off */
+    ITEM_CHOICE,    /* one of several named values; A moves to the next */
     ITEM_ACTION,    /* does something when A is pressed */
     ITEM_INFO,      /* shows a value, can't be changed here */
 } item_type_t;
@@ -28,8 +32,11 @@ typedef struct {
     bool stock_default;                 /* ITEM_SWITCH: value on a fresh install */
     const char *on_text;                /* ITEM_SWITCH: shown instead of "On" (optional) */
     const char *off_text;               /* ITEM_SWITCH: shown instead of "Off" (optional) */
-    void (*changed) (menu_t *menu);     /* ITEM_SWITCH: optional extra work after a change */
+    void (*changed) (menu_t *menu);     /* ITEM_SWITCH, ITEM_CHOICE: optional extra work after a change */
     feature_t feature;                  /* ITEM_FEATURE */
+    option_t option;                    /* ITEM_CHOICE: which option */
+    int choice_count;                   /* ITEM_CHOICE: how many values it has */
+    const char *(*choice_name) (int);   /* ITEM_CHOICE: label for a value */
     void (*action) (menu_t *menu);      /* ITEM_ACTION */
     const char *(*info) (menu_t *menu); /* ITEM_INFO */
 } item_t;
@@ -47,6 +54,8 @@ typedef struct {
       .off_text = off_name, .on_text = on_name, .changed = hook }
 #define FEATURE(text, id, about) \
     { .label = text, .help = about, .type = ITEM_FEATURE, .feature = id }
+#define CHOICES(text, id, count, names, hook, about) \
+    { .label = text, .help = about, .type = ITEM_CHOICE, .option = id, .choice_count = count, .choice_name = names, .changed = hook }
 #define ACTION(text, func, about) \
     { .label = text, .help = about, .type = ITEM_ACTION, .action = func }
 #define INFO(text, func, about) \
@@ -59,6 +68,12 @@ static bool confirm_reset = false;
 
 static void reload_browser (menu_t *menu) {
     menu->browser.reload = true;
+}
+
+/* The list is rebuilt in the new order; keep the same game selected. */
+static void resort_browser (menu_t *menu) {
+    menu->browser.reload = true;
+    folder_memory_reselect();
 }
 
 static void apply_soundfx (menu_t *menu) {
@@ -120,6 +135,8 @@ static const item_t sound_items[] = {
 };
 
 static const item_t file_items[] = {
+    CHOICES("Sort By", OPTION_SORT_ORDER, SORT_COUNT, sort_order_name, resort_browser,
+        "Type: folders, then each kind of file. Name: folders, then everything by name. Recently Played: games you played from this folder come first."),
     FEATURE("Remember Position", FEATURE_REMEMBER_SELECTION, "Going back into a folder returns to the game you had selected there, also after playing."),
     SWITCH("Show Hidden Files", show_protected_entries, false, reload_browser, "Show files and folders the menu normally hides."),
     SWITCH("Use Saves Folder", use_saves_folder, true, NULL, "Keep game saves in a separate saves folder."),
@@ -172,6 +189,14 @@ static void change_item (menu_t *menu, const item_t *it) {
             int value = features_user_get(it->feature);
             int next = (value == FEATURE_UNSET) ? 1 : (value == 1) ? 0 : FEATURE_UNSET;
             features_user_set(it->feature, next);
+            break;
+        }
+        case ITEM_CHOICE: {
+            int next = (options_get(it->option) + 1) % it->choice_count;
+            options_set(it->option, next);
+            if (it->changed) {
+                it->changed(menu);
+            }
             break;
         }
         case ITEM_ACTION:
@@ -302,6 +327,9 @@ static void draw_item (menu_t *menu, const item_t *it, int y) {
             }
             break;
         }
+        case ITEM_CHOICE:
+            value = it->choice_name(options_get(it->option));
+            break;
         case ITEM_ACTION:
             break;
         case ITEM_INFO:

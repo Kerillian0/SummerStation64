@@ -6,9 +6,14 @@
 #include "ini_parser.h"
 #include "menu_features.h"
 #include "path.h"
+#include "safe_file.h"
 
 #define FOLDER_MEMORY_PATH      "sd:/menu/folders.ini"
 #define FOLDER_MEMORY_TMP_PATH  "sd:/menu/folders.tmp"
+
+/* Also save once the selection has rested this long, so switching the
+   console off on the Files screen doesn't lose the position. */
+#define IDLE_SAVE_MS    (3000)
 
 #define MAX_FOLDERS     (16)    /* most recently used first */
 #define MAX_TEXT        (256)
@@ -26,6 +31,8 @@ static bool dirty = false;
 /* The folder being shown, and the selection last recorded for it. */
 static char current_path[MAX_TEXT] = "";
 static int current_selected = -1;
+static bool reselect = false;
+static uint64_t moved_at = 0;
 
 static void copy_text (char *dst, const char *src) {
     strncpy(dst, src, MAX_TEXT - 1);
@@ -103,14 +110,14 @@ void folder_memory_update (menu_t *menu) {
 
     const char *path = path_get(menu->browser.directory);
 
-    if (strcmp(path, current_path) != 0) {
+    if (strcmp(path, current_path) != 0 || reselect) {
         /* Just arrived in another folder. Only move the selection if nothing
            else has placed it (going back up already selects the folder left). */
         copy_text(current_path, path);
         current_selected = -1;
 
         const char *name = lookup(path);
-        if (name && menu->browser.selected == 0) {
+        if (name && (menu->browser.selected == 0 || reselect)) {
             for (int i = 0; i < menu->browser.entries; i++) {
                 if (strcmp(menu->browser.list[i].name, name) == 0) {
                     menu->browser.selected = i;
@@ -119,12 +126,22 @@ void folder_memory_update (menu_t *menu) {
                 }
             }
         }
+        reselect = false;
     }
 
     if (menu->browser.entry && menu->browser.selected != current_selected) {
         current_selected = menu->browser.selected;
         remember(path, menu->browser.entry->name);
+        moved_at = get_ticks_ms();
     }
+
+    if (dirty && (get_ticks_ms() - moved_at) >= IDLE_SAVE_MS) {
+        folder_memory_flush();
+    }
+}
+
+void folder_memory_reselect (void) {
+    reselect = true;
 }
 
 /* Written to a temporary file first, so a power cut can't leave half a file. */
@@ -143,8 +160,7 @@ void folder_memory_flush (void) {
     }
 
     if (ini_save(ini, FOLDER_MEMORY_TMP_PATH)) {
-        remove(FOLDER_MEMORY_PATH);
-        if (rename(FOLDER_MEMORY_TMP_PATH, FOLDER_MEMORY_PATH) != 0) {
+        if (!safe_file_replace(FOLDER_MEMORY_TMP_PATH, FOLDER_MEMORY_PATH)) {
             debugf("folder memory: could not replace %s\n", FOLDER_MEMORY_PATH);
         }
     } else {

@@ -5,6 +5,7 @@
 
 #include "ini_parser.h"
 #include "menu_features.h"
+#include "safe_file.h"
 #include "safe_mode.h"
 #include "theme.h"
 
@@ -154,10 +155,9 @@ static void features_user_save (void) {
     }
 
     if (!any) {
-        remove(FEATURES_USER_PATH);
+        safe_file_remove(FEATURES_USER_TMP_PATH, FEATURES_USER_PATH);
     } else if (ini_save(ini, FEATURES_USER_TMP_PATH)) {
-        remove(FEATURES_USER_PATH);
-        if (rename(FEATURES_USER_TMP_PATH, FEATURES_USER_PATH) != 0) {
+        if (!safe_file_replace(FEATURES_USER_TMP_PATH, FEATURES_USER_PATH)) {
             debugf("features: could not replace %s\n", FEATURES_USER_PATH);
         }
     } else {

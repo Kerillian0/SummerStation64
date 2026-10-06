@@ -34,9 +34,19 @@ Claude builds in the container and the user deploys from Windows.
   top folder, with the SC64's USB cable connected:
   - `.\localdeploy.bat` — sends the build into the cart; toggle the N64's
     power to boot it. The SD card is not changed.
-  - `.\localdeploy.bat /dur` — same, then copies `output\sc64menu.n64` to the
-    SD card as `/sc64menu.n64`, reboots, and stays connected showing the
-    menu's `debugf` output.
+  - `.\localdeploy.bat /dur` — same, then asks the running menu to save
+    `output\sc64menu.n64` to the SD card as `/sc64menu.n64` and restart, and
+    stays connected showing the menu's `debugf` output. **The menu must
+    already be running when this is started, and the power must not be
+    toggled** (ignore the script's "toggle power" message in this mode): the
+    copy and restart are commands the menu itself carries out
+    (`usb_comm.c`). If the log shows `Debug data write dropped due to
+    timeout`, the menu wasn't listening, nothing was written to the SD card,
+    and the next power cycle boots the old build from the card. Confirmed
+    on hardware 2026-10-06: with the console on and the menu showing, the
+    build is saved (one frame of about 1.6 s while it writes) and the menu
+    restarts. A single `dropped due to timeout` line can still appear and was
+    harmless.
 - In PowerShell a program in the current folder needs `.\` in front.
 
 ## Hard constraints
@@ -102,11 +112,27 @@ Claude builds in the container and the user deploys from Windows.
   (16 most recent folders, by entry name). Restores it when a folder is
   entered with the selection still on the first entry, so the stock "select
   the folder you came out of" behaviour is left alone. Saved to
-  `sd:/menu/folders.ini` (temp file + rename) only when leaving the Files
-  screen and only if something changed. Feature `remember_selection`
+  `sd:/menu/folders.ini` (temp file + rename) when leaving the Files screen,
+  and after the selection has rested for 3 s, and only if something changed. Feature `remember_selection`
   (default on), "Remember Position" in Settings > Files. Two hook lines in
   `view_browser_display()`. Uses 8 KB of static memory. The file path is not
   profile-aware yet (see "Decide early").
+- `src/menu/sort_order.c/.h` — file list order: Type (stock), Name A-Z,
+  Name Z-A, Recently Played (games from the 8-entry history that live in the
+  shown folder come first, then Name A-Z). One line in `load_directory()`
+  swaps the stock `qsort` for `sort_order_apply()`; archive listings keep the
+  stock order. No dates are available without a slow per-file lookup, so
+  "newest first" waits for the metadata index.
+- `src/menu/menu_options.c/.h` — the player's non-switch preferences (so far
+  only `sort_order`), saved to `sd:/menu/options.ini` (temp file + rename).
+  Themes cannot set these. The settings screen shows them with the `CHOICES`
+  row type (A cycles through the values).
+- `src/menu/safe_file.c/.h` — `safe_file_replace(temp, final)` swaps a freshly
+  written temp file into place with FatFs `f_unlink` + `f_rename`. **The C
+  library's `rename()` does not work on `sd:/` in this libdragon** (it always
+  fails), which went unnoticed from step 3b until 2026-10-06 because the
+  loaders fall back to the temp file when the final one is missing. All three
+  settings files (features, options, folders) use this helper now.
 - `src/menu/controls.c/.h` — button layout for the three tabbed screens:
   L/R switch tabs, Z is Options (was R), left/right scroll the carousel,
   up/down do nothing there unless the `updown_scroll` feature is on. It
@@ -188,6 +214,11 @@ Claude builds in the container and the user deploys from Windows.
   Settings > Display. The Theme Maker (version 6) offers it and
   `carousel_animation`, using share code bits 6 and 7.
 - Done and tested on hardware: remember the selected game per folder.
+- Done and tested on hardware: sort options (Settings > Files > Sort By),
+  and saving the folder position after the selection rests for 3 s.
+- Done and tested on hardware: `safe_file.c` (the rename fix). The log shows
+  no `could not replace` lines, and after one save of each file the next boot
+  no longer reports `features.ini` / `options.ini` / `folders.ini` as missing.
 - **v0.1 user-facing features are complete.** Two dev-tooling items were
   added to v0.1 afterwards and are not started: the debug overlay and the
   PC-side tests. Before publishing, the user still wants to test Japanese
@@ -325,6 +356,13 @@ loading screen shows a plain color meanwhile, and the gradient is rebuilt on
 return. That took about 1.25 s at full size; the half-size background made
 it visibly faster. The user has a Jumper Pak on the way, so real 4MB runs become
 possible; until then everything 4MB-specific is worked out, not tested.
+
+Re-measured 2026-10-06 (8MB): the heap is 7198 KB, so the program has grown
+by about 20 KB since the table was made (outside the heap: 994 KB; take 20 KB
+off every 4MB "free" figure). Files screen baseline still 2469 KB used; with
+Previous/Next Covers on and all five covers loaded, 2651 KB (+182 KB, about
+36 KB per cover). Saving a settings file costs one frame of 60-85 ms; changes
+in the Settings screen save on every press, with one outlier of 440 ms.
 
 Still to measure: a real 4MB run, a folder with many entries, the image
 viewer and the music player.

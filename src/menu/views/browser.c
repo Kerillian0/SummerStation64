@@ -18,6 +18,7 @@
 #include "../carousel_art.h"
 #include "../safe_mode.h"
 #include "../folder_memory.h"
+#include "../sort_order.h"
 #include "../ui_components/constants.h"
 
 static const char *archive_extensions[] = { "zip", NULL };
@@ -407,7 +408,7 @@ static bool load_directory (menu_t *menu) {
         menu->browser.entry = &menu->browser.list[menu->browser.selected];
     }
 
-    qsort(menu->browser.list, menu->browser.entries, sizeof(entry_t), compare_entry);
+    sort_order_apply(menu, compare_entry); // the player's sort order; compare_entry is the stock one
 
     return false;
 }
