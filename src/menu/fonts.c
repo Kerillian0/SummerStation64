@@ -2,6 +2,7 @@
 
 #include "fonts.h"
 #include "font_choice.h"
+#include "title_font.h"
 #include "theme.h"
 #include "utils/fs.h"
 
@@ -36,4 +37,5 @@ static void load_default_font (char *custom_font_path) {
 
 void fonts_init (char *custom_font_path) {
     load_default_font(custom_font_path);
+    title_font_init();
 }

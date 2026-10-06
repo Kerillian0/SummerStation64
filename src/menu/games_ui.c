@@ -8,6 +8,7 @@
 #include "fonts.h"
 #include "games_ui.h"
 #include "theme.h"
+#include "title_font.h"
 #include "ui_components/constants.h"
 
 /* Tab bar. Kept well inside the picture: a CRT hides its outer edge, and the
@@ -22,9 +23,10 @@
 #define CLOCK_WIDTH     (100)
 
 /* Title panel */
-#define PANEL_Y         (280)
-#define PANEL_HEIGHT    (56)
-#define PANEL_LINE      (26)
+#define PANEL_Y         (272)
+#define PANEL_HEIGHT    (66)
+#define PANEL_TITLE     (36)    /* height of the title line */
+#define PANEL_LINE      (26)    /* height of the line under it */
 
 /* Position bar */
 #define POSITION_Y      (346)
@@ -129,11 +131,17 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const gam
     const theme_t *t = theme_get();
     int x0 = GAMES_UI_CONTENT_X0;
     int x1 = GAMES_UI_CONTENT_X1;
-    int line2_y = PANEL_Y + 3 + PANEL_LINE - 2;
+    int line2_y = PANEL_Y + 2 + PANEL_TITLE;
 
     fill(x0, PANEL_Y, x1, PANEL_Y + PANEL_HEIGHT, RGBA32(t->panel.r, t->panel.g, t->panel.b, 0xD8));
 
-    text(x0 + 12, PANEL_Y + 3, x1 - x0 - 24, PANEL_LINE, ALIGN_LEFT, STL_DEFAULT, title);
+    /* The big title font when the name fits on one line in it, the body font otherwise. */
+    rdpq_text_printf(&(rdpq_textparms_t) {
+        .width = x1 - x0 - 24,
+        .height = PANEL_TITLE,
+        .valign = VALIGN_CENTER,
+        .wrap = WRAP_ELLIPSES,
+    }, title_font_pick(title, x1 - x0 - 24), x0 + 12, PANEL_Y + 2, "%s", title);
 
     if (!facts) {
         text(x0 + 12, line2_y, x1 - x0 - 24, PANEL_LINE, ALIGN_LEFT, STL_GRAY, detail);

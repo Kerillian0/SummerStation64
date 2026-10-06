@@ -15,6 +15,8 @@
  */
 typedef enum {
     FNT_DEFAULT = 1, /**< Default font type */
+    FNT_TITLE = 2,   /**< Larger font for game titles (see title_font.h) */
+    FNT_TITLE_MEDIUM = 3, /**< In-between size, for titles too long for FNT_TITLE */
 } menu_font_type_t;
 
 /**

@@ -46,6 +46,7 @@ SRCS = \
 	menu/ini_parser.c \
 	menu/actions.c \
 	menu/controls.c \
+	menu/title_font.c \
 	menu/games_ui.c \
 	menu/game_facts.c \
 	menu/font_choice.c \
@@ -169,6 +170,23 @@ $(FILESYSTEM_DIR)/Firple-Bold-Latin.font64: $(ASSETS_DIR)/fonts/Firple-Bold.ttf 
 	@mkdir -p $(BUILD_DIR)/font-latin
 	@$(N64_MKFONT) --compress 1 --outline 1 --size 15 --charset $(ASSETS_DIR)/fonts/charset-latin.txt --ellipsis 2026,1 -o $(BUILD_DIR)/font-latin "$<"
 	@cp $(BUILD_DIR)/font-latin/Firple-Bold.font64 $@
+
+# Larger font for game titles: the same typeface at 26 px with English and
+# Western European characters only (about 69 KB in RAM).
+$(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM_DIR)/Firple-Bold-Title.font64
+$(FILESYSTEM_DIR)/Firple-Bold-Title.font64: $(ASSETS_DIR)/fonts/Firple-Bold.ttf $(ASSETS_DIR)/fonts/charset-title.txt
+	@echo "    [FONT] $@"
+	@mkdir -p $(BUILD_DIR)/font-title
+	@$(N64_MKFONT) --compress 1 --outline 1 --size 26 --charset $(ASSETS_DIR)/fonts/charset-title.txt --ellipsis 2026,1 -o $(BUILD_DIR)/font-title "$<"
+	@cp $(BUILD_DIR)/font-title/Firple-Bold.font64 $@
+
+# The same at 20 px, for titles too long for the 26 px one.
+$(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM_DIR)/Firple-Bold-Title20.font64
+$(FILESYSTEM_DIR)/Firple-Bold-Title20.font64: $(ASSETS_DIR)/fonts/Firple-Bold.ttf $(ASSETS_DIR)/fonts/charset-title.txt
+	@echo "    [FONT] $@"
+	@mkdir -p $(BUILD_DIR)/font-title20
+	@$(N64_MKFONT) --compress 1 --outline 1 --size 20 --charset $(ASSETS_DIR)/fonts/charset-title.txt --ellipsis 2026,1 -o $(BUILD_DIR)/font-title20 "$<"
+	@cp $(BUILD_DIR)/font-title20/Firple-Bold.font64 $@
 
 $(BUILD_DIR)/menu/views/credits.o: .FORCE
 $(BUILD_DIR)/menu/views/credits.o: FLAGS+=-DMENU_VERSION=\"$(MENU_VERSION)\" -DBUILD_TIMESTAMP=\"$(BUILD_TIMESTAMP)\"

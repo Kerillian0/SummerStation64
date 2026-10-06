@@ -313,6 +313,10 @@ Claude builds in the container and the user deploys from Windows.
 - Done and tested on hardware: lighter game lookup for the badges.
 - Done and tested on hardware: menu redesign stage 3 (button hints), after
   four rounds of spacing changes from the user's photos.
+- Done and tested on hardware: title fonts (26 px and 20 px), used so far
+  for the name in the Games title panel (stage 4, first part). The fit check
+  leaves 16 px spare, because the text drawer counts the space after the
+  last character and otherwise cuts the name with "...".
 - **v0.1 user-facing features are complete.** Two dev-tooling items were
   added to v0.1 afterwards and are not started: the debug overlay and the
   PC-side tests. Before publishing, the user still wants to test Japanese
@@ -555,7 +559,15 @@ font. Measured 2026-10-06 (same typeface, uncompressed size = RAM cost):
 | ASCII + Western European accents (190) | 56 KB | 69 KB | 88 KB |
 | The full small-font set (339) | 110 KB | 140 KB | 177 KB |
 
-Not decided yet which, if any, to add.
+Chosen (the recommendation the user accepted): 26 px with accents, 69 KB.
+`title_font.c` loads it as `FNT_TITLE` (`Firple-Bold-Title.font64`, built by
+a Makefile rule from `assets/fonts/charset-title.txt`). `title_font_pick()`
+returns the title font only if it has every character of the text and the
+text fits on one line; otherwise the body font, so nothing shows as gaps.
+After the user's photo showed long names looking small at 15 px with half
+the panel empty, a 20 px size was added (`FNT_TITLE_MEDIUM`,
+`Firple-Bold-Title20.font64`, 48 KB): the largest of 26, 20 and 15 px that
+fits on one line is used. The two title fonts together cost about 117 KB.
 
 ## 4MB test checklist (for when the user says the Jumper Pak is ready)
 Everything 4MB-specific so far is worked out from 8MB runs. When the user
