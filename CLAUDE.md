@@ -136,6 +136,15 @@ Claude builds in the container and the user deploys from Windows.
   fails), which went unnoticed from step 3b until 2026-10-06 because the
   loaders fall back to the temp file when the final one is missing. All three
   settings files (features, options, folders) use this helper now.
+- `src/menu/display_name.c/.h` — `display_name(entry)` gives the name to show
+  for a game: without its file extension (feature `hide_extensions`) and with
+  a trailing article moved to the front (feature `tidy_titles`: "Legend of
+  Zelda, The - Ocarina of Time" -> "The Legend of Zelda - Ocarina of Time";
+  also ", A" and ", An"). Both default on. Feature `hide_tags` (default off,
+  because it makes regional versions look alike) drops every `(...)` and
+  `[...]` group. Games only; files are not renamed.
+  Used by the carousel only so far; History, Favorites and the game info
+  screen still show raw file names. Sorting still goes by the file name.
 - `src/menu/controls.c/.h` — button layout for the three tabbed screens:
   L/R switch tabs, Z is Options (was R), left/right scroll the carousel,
   up/down do nothing there unless the `updown_scroll` feature is on. It
@@ -226,6 +235,9 @@ Claude builds in the container and the user deploys from Windows.
   no longer reports `features.ini` / `options.ini` / `folders.ini` as missing.
 - Done and tested on hardware: Settings saves once on leaving (or after 5 s
   idle) instead of on every press.
+- Done and tested on hardware: `hide_extensions`, `tidy_titles` and
+  `hide_tags` ("Hide Game Extensions", "Tidy Game Titles", "Hide Region
+  Tags").
 - **v0.1 user-facing features are complete.** Two dev-tooling items were
   added to v0.1 afterwards and are not started: the debug overlay and the
   PC-side tests. Before publishing, the user still wants to test Japanese
@@ -268,7 +280,8 @@ opacity = 10           ; 0-100
 quick_launch = 1       ; any key from menu_features.c: quick_launch,
                        ; hold_launch, side_covers, frame_borders,
                        ; updown_scroll, cover_art, carousel_animation,
-                       ; see_through_covers, remember_selection
+                       ; see_through_covers, remember_selection,
+                       ; hide_extensions, tidy_titles, hide_tags
                        ; (0 or 1; leave out = default)
 ```
 

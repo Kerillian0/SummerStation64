@@ -31,6 +31,9 @@ static const feature_info_t feature_info[FEATURE_COUNT] = {
     [FEATURE_COVER_ART]           = { "cover_art",           true,  false },
     [FEATURE_SEE_THROUGH_COVERS]  = { "see_through_covers",  true,  false },
     [FEATURE_REMEMBER_SELECTION]  = { "remember_selection",  true,  false },
+    [FEATURE_HIDE_EXTENSIONS]     = { "hide_extensions",     true,  false },
+    [FEATURE_TIDY_TITLES]         = { "tidy_titles",         true,  false },
+    [FEATURE_HIDE_TAGS]           = { "hide_tags",           false, false },
 };
 
 #define FEATURES_USER_PATH      "sd:/menu/features.ini"

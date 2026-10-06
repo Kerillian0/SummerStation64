@@ -19,6 +19,7 @@
 #include "../safe_mode.h"
 #include "../folder_memory.h"
 #include "../sort_order.h"
+#include "../display_name.h"
 #include "../ui_components/constants.h"
 
 static const char *archive_extensions[] = { "zip", NULL };
@@ -895,7 +896,7 @@ static void carousel_draw (menu_t *menu) {
                 .width = w - 16,
                 .height = h - 40,
                 .wrap = WRAP_WORD,
-            }, FNT_DEFAULT, x0 + 8, y0 + 44, "%s", e->name);
+            }, FNT_DEFAULT, x0 + 8, y0 + 44, "%s", display_name(e));
         }
     }
 
@@ -925,7 +926,7 @@ static void carousel_draw (menu_t *menu) {
         .align = ALIGN_CENTER,
         .wrap = WRAP_ELLIPSES,
     }, FNT_DEFAULT, 40, CAROUSEL_CENTER_Y + CAROUSEL_CENTER_H / 2 + 30,
-        "%s", menu->browser.entry ? menu->browser.entry->name : "");
+        "%s", display_name(menu->browser.entry));
 
     rdpq_text_printf(&(rdpq_textparms_t) {
         .width = screen_w - 80,
