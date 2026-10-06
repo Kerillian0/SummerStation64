@@ -258,12 +258,22 @@ Claude builds in the container and the user deploys from Windows.
   exercised, because no page currently has more than eight rows.
 - Done and tested on hardware: tidied names on History, Favorites and the
   game/disk info screens, with the real-name toggle.
-- **OPEN BUG (reported 2026-10-06, cause unknown):** after launching a game,
-  resetting or power-cycling gives a black screen instead of the menu, until
-  the build is sent again with the deployer. Not yet known: whether the menu
-  is running without a picture or not starting at all, whether the SD card's
-  `sc64menu.n64` is damaged, and which commit introduced it. Do not build new
-  features until this is understood.
+- **OPEN BUG (reported 2026-10-06):** after launching a game, resetting or
+  power-cycling gives a black screen until the build is sent again with the
+  deployer. Found so far: the menu is not running at all (no debug output);
+  the cart is in "Menu from SD card" boot mode; **`sc64menu.n64` on the SD
+  card is 0 bytes**. The only code that opens that file for writing is the
+  stock USB `send-file` command (`usb_comm.c`, used by `localdeploy.bat /dur`).
+  Working theory, not yet proven: `/dur` empties the file and fails to refill
+  it (the log always shows one `Debug data write dropped due to timeout`),
+  and this went unnoticed because **the cart is powered through the USB cable
+  and keeps the uploaded menu in its memory across console power cycles**, so
+  the menu kept appearing until a game overwrote that memory. If so, the
+  fork's menu code is not at fault. Test: copy `output\sc64menu.n64` to the
+  card with a card reader, then launch a game and reset. Until this is
+  settled, do not use `/dur`; upload with plain `localdeploy.bat` and copy to
+  the card by hand. "Survived a power cycle" only proves something if the USB
+  cable was unplugged or the thing tested lives in a settings file.
 - **v0.1 user-facing features are complete.** Two dev-tooling items were
   added to v0.1 afterwards and are not started: the debug overlay and the
   PC-side tests. Before publishing, the user still wants to test Japanese
