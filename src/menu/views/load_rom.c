@@ -8,6 +8,7 @@
 #include "views.h"
 #include "../controls.h"
 #include "../display_name.h"
+#include "../game_info_ui.h"
 #include <string.h>
 
 static bool show_extra_info_message = false;
@@ -615,6 +616,20 @@ static void draw (menu_t *menu, surface_t *d) {
         ui_components_loader_draw(0.0f, NULL);
     } else {
 #endif
+#if 1 // redesigned main page (game_info_ui.c); set to 0 for the stock one
+        (void) format_rom_expansion_pak_info; // only the stock page uses these two
+        (void) format_rom_pak_feature_info;
+        game_info_ui_draw(menu, boxart, &(game_info_view_t) {
+            .name = display_name_info(rom_filename),
+            .description = format_rom_description(menu),
+            .save = format_rom_save_type(rom_info_get_save_type(&menu->load.rom_info), menu->load.rom_info.features.controller_pak),
+            .tv = format_rom_tv_type(rom_info_get_tv_type(&menu->load.rom_info)),
+            .cheats = menu->load.rom_info.settings.cheats_enabled,
+            .patches = menu->load.rom_info.settings.patches_enabled,
+            .clear_rdram = menu->load.rom_info.settings.clear_rdram_enabled,
+            .front_picture = (current_metadata_image_index == 0),
+        });
+#else
         ui_components_layout_draw();
 
         ui_components_main_text_draw(
@@ -684,6 +699,7 @@ static void draw (menu_t *menu, surface_t *d) {
         if (boxart != NULL) {
             ui_components_boxart_draw(boxart);
         }
+#endif
 
         if (show_extra_info_message) {
             ui_components_messagebox_draw(

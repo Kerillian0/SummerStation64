@@ -7,6 +7,7 @@
 #ifndef GAMES_UI_H__
 #define GAMES_UI_H__
 
+#include "fonts.h"
 #include "game_facts.h"
 #include "ui_components/constants.h"
 #include "menu_state.h"
@@ -32,6 +33,12 @@ void games_ui_topbar_draw (menu_t *menu, games_tab_t selected);
  * whose facts are known, otherwise the plain line of detail.
  */
 void games_ui_title_panel_draw (const char *title, const char *detail, const game_facts_t *facts);
+
+/**
+ * A word in a small box, as wide as its text (`boxed` false draws the word
+ * alone). @return Where the next one goes.
+ */
+int games_ui_badge (int x, int y, const char *label, menu_font_style_t style, bool boxed);
 
 /** "You are here" bar: first letter, a track with a marker, and "13 of 79". */
 void games_ui_position_draw (const char *title, int selected, int count);

@@ -109,7 +109,7 @@ void games_ui_topbar_draw (menu_t *menu, games_tab_t selected) {
 #define BADGE_SPACING   (8)
 
 /* A word in a small box, as wide as its text. Returns where the next one goes. */
-static int badge (int x, int y, const char *label, menu_font_style_t style, bool boxed) {
+int games_ui_badge (int x, int y, const char *label, menu_font_style_t style, bool boxed) {
     int nbytes = strlen(label);
     rdpq_paragraph_t *layout = rdpq_paragraph_build(&(rdpq_textparms_t) {
         .height = BADGE_HEIGHT,
@@ -154,18 +154,18 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const gam
     if (facts->players > 0) {
         char players[24];
         snprintf(players, sizeof(players), (facts->players == 1) ? "1 player" : "%d players", facts->players);
-        x = badge(x, y, players, STL_GRAY, false);
+        x = games_ui_badge(x, y, players, STL_GRAY, false);
     }
     if (facts->needs_expansion) {
-        x = badge(x, y, "Needs Expansion Pak", STL_ORANGE, true);
+        x = games_ui_badge(x, y, "Needs Expansion Pak", STL_ORANGE, true);
     } else if (facts->likes_expansion) {
-        x = badge(x, y, "Expansion Pak", STL_GREEN, true);
+        x = games_ui_badge(x, y, "Expansion Pak", STL_GREEN, true);
     }
     if (facts->save_found) {
-        x = badge(x, y, "Save found", STL_GREEN, true);
+        x = games_ui_badge(x, y, "Save found", STL_GREEN, true);
     }
     if (facts->favorite) {
-        x = badge(x, y, "Favorite", STL_YELLOW, true);
+        x = games_ui_badge(x, y, "Favorite", STL_YELLOW, true);
     }
 
     /* A game with nothing to flag still says what it is. */
@@ -206,7 +206,7 @@ int games_ui_hint_width (const char *button, const char *action) {
 
 int games_ui_hint_draw (int x, int row, const char *button, const char *action) {
     int y = HINTS_Y + (row * HINT_ROW_HEIGHT);
-    x = badge(x, y, button, button_style(button), true) - BADGE_SPACING + BADGE_PADDING;
+    x = games_ui_badge(x, y, button, button_style(button), true) - BADGE_SPACING + BADGE_PADDING;
 
     int nbytes = strlen(action);
     rdpq_paragraph_t *layout = rdpq_paragraph_build(&(rdpq_textparms_t) {

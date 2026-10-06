@@ -48,6 +48,7 @@ SRCS = \
 	menu/controls.c \
 	menu/title_font.c \
 	menu/games_ui.c \
+	menu/game_info_ui.c \
 	menu/game_facts.c \
 	menu/font_choice.c \
 	menu/display_name.c \

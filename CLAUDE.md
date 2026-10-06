@@ -317,6 +317,7 @@ Claude builds in the container and the user deploys from Windows.
   for the name in the Games title panel (stage 4, first part). The fit check
   leaves 16 px spare, because the text drawer counts the space after the
   last character and otherwise cuts the name with "...".
+- Done and tested on hardware: menu redesign stage 4 (Game info screen).
 - **v0.1 user-facing features are complete.** Two dev-tooling items were
   added to v0.1 afterwards and are not started: the debug overlay and the
   PC-side tests. Before publishing, the user still wants to test Japanese
@@ -542,8 +543,19 @@ Stages, one testable build each:
    share edges 48 px inside the safe area (480 px wide, a little wider than
    the position bar). Recent and
    Favorites keep their text hints until stage 6.
-4. Game info screen: blurred art background (the cover stretched large with
-   smoothing, no extra memory), title, badges, description, Play button.
+4. **Game info screen (done and tested, 33.3 ms):** `game_info_ui.c`
+   draws the main page: a tiny copy of the front cover (a quarter size each
+   way, about 2 KB, kept while the game is shown) stretched over the whole
+   screen with smoothing and drawn at a third of its brightness, the
+   cover in an accent ring at top right, the maker, the name in the largest
+   title size that fits two lines, badges, three fact boxes (Players, TV
+   region, Released; the user asked for the save type to be dropped from this
+   page, it remains under Options > Set Save Type), the description with the per-game switches on its last
+   line, and two rows of button hints. Hooked into `load_rom.c` with an
+   `#if 1 ... #else stock #endif` around the stock main page; the pop-ups and
+   all button handling are stock and unchanged. Risk: two full-screen
+   stretched pictures per frame (theme background, then the cover), so the
+   frame time needs checking.
 5. Launch stats (times played, last played): a new saved file.
 6. Recent and Favorites as cover rows instead of lists.
 7. Intro: a few seconds with short music, then the Games screen
