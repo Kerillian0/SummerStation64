@@ -545,9 +545,17 @@ Stages, one testable build each:
 7. Intro: a few seconds with short music, then the Games screen
    (`boot_animation` feature already exists as a switch).
 Constraints found so far: rounded corners are not cheap on the N64 (square
-corners used); there is one font size, so a big title needs a second font
-(memory cost to be measured); small label text from the mockups would not be
-readable on a composite CRT.
+corners used); small label text from the mockups would not be readable on a
+composite CRT; there is one font size (15 px), so a big title needs a second
+font. Measured 2026-10-06 (same typeface, uncompressed size = RAM cost):
+
+| Characters | 22 px | 26 px | 30 px |
+|---|---:|---:|---:|
+| ASCII only (95) | 26 KB | 32 KB | 41 KB |
+| ASCII + Western European accents (190) | 56 KB | 69 KB | 88 KB |
+| The full small-font set (339) | 110 KB | 140 KB | 177 KB |
+
+Not decided yet which, if any, to add.
 
 ## 4MB test checklist (for when the user says the Jumper Pak is ready)
 Everything 4MB-specific so far is worked out from 8MB runs. When the user
