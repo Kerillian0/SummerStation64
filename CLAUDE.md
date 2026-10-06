@@ -50,6 +50,12 @@ Claude builds in the container and the user deploys from Windows.
     restarts. That "confirmation" was wrong: the menu restarted from the
     cart's memory, and the single `dropped due to timeout` line was the file
     transfer failing.
+  - `.\deploy-sd.bat` (ours, added and tested 2026-10-06) — **the way to put
+    a build on the card.** Copies it with the deployer's own
+    `sd upload <SRC> [DST]` command, with the N64 switched off, then shows
+    the file's size with `sd stat` and runs `reset`. `/d` also opens the debug
+    log afterwards. Tested with the USB cable unplugged afterwards: the menu
+    returns after launching a game and resetting.
 - In PowerShell a program in the current folder needs `.\` in front.
 
 ## Hard constraints
@@ -270,9 +276,8 @@ Claude builds in the container and the user deploys from Windows.
   due to timeout` line is the sign. Why the transfer fails is not yet known.
   It went unnoticed because the cart is powered through the USB cable and
   keeps the uploaded menu in memory across console power cycles.
-  **Rules until fixed:** do not use `/dur`. Upload with plain
-  `localdeploy.bat` for quick tests and copy `output\sc64menu.n64` to the card
-  by card reader to make a build permanent. A "survived a power cycle" result
+  **Rules:** do not use `/dur`. Use `deploy-sd.bat` to put a build on the
+  card (or plain `localdeploy.bat` to run one from the cart's memory only). A "survived a power cycle" result
   only counts if the USB cable was unplugged or the thing tested lives in a
   settings file.
 - **v0.1 user-facing features are complete.** Two dev-tooling items were
