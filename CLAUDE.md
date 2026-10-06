@@ -112,7 +112,9 @@ Claude builds in the container and the user deploys from Windows.
   the player hasn't chosen, so it's visible whether the theme or the player
   decides. Rows are table-driven: add a `SWITCH`/`FEATURE`/`ACTION`/`INFO`
   line to a category. Eight rows fit above the description; longer categories
-  scroll, with ▲/▼ in the title row. The screen reopens where it was left
+  scroll, with a thin scroll bar at the right edge (track in the theme's
+  `tab_inactive`, thumb in `accent`). Since the font row moved to System no
+  page is long enough to scroll, so the bar is currently never shown. The screen reopens where it was left
   (feature `remember_settings`, default on, this power-on only). Categories:
   Display, Controls, Sound, Library, Files, System. Changes are held in memory and written once, when
   leaving the screen or after 5 s without a change (the user asked for fewer
@@ -176,7 +178,9 @@ Claude builds in the container and the user deploys from Windows.
   Latin one (`Firple-Bold-Latin.font64`, 64 KB, built from
   `assets/fonts/charset-latin.txt` by an added Makefile rule). Option `font`
   in `options.ini`: Auto (small without the Expansion Pak, full with it),
-  Full, Small. "Font" in Settings > Display; applies after a restart. One
+  Full, Latin Only (shown to the player as "Character Set" in Settings >
+  System, where the user wanted it because it exists to save memory); applies
+  after a restart. One
   line changed in `fonts.c`. A custom font on the SD card still wins.
 - `src/menu/controls.c/.h` — button layout for the three tabbed screens:
   L/R switch tabs, Z is Options (was R), left/right scroll the carousel,
@@ -292,6 +296,9 @@ Claude builds in the container and the user deploys from Windows.
   settings file.
 - Done and tested on hardware: the Font setting (both fonts shipped), and
   with it the Settings row scrolling (Display has nine rows).
+- Done and tested on hardware: scroll bar on Settings pages that scroll.
+- Done and tested on hardware: the font row renamed "Character Set" and
+  moved to System; the ▲/▼ marks removed.
 - **v0.1 user-facing features are complete.** Two dev-tooling items were
   added to v0.1 afterwards and are not started: the debug overlay and the
   PC-side tests. Before publishing, the user still wants to test Japanese
@@ -494,10 +501,11 @@ anything added since. Run with the log open (`.\localdeploy.bat /d`, or
 Basics
 1. The menu boots, and the log's first Files screen line shows a heap of
    about 3,100 KB.
-2. The log says `font: small (Latin)` with Font on Auto, and "used" on the
-   Files screen is about 1,760 KB (so about 1,340 KB free).
-3. Set Font to Full and restart: "used" rises by about 710 KB and the menu
-   still works. Set it back to Auto.
+2. The log says `font: small (Latin)` with Character Set (Settings > System)
+   on Auto, and "used" on the Files screen is about 1,760 KB (so about
+   1,340 KB free).
+3. Set Character Set to Full and restart: "used" rises by about 710 KB and
+   the menu still works. Set it back to Auto.
 4. Frame time stays near 33 ms on Files, Settings, History and game info.
 
 Covers
@@ -511,7 +519,7 @@ Backgrounds and pictures
 8. Open a full-screen (640x480) PNG in the image viewer. This is the case
    the theme background is freed for.
 9. Set that picture as the background, then check the Files screen: with
-   Font on Full, side covers should fall back to placeholders rather than
+   Character Set on Full, side covers should fall back to placeholders rather than
    run out of memory. Then remove the background.
 10. Safe mode (hold Z) with a custom background set: boots, and "used" is
     not 600 KB higher than normal.

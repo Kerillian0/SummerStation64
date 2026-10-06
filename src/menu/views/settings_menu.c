@@ -140,8 +140,6 @@ static const item_t display_items[] = {
     FEATURE("Frame Borders", FEATURE_FRAME_BORDERS, "Draw the frame around the screen and the line above the button hints."),
     CHOICE("Video Output", force_progressive_scan, false, "480i", "240p", NULL,
         "480i is sharper but can flicker. 240p is steady with softer text, and suits TVs that struggle with interlaced video. Restart the console to apply."),
-    CHOICES("Font", OPTION_FONT, FONT_COUNT, font_choice_name, NULL,
-        "Small frees about 700 KB of memory but can't show Japanese names. Auto uses Small without the Expansion Pak, Full with it. Restart the console to apply."),
     SWITCH("PAL60 Mode", pal60_enabled, false, apply_pal60,
         "PAL consoles only. The picture may go dark if your TV can't show it; to undo that, edit menu/config.ini on the SD card."),
     ACTION("Remove Background", remove_background, "Remove the background picture set from the image viewer."),
@@ -182,6 +180,8 @@ static const item_t file_items[] = {
 };
 
 static const item_t system_items[] = {
+    CHOICES("Character Set", OPTION_FONT, FONT_COUNT, font_choice_name, NULL,
+        "Latin Only frees about 700 KB of memory but can't show Japanese names. Auto uses Latin Only without the Expansion Pak, Full with it. Restart the console to apply."),
     INFO("Start Folder", default_folder, "The folder the menu opens in. Change it from Options on the Files screen."),
     FEATURE("Remember Settings Page", FEATURE_REMEMBER_SETTINGS, "Reopen Settings on the page and row you last used, until the console is switched off."),
     ACTION("Reset Settings", ask_reset, "Put the stock settings back to how they were on a fresh install."),
@@ -310,6 +310,8 @@ static void process (menu_t *menu) {
 #define HELP_Y          (ROWS_Y + (VISIBLE_ROWS * ROW_HEIGHT) + 4)
 #define HELP_HEIGHT     (LAYOUT_ACTIONS_SEPARATOR_Y - 8 - HELP_Y)
 #define ROW_PADDING     (6)
+#define SCROLLBAR_X     (ITEMS_X + ITEMS_WIDTH + 3)
+#define SCROLLBAR_WIDTH (4)
 
 static void draw_fill (int x0, int y0, int x1, int y1, color_t color) {
     rdpq_mode_push();
@@ -434,12 +436,6 @@ static void draw (menu_t *menu, surface_t *d) {
     if (last_row > cat->count) {
         last_row = cat->count;
     }
-    bool more_above = (first_row > 0);
-    bool more_below = (last_row < cat->count);
-    if (more_above || more_below) {
-        draw_text(ITEMS_X, TITLE_Y, ITEMS_WIDTH, ALIGN_RIGHT, STL_GRAY,
-            (more_above && more_below) ? "▲ ▼" : (more_above ? "▲" : "▼"));
-    }
 
     if (features_enabled(FEATURE_FRAME_BORDERS)) {
         draw_fill(DIVIDER_X, ROWS_Y, DIVIDER_X + 2, LAYOUT_ACTIONS_SEPARATOR_Y - 8, theme_get()->border);
@@ -451,6 +447,15 @@ static void draw (menu_t *menu, surface_t *d) {
             draw_selection(LEFT_X, y, LEFT_WIDTH, !in_items);
         }
         draw_text(LEFT_X, y, LEFT_WIDTH, ALIGN_LEFT, STL_DEFAULT, categories[i].label);
+    }
+
+    // A page with more rows than fit gets a bar showing how far down you are.
+    if (cat->count > VISIBLE_ROWS) {
+        int track = VISIBLE_ROWS * ROW_HEIGHT;
+        int thumb = (track * VISIBLE_ROWS) / cat->count;
+        int thumb_y = ROWS_Y + ((track - thumb) * first_row) / (cat->count - VISIBLE_ROWS);
+        draw_fill(SCROLLBAR_X, ROWS_Y, SCROLLBAR_X + SCROLLBAR_WIDTH, ROWS_Y + track, theme_get()->tab_inactive);
+        draw_fill(SCROLLBAR_X, thumb_y, SCROLLBAR_X + SCROLLBAR_WIDTH, thumb_y + thumb, theme_get()->accent);
     }
 
     for (int i = first_row; i < last_row; i++) {

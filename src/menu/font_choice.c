@@ -10,7 +10,7 @@
 const char *font_choice_name (int choice) {
     switch (choice) {
         case FONT_FULL: return "Full";
-        case FONT_SMALL: return "Small";
+        case FONT_SMALL: return "Latin Only";
         default: return "Auto";
     }
 }
