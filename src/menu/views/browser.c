@@ -20,6 +20,7 @@
 #include "../folder_memory.h"
 #include "../sort_order.h"
 #include "../display_name.h"
+#include "../games_ui.h"
 #include "../ui_components/constants.h"
 
 static const char *archive_extensions[] = { "zip", NULL };
@@ -712,7 +713,7 @@ static void process (menu_t *menu) {
 #define BROWSER_CAROUSEL 1
 
 #if BROWSER_CAROUSEL
-#define CAROUSEL_CENTER_Y   200
+#define CAROUSEL_CENTER_Y   180
 #define CAROUSEL_CENTER_W   224
 #define CAROUSEL_CENTER_H   160
 #define CAROUSEL_SIDE_W     144
@@ -727,6 +728,21 @@ static const char *carousel_type_label (entry_type_t type) {
         case ENTRY_TYPE_EMULATOR: return "EMU";
         case ENTRY_TYPE_ARCHIVE: return "ZIP";
         default: return "FILE";
+    }
+}
+
+// Plain-language kind of entry, for the line under the title.
+static const char *carousel_kind_label (entry_type_t type) {
+    switch (type) {
+        case ENTRY_TYPE_DIR: return "Folder";
+        case ENTRY_TYPE_ROM: return "Nintendo 64 game";
+        case ENTRY_TYPE_DISK: return "64DD disk";
+        case ENTRY_TYPE_EMULATOR: return "Game for an emulator";
+        case ENTRY_TYPE_ARCHIVE: return "Zip archive";
+        case ENTRY_TYPE_IMAGE: return "Picture";
+        case ENTRY_TYPE_MUSIC: return "Music";
+        case ENTRY_TYPE_TEXT: return "Text";
+        default: return "File";
     }
 }
 
@@ -909,7 +925,7 @@ static void carousel_draw (menu_t *menu) {
 
     // Safe mode reminder, centered between the tabs and the cover.
     if (safe_mode_active()) {
-        int top = VISIBLE_AREA_Y0 + TAB_HEIGHT + BORDER_THICKNESS;
+        int top = GAMES_UI_TOPBAR_BOTTOM;
         int bottom = CAROUSEL_CENTER_Y - CAROUSEL_CENTER_H / 2 - 5;
         rdpq_text_print(&(rdpq_textparms_t) {
             .width = screen_w,
@@ -920,20 +936,10 @@ static void carousel_draw (menu_t *menu) {
         }, FNT_DEFAULT, 0, top, "Safe Mode");
     }
 
-    // Full name and position under the carousel.
-    rdpq_text_printf(&(rdpq_textparms_t) {
-        .width = screen_w - 80,
-        .align = ALIGN_CENTER,
-        .wrap = WRAP_ELLIPSES,
-    }, FNT_DEFAULT, 40, CAROUSEL_CENTER_Y + CAROUSEL_CENTER_H / 2 + 30,
-        "%s", display_name(menu->browser.entry));
-
-    rdpq_text_printf(&(rdpq_textparms_t) {
-        .width = screen_w - 80,
-        .align = ALIGN_CENTER,
-        .style_id = STL_GRAY,
-    }, FNT_DEFAULT, 40, CAROUSEL_CENTER_Y + CAROUSEL_CENTER_H / 2 + 52,
-        "%d / %d", (int) (menu->browser.selected + 1), (int) menu->browser.entries);
+    // Title panel and position bar under the covers.
+    const char *title = display_name(menu->browser.entry);
+    games_ui_title_panel_draw(title, carousel_kind_label(menu->browser.entry->type));
+    games_ui_position_draw(title, menu->browser.selected, menu->browser.entries);
 }
 #endif
 
@@ -942,13 +948,12 @@ static void draw (menu_t *menu, surface_t *d) {
 
     ui_components_background_draw();
 
-    ui_components_tabs_common_draw(0);
-
-    ui_components_layout_draw_tabbed();
-
 #if BROWSER_CAROUSEL
+    games_ui_topbar_draw(menu, GAMES_TAB_GAMES);
     carousel_draw(menu);
 #else
+    ui_components_tabs_common_draw(0);
+    ui_components_layout_draw_tabbed();
     ui_components_file_list_draw(menu->browser.list, menu->browser.entries, menu->browser.selected);
 #endif
 
@@ -984,22 +989,13 @@ static void draw (menu_t *menu, surface_t *d) {
         menu->browser.entries == 0 ? STL_GRAY : STL_DEFAULT
     );
 
-    if (menu->current_time >= 0) {
-        ui_components_actions_bar_text_draw(
-            STL_DEFAULT,
-            ALIGN_CENTER, VALIGN_TOP,
-            "C: Fast | L Tabs R\n"
-            "%s",
-            ctime(&menu->current_time)
-        );
-    } else {
-        ui_components_actions_bar_text_draw(
-            STL_DEFAULT,
-            ALIGN_CENTER, VALIGN_TOP,
-            "C: Fast | L Tabs R\n"
-            "\n"
-        );
-    }
+    // The clock moved to the tab bar at the top.
+    ui_components_actions_bar_text_draw(
+        STL_DEFAULT,
+        ALIGN_CENTER, VALIGN_TOP,
+        "C: Fast\n"
+        "\n"
+    );
 
     ui_components_context_menu_draw(menu->browser.archive ? &archive_context_menu : &entry_context_menu);
 

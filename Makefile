@@ -46,6 +46,7 @@ SRCS = \
 	menu/ini_parser.c \
 	menu/actions.c \
 	menu/controls.c \
+	menu/games_ui.c \
 	menu/font_choice.c \
 	menu/display_name.c \
 	menu/safe_file.c \

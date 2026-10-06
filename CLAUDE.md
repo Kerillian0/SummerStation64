@@ -182,6 +182,11 @@ Claude builds in the container and the user deploys from Windows.
   System, where the user wanted it because it exists to save memory); applies
   after a restart. One
   line changed in `fonts.c`. A custom font on the SD card still wins.
+- `src/menu/games_ui.c/.h` — shared pieces of the redesigned Games screens
+  (see "Menu redesign"): tab bar with L/R badges and a clock, title panel,
+  position bar. Colors come from existing theme keys (`tab_active`,
+  `tab_inactive`, `accent`, `panel`). Used by the carousel in `browser.c` and
+  by `history_favorites.c` in place of the stock tabs and frame.
 - `src/menu/controls.c/.h` — button layout for the three tabbed screens:
   L/R switch tabs, Z is Options (was R), left/right scroll the carousel,
   up/down do nothing there unless the `updown_scroll` feature is on. It
@@ -299,6 +304,8 @@ Claude builds in the container and the user deploys from Windows.
 - Done and tested on hardware: scroll bar on Settings pages that scroll.
 - Done and tested on hardware: the font row renamed "Character Set" and
   moved to System; the ▲/▼ marks removed.
+- **Built, awaiting hardware test:** menu redesign stage 1 (Games screen
+  chrome).
 - **v0.1 user-facing features are complete.** Two dev-tooling items were
   added to v0.1 afterwards and are not started: the debug overlay and the
   PC-side tests. Before publishing, the user still wants to test Japanese
@@ -491,6 +498,32 @@ saves nothing. Drawing the theme background live would now save 300 KB, not
 
 Still to measure: a real 4MB run, a folder with many entries, the image
 viewer and the music player.
+
+## Menu redesign (fast-tracked by the user, 2026-10-06)
+Working from two mockups the user supplied: a Games screen (pill tabs with
+L/R and a clock, cover row, title panel with badges, position bar, button
+hints) and a Game info screen (blurred cover art as the background, big
+title, badges, "Played / Last played / Save" boxes, description, Play
+button). The Games screen is the landing screen (it already is, except that
+the very first run shows the credits). A short intro with music comes later.
+Stages, one testable build each:
+1. **Games screen chrome (built, awaiting hardware test):** tab bar
+   (Games / Recent / Favorites, in L/R cycling order) with clock, no frame,
+   covers moved up 20 px, title panel, position bar. Hints unchanged. The
+   `frame_borders` feature no longer affects these three screens.
+2. Badges on the title panel: Expansion Pak, save found, favorite, players.
+   Needs the game's info loaded after the selection settles.
+3. Button-badge hint bar (A Play, Z Info, and so on).
+4. Game info screen: blurred art background (the cover stretched large with
+   smoothing, no extra memory), title, badges, description, Play button.
+5. Launch stats (times played, last played): a new saved file.
+6. Recent and Favorites as cover rows instead of lists.
+7. Intro: a few seconds with short music, then the Games screen
+   (`boot_animation` feature already exists as a switch).
+Constraints found so far: rounded corners are not cheap on the N64 (square
+corners used); there is one font size, so a big title needs a second font
+(memory cost to be measured); small label text from the mockups would not be
+readable on a composite CRT.
 
 ## 4MB test checklist (for when the user says the Jumper Pak is ready)
 Everything 4MB-specific so far is worked out from 8MB runs. When the user

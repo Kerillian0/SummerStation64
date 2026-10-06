@@ -6,6 +6,7 @@
 #include "views.h"
 #include "../controls.h"
 #include "../display_name.h"
+#include "../games_ui.h"
 
 
 typedef enum {
@@ -111,7 +112,7 @@ static void process(menu_t *menu) {
 
 static void draw_list(menu_t *menu, surface_t *display) {
     if(selected_item != -1) {
-        float highlight_y = VISIBLE_AREA_Y0 + TEXT_MARGIN_VERTICAL + TAB_HEIGHT +  TEXT_OFFSET_VERTICAL + (selected_item * 19 * 2);
+        float highlight_y = GAMES_UI_LIST_TOP + (selected_item * 19 * 2);
 
         ui_components_box_draw(
             VISIBLE_AREA_X0,
@@ -151,7 +152,7 @@ static void draw_list(menu_t *menu, surface_t *display) {
         },
         FNT_DEFAULT,
         VISIBLE_AREA_X0 + TEXT_MARGIN_HORIZONTAL,
-        VISIBLE_AREA_Y0 + TEXT_MARGIN_VERTICAL + TAB_HEIGHT +  TEXT_OFFSET_VERTICAL,
+        GAMES_UI_LIST_TOP,
         buffer,
         nbytes
     );           
@@ -163,12 +164,12 @@ static void draw(menu_t *menu, surface_t *display) {
     ui_components_background_draw();
 
     if(tab_context == BOOKKEEPING_TAB_CONTEXT_FAVORITE) {
-        ui_components_tabs_common_draw(2);
+        games_ui_topbar_draw(menu, GAMES_TAB_FAVORITES);
     } else if(tab_context == BOOKKEEPING_TAB_CONTEXT_HISTORY) {
-        ui_components_tabs_common_draw(1);
+        games_ui_topbar_draw(menu, GAMES_TAB_RECENT);
     }
 
-    ui_components_layout_draw_tabbed();
+    // (the redesigned screens have no frame)
 
     draw_list(menu, display);
 
@@ -194,7 +195,7 @@ static void draw(menu_t *menu, surface_t *display) {
     ui_components_actions_bar_text_draw(
         STL_DEFAULT,
         ALIGN_CENTER, VALIGN_TOP,
-        "L Change Tab R\n"
+        "\n" // the L and R badges on the tab bar say this now
         "\n"
     );    
 
