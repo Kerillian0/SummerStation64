@@ -148,6 +148,13 @@ Claude builds in the container and the user deploys from Windows.
   `[...]` group. Games only; files are not renamed.
   Used by the carousel only so far; History, Favorites and the game info
   screen still show raw file names. Sorting still goes by the file name.
+- `theme-maker/theme-maker.html` — source of the web Theme Maker (one
+  file, no build step), added to the repo 2026-10-06. Published as the
+  claude.ai artifact https://claude.ai/artifact/HxMPCpbZTSRZURJfWswAma : edit
+  this file, then publish it to that same address. See the README beside it.
+  It does not yet offer `remember_selection`, `hide_extensions`,
+  `tidy_titles`, `hide_tags` or `remember_settings` (the v2 share code has no
+  free feature bits left: the mask and value bytes hold 8 each).
 - `src/menu/controls.c/.h` — button layout for the three tabbed screens:
   L/R switch tabs, Z is Options (was R), left/right scroll the carousel,
   up/down do nothing there unless the `updown_scroll` feature is on. It

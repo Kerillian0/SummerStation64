@@ -1,0 +1,862 @@
+<title>SC64 Theme Maker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Chakra+Petch:wght@600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: sticky TV preview on the left, a single column of control sections on the right; stacks on phones. */
+:root{
+  --bg:#e3e5e9; --surface:#f4f5f7; --field:#ffffff; --line:#c3c8d0;
+  --ink:#1d2027; --ink-2:#4a515d; --focus:#2f6fd6;
+  --n-blue:#2f6fd6; --n-green:#2f8a4c; --n-yellow:#b98a00; --n-red:#c43a30;
+  --tv:#0c0d10; --tv-edge:#2c2f36; --on-accent:#ffffff;
+  --display:'Chakra Petch','Trebuchet MS',sans-serif;
+  --body:'Atkinson Hyperlegible','Segoe UI',system-ui,sans-serif;
+  box-sizing:border-box;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1f2126; --surface:#2a2d33; --field:#1a1c20; --line:#454a53;
+    --ink:#eef0f3; --ink-2:#aab1bc; --focus:#6aa5ff;
+    --n-blue:#5e9bff; --n-green:#5fc47f; --n-yellow:#f2c230; --n-red:#ff6b5e;
+    --tv:#0c0d10; --tv-edge:#3a3e47; --on-accent:#10131a;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1f2126; --surface:#2a2d33; --field:#1a1c20; --line:#454a53;
+  --ink:#eef0f3; --ink-2:#aab1bc; --focus:#6aa5ff;
+  --n-blue:#5e9bff; --n-green:#5fc47f; --n-yellow:#f2c230; --n-red:#ff6b5e;
+  --tv:#0c0d10; --tv-edge:#3a3e47; --on-accent:#10131a;
+  color-scheme:dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding-block:20px 40px;padding-inline:16px;display:grid;gap:20px}
+@media (min-width:920px){.wrap{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);align-items:start}}
+header{grid-column:1/-1;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px}
+h1{font-family:var(--display);font-weight:700;font-size:28px;margin:0;letter-spacing:.01em;text-wrap:balance}
+header p{margin:0;color:var(--ink-2);max-width:60ch}
+.stage{position:relative;min-width:0}
+@media (min-width:920px){.stage{position:sticky;top:calc(16px + env(safe-area-inset-top,0px))}}
+.tv{background:var(--tv);border-radius:18px;padding:14px;box-shadow:inset 0 0 0 2px var(--tv-edge)}
+canvas#preview{display:block;width:100%;max-width:100%;height:auto;aspect-ratio:4/3;border-radius:10px;image-rendering:pixelated;background:var(--tv)}
+.stage-bar{display:flex;flex-wrap:wrap;gap:10px 16px;justify-content:space-between;align-items:center;margin-top:10px;color:var(--ink-2);font-size:14px}
+.stage-opts{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center}
+.contrast{display:flex;flex-wrap:wrap;gap:2px 14px;margin-top:8px;color:var(--ink-2);font-size:14px}
+.contrast b{color:var(--ink);font-variant-numeric:tabular-nums}
+.contrast .warn{color:var(--n-red);font-weight:700}
+.presets{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.preset{border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 12px 6px 6px;display:flex;align-items:center;gap:8px;cursor:pointer;font:inherit;font-weight:700;font-size:14px}
+.preset span{width:22px;height:22px;border-radius:50%;display:block}
+.preset:hover{border-color:var(--ink-2)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;min-width:0}
+section{padding:16px 18px;border-top:1px solid var(--line)}
+section:first-child{border-top:0}
+h2{font-family:var(--display);font-weight:700;font-size:18px;margin:0 0 12px;display:flex;align-items:center;gap:10px}
+h2 i{width:14px;height:14px;border-radius:50%;display:inline-block;flex-shrink:0}
+.row{display:grid;grid-template-columns:120px minmax(0,1fr);gap:8px 12px;align-items:center;margin-bottom:10px}
+.row:last-child{margin-bottom:0}
+.row.wide{grid-template-columns:150px minmax(0,1fr)}
+@media (max-width:420px){.row,.row.wide{grid-template-columns:minmax(0,1fr);gap:4px}}
+.l{color:var(--ink-2);font-size:14px}
+select,input[type=text],input[type=number]{width:100%;font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:8px;padding:7px 9px;min-width:0}
+.color{display:flex;gap:8px;align-items:center}
+.color input[type=color]{width:42px;height:36px;padding:2px;border:1px solid var(--line);border-radius:8px;background:var(--field);cursor:pointer;flex-shrink:0}
+.color input[type=text]{font-family:inherit;text-transform:uppercase;max-width:120px}
+.range{display:flex;gap:10px;align-items:center}
+.range input{flex:1;min-width:0;accent-color:var(--n-blue)}
+.range output{min-width:46px;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-2)}
+.check{display:flex;gap:8px;align-items:center;cursor:pointer}
+.check input{width:18px;height:18px;accent-color:var(--n-blue)}
+.hint{color:var(--ink-2);font-size:13px;margin:4px 0 0}
+.hint.lead{margin:0 0 12px}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{font:inherit;font-size:14px;font-weight:700;border:2px solid var(--line);background:var(--field);color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer}
+.seg button[aria-pressed="true"]{border-color:var(--n-blue);background:var(--n-blue);color:var(--on-accent)}
+pre{margin:0;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:12px;overflow-x:auto;font-size:13px;line-height:1.5;max-height:280px}
+pre.code{white-space:pre-wrap;word-break:break-all;font-size:15px;font-weight:700;letter-spacing:.04em}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.btn{font:inherit;font-weight:700;border-radius:10px;padding:9px 14px;cursor:pointer;border:2px solid var(--ink);background:var(--ink);color:var(--bg)}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn.small{padding:6px 10px;font-size:14px}
+.status{min-height:1.4em;color:var(--ink-2);font-size:14px;margin-top:8px}
+#qrWrap{margin-top:12px}
+canvas#qr{display:block;width:232px;max-width:100%;height:auto;background:#ffffff;border-radius:8px;image-rendering:pixelated}
+button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>SC64 Theme Maker</h1>
+    <p>Pick colors, a gradient and a pattern, then export a theme.ini for the carousel menu. The preview follows the menu's current 640×480 layout.</p>
+  </header>
+
+  <div class="stage">
+    <div class="tv"><canvas id="preview" width="640" height="480" aria-label="Menu preview with the current theme"></canvas></div>
+    <div class="stage-bar">
+      <div class="seg" id="screen" role="group" aria-label="Screen to preview">
+        <button type="button" data-v="files">Files</button>
+        <button type="button" data-v="history">History</button>
+      </div>
+      <span class="stage-opts">
+        <label class="check"><input type="checkbox" id="dither" checked> 16-bit color with dithering</label>
+        <label class="check"><input type="checkbox" id="crt"> CRT preview</label>
+      </span>
+    </div>
+    <div class="contrast" id="contrast"></div>
+    <div class="presets" id="presets" aria-label="Starting presets"></div>
+  </div>
+
+  <div class="panel">
+    <section>
+      <h2><i style="background:var(--n-blue)"></i>Background</h2>
+      <div class="row"><span class="l">Type</span>
+        <div class="seg" id="bgType" role="group" aria-label="Background type">
+          <button type="button" data-v="solid">Solid</button>
+          <button type="button" data-v="gradient">Gradient</button>
+          <button type="button" data-v="image">PNG image</button>
+        </div>
+      </div>
+      <div id="gradOnly">
+        <div class="row"><label class="l" for="dir">Direction</label>
+          <select id="dir"><option value="vertical">Top to bottom</option><option value="horizontal">Left to right</option><option value="diagonal">Diagonal</option><option value="radial">From center</option></select>
+        </div>
+      </div>
+      <div id="colorStops">
+        <div class="row"><label class="l" for="c1-hex" id="c1-label">Top color</label><div class="color" data-key="c1"></div></div>
+        <div class="row" id="c2row"><label class="l" for="c2-hex">Bottom color</label><div class="color" data-key="c2"></div></div>
+        <div class="row" id="c3toggle"><span class="l">Middle color</span><label class="check"><input type="checkbox" id="useC3"> Add a third stop</label></div>
+        <div class="row" id="c3row"><label class="l" for="c3-hex">Middle</label><div class="color" data-key="c3"></div></div>
+      </div>
+      <div id="imageOnly">
+        <div class="row"><label class="l" for="imgFile">PNG file</label><input type="file" id="imgFile" accept="image/png"></div>
+        <p class="hint">Use 640×480 for a sharp result. Put the file in the theme folder as background.png. The menu doesn't read PNG backgrounds yet and shows the first color instead.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2><i style="background:var(--n-green)"></i>Pattern</h2>
+      <div class="row"><label class="l" for="pattern">Style</label>
+        <select id="pattern">
+          <option value="none">None</option><option value="stripes">Stripes</option><option value="diagonal">Diagonal stripes</option>
+          <option value="checker">Checkerboard</option><option value="dots">Dots</option><option value="grid">Grid</option><option value="scanlines">Scanlines</option>
+        </select>
+      </div>
+      <div id="patternOpts">
+        <div class="row"><label class="l" for="pColor-hex">Color</label><div class="color" data-key="pColor"></div></div>
+        <div class="row"><label class="l" for="pSize">Size</label><div class="range"><input type="range" id="pSize" min="4" max="64" step="2"><output id="pSizeOut"></output></div></div>
+        <div class="row"><label class="l" for="pOpacity">Strength</label><div class="range"><input type="range" id="pOpacity" min="2" max="60" step="1"><output id="pOpacityOut"></output></div></div>
+      </div>
+    </section>
+
+    <section>
+      <h2><i style="background:var(--n-yellow)"></i>Interface colors</h2>
+      <div class="row"><label class="l" for="text-hex">Text</label><div class="color" data-key="text"></div></div>
+      <div class="row"><label class="l" for="textDim-hex">Dim text</label><div class="color" data-key="textDim"></div></div>
+      <div class="row"><label class="l" for="accent-hex">Selection ring</label><div class="color" data-key="accent"></div></div>
+      <div class="row"><label class="l" for="panel-hex">Covers</label><div class="color" data-key="panel"></div></div>
+    </section>
+
+    <section>
+      <h2><i style="background:var(--n-yellow)"></i>Frame and tabs</h2>
+      <div class="row"><label class="l" for="border-hex">Frame lines</label><div class="color" data-key="border"></div></div>
+      <div class="row"><label class="l" for="tabActive-hex">Active tab</label><div class="color" data-key="tabActive"></div></div>
+      <div class="row"><label class="l" for="tabActiveBorder-hex">Active tab edge</label><div class="color" data-key="tabActiveBorder"></div></div>
+      <div class="row"><label class="l" for="tabInactive-hex">Other tabs</label><div class="color" data-key="tabInactive"></div></div>
+      <div class="row"><label class="l" for="tabInactiveBorder-hex">Other tab edge</label><div class="color" data-key="tabInactiveBorder"></div></div>
+      <div class="row"><label class="l" for="highlight-hex">Selected row</label><div class="color" data-key="highlight"></div></div>
+      <p class="hint">The selected row shows on the History preview and in the menu's lists.</p>
+      <div class="actions"><button type="button" class="btn ghost small" id="resetFrame">Reset to the stock grays</button></div>
+    </section>
+
+    <section>
+      <h2><i style="background:var(--n-green)"></i>Menu features</h2>
+      <p class="hint lead">A theme can switch features on or off. Players can still override each one under Settings, Menu Features.</p>
+      <div id="features"></div>
+    </section>
+
+    <section>
+      <h2><i style="background:var(--n-red)"></i>Export</h2>
+      <div class="row"><label class="l" for="name">Theme name</label><input type="text" id="name" maxlength="40"></div>
+      <div class="row"><label class="l" for="author">Author</label><input type="text" id="author" maxlength="40"></div>
+      <pre id="ini" tabindex="0" aria-label="theme.ini contents"></pre>
+      <div class="actions">
+        <button type="button" class="btn" id="copyIni">Copy theme.ini</button>
+        <button type="button" class="btn ghost" id="saveIni" hidden>Save as file</button>
+        <button type="button" class="btn ghost" id="savePng" hidden>Save background.png</button>
+      </div>
+      <p class="hint">On the SD card the file goes in menu/theme/.</p>
+      <p class="hint" id="saveHint" hidden>The file saves as theme.txt because of browser limits. The menu reads theme.txt too, so renaming it is optional.</p>
+      <div class="status" id="status" role="status"></div>
+    </section>
+
+    <section>
+      <h2><i style="background:var(--n-blue)"></i>Share codes</h2>
+      <p class="hint lead">Anyone can paste this code into the Theme Maker to get the same theme.</p>
+      <pre id="shareCode" class="code" tabindex="0" aria-label="Share code for this theme"></pre>
+      <p class="hint" id="codeKind"></p>
+      <div class="actions">
+        <button type="button" class="btn" id="copyCode">Copy code</button>
+        <button type="button" class="btn ghost" id="toggleQr" hidden aria-expanded="false">Show QR code</button>
+      </div>
+      <div id="qrWrap" hidden>
+        <canvas id="qr" width="232" height="232" role="img" aria-label="QR code containing the share code"></canvas>
+        <p class="hint">Scan with your phone’s camera to copy the code onto it.</p>
+      </div>
+      <p class="hint" id="codeNote" hidden>PNG backgrounds aren’t included in codes. People importing this theme will need the image file too.</p>
+      <div class="row" style="margin-top:16px"><label class="l" for="importCode">Import a code</label><input type="text" id="importCode" placeholder="SS64-…" autocomplete="off" spellcheck="false"></div>
+      <div class="actions"><button type="button" class="btn ghost" id="loadCode">Load theme</button></div>
+      <div class="status" id="codeStatus" role="status"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+(function(){
+  // Stock frame colors of the menu. A theme that keeps all of them fits in a short (v1) share code.
+  var FRAME_STOCK = {border:'#FFFFFF',highlight:'#7F7F7F',tabActive:'#6F6F6F',tabInactive:'#3F3F3F',tabActiveBorder:'#FFFFFF',tabInactiveBorder:'#5F5F5F'};
+  var FRAME_KEYS = ['border','highlight','tabActive','tabInactive','tabActiveBorder','tabInactiveBorder'];
+  var FRAME_INI = {border:'border',highlight:'highlight',tabActive:'tab_active',tabInactive:'tab_inactive',tabActiveBorder:'tab_active_border',tabInactiveBorder:'tab_inactive_border'};
+
+  // Order matters: it is the bit order in v2 share codes. "def" is the menu's built-in default.
+  var FEATURES = [
+    {key:'quick_launch',  label:'Quick Launch',         def:false, hint:'Tap A starts the game, hold A shows its info.'},
+    {key:'hold_launch',   label:'Hold A To Launch',     def:false, hint:'Tap A shows the game info, hold A starts it.'},
+    {key:'side_covers',   label:'Previous/Next Covers', def:false, hint:'Smaller covers either side of the selected one.'},
+    {key:'frame_borders', label:'Frame Borders',        def:true,  hint:'The outer frame and the line above the hint bar.'},
+    {key:'updown_scroll', label:'Up/Down Also Scroll',  def:false, hint:'Up and down move the carousel too.'},
+    {key:'cover_art',     label:'Cover Art',            def:true,  hint:'Box art on the covers.'},
+    {key:'carousel_animation', label:'Cover Slide',      def:true,  hint:'Covers slide into place when you move left or right.'},
+    {key:'see_through_covers', label:'See-through Side Covers', def:true, hint:'The background shows through the previous and next covers. Off draws them solid.'}
+  ];
+
+  var DEFAULTS = {name:'Midnight Gradient',author:'',bgType:'gradient',dir:'vertical',c1:'#1B2A4A',c2:'#0B0E14',useC3:false,c3:'#3A2F6B',
+    pattern:'none',pColor:'#FFFFFF',pSize:16,pOpacity:10,dither:true,crt:false,text:'#E9EDF2',textDim:'#A7B0BB',accent:'#F2B134',panel:'#1B2028',
+    screen:'files'};
+  FRAME_KEYS.forEach(function(k){ DEFAULTS[k] = FRAME_STOCK[k]; });
+  FEATURES.forEach(function(f){ DEFAULTS['f_' + f.key] = -1; });   // -1 not set, 0 off, 1 on
+
+  var PRESETS = [
+    {label:'Midnight',s:{}},
+    {label:'Sunset',s:{bgType:'gradient',dir:'diagonal',c1:'#3E1F4F',c2:'#E0703A',useC3:true,c3:'#A8406A',pattern:'scanlines',pColor:'#000000',pSize:8,pOpacity:18,text:'#FFF4EC',textDim:'#EBCFC4',accent:'#FFD166',panel:'#2A1730',
+      border:'#FFD166',highlight:'#8A3A5E',tabActive:'#A8406A',tabInactive:'#3E1F4F',tabActiveBorder:'#FFD166',tabInactiveBorder:'#6B3A6E'}},
+    {label:'Mint grid',s:{bgType:'gradient',dir:'vertical',c1:'#0F3B36',c2:'#071A18',useC3:false,pattern:'grid',pColor:'#7FE0C3',pSize:32,pOpacity:12,text:'#EAFBF6',textDim:'#A6D4C8',accent:'#7FE0C3',panel:'#10302C',
+      border:'#7FE0C3',highlight:'#1F5A50',tabActive:'#1F6A5C',tabInactive:'#0F3B36',tabActiveBorder:'#7FE0C3',tabInactiveBorder:'#2C6A5E'}},
+    {label:'Grape',s:{bgType:'gradient',dir:'radial',c1:'#4A2A7A',c2:'#150B26',useC3:false,pattern:'checker',pColor:'#FFFFFF',pSize:24,pOpacity:5,text:'#F4EEFF',textDim:'#C7B9E4',accent:'#FF8AD8',panel:'#24163D',
+      border:'#C7B9E4',highlight:'#5A3A8C',tabActive:'#6A3FA8',tabInactive:'#2E1B4E',tabActiveBorder:'#FF8AD8',tabInactiveBorder:'#5A4580'}},
+    {label:'Plain',s:{bgType:'solid',c1:'#16191F',pattern:'dots',pColor:'#FFFFFF',pSize:20,pOpacity:6,text:'#E9EDF2',textDim:'#A7B0BB',accent:'#4FA3FF',panel:'#222731'}}
+  ];
+  var S = Object.assign({}, DEFAULTS);
+  var bgImg = null;
+  var STORE = 'sc64-theme-maker-v1';
+  try { var saved = localStorage.getItem(STORE); if (saved) Object.assign(S, JSON.parse(saved)); } catch(e) {}
+  if (S.bgType === 'image') S.bgType = 'gradient';
+
+  var $ = function(id){ return document.getElementById(id); };
+  var canvas = $('preview'), ctx = canvas.getContext('2d');
+
+  // Color fields
+  var colorFields = {};
+  document.querySelectorAll('.color[data-key]').forEach(function(box){
+    var key = box.dataset.key;
+    var pick = document.createElement('input'); pick.type = 'color'; pick.id = key + '-pick'; pick.setAttribute('aria-label', 'Pick color');
+    var hex = document.createElement('input'); hex.type = 'text'; hex.id = key + '-hex'; hex.maxLength = 7; hex.spellcheck = false;
+    box.appendChild(pick); box.appendChild(hex);
+    pick.addEventListener('input', function(){ S[key] = pick.value.toUpperCase(); hex.value = S[key]; changed(); });
+    hex.addEventListener('input', function(){
+      var v = hex.value.trim(); if (v[0] !== '#') v = '#' + v;
+      if (/^#[0-9a-fA-F]{6}$/.test(v)) { S[key] = v.toUpperCase(); pick.value = v; changed(); }
+    });
+    colorFields[key] = {pick:pick, hex:hex};
+  });
+
+  // Feature rows
+  var featureSelects = {};
+  FEATURES.forEach(function(f){
+    var row = document.createElement('div'); row.className = 'row wide';
+    var lab = document.createElement('label'); lab.className = 'l'; lab.htmlFor = 'feat-' + f.key; lab.textContent = f.label; lab.title = f.hint;
+    var sel = document.createElement('select'); sel.id = 'feat-' + f.key; sel.title = f.hint;
+    [[-1, 'Not set (menu default: ' + (f.def ? 'on' : 'off') + ')'], [1, 'On'], [0, 'Off']].forEach(function(o){
+      var op = document.createElement('option'); op.value = String(o[0]); op.textContent = o[1]; sel.appendChild(op);
+    });
+    sel.addEventListener('change', function(){
+      S['f_' + f.key] = +sel.value;
+      // The two launch modes exclude each other, as they do on the console.
+      if (+sel.value === 1 && f.key === 'quick_launch') S.f_hold_launch = 0;
+      if (+sel.value === 1 && f.key === 'hold_launch') S.f_quick_launch = 0;
+      syncInputs(); changed();
+    });
+    row.appendChild(lab); row.appendChild(sel); $('features').appendChild(row);
+    featureSelects[f.key] = sel;
+  });
+  function featureOn(key){
+    var f = FEATURES.filter(function(x){ return x.key === key; })[0];
+    var v = S['f_' + key];
+    var on = v === -1 ? f.def : v === 1;
+    if (key === 'hold_launch' && featureOn('quick_launch')) return false;
+    return on;
+  }
+
+  // Presets
+  PRESETS.forEach(function(p){
+    var full = Object.assign({}, DEFAULTS, p.s);
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'preset';
+    var sw = document.createElement('span');
+    sw.style.background = full.bgType === 'solid' ? full.c1 : 'linear-gradient(135deg,' + full.c1 + ',' + full.c2 + ')';
+    sw.style.boxShadow = 'inset 0 0 0 3px ' + full.accent;
+    b.appendChild(sw); b.appendChild(document.createTextNode(p.label));
+    b.addEventListener('click', function(){
+      var keep = {name: S.name, author: S.author, dither: S.dither, crt: S.crt, screen: S.screen};
+      FEATURES.forEach(function(f){ keep['f_' + f.key] = S['f_' + f.key]; });
+      S = Object.assign({}, DEFAULTS, p.s, keep);
+      if (S.name === DEFAULTS.name || PRESETS.some(function(x){ return S.name === x.label; })) S.name = p.label;
+      syncInputs(); changed();
+    });
+    $('presets').appendChild(b);
+  });
+
+  // Simple inputs
+  document.querySelectorAll('#bgType button').forEach(function(b){
+    b.addEventListener('click', function(){ S.bgType = b.dataset.v; syncInputs(); changed(); });
+  });
+  document.querySelectorAll('#screen button').forEach(function(b){
+    b.addEventListener('click', function(){ S.screen = b.dataset.v; syncInputs(); changed(); });
+  });
+  $('dir').addEventListener('change', function(e){ S.dir = e.target.value; syncInputs(); changed(); });
+  $('useC3').addEventListener('change', function(e){ S.useC3 = e.target.checked; syncInputs(); changed(); });
+  $('pattern').addEventListener('change', function(e){ S.pattern = e.target.value; syncInputs(); changed(); });
+  $('pSize').addEventListener('input', function(e){ S.pSize = +e.target.value; syncInputs(); changed(); });
+  $('pOpacity').addEventListener('input', function(e){ S.pOpacity = +e.target.value; syncInputs(); changed(); });
+  $('dither').addEventListener('change', function(e){ S.dither = e.target.checked; changed(); });
+  $('crt').addEventListener('change', function(e){ S.crt = e.target.checked; changed(true); render(); });
+  $('name').addEventListener('input', function(e){ S.name = e.target.value; changed(true); });
+  $('author').addEventListener('input', function(e){ S.author = e.target.value; changed(true); });
+  $('resetFrame').addEventListener('click', function(){
+    FRAME_KEYS.forEach(function(k){ S[k] = FRAME_STOCK[k]; });
+    syncInputs(); changed();
+  });
+  $('imgFile').addEventListener('change', function(e){
+    var f = e.target.files && e.target.files[0]; if (!f) return;
+    var r = new FileReader();
+    r.onload = function(){ var im = new Image(); im.onload = function(){ bgImg = im; changed(); }; im.src = r.result; };
+    r.readAsDataURL(f);
+  });
+
+  function syncInputs(){
+    Object.keys(colorFields).forEach(function(k){ colorFields[k].pick.value = S[k]; colorFields[k].hex.value = S[k]; });
+    document.querySelectorAll('#bgType button').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.v === S.bgType)); });
+    document.querySelectorAll('#screen button').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.v === S.screen)); });
+    var grad = S.bgType === 'gradient', img = S.bgType === 'image';
+    $('gradOnly').hidden = !grad;
+    $('colorStops').hidden = img;
+    $('imageOnly').hidden = !img;
+    $('c2row').hidden = !grad; $('c3toggle').hidden = !grad; $('c3row').hidden = !(grad && S.useC3);
+    $('c1-label').textContent = grad ? (S.dir === 'horizontal' ? 'Left color' : S.dir === 'radial' ? 'Center color' : 'Start color') : 'Color';
+    $('dir').value = S.dir; $('useC3').checked = S.useC3; $('pattern').value = S.pattern;
+    $('patternOpts').hidden = S.pattern === 'none';
+    $('pSize').value = S.pSize; $('pSizeOut').textContent = S.pSize + ' px';
+    $('pOpacity').value = S.pOpacity; $('pOpacityOut').textContent = S.pOpacity + '%';
+    $('dither').checked = S.dither; $('crt').checked = !!S.crt; $('name').value = S.name; $('author').value = S.author;
+    FEATURES.forEach(function(f){ featureSelects[f.key].value = String(S['f_' + f.key]); });
+  }
+
+  // Rendering
+  function drawBackground(c, w, h){
+    if (S.bgType === 'image' && bgImg) {
+      var sc = Math.max(w / bgImg.width, h / bgImg.height);
+      var iw = bgImg.width * sc, ih = bgImg.height * sc;
+      c.drawImage(bgImg, (w - iw) / 2, (h - ih) / 2, iw, ih);
+    } else if (S.bgType === 'gradient') {
+      var g;
+      if (S.dir === 'horizontal') g = c.createLinearGradient(0, 0, w, 0);
+      else if (S.dir === 'diagonal') g = c.createLinearGradient(0, 0, w, h);
+      else if (S.dir === 'radial') g = c.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.hypot(w, h) / 2);
+      else g = c.createLinearGradient(0, 0, 0, h);
+      g.addColorStop(0, S.c1); if (S.useC3) g.addColorStop(0.5, S.c3); g.addColorStop(1, S.c2);
+      c.fillStyle = g; c.fillRect(0, 0, w, h);
+    } else {
+      c.fillStyle = S.bgType === 'image' ? '#202329' : S.c1; c.fillRect(0, 0, w, h);
+    }
+    drawPattern(c, w, h);
+  }
+
+  function drawPattern(c, w, h){
+    if (S.pattern === 'none') return;
+    var s = S.pSize;
+    c.save(); c.globalAlpha = S.pOpacity / 100; c.fillStyle = S.pColor;
+    var x, y;
+    switch (S.pattern) {
+      case 'stripes': for (y = 0; y < h; y += s * 2) c.fillRect(0, y, w, s); break;
+      case 'checker':
+        for (y = 0; y < h; y += s) for (x = 0; x < w; x += s) if (((x / s) + (y / s)) % 2 === 0) c.fillRect(x, y, s, s);
+        break;
+      case 'dots':
+        var r = Math.max(1.5, s * 0.18);
+        for (y = s / 2; y < h + s; y += s) for (x = s / 2; x < w + s; x += s) { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); }
+        break;
+      case 'grid':
+        for (x = 0; x < w; x += s) c.fillRect(x, 0, 2, h);
+        for (y = 0; y < h; y += s) c.fillRect(0, y, w, 2);
+        break;
+      case 'scanlines':
+        var gap = Math.max(4, Math.round(s / 2));
+        for (y = 0; y < h; y += gap) c.fillRect(0, y, w, 2);
+        break;
+      case 'diagonal':
+        for (x = -h; x < w; x += s * 2) { c.beginPath(); c.moveTo(x, h); c.lineTo(x + h, 0); c.lineTo(x + h + s, 0); c.lineTo(x + s, h); c.closePath(); c.fill(); }
+        break;
+    }
+    c.restore();
+  }
+
+  var BAYER = [0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
+  function to16bit(c, w, h){
+    var img = c.getImageData(0, 0, w, h), d = img.data;
+    for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) {
+      var i = (y * w + x) * 4, t = (BAYER[(y & 3) * 4 + (x & 3)] / 16 - 0.5) * 8;
+      for (var k = 0; k < 3; k++) {
+        var v = Math.min(255, Math.max(0, d[i + k] + t));
+        d[i + k] = Math.round(Math.round(v / 255 * 31) * 255 / 31);
+      }
+    }
+    c.putImageData(img, 0, 0);
+  }
+
+  /* ---------- Menu layout ----------
+   * Same numbers as the console code: 640x480, overscan 32x24, tabs 20 tall,
+   * 4px frame lines, hint bar below y=400, center cover 224x160 at y=200.
+   */
+  var VX0 = 32, VY0 = 24, VX1 = 608, VY1 = 456, TAB_H = 20, TAB_W = 180, BORDER = 4, SEP_Y = 400;
+  var MENU_FONT = "700 15px 'Chakra Petch', 'Trebuchet MS', sans-serif";
+
+  function frameBox(c, x0, y0, x1, y1, t, color){
+    c.fillStyle = color;
+    c.fillRect(x0 - t, y0 - t, x1 - x0 + t * 2, t);
+    c.fillRect(x0 - t, y1, x1 - x0 + t * 2, t);
+    c.fillRect(x0 - t, y0, t, y1 - y0);
+    c.fillRect(x1, y0, t, y1 - y0);
+  }
+  function drawTabs(c, selected){
+    var labels = ['Files', 'History', 'Favorites'];
+    function tab(i, bg, edge){
+      var x = VX0 + TAB_W * i;
+      c.fillStyle = bg; c.fillRect(x, VY0, TAB_W, TAB_H);
+      frameBox(c, x, VY0, x + TAB_W, VY0 + TAB_H, BORDER, edge);
+    }
+    labels.forEach(function(_, i){ if (i !== selected) tab(i, S.tabInactive, S.tabInactiveBorder); });
+    tab(selected, S.tabActive, S.tabActiveBorder);
+    c.font = MENU_FONT; c.textAlign = 'center'; c.fillStyle = S.text;
+    labels.forEach(function(t, i){ c.fillText(t, VX0 + TAB_W * i + TAB_W / 2, VY0 + 15); });
+    c.textAlign = 'left';
+  }
+  function drawFrame(c){
+    if (!featureOn('frame_borders')) return;
+    frameBox(c, VX0, VY0 + TAB_H + BORDER, VX1, VY1, BORDER, S.border);
+    c.fillStyle = S.border; c.fillRect(VX0, SEP_Y, VX1 - VX0, BORDER);
+  }
+  function drawHints(c, left, center, right){
+    c.font = MENU_FONT; c.fillStyle = S.text;
+    var y1 = SEP_Y + 25, y2 = SEP_Y + 44;
+    c.textAlign = 'left'; c.fillText(left[0], VX0 + 10, y1); c.fillText(left[1], VX0 + 10, y2);
+    c.textAlign = 'center'; c.fillText(center[0], 320, y1); c.fillText(center[1], 320, y2);
+    c.textAlign = 'right'; c.fillText(right[0], VX1 - 10, y1); c.fillText(right[1], VX1 - 10, y2);
+    c.textAlign = 'left';
+  }
+  function launchHint(){
+    if (featureOn('quick_launch')) return 'A: Start, Hold: Info';
+    if (featureOn('hold_launch')) return 'A: Info, Hold: Start';
+    return 'A: Load';
+  }
+  function mockBoxArt(c, x0, y0, w, h){
+    // Stand-in for a real box: the menu shows the game's own art here.
+    var g = c.createLinearGradient(x0, y0, x0 + w, y0 + h);
+    g.addColorStop(0, '#C8343A'); g.addColorStop(0.55, '#E8A531'); g.addColorStop(1, '#2F6FD6');
+    c.fillStyle = g; c.fillRect(x0, y0, w, h);
+    c.fillStyle = 'rgba(0,0,0,0.55)'; c.fillRect(x0, y0 + h - 34, w, 34);
+    c.fillStyle = '#FFFFFF'; c.font = "700 16px 'Chakra Petch', sans-serif"; c.textAlign = 'center';
+    c.fillText('BOX ART', x0 + w / 2, y0 + h - 12);
+    c.textAlign = 'left';
+  }
+  function drawFiles(c){
+    var cx = 320, cy = 200;
+    var covers = [[-2,'Lode Runner 3-D'],[2,'Mario Party 2'],[-1,'Mario Golf'],[1,'Mario Party'],[0,'Mario Kart 64']];
+    covers.forEach(function(cv){
+      var o = cv[0], d = Math.abs(o), center = o === 0;
+      if (!center && !featureOn('side_covers')) return;
+      var w = center ? 224 : 144, h = center ? 160 : 104;
+      var mid = center ? cx : cx + Math.sign(o) * (112 + 16 + 72 + (d - 1) * 160);
+      var x0 = mid - w / 2, y0 = cy - h / 2;
+      if (center) {
+        frameBox(c, x0 - 2, y0 - 2, x0 + w + 2, y0 + h + 2, 3, S.accent);   // hollow ring
+        c.fillStyle = S.panel; c.fillRect(x0, y0, w, h);
+        if (featureOn('cover_art')) { mockBoxArt(c, x0, y0, w, h); return; }
+      } else {
+        c.save(); c.globalAlpha = featureOn('see_through_covers') ? (d === 1 ? 0.69 : 0.44) : 1;
+        c.fillStyle = S.panel; c.fillRect(x0, y0, w, h);
+        if (featureOn('cover_art')) { mockBoxArt(c, x0, y0, w, h); c.restore(); return; }
+        c.restore();
+      }
+      c.font = MENU_FONT;
+      c.fillStyle = S.textDim; c.fillText('N64', x0 + 8, y0 + 22);
+      c.fillStyle = S.text; c.fillText(cv[1], x0 + 8, y0 + 48, w - 16);
+    });
+    c.font = MENU_FONT; c.textAlign = 'center';
+    c.fillStyle = S.text; c.fillText('Mario Kart 64.z64', cx, cy + 80 + 34);
+    c.fillStyle = S.textDim; c.fillText('26 / 142', cx, cy + 80 + 56);
+    c.textAlign = 'left';
+    drawHints(c, [launchHint(), 'B: Back'], ['C: Fast | L Tabs R', 'Mon Oct  5 01:55:15 2026'], ['Start: Settings', 'Z:  Options']);
+  }
+  function drawHistory(c){
+    var games = [['Mario Kart 64','/N64/Mario Kart 64.z64'],['Mario Golf','/N64/Mario Golf.z64'],['Lode Runner 3-D','/N64/Lode Runner 3-D.z64'],
+      ['Mario Party 2','/N64/Mario Party 2.z64'],['Mario Party','/N64/Mario Party.z64']];
+    var top = VY0 + TAB_H + BORDER + 4, rowH = 38, sel = 1;
+    c.fillStyle = S.highlight; c.fillRect(VX0, top + sel * rowH, VX1 - VX0, rowH);
+    c.font = MENU_FONT;
+    games.forEach(function(g, i){
+      var y = top + i * rowH;
+      c.fillStyle = S.text; c.fillText((i + 1) + '  : ' + g[0], VX0 + 10, y + 16);
+      c.fillStyle = S.textDim; c.fillText('       ' + g[1], VX0 + 10, y + 33);
+    });
+    drawHints(c, [launchHint(), ''], ['L Change Tab R', ''], ['', '']);
+  }
+  function drawUi(c){
+    c.textBaseline = 'alphabetic';
+    var history = S.screen === 'history';
+    drawTabs(c, history ? 1 : 0);
+    drawFrame(c);
+    if (history) drawHistory(c); else drawFiles(c);
+  }
+
+  // CRT preview: soft focus, lower saturation, bloom, scanlines, vignette and
+  // overscan. A rough approximation of composite video on a consumer CRT.
+  var crtBuf = document.createElement('canvas'); crtBuf.width = 640; crtBuf.height = 480;
+  var canFilter = typeof ctx.filter === 'string';
+  function applyCrt(){
+    var w = 640, h = 480, b = crtBuf.getContext('2d');
+    b.clearRect(0, 0, w, h); b.drawImage(canvas, 0, 0);
+    ctx.save();
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h);
+    if (canFilter) {
+      ctx.filter = 'blur(0.8px) saturate(0.8) contrast(1.06)';
+      ctx.drawImage(crtBuf, 0, 0);
+      ctx.filter = 'blur(5px) brightness(1.15)';
+      ctx.globalCompositeOperation = 'screen'; ctx.globalAlpha = 0.22;
+      ctx.drawImage(crtBuf, 0, 0);
+      ctx.filter = 'none'; ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+    } else {
+      ctx.drawImage(crtBuf, 0, 0);
+    }
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    for (var y = 1; y < h; y += 2) ctx.fillRect(0, y, w, 1);
+    var v = ctx.createRadialGradient(w / 2, h / 2, h * 0.42, w / 2, h / 2, Math.hypot(w, h) / 2);
+    v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.5)');
+    ctx.fillStyle = v; ctx.fillRect(0, 0, w, h);
+    // Overscan: most CRTs hide roughly 5% of each edge behind the bezel.
+    var ox = w * 0.05, oy = h * 0.05;
+    ctx.beginPath(); ctx.rect(0, 0, w, h);
+    var rx = ox, ry = oy, rw = w - ox * 2, rh = h - oy * 2, r = 28;
+    ctx.moveTo(rx + r, ry); ctx.arcTo(rx + rw, ry, rx + rw, ry + rh, r); ctx.arcTo(rx + rw, ry + rh, rx, ry + rh, r);
+    ctx.arcTo(rx, ry + rh, rx, ry, r); ctx.arcTo(rx, ry, rx + rw, ry, r); ctx.closePath();
+    ctx.fillStyle = '#0c0d10'; ctx.fill('evenodd');
+    ctx.restore();
+  }
+
+  function render(){
+    drawBackground(ctx, 640, 480);
+    if (S.dither) to16bit(ctx, 640, 480);
+    drawUi(ctx);
+    if (S.crt) applyCrt();
+  }
+
+  // Contrast
+  function lum(hex){
+    var n = parseInt(hex.slice(1), 16), ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(function(v){ v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+    return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
+  }
+  function ratio(a, b){ var x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
+  function updateContrast(){
+    var bgs = S.bgType === 'gradient' ? [S.c1, S.c2].concat(S.useC3 ? [S.c3] : []) : S.bgType === 'solid' ? [S.c1] : [];
+    var worstBg = bgs.length ? Math.min.apply(null, bgs.map(function(b){ return ratio(S.textDim, b); })) : null;
+    var el = $('contrast'); el.textContent = '';
+    function add(label, v){
+      var span = document.createElement('span'); span.textContent = label + ' ';
+      var b = document.createElement('b'); b.textContent = v.toFixed(1) + ':1';
+      if (v < 4.5) b.className = 'warn';
+      span.appendChild(b); el.appendChild(span);
+    }
+    add('Text on covers', ratio(S.text, S.panel));
+    if (worstBg !== null) add('Dim text on background', worstBg);
+    add('Text on tabs', Math.min(ratio(S.text, S.tabActive), ratio(S.text, S.tabInactive)));
+    add('Text on selected row', ratio(S.text, S.highlight));
+  }
+
+  // INI
+  function iniSafe(v){ return String(v).replace(/[\r\n=\[\];]/g, ' ').trim(); }
+  function hx(v){ return v.replace('#', '').toUpperCase(); }
+  function buildIni(){
+    var L = ['[theme]', 'name = ' + (iniSafe(S.name) || 'Untitled'), 'author = ' + iniSafe(S.author), '',
+      '[colors]', 'text = ' + hx(S.text), 'text_dim = ' + hx(S.textDim), 'accent = ' + hx(S.accent), 'panel = ' + hx(S.panel)];
+    FRAME_KEYS.forEach(function(k){ L.push(FRAME_INI[k] + ' = ' + hx(S[k])); });
+    L.push('', '[background]', 'type = ' + S.bgType);
+    if (S.bgType === 'image') L.push('image = background.png', 'color1 = ' + hx(S.c1));
+    else L.push('color1 = ' + hx(S.c1));
+    if (S.bgType === 'gradient') {
+      L.push('color2 = ' + hx(S.c2), 'color3 = ' + (S.useC3 ? hx(S.c3) : 'none'), 'direction = ' + S.dir);
+    }
+    L.push('dither = ' + (S.dither ? 1 : 0), '', '[pattern]', 'style = ' + S.pattern);
+    if (S.pattern !== 'none') L.push('color = ' + hx(S.pColor), 'size = ' + S.pSize, 'opacity = ' + S.pOpacity);
+    var feats = FEATURES.filter(function(f){ return S['f_' + f.key] !== -1; });
+    if (feats.length) {
+      L.push('', '[features]');
+      feats.forEach(function(f){ L.push(f.key + ' = ' + S['f_' + f.key]); });
+    }
+    return L.join('\n') + '\n';
+  }
+
+  var raf = 0;
+  function changed(textOnly){
+    try { localStorage.setItem(STORE, JSON.stringify(S)); } catch(e) {}
+    $('ini').textContent = buildIni();
+    updateShareCode();
+    updateContrast();
+    if (textOnly) return;
+    if (raf) return;
+    raf = requestAnimationFrame(function(){ raf = 0; render(); });
+  }
+
+  // Export
+  function status(msg){ $('status').textContent = msg; }
+  $('copyIni').addEventListener('click', function(){
+    var txt = buildIni();
+    var done = function(){ status('Copied theme.ini to the clipboard.'); };
+    var fallback = function(){
+      var sel = window.getSelection(), range = document.createRange();
+      range.selectNodeContents($('ini')); sel.removeAllRanges(); sel.addRange(range);
+      status('Text selected. Press Ctrl+C (or Cmd+C) to copy it.');
+    };
+    try { navigator.clipboard.writeText(txt).then(done, fallback); } catch(e) { fallback(); }
+  });
+
+  var downloads = null;
+  if (window.claude && typeof window.claude.use === 'function') {
+    window.claude.use('downloads').then(function(d){
+      if (!d) return;
+      downloads = d; $('saveIni').hidden = false; $('savePng').hidden = false; $('saveHint').hidden = false;
+    }).catch(function(){});
+  }
+  function handleSaveError(err){
+    var code = err && err.code;
+    if (code === 'declined') status('Save cancelled.');
+    else if (code === 'rate_limited') status('A save prompt is already open. Finish that one first.');
+    else status('Saving isn’t available here. Use Copy instead.');
+  }
+  $('saveIni').addEventListener('click', function(){
+    if (!downloads) return;
+    downloads.save({filename: 'theme.txt', data: buildIni()}).then(function(r){
+      status(r.status === 'saved' ? 'Saved theme.txt. Put it in menu/theme/ on the SD card.' : 'Sent theme.txt.');
+    }, handleSaveError);
+  });
+  $('savePng').addEventListener('click', function(){
+    if (!downloads) return;
+    var off = document.createElement('canvas'); off.width = 640; off.height = 480;
+    var oc = off.getContext('2d');
+    drawBackground(oc, 640, 480); if (S.dither) to16bit(oc, 640, 480);
+    off.toBlob(function(blob){
+      if (!blob) { status('Couldn’t create the PNG.'); return; }
+      downloads.save({filename: 'background.png', data: blob}).then(function(r){
+        status(r.status === 'saved' ? 'Saved background.png.' : 'Sent background.png.');
+      }, handleSaveError);
+    }, 'image/png');
+  });
+
+  /* ---------- Share codes ----------
+   * Crockford base32, shown as SS64-XXXX-XXXX-...
+   *
+   * v1: 32 bytes (52 characters)
+   * [0] version = 1
+   * [1..24] colors, 3 bytes each: text, text_dim, accent, panel, color1, color2, color3, pattern color
+   * [25] bits 0-1 bg type (0 solid, 1 gradient, 2 image), bits 2-3 direction
+   *      (0 vertical, 1 horizontal, 2 diagonal, 3 radial), bit 4 color3 on, bit 5 dither
+   * [26] pattern (0 none, 1 stripes, 2 diagonal, 3 checker, 4 dots, 5 grid, 6 scanlines)
+   * [27] pattern size (2-128)   [28] pattern opacity (0-100)
+   * [29] reserved, 0
+   * [30..31] CRC-16/CCITT-FALSE of bytes 0..29, big-endian
+   *
+   * v2: 52 bytes (84 characters). Bytes 1..28 are the same as v1.
+   * [0] version = 2
+   * [29..46] colors, 3 bytes each: border, highlight, tab_active, tab_inactive,
+   *          tab_active_border, tab_inactive_border
+   * [47] feature "is set" mask   [48] feature values, same bit order:
+   *      bit 0 quick_launch, 1 hold_launch, 2 side_covers, 3 frame_borders,
+   *      4 updown_scroll, 5 cover_art, 6 carousel_animation, 7 see_through_covers
+   *      (bits 6 and 7 were added later; older v2 codes leave them unset)
+   * [49] reserved, 0
+   * [50..51] CRC-16/CCITT-FALSE of bytes 0..49, big-endian
+   *
+   * A theme with stock frame colors and no features set is written as v1, so
+   * simple themes keep the short code.
+   */
+  var B32 = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+  var BG_TYPES = ['solid', 'gradient', 'image'];
+  var DIRS = ['vertical', 'horizontal', 'diagonal', 'radial'];
+  var PATTERNS = ['none', 'stripes', 'diagonal', 'checker', 'dots', 'grid', 'scanlines'];
+  var COLOR_KEYS = ['text', 'textDim', 'accent', 'panel', 'c1', 'c2', 'c3', 'pColor'];
+
+  function crc16(bytes, n){
+    var crc = 0xFFFF;
+    for (var i = 0; i < n; i++) {
+      crc ^= bytes[i] << 8;
+      for (var b = 0; b < 8; b++) crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) & 0xFFFF : (crc << 1) & 0xFFFF;
+    }
+    return crc;
+  }
+  function putColor(b, at, hex){
+    var n = parseInt(hex.slice(1), 16);
+    b[at] = (n >> 16) & 255; b[at + 1] = (n >> 8) & 255; b[at + 2] = n & 255;
+  }
+  function getColor(b, at){
+    var n = (b[at] << 16) | (b[at + 1] << 8) | b[at + 2];
+    return '#' + n.toString(16).padStart(6, '0').toUpperCase();
+  }
+  function needsV2(){
+    return FRAME_KEYS.some(function(k){ return S[k] !== FRAME_STOCK[k]; }) ||
+      FEATURES.some(function(f){ return S['f_' + f.key] !== -1; });
+  }
+  function encodeTheme(){
+    var v2 = needsV2(), len = v2 ? 52 : 32;
+    var b = new Array(len).fill(0);
+    b[0] = v2 ? 2 : 1;
+    COLOR_KEYS.forEach(function(k, i){ putColor(b, 1 + i * 3, S[k]); });
+    b[25] = Math.max(0, BG_TYPES.indexOf(S.bgType)) | (Math.max(0, DIRS.indexOf(S.dir)) << 2) | (S.useC3 ? 16 : 0) | (S.dither ? 32 : 0);
+    b[26] = Math.max(0, PATTERNS.indexOf(S.pattern));
+    b[27] = Math.min(128, Math.max(2, S.pSize));
+    b[28] = Math.min(100, Math.max(0, S.pOpacity));
+    if (v2) {
+      FRAME_KEYS.forEach(function(k, i){ putColor(b, 29 + i * 3, S[k]); });
+      FEATURES.forEach(function(f, i){
+        var v = S['f_' + f.key];
+        if (v !== -1) { b[47] |= 1 << i; if (v === 1) b[48] |= 1 << i; }
+      });
+    }
+    var crc = crc16(b, len - 2); b[len - 2] = crc >> 8; b[len - 1] = crc & 255;
+    var out = '', buf = 0, bits = 0;
+    b.forEach(function(v){
+      buf = (buf << 8) | v; bits += 8;
+      while (bits >= 5) { out += B32[(buf >> (bits - 5)) & 31]; bits -= 5; }
+      buf &= (1 << bits) - 1;
+    });
+    if (bits > 0) out += B32[(buf << (5 - bits)) & 31];
+    return 'SS64-' + out.match(/.{1,4}/g).join('-');
+  }
+  function decodeTheme(input){
+    var clean = String(input).toUpperCase().replace(/[^0-9A-Z]/g, '').replace(/O/g, '0').replace(/[IL]/g, '1');
+    if ((clean.length === 56 || clean.length === 88) && clean.slice(0, 4) === 'SS64') clean = clean.slice(4);
+    var len = clean.length === 52 ? 32 : clean.length === 84 ? 52 : 0;
+    if (!len) return {error: 'That code is the wrong length. Check that the whole code was copied.'};
+    var bytes = [], buf = 0, bits = 0;
+    for (var i = 0; i < clean.length; i++) {
+      var v = B32.indexOf(clean[i]);
+      if (v < 0) return {error: 'The code contains a character that isn’t allowed: ' + clean[i] + '.'};
+      buf = (buf << 5) | v; bits += 5;
+      if (bits >= 8) { bytes.push((buf >> (bits - 8)) & 255); bits -= 8; buf &= (1 << bits) - 1; }
+    }
+    if (bytes.length < len) return {error: 'That code is incomplete.'};
+    if (crc16(bytes, len - 2) !== ((bytes[len - 2] << 8) | bytes[len - 1])) return {error: 'That code has a typo somewhere. Compare it with the original.'};
+    if (bytes[0] > 2) return {error: 'That code was made with a newer Theme Maker. Update and try again.'};
+    if (bytes[0] !== (len === 52 ? 2 : 1)) return {error: 'That code isn’t a theme code this Theme Maker understands.'};
+    var t = {};
+    COLOR_KEYS.forEach(function(k, i){ t[k] = getColor(bytes, 1 + i * 3); });
+    t.bgType = BG_TYPES[bytes[25] & 3] || 'gradient';
+    t.dir = DIRS[(bytes[25] >> 2) & 3];
+    t.useC3 = !!(bytes[25] & 16);
+    t.dither = !!(bytes[25] & 32);
+    t.pattern = PATTERNS[bytes[26]] || 'none';
+    t.pSize = Math.min(64, Math.max(4, bytes[27]));
+    t.pOpacity = Math.min(60, Math.max(0, bytes[28]));
+    // v1 codes carry no frame colors or features: those go back to the menu's own.
+    FRAME_KEYS.forEach(function(k, i){ t[k] = bytes[0] === 2 ? getColor(bytes, 29 + i * 3) : FRAME_STOCK[k]; });
+    FEATURES.forEach(function(f, i){
+      t['f_' + f.key] = (bytes[0] === 2 && (bytes[47] >> i) & 1) ? (bytes[48] >> i) & 1 : -1;
+    });
+    return {theme: t, version: bytes[0]};
+  }
+  function updateShareCode(){
+    $('shareCode').textContent = encodeTheme();
+    $('codeKind').textContent = needsV2()
+      ? 'Long code: it also carries the frame, tab and feature choices.'
+      : 'Short code: the frame and tab colors are stock and no features are set.';
+    if (typeof drawQr === 'function') drawQr();
+    $('codeNote').hidden = S.bgType !== 'image';
+  }
+  $('copyCode').addEventListener('click', function(){
+    var txt = encodeTheme();
+    var done = function(){ $('codeStatus').textContent = 'Copied the share code.'; };
+    var fallback = function(){
+      var sel = window.getSelection(), range = document.createRange();
+      range.selectNodeContents($('shareCode')); sel.removeAllRanges(); sel.addRange(range);
+      $('codeStatus').textContent = 'Code selected. Press Ctrl+C (or Cmd+C) to copy it.';
+    };
+    try { navigator.clipboard.writeText(txt).then(done, fallback); } catch(e) { fallback(); }
+  });
+  function loadCode(){
+    var r = decodeTheme($('importCode').value);
+    if (r.error) { $('codeStatus').textContent = r.error; return; }
+    Object.assign(S, r.theme);
+    syncInputs(); changed();
+    $('codeStatus').textContent = r.theme.bgType === 'image'
+      ? 'Theme loaded. It uses a PNG background, so pick the image file under Background.'
+      : 'Theme loaded. Give it a name under Export if you want to save it.';
+  }
+  $('loadCode').addEventListener('click', loadCode);
+  $('importCode').addEventListener('keydown', function(e){ if (e.key === 'Enter') loadCode(); });
+
+  /* ---------- QR code ---------- */
+  var qrReady = false, qrOpen = false;
+  function drawQr(){
+    if (!qrReady || !qrOpen) return;
+    var qr = window.qrcode(0, 'M');
+    qr.addData(encodeTheme(), 'Alphanumeric');
+    qr.make();
+    var n = qr.getModuleCount(), quiet = 4, total = n + quiet * 2;
+    var c = $('qr'), size = c.width, cell = Math.floor(size / total), off = Math.floor((size - cell * total) / 2);
+    var g = c.getContext('2d');
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, size, size);
+    g.fillStyle = '#000000';
+    for (var r = 0; r < n; r++) for (var col = 0; col < n; col++) {
+      if (qr.isDark(r, col)) g.fillRect(off + (col + quiet) * cell, off + (r + quiet) * cell, cell, cell);
+    }
+  }
+  function loadQrLib(urls){
+    if (!urls.length) return;
+    var sc = document.createElement('script');
+    sc.src = urls[0];
+    sc.onload = function(){ if (typeof window.qrcode === 'function') { qrReady = true; $('toggleQr').hidden = false; } else loadQrLib(urls.slice(1)); };
+    sc.onerror = function(){ loadQrLib(urls.slice(1)); };
+    document.head.appendChild(sc);
+  }
+  loadQrLib([
+    'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js',
+    'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js'
+  ]);
+  $('toggleQr').addEventListener('click', function(){
+    qrOpen = !qrOpen;
+    $('qrWrap').hidden = !qrOpen;
+    $('toggleQr').textContent = qrOpen ? 'Hide QR code' : 'Show QR code';
+    $('toggleQr').setAttribute('aria-expanded', String(qrOpen));
+    drawQr();
+  });
+
+  /* Import from a link like ...#code=SS64-XXXX-... (for when the tool is self-hosted) */
+  function importFromUrl(){
+    var m = /[#&?]code=([0-9A-Za-z\-]+)/.exec(location.hash + '&' + location.search);
+    if (!m) return;
+    $('importCode').value = m[1];
+    loadCode();
+  }
+
+  syncInputs(); changed();
+  importFromUrl();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ render(); });
+})();
+</script>
