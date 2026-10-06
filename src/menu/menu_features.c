@@ -34,6 +34,7 @@ static const feature_info_t feature_info[FEATURE_COUNT] = {
     [FEATURE_HIDE_EXTENSIONS]     = { "hide_extensions",     true,  false },
     [FEATURE_TIDY_TITLES]         = { "tidy_titles",         true,  false },
     [FEATURE_HIDE_TAGS]           = { "hide_tags",           false, false },
+    [FEATURE_REMEMBER_SETTINGS]   = { "remember_settings",   true,  false },
 };
 
 #define FEATURES_USER_PATH      "sd:/menu/features.ini"

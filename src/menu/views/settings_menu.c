@@ -156,13 +156,16 @@ static const item_t sound_items[] = {
     SWITCH("Background Music", bgm_enabled, false, apply_bgm, "Play music in the menu."),
 };
 
-static const item_t file_items[] = {
+static const item_t library_items[] = {
     CHOICES("Sort By", OPTION_SORT_ORDER, SORT_COUNT, sort_order_name, resort_browser,
         "Type: folders, then each kind of file. Name: folders, then everything by name. Recently Played: games you played from this folder come first."),
     FEATURE("Hide Game Extensions", FEATURE_HIDE_EXTENSIONS, "Show games without the ending of the file name, such as .z64. Other files keep theirs."),
     FEATURE("Tidy Game Titles", FEATURE_TIDY_TITLES, "Show names like \"Legend of Zelda, The\" as \"The Legend of Zelda\". The files are not renamed."),
     FEATURE("Hide Region Tags", FEATURE_HIDE_TAGS, "Hide the region and version tags in brackets, such as (U) (V1.2) [!]. Two versions of one game then look the same in the list."),
     FEATURE("Remember Position", FEATURE_REMEMBER_SELECTION, "Going back into a folder returns to the game you had selected there, also after playing."),
+};
+
+static const item_t file_items[] = {
     SWITCH("Show Hidden Files", show_protected_entries, false, reload_browser, "Show files and folders the menu normally hides."),
     SWITCH("Use Saves Folder", use_saves_folder, true, NULL, "Keep game saves in a separate saves folder."),
     SWITCH("Show Saves Folder", show_saves_folder, false, reload_browser, "Show saves folders in the file list."),
@@ -177,6 +180,7 @@ static const item_t file_items[] = {
 
 static const item_t system_items[] = {
     INFO("Start Folder", default_folder, "The folder the menu opens in. Change it from Options on the Files screen."),
+    FEATURE("Remember Settings Page", FEATURE_REMEMBER_SETTINGS, "Reopen Settings on the page and row you last used, until the console is switched off."),
     ACTION("Reset Settings", ask_reset, "Put the stock settings back to how they were on a fresh install."),
 };
 
@@ -184,6 +188,7 @@ static const category_t categories[] = {
     { "Display", display_items, COUNT(display_items) },
     { "Controls", control_items, COUNT(control_items) },
     { "Sound", sound_items, COUNT(sound_items) },
+    { "Library", library_items, COUNT(library_items) },
     { "Files", file_items, COUNT(file_items) },
     { "System", system_items, COUNT(system_items) },
 };
@@ -193,6 +198,7 @@ static const category_t categories[] = {
 static int category = 0;
 static int item = 0;
 static bool in_items = false;   /* false: choosing a category, true: inside one */
+static int first_row = 0;       /* first setting shown, when a category has more than fit */
 
 static bool *switch_value (menu_t *menu, const item_t *it) {
     return (bool *) ((char *) &menu->settings + it->offset);
@@ -297,7 +303,8 @@ static void process (menu_t *menu) {
 #define DIVIDER_X       (LEFT_X + LEFT_WIDTH + 8)
 #define ITEMS_X         (DIVIDER_X + 12)
 #define ITEMS_WIDTH     (VISIBLE_AREA_X1 - TEXT_MARGIN_HORIZONTAL - ITEMS_X)
-#define HELP_Y          (ROWS_Y + (8 * ROW_HEIGHT))
+#define VISIBLE_ROWS    (8)     /* settings shown at once; longer lists scroll */
+#define HELP_Y          (ROWS_Y + (VISIBLE_ROWS * ROW_HEIGHT) + 4)
 #define HELP_HEIGHT     (LAYOUT_ACTIONS_SEPARATOR_Y - 8 - HELP_Y)
 #define ROW_PADDING     (6)
 
@@ -414,6 +421,23 @@ static void draw (menu_t *menu, surface_t *d) {
     draw_text(LEFT_X, TITLE_Y, LEFT_WIDTH, ALIGN_LEFT, STL_GRAY, "SETTINGS");
     draw_text(ITEMS_X, TITLE_Y, ITEMS_WIDTH, ALIGN_LEFT, STL_GRAY, cat->label);
 
+    // Keep the selected setting inside the rows that fit above the description.
+    if (!in_items || first_row > item) {
+        first_row = in_items ? item : 0;
+    } else if (item >= first_row + VISIBLE_ROWS) {
+        first_row = item - VISIBLE_ROWS + 1;
+    }
+    int last_row = first_row + VISIBLE_ROWS;
+    if (last_row > cat->count) {
+        last_row = cat->count;
+    }
+    bool more_above = (first_row > 0);
+    bool more_below = (last_row < cat->count);
+    if (more_above || more_below) {
+        draw_text(ITEMS_X, TITLE_Y, ITEMS_WIDTH, ALIGN_RIGHT, STL_GRAY,
+            (more_above && more_below) ? "▲ ▼" : (more_above ? "▲" : "▼"));
+    }
+
     if (features_enabled(FEATURE_FRAME_BORDERS)) {
         draw_fill(DIVIDER_X, ROWS_Y, DIVIDER_X + 2, LAYOUT_ACTIONS_SEPARATOR_Y - 8, theme_get()->border);
     }
@@ -426,8 +450,8 @@ static void draw (menu_t *menu, surface_t *d) {
         draw_text(LEFT_X, y, LEFT_WIDTH, ALIGN_LEFT, STL_DEFAULT, categories[i].label);
     }
 
-    for (int i = 0; i < cat->count; i++) {
-        int y = ROWS_Y + (i * ROW_HEIGHT);
+    for (int i = first_row; i < last_row; i++) {
+        int y = ROWS_Y + ((i - first_row) * ROW_HEIGHT);
         if (in_items && i == item) {
             draw_selection(ITEMS_X, y, ITEMS_WIDTH, true);
         }
@@ -468,10 +492,15 @@ static void draw (menu_t *menu, surface_t *d) {
 
 void view_settings_menu_init (menu_t *menu) {
     (void) menu;
-    category = 0;
-    item = 0;
-    in_items = false;
     confirm_reset = false;
+
+    // Start from the top, unless the player wants to come back to where they were.
+    if (!features_enabled(FEATURE_REMEMBER_SETTINGS)) {
+        category = 0;
+        item = 0;
+        in_items = false;
+        first_row = 0;
+    }
 }
 
 void view_settings_menu_display (menu_t *menu, surface_t *display) {

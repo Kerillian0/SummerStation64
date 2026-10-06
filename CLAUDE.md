@@ -102,7 +102,10 @@ Claude builds in the container and the user deploys from Windows.
   source but are no longer reachable. Features show `Default (On/Off)` when
   the player hasn't chosen, so it's visible whether the theme or the player
   decides. Rows are table-driven: add a `SWITCH`/`FEATURE`/`ACTION`/`INFO`
-  line to a category. Changes are held in memory and written once, when
+  line to a category. Eight rows fit above the description; longer categories
+  scroll, with ▲/▼ in the title row. The screen reopens where it was left
+  (feature `remember_settings`, default on, this power-on only). Categories:
+  Display, Controls, Sound, Library, Files, System. Changes are held in memory and written once, when
   leaving the screen or after 5 s without a change (the user asked for fewer
   SD card writes); `features_user_change()`/`_flush()` and
   `options_change()`/`_flush()` exist for that.
@@ -238,6 +241,10 @@ Claude builds in the container and the user deploys from Windows.
 - Done and tested on hardware: `hide_extensions`, `tidy_titles` and
   `hide_tags` ("Hide Game Extensions", "Tidy Game Titles", "Hide Region
   Tags").
+- Done and tested on hardware: Settings fixes: Library split out of Files
+  (the Files page had grown to 11 rows and ran into the description) and
+  "Remember Settings Page". Row scrolling is built but has never been
+  exercised, because no page currently has more than eight rows.
 - **v0.1 user-facing features are complete.** Two dev-tooling items were
   added to v0.1 afterwards and are not started: the debug overlay and the
   PC-side tests. Before publishing, the user still wants to test Japanese
