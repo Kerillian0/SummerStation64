@@ -310,6 +310,7 @@ Claude builds in the container and the user deploys from Windows.
 - Done and tested on hardware: menu redesign stage 2 (badges). Measured
   cost: the frame in which a game is looked up takes 140-165 ms with the log
   attached, against about 80 ms for a cover alone.
+- Done and tested on hardware: lighter game lookup for the badges.
 - **v0.1 user-facing features are complete.** Two dev-tooling items were
   added to v0.1 afterwards and are not started: the debug overlay and the
   PC-side tests. Before publishing, the user still wants to test Japanese
@@ -515,12 +516,16 @@ Stages, one testable build each:
    (Games / Recent / Favorites, in L/R cycling order) with clock, no frame,
    covers moved up 20 px, title panel, position bar. Hints unchanged. The
    `frame_borders` feature no longer affects these three screens.
-2. **Badges on the title panel (built, awaiting hardware test):** players,
-   "Needs Expansion Pak" / "Expansion Pak", "Save found", "Favorite".
-   `game_facts.c` looks the game up with the stock `rom_config_load()` 350 ms
-   after the selection settles. That call prints about ten `[META]` log
-   lines per game and may search inside the ROM for games without metadata,
-   so watch the "worst" frame time when stopping on a game.
+2. **Badges on the title panel (done and tested):** players, "Needs
+   Expansion Pak" / "Expansion Pak", "Save found", "Favorite". `game_facts.c`
+   looks the game up 350 ms after the selection settles. First version used
+   the stock `rom_config_load()`: 140-165 ms for that frame, five file opens
+   and about fourteen log lines per game. **Lighter version (done and
+   tested: 77-99 ms, the same as a cover alone):** `rom_info_load_basic()` (added to `rom_info.c`: header
+   and built-in database only), the player count read straight from the
+   metadata pack's `metadata.ini`, and the last 32 games remembered so
+   revisiting one reads nothing but the save-file check. A per-game settings
+   file that overrides the save type is not consulted here.
 3. Button-badge hint bar (A Play, Z Info, and so on).
 4. Game info screen: blurred art background (the cover stretched large with
    smoothing, no extra memory), title, badges, description, Play button.

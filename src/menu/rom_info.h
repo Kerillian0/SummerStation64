@@ -197,6 +197,18 @@ bool rom_info_get_cic_seed(rom_info_t *rom_info, uint8_t *seed);
 rom_err_t rom_config_load(path_t *path, rom_info_t *rom_info);
 
 /**
+ * @brief Load only what the ROM header and the built-in game database give.
+ *
+ * A quick version of rom_config_load() for browsing: no per-game settings
+ * file and no metadata files are read. Free with rom_info_free_meta().
+ *
+ * @param path Pointer to the path structure
+ * @param rom_info Pointer to the ROM information structure
+ * @return rom_err_t Error code
+ */
+rom_err_t rom_info_load_basic(path_t *path, rom_info_t *rom_info);
+
+/**
  * @brief Get the CIC type for the ROM.
  * 
  * @param rom_info Pointer to the ROM information structure

@@ -1336,6 +1336,31 @@ rom_err_t rom_config_setting_set_patches (path_t *path, rom_info_t *rom_info, bo
 }
 #endif
 
+rom_err_t rom_info_load_basic (path_t *path, rom_info_t *rom_info) {
+    FILE *f;
+    rom_header_t rom_header;
+
+    if ((f = fopen(path_get(path), "rb")) == NULL) {
+        return ROM_ERR_NO_FILE;
+    }
+    setbuf(f, NULL);
+    if (fread(&rom_header, sizeof(rom_header), 1, f) != 1) {
+        fclose(f);
+        return ROM_ERR_LOAD_IO;
+    }
+    if (fclose(f)) {
+        return ROM_ERR_LOAD_IO;
+    }
+
+    fix_rom_header_endianness(&rom_header, rom_info);
+
+    match_t match = find_rom_in_database(&rom_header);
+
+    extract_rom_info(&match, &rom_header, rom_info);
+
+    return ROM_OK;
+}
+
 rom_err_t rom_config_load (path_t *path, rom_info_t *rom_info) {
     FILE *f;
     rom_header_t rom_header;
