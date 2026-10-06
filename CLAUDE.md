@@ -482,6 +482,12 @@ viewer and the music player.
   - Remember the selected game per folder.
   - Automated screenshots in the ares emulator for the README and for
     catching visual regressions.
+  - Memory safeguard on the console: when a theme or setting asks for more
+    memory than is free, fall back quietly instead of failing (for example
+    draw the background live instead of loading a PNG, or leave side covers
+    as placeholders, which already happens), and say why in a short note in
+    Settings. The Theme Maker's RAM meter (v0.4) only estimates; this is what
+    guarantees the menu never crashes.
 - **v0.3 organizing:** continue row, launch stats, smart collections, region
   dedupe, letter-wheel search, random game, homebrew/64DD shelves, party mode,
   clock.
@@ -505,6 +511,15 @@ viewer and the music player.
     (contrast, avoid 1px lines, overscan safe areas).
   - Separate volume controls for UI sounds and music.
   - Theme Maker: contrast auto-fix button and randomize button.
+  - Theme Maker RAM meter: a bar showing the theme's estimated memory use
+    against the console's total, with the 256 KB reserve marked, turning
+    yellow and then red as it gets close. A console selector (4MB, 8MB, later
+    Analogue 3D) so nobody has to do the sums. Tapping the bar lists what
+    each piece costs ("PNG background: 600 KB", "Cover cache, 5 covers:
+    180 KB") so people can see what to switch off. The costs come from a
+    small table generated from hardware logs for each menu release, not from
+    guesses. Worth building once themes can change memory use by much (PNG
+    backgrounds); today only the side covers and cover art do.
   - Installable web app: turn the Theme Maker into an installable page. The
     companion app comes after this.
   - Community theme repo on GitHub: one folder per theme, issue-form
