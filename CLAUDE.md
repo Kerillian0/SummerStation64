@@ -464,8 +464,11 @@ So a Latin-only font would free about 696 KB of RAM, taking the worked-out
 free memory on a 4MB console from about 633 KB to about 1,330 KB. Shipping it
 beside the full font adds 29 KB to the ROM. The price: Japanese file names
 would show missing characters where the small font is used. Not decided and
-not built. Still an assumption: that the font occupies its uncompressed size
-in RAM; a test build using the small font would show the real drop in "used".
+not built into the project.
+**Confirmed on hardware 2026-10-06** with a throwaway build carrying only the
+Latin font: "used" on the Files screen fell from 2469 KB to 1759 KB (710 KB
+saved), text and the arrow characters looked right, and the ROM shrank from
+1.80 MB to 1.36 MB. The full font was put back afterwards.
 The menu is already double-buffered, so "use two buffers instead of three"
 saves nothing. Drawing the theme background live would now save 300 KB, not
 600 KB.
