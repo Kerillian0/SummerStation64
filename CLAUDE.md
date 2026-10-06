@@ -449,10 +449,23 @@ Breakdown of the Files screen baseline (2469 KB used), 2026-10-06:
 | Font `Firple-Bold.font64` | about 760 | built once without compression: 778,424 bytes. Assumes it sits in RAM uncompressed. Charset is 7,799 characters (includes Japanese). |
 | Everything else: audio buffers and mixer, graphics queues, file list, settings, history | about 209 | by subtraction, not broken down further |
 
-The font is the largest single item after the screen buffers. A font with
-only Latin characters would be a small fraction of that; the price is that
-Japanese file names could no longer be shown. Idea, not decided: ship a small
-font for 4MB consoles and keep the full one for 8MB.
+The font is the largest single item after the screen buffers. Its charset
+has 2,650 characters: 339 Latin ones (ASCII, Latin-1, Latin Extended, the
+arrows and ellipsis the menu uses), 171 kana and CJK symbols, and 2,140 kanji.
+Measured 2026-10-06 by building the font in a scratch folder with the same
+settings (not added to the build):
+
+| Font | In RAM (uncompressed file) | In the ROM (compressed) |
+|---|---:|---:|
+| Full, as shipped | 778,424 bytes (760 KB) | 476,559 bytes |
+| Latin only, 339 characters | 65,336 bytes (64 KB) | 28,935 bytes |
+
+So a Latin-only font would free about 696 KB of RAM, taking the worked-out
+free memory on a 4MB console from about 633 KB to about 1,330 KB. Shipping it
+beside the full font adds 29 KB to the ROM. The price: Japanese file names
+would show missing characters where the small font is used. Not decided and
+not built. Still an assumption: that the font occupies its uncompressed size
+in RAM; a test build using the small font would show the real drop in "used".
 The menu is already double-buffered, so "use two buffers instead of three"
 saves nothing. Drawing the theme background live would now save 300 KB, not
 600 KB.
