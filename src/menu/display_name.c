@@ -7,6 +7,7 @@
 #define NAME_LENGTH (256)
 
 static char shown[NAME_LENGTH];
+static bool show_real = false;  /* game info screens: show the real file name */
 
 static bool is_game (const entry_t *entry) {
     return entry->type == ENTRY_TYPE_ROM || entry->type == ENTRY_TYPE_DISK || entry->type == ENTRY_TYPE_EMULATOR;
@@ -85,15 +86,35 @@ const char *display_name (const entry_t *entry) {
     if (!is_game(entry)) {
         return entry->name;
     }
+    return display_name_file(entry->name);
+}
+
+const char *display_name_info (const char *filename) {
+    if (!filename) {
+        return "";
+    }
+    return show_real ? filename : display_name_file(filename);
+}
+
+void display_name_toggle_real (menu_t *menu, void *arg) {
+    (void) menu;
+    (void) arg;
+    show_real = !show_real;
+}
+
+const char *display_name_file (const char *filename) {
+    if (!filename) {
+        return "";
+    }
 
     bool hide_extension = features_enabled(FEATURE_HIDE_EXTENSIONS);
     bool tidy = features_enabled(FEATURE_TIDY_TITLES);
     bool hide_tags = features_enabled(FEATURE_HIDE_TAGS);
     if (!hide_extension && !tidy && !hide_tags) {
-        return entry->name;
+        return filename;
     }
 
-    strncpy(shown, entry->name, sizeof(shown) - 1);
+    strncpy(shown, filename, sizeof(shown) - 1);
     shown[sizeof(shown) - 1] = '\0';
 
     /* Set the extension aside while the title is tidied. */

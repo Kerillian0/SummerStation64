@@ -4,6 +4,7 @@
 #include "../sound.h"
 #include "views.h"
 #include "../bookkeeping.h"
+#include "../display_name.h"
 #include <string.h>
 
 #define DISK_SLOTS_MAX 3 // Maximum number of disk slots supported (excluding the primary disk)
@@ -155,7 +156,7 @@ static void draw (menu_t *menu, surface_t *d) {
             ALIGN_CENTER, VALIGN_TOP,
             "64DD disk information\n"
             "%s",
-            disk_filename
+            display_name_info(disk_filename)
         );
 
         ui_components_main_text_draw(

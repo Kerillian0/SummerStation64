@@ -7,6 +7,7 @@
 #include "utils/fs.h"
 #include "views.h"
 #include "../controls.h"
+#include "../display_name.h"
 #include <string.h>
 
 static bool show_extra_info_message = false;
@@ -486,6 +487,7 @@ static component_context_menu_t options_context_menu = { .list = {
 #endif
     { .text = "Clear RDRAM on boot", .submenu = &set_clear_rdram_options_menu },
     { .text = "Add to favorites", .action = add_favorite },
+    { .text = "Show/hide real file name", .action = display_name_toggle_real },
     COMPONENT_CONTEXT_MENU_LIST_END,
 }};
 
@@ -620,7 +622,7 @@ static void draw (menu_t *menu, surface_t *d) {
             ALIGN_CENTER, VALIGN_TOP,
             "%s\n"
             "%.20s\n",
-            rom_filename,
+            display_name_info(rom_filename),
             menu->load.rom_info.title
         );
 

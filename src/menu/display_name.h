@@ -21,4 +21,22 @@
  */
 const char *display_name (const entry_t *entry);
 
+/**
+ * The same tidying for a bare file name that is known to be a game, as on
+ * the History and Favorites lists. Valid until the next call.
+ */
+const char *display_name_file (const char *filename);
+
+/**
+ * For the game info screens: the tidied name, or the real file name while
+ * the player has asked to see it. Valid until the next call.
+ */
+const char *display_name_info (const char *filename);
+
+/**
+ * Switch the game info screens between the tidied and the real file name.
+ * Shaped as a context menu action so it can go straight into an options list.
+ */
+void display_name_toggle_real (menu_t *menu, void *arg);
+
 #endif /* DISPLAY_NAME_H__ */

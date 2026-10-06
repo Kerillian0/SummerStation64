@@ -5,6 +5,7 @@
 #include "../sound.h"
 #include "views.h"
 #include "../controls.h"
+#include "../display_name.h"
 
 
 typedef enum {
@@ -126,13 +127,13 @@ static void draw_list(menu_t *menu, surface_t *display) {
 
     for(uint16_t i=0; i < item_max; i++) {   
         if(path_has_value(item_list[i].primary_path)) {
-            snprintf(buffer + strlen(buffer), sizeof(buffer) - strlen(buffer), "%d  : %s\n", (i+1), path_last_get(item_list[i].primary_path));
+            snprintf(buffer + strlen(buffer), sizeof(buffer) - strlen(buffer), "%d  : %s\n", (i+1), display_name_file(path_last_get(item_list[i].primary_path)));
         } else {
             snprintf(buffer + strlen(buffer), sizeof(buffer) - strlen(buffer), "%d  : \n", (i+1));
         }
 
         if(path_has_value(item_list[i].secondary_path)) {
-            snprintf(buffer + strlen(buffer), sizeof(buffer) - strlen(buffer), "     %s\n", path_last_get(item_list[i].secondary_path));
+            snprintf(buffer + strlen(buffer), sizeof(buffer) - strlen(buffer), "     %s\n", display_name_file(path_last_get(item_list[i].secondary_path)));
         } else {
             snprintf(buffer + strlen(buffer), sizeof(buffer) - strlen(buffer), "\n");
         }

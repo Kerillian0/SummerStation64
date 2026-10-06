@@ -146,8 +146,12 @@ Claude builds in the container and the user deploys from Windows.
   also ", A" and ", An"). Both default on. Feature `hide_tags` (default off,
   because it makes regional versions look alike) drops every `(...)` and
   `[...]` group. Games only; files are not renamed.
-  Used by the carousel only so far; History, Favorites and the game info
-  screen still show raw file names. Sorting still goes by the file name.
+  Used by the carousel, the History and Favorites lists
+  (`display_name_file()`), and the game and disk info screens
+  (`display_name_info()`). The game info Options menu has "Show/hide real
+  file name", which switches both info screens to the real name until it is
+  chosen again or the console is switched off. Sorting still goes by the file
+  name.
 - `theme-maker/theme-maker.html` — source of the web Theme Maker (one
   file, no build step), added to the repo 2026-10-06. Published as the
   claude.ai artifact https://claude.ai/artifact/HxMPCpbZTSRZURJfWswAma : edit
@@ -252,6 +256,14 @@ Claude builds in the container and the user deploys from Windows.
   (the Files page had grown to 11 rows and ran into the description) and
   "Remember Settings Page". Row scrolling is built but has never been
   exercised, because no page currently has more than eight rows.
+- Done and tested on hardware: tidied names on History, Favorites and the
+  game/disk info screens, with the real-name toggle.
+- **OPEN BUG (reported 2026-10-06, cause unknown):** after launching a game,
+  resetting or power-cycling gives a black screen instead of the menu, until
+  the build is sent again with the deployer. Not yet known: whether the menu
+  is running without a picture or not starting at all, whether the SD card's
+  `sc64menu.n64` is damaged, and which commit introduced it. Do not build new
+  features until this is understood.
 - **v0.1 user-facing features are complete.** Two dev-tooling items were
   added to v0.1 afterwards and are not started: the debug overlay and the
   PC-side tests. Before publishing, the user still wants to test Japanese
