@@ -7,6 +7,7 @@
 #ifndef GAMES_UI_H__
 #define GAMES_UI_H__
 
+#include "game_facts.h"
 #include "menu_state.h"
 
 typedef enum {
@@ -25,8 +26,11 @@ typedef enum {
 /** Tab bar across the top: L, the three tabs, R, and the clock on the right. */
 void games_ui_topbar_draw (menu_t *menu, games_tab_t selected);
 
-/** Dark panel with the selected entry's name and a line of detail under it. */
-void games_ui_title_panel_draw (const char *title, const char *detail);
+/**
+ * Dark panel with the selected entry's name. Under it: badges for a game
+ * whose facts are known, otherwise the plain line of detail.
+ */
+void games_ui_title_panel_draw (const char *title, const char *detail, const game_facts_t *facts);
 
 /** "You are here" bar: first letter, a track with a marker, and "13 of 79". */
 void games_ui_position_draw (const char *title, int selected, int count);

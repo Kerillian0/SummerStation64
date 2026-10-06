@@ -304,8 +304,12 @@ Claude builds in the container and the user deploys from Windows.
 - Done and tested on hardware: scroll bar on Settings pages that scroll.
 - Done and tested on hardware: the font row renamed "Character Set" and
   moved to System; the ▲/▼ marks removed.
-- **Built, awaiting hardware test:** menu redesign stage 1 (Games screen
-  chrome).
+- Done and tested on hardware: menu redesign stage 1 (Games screen chrome).
+  The first photo showed the tab bar too close to the top-left corner, so it
+  sits 16 px inside the usual safe area.
+- Done and tested on hardware: menu redesign stage 2 (badges). Measured
+  cost: the frame in which a game is looked up takes 140-165 ms with the log
+  attached, against about 80 ms for a cover alone.
 - **v0.1 user-facing features are complete.** Two dev-tooling items were
   added to v0.1 afterwards and are not started: the debug overlay and the
   PC-side tests. Before publishing, the user still wants to test Japanese
@@ -507,12 +511,16 @@ title, badges, "Played / Last played / Save" boxes, description, Play
 button). The Games screen is the landing screen (it already is, except that
 the very first run shows the credits). A short intro with music comes later.
 Stages, one testable build each:
-1. **Games screen chrome (built, awaiting hardware test):** tab bar
+1. **Games screen chrome (done and tested):** tab bar
    (Games / Recent / Favorites, in L/R cycling order) with clock, no frame,
    covers moved up 20 px, title panel, position bar. Hints unchanged. The
    `frame_borders` feature no longer affects these three screens.
-2. Badges on the title panel: Expansion Pak, save found, favorite, players.
-   Needs the game's info loaded after the selection settles.
+2. **Badges on the title panel (built, awaiting hardware test):** players,
+   "Needs Expansion Pak" / "Expansion Pak", "Save found", "Favorite".
+   `game_facts.c` looks the game up with the stock `rom_config_load()` 350 ms
+   after the selection settles. That call prints about ten `[META]` log
+   lines per game and may search inside the ROM for games without metadata,
+   so watch the "worst" frame time when stopping on a game.
 3. Button-badge hint bar (A Play, Z Info, and so on).
 4. Game info screen: blurred art background (the cover stretched large with
    smoothing, no extra memory), title, badges, description, Play button.

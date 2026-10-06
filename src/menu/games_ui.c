@@ -1,5 +1,6 @@
 #include <ctype.h>
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
 
 #include <libdragon.h>
@@ -96,15 +97,68 @@ void games_ui_topbar_draw (menu_t *menu, games_tab_t selected) {
     }
 }
 
-void games_ui_title_panel_draw (const char *title, const char *detail) {
+#define BADGE_HEIGHT    (20)
+#define BADGE_PADDING   (6)
+#define BADGE_SPACING   (8)
+
+/* A word in a small box, as wide as its text. Returns where the next one goes. */
+static int badge (int x, int y, const char *label, menu_font_style_t style, bool boxed) {
+    int nbytes = strlen(label);
+    rdpq_paragraph_t *layout = rdpq_paragraph_build(&(rdpq_textparms_t) {
+        .height = BADGE_HEIGHT,
+        .valign = VALIGN_CENTER,
+        .style_id = style,
+    }, FNT_DEFAULT, label, &nbytes);
+
+    int width = (int) (layout->bbox.x1 - layout->bbox.x0) + (BADGE_PADDING * 2);
+    if (boxed) {
+        fill(x, y, x + width, y + BADGE_HEIGHT, theme_get()->tab_inactive);
+    }
+    rdpq_paragraph_render(layout, x + BADGE_PADDING, y);
+    rdpq_paragraph_free(layout);
+
+    return x + width + BADGE_SPACING;
+}
+
+void games_ui_title_panel_draw (const char *title, const char *detail, const game_facts_t *facts) {
     const theme_t *t = theme_get();
     int x0 = VISIBLE_AREA_X0;
     int x1 = VISIBLE_AREA_X1;
+    int line2_y = PANEL_Y + 3 + PANEL_LINE - 2;
 
     fill(x0, PANEL_Y, x1, PANEL_Y + PANEL_HEIGHT, RGBA32(t->panel.r, t->panel.g, t->panel.b, 0xD8));
 
     text(x0 + 12, PANEL_Y + 3, x1 - x0 - 24, PANEL_LINE, ALIGN_LEFT, STL_DEFAULT, title);
-    text(x0 + 12, PANEL_Y + 3 + PANEL_LINE - 2, x1 - x0 - 24, PANEL_LINE, ALIGN_LEFT, STL_GRAY, detail);
+
+    if (!facts) {
+        text(x0 + 12, line2_y, x1 - x0 - 24, PANEL_LINE, ALIGN_LEFT, STL_GRAY, detail);
+        return;
+    }
+
+    int x = x0 + 12 - BADGE_PADDING;
+    int y = line2_y + (PANEL_LINE - BADGE_HEIGHT) / 2;
+
+    if (facts->players > 0) {
+        char players[24];
+        snprintf(players, sizeof(players), (facts->players == 1) ? "1 player" : "%d players", facts->players);
+        x = badge(x, y, players, STL_GRAY, false);
+    }
+    if (facts->needs_expansion) {
+        x = badge(x, y, "Needs Expansion Pak", STL_ORANGE, true);
+    } else if (facts->likes_expansion) {
+        x = badge(x, y, "Expansion Pak", STL_GREEN, true);
+    }
+    if (facts->save_found) {
+        x = badge(x, y, "Save found", STL_GREEN, true);
+    }
+    if (facts->favorite) {
+        x = badge(x, y, "Favorite", STL_YELLOW, true);
+    }
+
+    /* A game with nothing to flag still says what it is. */
+    if (x == x0 + 12 - BADGE_PADDING) {
+        text(x0 + 12, line2_y, x1 - x0 - 24, PANEL_LINE, ALIGN_LEFT, STL_GRAY, detail);
+    }
 }
 
 void games_ui_position_draw (const char *title, int selected, int count) {

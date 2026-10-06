@@ -938,7 +938,7 @@ static void carousel_draw (menu_t *menu) {
 
     // Title panel and position bar under the covers.
     const char *title = display_name(menu->browser.entry);
-    games_ui_title_panel_draw(title, carousel_kind_label(menu->browser.entry->type));
+    games_ui_title_panel_draw(title, carousel_kind_label(menu->browser.entry->type), game_facts_update(menu));
     games_ui_position_draw(title, menu->browser.selected, menu->browser.entries);
 }
 #endif
@@ -1060,4 +1060,5 @@ void view_browser_display (menu_t *menu, surface_t *display) {
 
     if (menu->next_mode != MENU_MODE_BROWSER) carousel_art_reset(); // free the cover before another screen loads its own
     if (menu->next_mode != MENU_MODE_BROWSER) folder_memory_flush();
+    if (menu->next_mode != MENU_MODE_BROWSER) game_facts_reset(); // favorites may change while away
 }
