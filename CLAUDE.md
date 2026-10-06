@@ -145,8 +145,10 @@ Claude builds in the container and the user deploys from Windows.
   `hold_launch` (tap = info, hold starts); `load_rom.c` has a one-line hook
   that starts the game when asked. Browser Options has a "Game info" entry.
   `controls_rom_hint()` gives the hint-bar text for the launch mode in use.
-  The two launch modes exclude each other: Settings turns the other off, and
-  `features_enabled()` lets Quick Launch win if a theme asks for both.
+  The two launch modes exclude each other: when one ends up on (set to On,
+  or set to Default while the theme's default is On) the other is switched
+  off, and `features_enabled()` lets Quick Launch win if a theme asks for
+  both. Settings shows a row on Default as what it actually comes out as.
 - `src/menu/theme.c/.h` — reads `sd:/menu/theme/theme.ini` (or `theme.txt`),
   falls back to built-in defaults. Builds the gradient + pattern background
   once (RGBA16 with 4x4 Bayer dither) on first draw.

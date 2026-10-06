@@ -183,10 +183,13 @@ void features_user_change (feature_t feature, int value) {
     features_user_load();
     user[feature] = (value == FEATURE_UNSET) ? FEATURE_UNSET : (value != 0);
 
-    /* The two launch modes exclude each other: turning one on turns the other off. */
-    if (value == 1 && feature == FEATURE_QUICK_LAUNCH) {
+    /* The two launch modes exclude each other: when one ends up on, the
+       other is turned off. "Ends up on" includes being set back to Default
+       while the theme's default for it is On. */
+    bool now_on = (user[feature] != FEATURE_UNSET) ? (user[feature] != 0) : features_profile_default(feature);
+    if (now_on && feature == FEATURE_QUICK_LAUNCH) {
         user[FEATURE_HOLD_LAUNCH] = 0;
-    } else if (value == 1 && feature == FEATURE_HOLD_LAUNCH) {
+    } else if (now_on && feature == FEATURE_HOLD_LAUNCH) {
         user[FEATURE_QUICK_LAUNCH] = 0;
     }
 

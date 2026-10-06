@@ -345,8 +345,10 @@ static void draw_item (menu_t *menu, const item_t *it, int y) {
         case ITEM_FEATURE: {
             int user = features_user_get(it->feature);
             if (user == FEATURE_UNSET) {
-                /* Not chosen by the player: show what the theme gives, dimmed. */
-                value = features_profile_default(it->feature) ? "Default (On)" : "Default (Off)";
+                /* Not chosen by the player: show what it comes out as, dimmed.
+                   (Usually the theme's value; a launch mode shows Off while
+                   the other launch mode is on.) */
+                value = features_enabled(it->feature) ? "Default (On)" : "Default (Off)";
                 style = STL_GRAY;
             } else {
                 value = on_off(user != 0);
