@@ -20,7 +20,8 @@ When a feature switch or a color key is added to the menu, add it here too:
 
 - `FRAME_KEYS` / `FRAME_INI` for `[colors]` keys.
 - `FEATURES` for `[features]` keys. The order of that list is the bit order in
-  v2 share codes, so only ever add to the end.
+  share codes, so only ever add to the end. The first eight fit in a v2 code;
+  later ones need v3, which has room for sixteen.
 
 The `theme.ini` keys and the share code formats are documented in `CLAUDE.md`
 at the top of the repository.

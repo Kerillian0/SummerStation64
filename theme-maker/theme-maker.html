@@ -228,7 +228,11 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
     {key:'updown_scroll', label:'Up/Down Also Scroll',  def:false, hint:'Up and down move the carousel too.'},
     {key:'cover_art',     label:'Cover Art',            def:true,  hint:'Box art on the covers.'},
     {key:'carousel_animation', label:'Cover Slide',      def:true,  hint:'Covers slide into place when you move left or right.'},
-    {key:'see_through_covers', label:'See-through Side Covers', def:true, hint:'The background shows through the previous and next covers. Off draws them solid.'}
+    {key:'see_through_covers', label:'See-through Side Covers', def:true, hint:'The background shows through the previous and next covers. Off draws them solid.'},
+    // From here on (bit 8 and up) a feature needs a v3 share code.
+    {key:'hide_extensions', label:'Hide Game Extensions', def:true,  hint:'Games are shown without the ending of the file name, such as .z64.'},
+    {key:'tidy_titles',     label:'Tidy Game Titles',     def:true,  hint:'"Legend of Zelda, The" is shown as "The Legend of Zelda".'},
+    {key:'hide_tags',       label:'Hide Region Tags',     def:false, hint:'Hides the tags in brackets, such as (U) (V1.2) [!].'}
   ];
 
   var DEFAULTS = {name:'Midnight Gradient',author:'',bgType:'gradient',dir:'vertical',c1:'#1B2A4A',c2:'#0B0E14',useC3:false,c3:'#3A2F6B',
@@ -478,9 +482,34 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
     c.fillText('BOX ART', x0 + w / 2, y0 + h - 12);
     c.textAlign = 'left';
   }
+  // The same tidying the menu applies to game names (display_name.c).
+  function displayName(file){
+    var name = file, ext = '';
+    var dot = name.lastIndexOf('.');
+    if (dot > 0) { ext = name.slice(dot); name = name.slice(0, dot); }
+    if (featureOn('hide_tags')) {
+      var bare = name.replace(/\s*(\([^)]*\)|\[[^\]]*\])/g, '').replace(/\s+/g, ' ').trim();
+      if (bare) name = bare;
+    }
+    if (featureOn('tidy_titles')) name = name.replace(/^(.*?), (The|An|A)(?=$| [-(\[])/i, '$2 $1');
+    return featureOn('hide_extensions') ? name : name + ext;
+  }
+  // Cut text that is too wide and end it with "...", as the menu does.
+  function fitText(c, text, maxWidth){
+    if (c.measureText(text).width <= maxWidth) return text;
+    while (text.length > 1 && c.measureText(text + '...').width > maxWidth) text = text.slice(0, -1);
+    return text + '...';
+  }
+  var SAMPLE_GAMES = [
+    'Legend of Zelda, The - Ocarina of Time (U) (V1.2) [!].z64',
+    'Mario Kart 64 (U) [!].z64',
+    "Bug's Life, A (U) [!].z64",
+    'Mario Party 2 (U) [!].z64',
+    'Lode Runner 3-D (U) [!].z64'
+  ];
   function drawFiles(c){
     var cx = 320, cy = 200;
-    var covers = [[-2,'Lode Runner 3-D'],[2,'Mario Party 2'],[-1,'Mario Golf'],[1,'Mario Party'],[0,'Mario Kart 64']];
+    var covers = [[-2, SAMPLE_GAMES[4]], [2, SAMPLE_GAMES[3]], [-1, SAMPLE_GAMES[2]], [1, SAMPLE_GAMES[1]], [0, SAMPLE_GAMES[0]]];
     covers.forEach(function(cv){
       var o = cv[0], d = Math.abs(o), center = o === 0;
       if (!center && !featureOn('side_covers')) return;
@@ -499,24 +528,22 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
       }
       c.font = MENU_FONT;
       c.fillStyle = S.textDim; c.fillText('N64', x0 + 8, y0 + 22);
-      c.fillStyle = S.text; c.fillText(cv[1], x0 + 8, y0 + 48, w - 16);
+      c.fillStyle = S.text; c.fillText(fitText(c, displayName(cv[1]), w - 16), x0 + 8, y0 + 48);
     });
     c.font = MENU_FONT; c.textAlign = 'center';
-    c.fillStyle = S.text; c.fillText('Mario Kart 64.z64', cx, cy + 80 + 34);
+    c.fillStyle = S.text; c.fillText(fitText(c, displayName(SAMPLE_GAMES[0]), 560), cx, cy + 80 + 34);
     c.fillStyle = S.textDim; c.fillText('26 / 142', cx, cy + 80 + 56);
     c.textAlign = 'left';
     drawHints(c, [launchHint(), 'B: Back'], ['C: Fast | L Tabs R', 'Mon Oct  5 01:55:15 2026'], ['Start: Settings', 'Z:  Options']);
   }
   function drawHistory(c){
-    var games = [['Mario Kart 64','/N64/Mario Kart 64.z64'],['Mario Golf','/N64/Mario Golf.z64'],['Lode Runner 3-D','/N64/Lode Runner 3-D.z64'],
-      ['Mario Party 2','/N64/Mario Party 2.z64'],['Mario Party','/N64/Mario Party.z64']];
+    var games = SAMPLE_GAMES;
     var top = VY0 + TAB_H + BORDER + 4, rowH = 38, sel = 1;
     c.fillStyle = S.highlight; c.fillRect(VX0, top + sel * rowH, VX1 - VX0, rowH);
     c.font = MENU_FONT;
     games.forEach(function(g, i){
       var y = top + i * rowH;
-      c.fillStyle = S.text; c.fillText((i + 1) + '  : ' + g[0], VX0 + 10, y + 16);
-      c.fillStyle = S.textDim; c.fillText('       ' + g[1], VX0 + 10, y + 33);
+      c.fillStyle = S.text; c.fillText(fitText(c, (i + 1) + '  : ' + displayName(g), VX1 - VX0 - 20), VX0 + 10, y + 16);
     });
     drawHints(c, [launchHint(), ''], ['L Change Tab R', ''], ['', '']);
   }
@@ -694,8 +721,17 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
    * [49] reserved, 0
    * [50..51] CRC-16/CCITT-FALSE of bytes 0..49, big-endian
    *
-   * A theme with stock frame colors and no features set is written as v1, so
-   * simple themes keep the short code.
+   * v3: 55 bytes (88 characters). Bytes 1..46 are the same as v2.
+   * [0] version = 3
+   * [47..48] feature "is set" mask, 16 bits: [47] holds bits 0-7, [48] bits 8-15
+   * [49..50] feature values, laid out the same way
+   *      bits 0-7 as in v2, then 8 hide_extensions, 9 tidy_titles, 10 hide_tags
+   * [51..52] reserved, 0
+   * [53..54] CRC-16/CCITT-FALSE of bytes 0..52, big-endian
+   *
+   * The shortest version that can hold the theme is written: v1 with stock
+   * frame colors and no features set, v2 unless a feature from bit 8 up is set.
+   * All three versions load.
    */
   var B32 = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
   var BG_TYPES = ['solid', 'gradient', 'image'];
@@ -723,10 +759,15 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
     return FRAME_KEYS.some(function(k){ return S[k] !== FRAME_STOCK[k]; }) ||
       FEATURES.some(function(f){ return S['f_' + f.key] !== -1; });
   }
+  function needsV3(){
+    return FEATURES.some(function(f, i){ return i >= 8 && S['f_' + f.key] !== -1; });
+  }
+  var CODE_BYTES = {1: 32, 2: 52, 3: 55};
   function encodeTheme(){
-    var v2 = needsV2(), len = v2 ? 52 : 32;
+    var version = needsV3() ? 3 : needsV2() ? 2 : 1, len = CODE_BYTES[version];
+    var v2 = version >= 2, valuesAt = version === 3 ? 49 : 48;
     var b = new Array(len).fill(0);
-    b[0] = v2 ? 2 : 1;
+    b[0] = version;
     COLOR_KEYS.forEach(function(k, i){ putColor(b, 1 + i * 3, S[k]); });
     b[25] = Math.max(0, BG_TYPES.indexOf(S.bgType)) | (Math.max(0, DIRS.indexOf(S.dir)) << 2) | (S.useC3 ? 16 : 0) | (S.dither ? 32 : 0);
     b[26] = Math.max(0, PATTERNS.indexOf(S.pattern));
@@ -736,7 +777,7 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
       FRAME_KEYS.forEach(function(k, i){ putColor(b, 29 + i * 3, S[k]); });
       FEATURES.forEach(function(f, i){
         var v = S['f_' + f.key];
-        if (v !== -1) { b[47] |= 1 << i; if (v === 1) b[48] |= 1 << i; }
+        if (v !== -1) { b[47 + (i >> 3)] |= 1 << (i & 7); if (v === 1) b[valuesAt + (i >> 3)] |= 1 << (i & 7); }
       });
     }
     var crc = crc16(b, len - 2); b[len - 2] = crc >> 8; b[len - 1] = crc & 255;
@@ -751,8 +792,9 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
   }
   function decodeTheme(input){
     var clean = String(input).toUpperCase().replace(/[^0-9A-Z]/g, '').replace(/O/g, '0').replace(/[IL]/g, '1');
-    if ((clean.length === 56 || clean.length === 88) && clean.slice(0, 4) === 'SS64') clean = clean.slice(4);
-    var len = clean.length === 52 ? 32 : clean.length === 84 ? 52 : 0;
+    // A code proper starts with the version byte, so it can never begin with "S".
+    if (clean.slice(0, 4) === 'SS64') clean = clean.slice(4);
+    var len = clean.length === 52 ? 32 : clean.length === 84 ? 52 : clean.length === 88 ? 55 : 0;
     if (!len) return {error: 'That code is the wrong length. Check that the whole code was copied.'};
     var bytes = [], buf = 0, bits = 0;
     for (var i = 0; i < clean.length; i++) {
@@ -763,8 +805,9 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
     }
     if (bytes.length < len) return {error: 'That code is incomplete.'};
     if (crc16(bytes, len - 2) !== ((bytes[len - 2] << 8) | bytes[len - 1])) return {error: 'That code has a typo somewhere. Compare it with the original.'};
-    if (bytes[0] > 2) return {error: 'That code was made with a newer Theme Maker. Update and try again.'};
-    if (bytes[0] !== (len === 52 ? 2 : 1)) return {error: 'That code isn’t a theme code this Theme Maker understands.'};
+    if (bytes[0] > 3) return {error: 'That code was made with a newer Theme Maker. Update and try again.'};
+    if (CODE_BYTES[bytes[0]] !== len) return {error: 'That code isn’t a theme code this Theme Maker understands.'};
+    var version = bytes[0], valuesAt = version === 3 ? 49 : 48, featureBits = version === 3 ? 16 : version === 2 ? 8 : 0;
     var t = {};
     COLOR_KEYS.forEach(function(k, i){ t[k] = getColor(bytes, 1 + i * 3); });
     t.bgType = BG_TYPES[bytes[25] & 3] || 'gradient';
@@ -775,17 +818,21 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
     t.pSize = Math.min(64, Math.max(4, bytes[27]));
     t.pOpacity = Math.min(60, Math.max(0, bytes[28]));
     // v1 codes carry no frame colors or features: those go back to the menu's own.
-    FRAME_KEYS.forEach(function(k, i){ t[k] = bytes[0] === 2 ? getColor(bytes, 29 + i * 3) : FRAME_STOCK[k]; });
+    FRAME_KEYS.forEach(function(k, i){ t[k] = version >= 2 ? getColor(bytes, 29 + i * 3) : FRAME_STOCK[k]; });
+    // Features the code has no room for, or doesn't set, are left to the menu.
     FEATURES.forEach(function(f, i){
-      t['f_' + f.key] = (bytes[0] === 2 && (bytes[47] >> i) & 1) ? (bytes[48] >> i) & 1 : -1;
+      var set = i < featureBits && ((bytes[47 + (i >> 3)] >> (i & 7)) & 1);
+      t['f_' + f.key] = set ? (bytes[valuesAt + (i >> 3)] >> (i & 7)) & 1 : -1;
     });
-    return {theme: t, version: bytes[0]};
+    return {theme: t, version: version};
   }
   function updateShareCode(){
     $('shareCode').textContent = encodeTheme();
-    $('codeKind').textContent = needsV2()
-      ? 'Long code: it also carries the frame, tab and feature choices.'
-      : 'Short code: the frame and tab colors are stock and no features are set.';
+    $('codeKind').textContent = needsV3()
+      ? 'Longest code: it also carries the game name choices.'
+      : needsV2()
+        ? 'Long code: it also carries the frame, tab and feature choices.'
+        : 'Short code: the frame and tab colors are stock and no features are set.';
     if (typeof drawQr === 'function') drawQr();
     $('codeNote').hidden = S.bgType !== 'image';
   }

@@ -165,9 +165,12 @@ Claude builds in the container and the user deploys from Windows.
   file, no build step), added to the repo 2026-10-06. Published as the
   claude.ai artifact https://claude.ai/artifact/HxMPCpbZTSRZURJfWswAma : edit
   this file, then publish it to that same address. See the README beside it.
-  It does not yet offer `remember_selection`, `hide_extensions`,
-  `tidy_titles`, `hide_tags` or `remember_settings` (the v2 share code has no
-  free feature bits left: the mask and value bytes hold 8 each).
+  Version 7 (2026-10-06) offers `hide_extensions`, `tidy_titles` and
+  `hide_tags`, shows them in the preview on sample game names, and writes v3
+  share codes when one of them is set. It leaves out `remember_selection` and
+  `remember_settings` on purpose: those are personal habits, not theme
+  choices. Version 7 is unchecked in a browser; only the v3 byte layout was
+  checked, with a Python port of the encode/decode arithmetic.
 - `src/menu/controls.c/.h` — button layout for the three tabbed screens:
   L/R switch tabs, Z is Options (was R), left/right scroll the carousel,
   up/down do nothing there unless the `updown_scroll` feature is on. It
@@ -341,8 +344,20 @@ tab_inactive_border; [47] feature "is set" mask; [48] feature values, same bit
 order: 0 quick_launch, 1 hold_launch, 2 side_covers, 3 frame_borders,
 4 updown_scroll, 5 cover_art, 6 carousel_animation, 7 see_through_covers
 (bits 6-7 added 2026-10-05; older v2 codes leave them unset); [49] reserved; [50..51] CRC-16/CCITT-FALSE of
-bytes 0..49. The Theme Maker writes v1 when the frame colors are stock and no
-feature is set, so simple themes keep the short code. Both versions decode.
+bytes 0..49.
+
+## Share codes (v3)
+55 bytes (88 characters). Bytes 1..46 as v2. [0] version=3; [47..48] feature
+"is set" mask, 16 bits ([47] = bits 0-7, [48] = bits 8-15); [49..50] feature
+values, same layout; bits 0-7 as v2, then 8 hide_extensions, 9 tidy_titles,
+10 hide_tags (11-15 free); [51..52] reserved; [53..54] CRC-16/CCITT-FALSE of
+bytes 0..52.
+
+The Theme Maker writes the shortest version that can hold the theme: v1 when
+the frame colors are stock and no feature is set, v2 unless a feature from
+bit 8 up is set, otherwise v3. All three decode. A code never starts with
+"S" (its first character comes from the version byte), which is how the
+optional `SS64` prefix is told apart from an 88-character v3 code.
 
 ## Practices (apply throughout)
 - Keep a memory budget table in CLAUDE.md (screen buffers, code, covers,
