@@ -34,7 +34,9 @@ Claude builds in the container and the user deploys from Windows.
   top folder, with the SC64's USB cable connected:
   - `.\localdeploy.bat` — sends the build into the cart; toggle the N64's
     power to boot it. The SD card is not changed.
-  - `.\localdeploy.bat /dur` — same, then asks the running menu to save
+  - **Do not use `/dur` for now: it leaves `sc64menu.n64` on the card empty
+    (see Status).** What it is meant to do:
+    `.\localdeploy.bat /dur` — same, then asks the running menu to save
     `output\sc64menu.n64` to the SD card as `/sc64menu.n64` and restart, and
     stays connected showing the menu's `debugf` output. **The menu must
     already be running when this is started, and the power must not be
@@ -45,8 +47,9 @@ Claude builds in the container and the user deploys from Windows.
     and the next power cycle boots the old build from the card. Confirmed
     on hardware 2026-10-06: with the console on and the menu showing, the
     build is saved (one frame of about 1.6 s while it writes) and the menu
-    restarts. A single `dropped due to timeout` line can still appear and was
-    harmless.
+    restarts. That "confirmation" was wrong: the menu restarted from the
+    cart's memory, and the single `dropped due to timeout` line was the file
+    transfer failing.
 - In PowerShell a program in the current folder needs `.\` in front.
 
 ## Hard constraints
@@ -258,22 +261,20 @@ Claude builds in the container and the user deploys from Windows.
   exercised, because no page currently has more than eight rows.
 - Done and tested on hardware: tidied names on History, Favorites and the
   game/disk info screens, with the real-name toggle.
-- **OPEN BUG (reported 2026-10-06):** after launching a game, resetting or
-  power-cycling gives a black screen until the build is sent again with the
-  deployer. Found so far: the menu is not running at all (no debug output);
-  the cart is in "Menu from SD card" boot mode; **`sc64menu.n64` on the SD
-  card is 0 bytes**. The only code that opens that file for writing is the
-  stock USB `send-file` command (`usb_comm.c`, used by `localdeploy.bat /dur`).
-  Working theory, not yet proven: `/dur` empties the file and fails to refill
-  it (the log always shows one `Debug data write dropped due to timeout`),
-  and this went unnoticed because **the cart is powered through the USB cable
-  and keeps the uploaded menu in its memory across console power cycles**, so
-  the menu kept appearing until a game overwrote that memory. If so, the
-  fork's menu code is not at fault. Test: copy `output\sc64menu.n64` to the
-  card with a card reader, then launch a game and reset. Until this is
-  settled, do not use `/dur`; upload with plain `localdeploy.bat` and copy to
-  the card by hand. "Survived a power cycle" only proves something if the USB
-  cable was unplugged or the thing tested lives in a settings file.
+- **`/dur` empties the menu file on the SD card (confirmed 2026-10-06).**
+  After a game was launched, a reset gave a black screen: `sc64menu.n64` on
+  the card was 0 bytes. With the file copied back by card reader, launching a
+  game and resetting works. The fork's menu code is not at fault; the stock
+  USB `send-file` path (`usb_comm.c`, used by `localdeploy.bat /dur`) empties
+  the file and does not refill it, and the log's `Debug data write dropped
+  due to timeout` line is the sign. Why the transfer fails is not yet known.
+  It went unnoticed because the cart is powered through the USB cable and
+  keeps the uploaded menu in memory across console power cycles.
+  **Rules until fixed:** do not use `/dur`. Upload with plain
+  `localdeploy.bat` for quick tests and copy `output\sc64menu.n64` to the card
+  by card reader to make a build permanent. A "survived a power cycle" result
+  only counts if the USB cable was unplugged or the thing tested lives in a
+  settings file.
 - **v0.1 user-facing features are complete.** Two dev-tooling items were
   added to v0.1 afterwards and are not started: the debug overlay and the
   PC-side tests. Before publishing, the user still wants to test Japanese
