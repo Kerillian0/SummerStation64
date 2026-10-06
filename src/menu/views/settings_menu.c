@@ -66,6 +66,28 @@ typedef struct {
 
 static bool confirm_reset = false;
 
+/* Changes are kept in memory and written to the SD card once: when leaving
+   this screen, or after a few seconds without a change (in case the console
+   is switched off here). That spares the card a write per button press. */
+#define IDLE_SAVE_MS    (5000)
+
+static bool settings_dirty = false;
+static bool unsaved = false;
+static uint64_t changed_at = 0;
+
+static void save_changes (menu_t *menu) {
+    if (!unsaved) {
+        return;
+    }
+    unsaved = false;
+    if (settings_dirty) {
+        settings_dirty = false;
+        settings_save(&menu->settings);
+    }
+    features_user_flush();
+    options_flush();
+}
+
 static void reload_browser (menu_t *menu) {
     menu->browser.reload = true;
 }
@@ -181,19 +203,19 @@ static void change_item (menu_t *menu, const item_t *it) {
             if (it->changed) {
                 it->changed(menu);
             }
-            settings_save(&menu->settings);
+            settings_dirty = true;
             break;
         }
         case ITEM_FEATURE: {
             /* Default -> On -> Off -> Default */
             int value = features_user_get(it->feature);
             int next = (value == FEATURE_UNSET) ? 1 : (value == 1) ? 0 : FEATURE_UNSET;
-            features_user_set(it->feature, next);
+            features_user_change(it->feature, next);
             break;
         }
         case ITEM_CHOICE: {
             int next = (options_get(it->option) + 1) % it->choice_count;
-            options_set(it->option, next);
+            options_change(it->option, next);
             if (it->changed) {
                 it->changed(menu);
             }
@@ -205,12 +227,16 @@ static void change_item (menu_t *menu, const item_t *it) {
         case ITEM_INFO:
             break;
     }
+
+    unsaved = true;
+    changed_at = get_ticks_ms();
 }
 
 static void process (menu_t *menu) {
     if (confirm_reset) {
         if (menu->actions.enter) {
             confirm_reset = false;
+            settings_dirty = false; // don't write the old values back over the reset
             settings_reset_to_defaults();
             menu_show_error(menu, "Reboot N64 to take effect!");
             sound_play_effect(SFX_SETTING);
@@ -445,6 +471,10 @@ void view_settings_menu_init (menu_t *menu) {
 
 void view_settings_menu_display (menu_t *menu, surface_t *display) {
     process(menu);
+
+    if (menu->next_mode != MENU_MODE_SETTINGS_EDITOR || (unsaved && (get_ticks_ms() - changed_at) >= IDLE_SAVE_MS)) {
+        save_changes(menu);
+    }
 
     draw(menu, display);
 }

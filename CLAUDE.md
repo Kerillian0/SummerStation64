@@ -102,7 +102,10 @@ Claude builds in the container and the user deploys from Windows.
   source but are no longer reachable. Features show `Default (On/Off)` when
   the player hasn't chosen, so it's visible whether the theme or the player
   decides. Rows are table-driven: add a `SWITCH`/`FEATURE`/`ACTION`/`INFO`
-  line to a category.
+  line to a category. Changes are held in memory and written once, when
+  leaving the screen or after 5 s without a change (the user asked for fewer
+  SD card writes); `features_user_change()`/`_flush()` and
+  `options_change()`/`_flush()` exist for that.
 - `src/menu/debug_stats.c/.h` — prints a `stats:` line to the debug log every
   two seconds (heap size, used, free, average and worst frame time), restarted
   on each screen change. One-line hook in the `menu.c` main loop. Screen
@@ -219,6 +222,8 @@ Claude builds in the container and the user deploys from Windows.
 - Done and tested on hardware: `safe_file.c` (the rename fix). The log shows
   no `could not replace` lines, and after one save of each file the next boot
   no longer reports `features.ini` / `options.ini` / `folders.ini` as missing.
+- Done and tested on hardware: Settings saves once on leaving (or after 5 s
+  idle) instead of on every press.
 - **v0.1 user-facing features are complete.** Two dev-tooling items were
   added to v0.1 afterwards and are not started: the debug overlay and the
   PC-side tests. Before publishing, the user still wants to test Japanese

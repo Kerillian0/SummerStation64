@@ -38,6 +38,7 @@ static const feature_info_t feature_info[FEATURE_COUNT] = {
 
 static int8_t user[FEATURE_COUNT];
 static bool user_loaded = false;
+static bool user_dirty = false;
 
 static bool detected = false;
 static bool expansion_pak = false;
@@ -175,7 +176,7 @@ int features_user_get (feature_t feature) {
     return user[feature];
 }
 
-void features_user_set (feature_t feature, int value) {
+void features_user_change (feature_t feature, int value) {
     if (feature < 0 || feature >= FEATURE_COUNT) {
         return;
     }
@@ -189,5 +190,17 @@ void features_user_set (feature_t feature, int value) {
         user[FEATURE_QUICK_LAUNCH] = 0;
     }
 
-    features_user_save();
+    user_dirty = true;
+}
+
+void features_user_flush (void) {
+    if (user_dirty) {
+        user_dirty = false;
+        features_user_save();
+    }
+}
+
+void features_user_set (feature_t feature, int value) {
+    features_user_change(feature, value);
+    features_user_flush();
 }

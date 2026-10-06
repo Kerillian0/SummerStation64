@@ -20,4 +20,10 @@ int options_get (option_t option);
 /** Change an option and save it to the SD card. */
 void options_set (option_t option, int value);
 
+/** Change an option in memory only; options_flush() saves it later. */
+void options_change (option_t option, int value);
+
+/** Save changes made with options_change(), if there are any. */
+void options_flush (void);
+
 #endif /* MENU_OPTIONS_H__ */

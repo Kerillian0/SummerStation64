@@ -19,6 +19,7 @@ static const option_info_t option_info[OPTION_COUNT] = {
 
 static int values[OPTION_COUNT];
 static bool loaded = false;
+static bool dirty = false;
 
 static void load (void) {
     if (loaded) {
@@ -45,13 +46,26 @@ int options_get (option_t option) {
     return values[option];
 }
 
-/* Written to a temporary file first, so a power cut can't leave half a file. */
-void options_set (option_t option, int value) {
+void options_change (option_t option, int value) {
     if (option < 0 || option >= OPTION_COUNT) {
         return;
     }
     load();
     values[option] = value;
+    dirty = true;
+}
+
+void options_set (option_t option, int value) {
+    options_change(option, value);
+    options_flush();
+}
+
+/* Written to a temporary file first, so a power cut can't leave half a file. */
+void options_flush (void) {
+    if (!dirty) {
+        return;
+    }
+    dirty = false;
 
     ini_t *ini = ini_create();
     for (int i = 0; i < OPTION_COUNT; i++) {

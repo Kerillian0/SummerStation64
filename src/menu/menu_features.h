@@ -59,4 +59,10 @@ int features_user_get (feature_t feature);
 /** Store the user's choice and save it to the SD card. */
 void features_user_set (feature_t feature, int value);
 
+/** Store the user's choice in memory only; features_user_flush() saves it later. */
+void features_user_change (feature_t feature, int value);
+
+/** Save choices made with features_user_change(), if there are any. */
+void features_user_flush (void);
+
 #endif /* MENU_FEATURES_H__ */
