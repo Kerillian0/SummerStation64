@@ -8,6 +8,7 @@
 #define GAMES_UI_H__
 
 #include "game_facts.h"
+#include "ui_components/constants.h"
 #include "menu_state.h"
 
 typedef enum {
@@ -34,5 +35,28 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const gam
 
 /** "You are here" bar: first letter, a track with a marker, and "13 of 79". */
 void games_ui_position_draw (const char *title, int selected, int count);
+
+/**
+ * The title panel and the button hints share these edges: a little wider
+ * than the position bar, and well clear of the edges a CRT hides.
+ */
+#define GAMES_UI_CONTENT_X0 (VISIBLE_AREA_X0 + 48)
+#define GAMES_UI_CONTENT_X1 (VISIBLE_AREA_X1 - 48)
+
+/** Left edge of the button hints along the bottom. They sit in two rows. */
+#define GAMES_UI_HINTS_X    (GAMES_UI_CONTENT_X0)
+
+/**
+ * One button hint: the button in a small box, then what it does.
+ * @param row 0 for the upper row, 1 for the lower one.
+ * @return Where the next hint in that row goes.
+ */
+int games_ui_hint_draw (int x, int row, const char *button, const char *action);
+
+/** How much room a hint takes. */
+int games_ui_hint_width (const char *button, const char *action);
+
+/** The same, placed against the right edge. */
+void games_ui_hint_right_draw (int row, const char *button, const char *action);
 
 #endif /* GAMES_UI_H__ */

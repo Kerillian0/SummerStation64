@@ -29,8 +29,13 @@
 /* Position bar */
 #define POSITION_Y      (346)
 #define POSITION_HEIGHT (20)
-#define TRACK_X0        (VISIBLE_AREA_X0 + 28)
-#define TRACK_X1        (VISIBLE_AREA_X1 - 88)
+/* The whole bar (letter, track, count) takes the middle three quarters of
+   the screen, clear of the edges a CRT hides. */
+#define POSITION_WIDTH  (((VISIBLE_AREA_X1 - VISIBLE_AREA_X0) * 3) / 4)
+#define POSITION_X0     (DISPLAY_CENTER_X - (POSITION_WIDTH / 2))
+#define POSITION_X1     (DISPLAY_CENTER_X + (POSITION_WIDTH / 2))
+#define TRACK_X0        (POSITION_X0 + 24)
+#define TRACK_X1        (POSITION_X1 - 116)    /* room for "999 of 999" */
 #define MARKER_SIZE     (10)
 
 static void fill (int x0, int y0, int x1, int y1, color_t color) {
@@ -122,8 +127,8 @@ static int badge (int x, int y, const char *label, menu_font_style_t style, bool
 
 void games_ui_title_panel_draw (const char *title, const char *detail, const game_facts_t *facts) {
     const theme_t *t = theme_get();
-    int x0 = VISIBLE_AREA_X0;
-    int x1 = VISIBLE_AREA_X1;
+    int x0 = GAMES_UI_CONTENT_X0;
+    int x1 = GAMES_UI_CONTENT_X1;
     int line2_y = PANEL_Y + 3 + PANEL_LINE - 2;
 
     fill(x0, PANEL_Y, x1, PANEL_Y + PANEL_HEIGHT, RGBA32(t->panel.r, t->panel.g, t->panel.b, 0xD8));
@@ -161,6 +166,56 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const gam
     }
 }
 
+/* Button hints */
+#define HINTS_Y         (388)
+#define HINT_ROW_HEIGHT (BADGE_HEIGHT + 4)
+#define HINT_GAP        (14)
+
+/* The A and B buttons keep their well-known colors; the rest are plain. */
+static menu_font_style_t button_style (const char *button) {
+    if (strcmp(button, "A") == 0 || strcmp(button, "Hold") == 0) {
+        return STL_BLUE;
+    }
+    if (strcmp(button, "B") == 0) {
+        return STL_GREEN;
+    }
+    return STL_DEFAULT;
+}
+
+int games_ui_hint_width (const char *button, const char *action) {
+    /* Laid out off-screen is not possible, so measure by building the two
+       paragraphs; they are small and freed straight away. */
+    int width = 0;
+    const char *parts[2] = { button, action };
+    for (int i = 0; i < 2; i++) {
+        int nbytes = strlen(parts[i]);
+        rdpq_paragraph_t *layout = rdpq_paragraph_build(&(rdpq_textparms_t) { .height = BADGE_HEIGHT }, FNT_DEFAULT, parts[i], &nbytes);
+        width += (int) (layout->bbox.x1 - layout->bbox.x0);
+        rdpq_paragraph_free(layout);
+    }
+    return width + (BADGE_PADDING * 2) + BADGE_PADDING;
+}
+
+int games_ui_hint_draw (int x, int row, const char *button, const char *action) {
+    int y = HINTS_Y + (row * HINT_ROW_HEIGHT);
+    x = badge(x, y, button, button_style(button), true) - BADGE_SPACING + BADGE_PADDING;
+
+    int nbytes = strlen(action);
+    rdpq_paragraph_t *layout = rdpq_paragraph_build(&(rdpq_textparms_t) {
+        .height = BADGE_HEIGHT,
+        .valign = VALIGN_CENTER,
+    }, FNT_DEFAULT, action, &nbytes);
+    int width = (int) (layout->bbox.x1 - layout->bbox.x0);
+    rdpq_paragraph_render(layout, x, y);
+    rdpq_paragraph_free(layout);
+
+    return x + width + HINT_GAP;
+}
+
+void games_ui_hint_right_draw (int row, const char *button, const char *action) {
+    games_ui_hint_draw(GAMES_UI_CONTENT_X1 - games_ui_hint_width(button, action), row, button, action);
+}
+
 void games_ui_position_draw (const char *title, int selected, int count) {
     const theme_t *t = theme_get();
 
@@ -170,7 +225,7 @@ void games_ui_position_draw (const char *title, int selected, int count) {
 
     /* The letter you are at, for finding your way through a long list. */
     char letter[2] = { (title && title[0]) ? (char) toupper((unsigned char) title[0]) : ' ', '\0' };
-    text(VISIBLE_AREA_X0 + 4, POSITION_Y, 20, POSITION_HEIGHT, ALIGN_LEFT, STL_DEFAULT, letter);
+    text(POSITION_X0, POSITION_Y, 20, POSITION_HEIGHT, ALIGN_LEFT, STL_DEFAULT, letter);
 
     int track_y = POSITION_Y + (POSITION_HEIGHT / 2) - 2;
     fill(TRACK_X0, track_y, TRACK_X1, track_y + 4, t->tab_inactive);
@@ -182,5 +237,5 @@ void games_ui_position_draw (const char *title, int selected, int count) {
 
     char position[24];
     snprintf(position, sizeof(position), "%d of %d", selected + 1, count);
-    text(TRACK_X1 + 8, POSITION_Y, VISIBLE_AREA_X1 - TRACK_X1 - 8, POSITION_HEIGHT, ALIGN_RIGHT, STL_GRAY, position);
+    text(TRACK_X1 + 8, POSITION_Y, POSITION_X1 - TRACK_X1 - 8, POSITION_HEIGHT, ALIGN_RIGHT, STL_GRAY, position);
 }

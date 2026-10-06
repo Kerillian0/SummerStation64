@@ -311,6 +311,8 @@ Claude builds in the container and the user deploys from Windows.
   cost: the frame in which a game is looked up takes 140-165 ms with the log
   attached, against about 80 ms for a cover alone.
 - Done and tested on hardware: lighter game lookup for the badges.
+- Done and tested on hardware: menu redesign stage 3 (button hints), after
+  four rounds of spacing changes from the user's photos.
 - **v0.1 user-facing features are complete.** Two dev-tooling items were
   added to v0.1 afterwards and are not started: the debug overlay and the
   PC-side tests. Before publishing, the user still wants to test Japanese
@@ -526,7 +528,16 @@ Stages, one testable build each:
    metadata pack's `metadata.ini`, and the last 32 games remembered so
    revisiting one reads nothing but the save-file check. A per-game settings
    file that overrides the save type is not consulted here.
-3. Button-badge hint bar (A Play, Z Info, and so on).
+3. **Button-badge hint bar (done and tested):** on the Games
+   tab only: A, Hold (when a launch mode is on), B, Z, C in boxes with one
+   word each. One row did not fit in the longest case, so (the user's
+   suggestion) the hints are stacked in two rows from y=394: A and Hold on
+   top, B and Z below, START Settings and C Fast scroll right-aligned. The
+   position bar was narrowed to the middle three quarters of the screen at
+   the user's request, and the title panel and hints were then pulled in to
+   share edges 48 px inside the safe area (480 px wide, a little wider than
+   the position bar). Recent and
+   Favorites keep their text hints until stage 6.
 4. Game info screen: blurred art background (the cover stretched large with
    smoothing, no extra memory), title, badges, description, Play button.
 5. Launch stats (times played, last played): a new saved file.

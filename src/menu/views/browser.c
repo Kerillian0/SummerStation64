@@ -943,6 +943,45 @@ static void carousel_draw (menu_t *menu) {
 }
 #endif
 
+#if BROWSER_CAROUSEL
+// Button hints along the bottom: each button in a small box, then what it does.
+static void carousel_hints_draw (menu_t *menu) {
+    // Upper row: what A does. Lower row: back and options. Right side: the
+    // two that are always there.
+    int x = GAMES_UI_HINTS_X;
+
+    if (menu->browser.entry) {
+        const char *tap = "Info";
+        const char *hold = NULL;
+        switch (menu->browser.entry->type) {
+            case ENTRY_TYPE_DIR: tap = "Open"; break;
+            case ENTRY_TYPE_ROM: controls_rom_actions(&tap, &hold); break;
+            case ENTRY_TYPE_DISK: tap = "Load"; break;
+            case ENTRY_TYPE_IMAGE: tap = "Show"; break;
+            case ENTRY_TYPE_TEXT: tap = "View"; break;
+            case ENTRY_TYPE_MUSIC: tap = "Play"; break;
+            case ENTRY_TYPE_ARCHIVE: tap = "Open"; break;
+            default: break;
+        }
+        x = games_ui_hint_draw(x, 0, "A", tap);
+        if (hold) {
+            games_ui_hint_draw(x, 0, "Hold", hold);
+        }
+    }
+
+    x = GAMES_UI_HINTS_X;
+    if (!path_is_root(menu->browser.directory)) {
+        x = games_ui_hint_draw(x, 1, "B", "Back");
+    }
+    if (menu->browser.entry) {
+        games_ui_hint_draw(x, 1, "Z", "Options");
+    }
+
+    games_ui_hint_right_draw(0, "START", "Settings");
+    games_ui_hint_right_draw(1, "C", "Fast scroll");
+}
+#endif
+
 static void draw (menu_t *menu, surface_t *d) {
     rdpq_attach(d, NULL);
 
@@ -957,6 +996,9 @@ static void draw (menu_t *menu, surface_t *d) {
     ui_components_file_list_draw(menu->browser.list, menu->browser.entries, menu->browser.selected);
 #endif
 
+#if BROWSER_CAROUSEL
+    carousel_hints_draw(menu);
+#else
     const char *action = NULL;
 
     if (menu->browser.entry) {
@@ -996,6 +1038,7 @@ static void draw (menu_t *menu, surface_t *d) {
         "C: Fast\n"
         "\n"
     );
+#endif
 
     ui_components_context_menu_draw(menu->browser.archive ? &archive_context_menu : &entry_context_menu);
 

@@ -83,6 +83,19 @@ static bool vertical_is_held (void) {
     return false;
 }
 
+void controls_rom_actions (const char **tap, const char **hold) {
+    if (features_enabled(FEATURE_QUICK_LAUNCH)) {
+        *tap = "Play";
+        *hold = "Info";
+    } else if (features_enabled(FEATURE_HOLD_LAUNCH)) {
+        *tap = "Info";
+        *hold = "Play";
+    } else {
+        *tap = "Info";
+        *hold = NULL;
+    }
+}
+
 bool controls_consume_launch_request (void) {
     bool request = launch_request;
     launch_request = false;

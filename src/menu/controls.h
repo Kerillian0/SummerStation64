@@ -38,6 +38,12 @@ bool controls_consume_flip_request (void);
 const char *controls_rom_hint (void);
 
 /**
+ * What a tap and a hold of A do on a game, as single words for the button
+ * hints. `hold` is set to NULL when holding does nothing special.
+ */
+void controls_rom_actions (const char **tap, const char **hold);
+
+/**
  * True once if the A press that opened the game info screen asked to start
  * the game straight away. Asked by the game info screen when it opens.
  */
