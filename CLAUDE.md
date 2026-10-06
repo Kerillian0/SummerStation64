@@ -171,6 +171,13 @@ Claude builds in the container and the user deploys from Windows.
   `remember_settings` on purpose: those are personal habits, not theme
   choices. Version 7 is unchecked in a browser; only the v3 byte layout was
   checked, with a Python port of the encode/decode arithmetic.
+- `src/menu/font_choice.c/.h` — picks the built-in font at startup: the full
+  one (`Firple-Bold.font64`, 760 KB in RAM, includes Japanese) or the small
+  Latin one (`Firple-Bold-Latin.font64`, 64 KB, built from
+  `assets/fonts/charset-latin.txt` by an added Makefile rule). Option `font`
+  in `options.ini`: Auto (small without the Expansion Pak, full with it),
+  Full, Small. "Font" in Settings > Display; applies after a restart. One
+  line changed in `fonts.c`. A custom font on the SD card still wins.
 - `src/menu/controls.c/.h` — button layout for the three tabbed screens:
   L/R switch tabs, Z is Options (was R), left/right scroll the carousel,
   up/down do nothing there unless the `updown_scroll` feature is on. It
@@ -283,6 +290,8 @@ Claude builds in the container and the user deploys from Windows.
   card (or plain `localdeploy.bat` to run one from the cart's memory only). A "survived a power cycle" result
   only counts if the USB cable was unplugged or the thing tested lives in a
   settings file.
+- Done and tested on hardware: the Font setting (both fonts shipped), and
+  with it the Settings row scrolling (Display has nine rows).
 - **v0.1 user-facing features are complete.** Two dev-tooling items were
   added to v0.1 afterwards and are not started: the debug overlay and the
   PC-side tests. Before publishing, the user still wants to test Japanese
@@ -475,6 +484,55 @@ saves nothing. Drawing the theme background live would now save 300 KB, not
 
 Still to measure: a real 4MB run, a folder with many entries, the image
 viewer and the music player.
+
+## 4MB test checklist (for when the user says the Jumper Pak is ready)
+Everything 4MB-specific so far is worked out from 8MB runs. When the user
+says they are ready to test on 4MB, give them this list, updated with
+anything added since. Run with the log open (`.\localdeploy.bat /d`, or
+`.\deploy-sd.bat /d`) and note the `stats:` lines for each step.
+
+Basics
+1. The menu boots, and the log's first Files screen line shows a heap of
+   about 3,100 KB.
+2. The log says `font: small (Latin)` with Font on Auto, and "used" on the
+   Files screen is about 1,760 KB (so about 1,340 KB free).
+3. Set Font to Full and restart: "used" rises by about 710 KB and the menu
+   still works. Set it back to Auto.
+4. Frame time stays near 33 ms on Files, Settings, History and game info.
+
+Covers
+5. A cover loads on the selected game; flip it over and back.
+6. Previous/Next Covers on: all five covers load, and free memory stays
+   above 256 KB while one is decoding.
+7. Scroll quickly through a long folder with side covers on: no crash, no
+   wrong art.
+
+Backgrounds and pictures
+8. Open a full-screen (640x480) PNG in the image viewer. This is the case
+   the theme background is freed for.
+9. Set that picture as the background, then check the Files screen: with
+   Font on Full, side covers should fall back to placeholders rather than
+   run out of memory. Then remove the background.
+10. Safe mode (hold Z) with a custom background set: boots, and "used" is
+    not 600 KB higher than normal.
+
+Limits the stock menu applies on 4MB
+11. A folder with more than 1,024 entries shows the "too large for Jumper
+    Pak" message instead of crashing.
+12. A zip with more than 512 entries shows its message.
+13. A game that needs the Expansion Pak shows the warning before starting,
+    and never starts directly through Quick Launch or Hold A To Launch.
+
+Everything else, once each
+14. Settings: every page, including a change that saves.
+15. Sort By each order; Remember Position after a restart.
+16. Launch a game, reset: the menu returns (USB cable unplugged).
+17. The music player and the text viewer open and close.
+18. The friendly crash screen has not been seen on 4MB; if anything crashes,
+    note what the screen shows.
+
+Also still untested on any console: a theme with `dither = 0`, and Japanese
+(tall) and 64DD-shaped cover art.
 
 ## Release plan
 - **v0.1 usable carousel:** theme loader ✓, text colors ✓, feature toggles +

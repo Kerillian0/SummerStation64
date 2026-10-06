@@ -4,6 +4,7 @@
 
 #include "../fonts.h"
 #include "../folder_memory.h"
+#include "../font_choice.h"
 #include "../menu_features.h"
 #include "../menu_options.h"
 #include "../sort_order.h"
@@ -139,6 +140,8 @@ static const item_t display_items[] = {
     FEATURE("Frame Borders", FEATURE_FRAME_BORDERS, "Draw the frame around the screen and the line above the button hints."),
     CHOICE("Video Output", force_progressive_scan, false, "480i", "240p", NULL,
         "480i is sharper but can flicker. 240p is steady with softer text, and suits TVs that struggle with interlaced video. Restart the console to apply."),
+    CHOICES("Font", OPTION_FONT, FONT_COUNT, font_choice_name, NULL,
+        "Small frees about 700 KB of memory but can't show Japanese names. Auto uses Small without the Expansion Pak, Full with it. Restart the console to apply."),
     SWITCH("PAL60 Mode", pal60_enabled, false, apply_pal60,
         "PAL consoles only. The picture may go dark if your TV can't show it; to undo that, edit menu/config.ini on the SD card."),
     ACTION("Remove Background", remove_background, "Remove the background picture set from the image viewer."),

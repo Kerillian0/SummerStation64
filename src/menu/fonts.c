@@ -1,12 +1,13 @@
 #include <libdragon.h>
 
 #include "fonts.h"
+#include "font_choice.h"
 #include "theme.h"
 #include "utils/fs.h"
 
 
 static void load_default_font (char *custom_font_path) {
-    char *font_path = "rom:/Firple-Bold.font64";
+    char *font_path = (char *) font_choice_path(); // full or small built-in font
 
     if (custom_font_path != NULL && strlen(custom_font_path) > 0) {
         // Only check file_exists if custom_font_path is a valid filesystem path (not rom:/)

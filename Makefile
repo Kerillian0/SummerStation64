@@ -46,6 +46,7 @@ SRCS = \
 	menu/ini_parser.c \
 	menu/actions.c \
 	menu/controls.c \
+	menu/font_choice.c \
 	menu/display_name.c \
 	menu/safe_file.c \
 	menu/menu_options.c \
@@ -157,6 +158,15 @@ $(FILESYSTEM_DIR)/%.sprite: $(ASSETS_DIR)/images/%.png
 	@$(N64_MKSPRITE) $(MKSPRITE_FLAGS) -o $(dir $@) "$<"
 
 $(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM)
+
+# Small font for consoles without the Expansion Pak: the same typeface with
+# Latin characters only (about 64 KB in RAM instead of 760 KB).
+$(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM_DIR)/Firple-Bold-Latin.font64
+$(FILESYSTEM_DIR)/Firple-Bold-Latin.font64: $(ASSETS_DIR)/fonts/Firple-Bold.ttf $(ASSETS_DIR)/fonts/charset-latin.txt
+	@echo "    [FONT] $@"
+	@mkdir -p $(BUILD_DIR)/font-latin
+	@$(N64_MKFONT) --compress 1 --outline 1 --size 15 --charset $(ASSETS_DIR)/fonts/charset-latin.txt --ellipsis 2026,1 -o $(BUILD_DIR)/font-latin "$<"
+	@cp $(BUILD_DIR)/font-latin/Firple-Bold.font64 $@
 
 $(BUILD_DIR)/menu/views/credits.o: .FORCE
 $(BUILD_DIR)/menu/views/credits.o: FLAGS+=-DMENU_VERSION=\"$(MENU_VERSION)\" -DBUILD_TIMESTAMP=\"$(BUILD_TIMESTAMP)\"

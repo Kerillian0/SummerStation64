@@ -11,6 +11,7 @@
 
 typedef enum {
     OPTION_SORT_ORDER,  /**< a sort_order_t value */
+    OPTION_FONT,        /**< a font_choice_t value */
     OPTION_COUNT
 } option_t;
 
