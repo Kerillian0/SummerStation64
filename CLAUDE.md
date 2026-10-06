@@ -441,6 +441,22 @@ Previous/Next Covers on and all five covers loaded, 2651 KB (+182 KB, about
 36 KB per cover). Saving a settings file costs one frame of 60-85 ms; changes
 in the Settings screen save on every press, with one outlier of 440 ms.
 
+Breakdown of the Files screen baseline (2469 KB used), 2026-10-06:
+| What | KB | Basis |
+|---|---:|---|
+| Screen buffers: **two** x 640x480 16-bit (`display_init(..., 2, ...)`) | 1200 | calculated |
+| Theme background, 320x240 32-bit | 300 | calculated, drop measured |
+| Font `Firple-Bold.font64` | about 760 | built once without compression: 778,424 bytes. Assumes it sits in RAM uncompressed. Charset is 7,799 characters (includes Japanese). |
+| Everything else: audio buffers and mixer, graphics queues, file list, settings, history | about 209 | by subtraction, not broken down further |
+
+The font is the largest single item after the screen buffers. A font with
+only Latin characters would be a small fraction of that; the price is that
+Japanese file names could no longer be shown. Idea, not decided: ship a small
+font for 4MB consoles and keep the full one for 8MB.
+The menu is already double-buffered, so "use two buffers instead of three"
+saves nothing. Drawing the theme background live would now save 300 KB, not
+600 KB.
+
 Still to measure: a real 4MB run, a folder with many entries, the image
 viewer and the music player.
 
