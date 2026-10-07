@@ -76,6 +76,83 @@ Claude builds in the container and the user deploys from Windows.
   (`sd:/menu/...`), not named after the project.
 - Display name lives in one constant (planned: `MENU_DISPLAY_NAME`).
 
+## Where to start
+`docs/HANDOFF.md` is the short version of this file: where the project
+stands, what is next, and what is still open. Read it first in a new session,
+then come back here for the detail. Update it whenever a step is finished.
+
+## Where things are
+```
+CLAUDE.md                  this file: the full project record
+Makefile                   source list (add new .c files beside menu/sound.c)
+                           and the font rules (Latin, Title, Title20)
+localdeploy.bat            stock: run a build from the cart's memory (no /dur)
+deploy-sd.bat              ours: put a build on the SD card
+assets/fonts/              Firple-Bold.ttf and the charset-*.txt lists the
+                           fonts are built from
+docs/HANDOFF.md            current state and next steps
+docs/n64ever-notes.md      what the N64ever fork has, mapped to our roadmap
+docs/*.md (numbered)       upstream's user documentation, untouched
+theme-maker/               web Theme Maker source (one HTML file) + README
+tools/sc64/                sc64deployer.exe, not committed (tools/ is ignored)
+output/sc64menu.n64        the build
+libdragon/                 the SDK, a submodule; do not edit
+src/menu/                  menu code; our new files sit beside the stock ones
+src/menu/views/            one file per screen
+src/menu/ui_components/    stock shared drawing code (small hooks only)
+```
+Ours (new files, free to change), all in `src/menu/`: `theme`,
+`menu_features`, `menu_options`, `safe_file`, `safe_mode`, `crash_screen`,
+`debug_stats`, `controls`, `carousel_art`, `folder_memory`, `sort_order`,
+`display_name`, `font_choice`, `title_font`, `frame_rate`, `games_ui`,
+`game_facts`, `game_info_ui`, `play_stats`, and `views/settings_menu`
+(`views/features_menu` is ours too but no longer reachable).
+
+Stock files we have edited (keep these edits small): `menu.c`, `actions.c`,
+`fonts.c/.h`, `rom_info.c/.h`, `ui_components/background.c`, `common.c`,
+`constants.h`, `views/browser.c` (the carousel lives here, the one large
+edit), `views/history_favorites.c`, `views/load_rom.c`, `views/load_disk.c`,
+`views/settings_editor.c`. `git diff --stat origin/main..carousel-ui` lists
+them all.
+
+Files the menu keeps on the SD card, all under `sd:/menu/`:
+| File | Holds | Written by |
+|---|---|---|
+| `theme/theme.ini` (or `theme.txt`) | the theme; read only | the user / Theme Maker |
+| `features.ini` | the player's On/Off choices | `menu_features.c` |
+| `options.ini` | `sort_order`, `font`, `frame_rate_experiment` | `menu_options.c` |
+| `folders.ini` | selected entry per folder | `folder_memory.c` |
+| `playstats.txt` | play count and last played | `play_stats.c` |
+| `metadata/` | box art and `metadata.ini` per game; read only | the user's metadata pack |
+
+## Conventions for new code
+- A feature is one new `name.c` + `name.h` pair in `src/menu/`, with a
+  comment at the top of the header saying what it does in plain words, and
+  the smallest possible hook in the stock file that calls it.
+- A new on/off feature: add it to the table in `menu_features.c`, add a
+  `FEATURE` row to a category in `views/settings_menu.c`, and decide whether
+  the Theme Maker should offer it (personal habits are left out). Other kinds
+  of setting go in `menu_options.c` with a `CHOICES` row.
+- Read a feature with `features_enabled()`. Anything that only works with
+  the Expansion Pak also checks `features_available()`.
+- Save with a temp file and `safe_file_replace()`, never the C `rename()`.
+  Save rarely: on leaving a screen or after a few idle seconds, not on every
+  press. Loaders fall back to defaults when a file is missing.
+- Time everything with the clock (`get_ticks_ms()`), never by counting
+  frames.
+- Colors come from the theme (`theme.h`), not fixed values. Keep text at the
+  body size or larger and avoid 1 px details: the target is a composite CRT.
+  Stay inside the safe area; the Games screens use
+  `GAMES_UI_CONTENT_X0/X1`.
+- Memory: free what a screen loaded when leaving it, cope with a failed
+  allocation by falling back (placeholder, smaller picture), and check the
+  cost against the memory budget below.
+- Loading work (art, game lookups) waits until the selection has rested
+  (250-350 ms) and does one thing per frame.
+- Log with `debugf`; the `stats:` line is how memory and frame time are
+  read on hardware.
+- Commit messages: one plain sentence saying what changed for the player.
+
 ## What we've changed so far
 - `src/menu/views/browser.c` — carousel prototype (`BROWSER_CAROUSEL` switch,
   `carousel_draw()`), uses theme colors. Slide animation (`carousel_slide()`):
@@ -222,7 +299,8 @@ Claude builds in the container and the user deploys from Windows.
   both. Settings shows a row on Default as what it actually comes out as.
 - `src/menu/theme.c/.h` — reads `sd:/menu/theme/theme.ini` (or `theme.txt`),
   falls back to built-in defaults. Builds the gradient + pattern background
-  once (RGBA16 with 4x4 Bayer dither) on first draw.
+  once on first draw, at half size in 32-bit color (300 KB, see Memory
+  budget); the graphics chip dithers it when it is drawn.
 - `src/menu/ui_components/background.c` — shared background now draws the theme
   when no user image is set (a background image set from the image viewer still
   wins), so every screen is themed.
