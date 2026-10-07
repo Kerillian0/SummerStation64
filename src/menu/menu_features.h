@@ -35,7 +35,6 @@ typedef enum {
     FEATURE_HIDE_TAGS,
     FEATURE_REMEMBER_SETTINGS,
     FEATURE_PLAY_STATS,
-    FEATURE_FADE_IN,
     FEATURE_COUNT
 } feature_t;
 

@@ -7,7 +7,6 @@
 #include "flashcart/flashcart.h"
 #include "fonts.h"
 #include "intro.h"
-#include "menu_features.h"
 #include "menu_name.h"
 #include "menu_options.h"
 #include "safe_mode.h"
@@ -26,11 +25,11 @@
 #define INTRO_CHANNEL       (SOUND_SFX_CHANNEL + 1)     /* a sound effect channel the menu doesn't use */
 #define INTRO_VOLUME        (0.5f)
 
-/* The fade-in (feature `fade_in`): when the first screen appears, with or
+/* The fade-in (option `fade`): when the first screen appears, with or
    without the intro before it, the picture comes up from black and the
    background music (if the player has it on) rises from silence, together. */
 #define FADE_MS             (2000)
-#define FADE_FAST_MS        (1000)  /* the player's other choice, option `fade_speed` */
+#define FADE_FAST_MS        (1000)
 #define FADE_WAIT_MS        (1000)  /* if no screen has drawn the fade by then, the music starts rising anyway */
 #define MUSIC_VOLUME        (0.1f)  /* the level sound.c plays it at */
 
@@ -78,7 +77,7 @@ static void finish (menu_t *menu) {
 
 /* Ask for the fade-in. It starts on the first frame the next screen draws. */
 static void fade_ask (void) {
-    if (!features_enabled(FEATURE_FADE_IN)) {
+    if (options_get(OPTION_FADE) == FADE_OFF) {
         music_volume(MUSIC_VOLUME);
         return;
     }
@@ -90,7 +89,7 @@ static void fade_ask (void) {
 
 /* How far the fade-in has got, 0 to 1. */
 static float fade_progress (void) {
-    int length = (options_get(OPTION_FADE_SPEED) == 1) ? FADE_FAST_MS : FADE_MS;
+    int length = (options_get(OPTION_FADE) == FADE_1_SECOND) ? FADE_FAST_MS : FADE_MS;
     float t = (float) (get_ticks_ms() - fade_from) / length;
     return (t > 1.0f) ? 1.0f : t;
 }
@@ -114,11 +113,12 @@ static bool cart_stayed_on (void) {
 
 void intro_begin (menu_t *menu) {
     bool cold = !cart_stayed_on();
-    bool wanted = features_enabled(FEATURE_BOOT_ANIMATION) && !safe_mode_active();
+    int choice = options_get(OPTION_INTRO);
+    bool wanted = !safe_mode_active() && ((choice == INTRO_BOTH) || ((choice == INTRO_ON) && cold));
 
-    debugf("intro: %s start, %s\n", cold ? "power-on" : "reset", (cold && wanted) ? "playing" : "skipped");
+    debugf("intro: %s start, setting %d, %s\n", cold ? "power-on" : "reset", choice, wanted ? "playing" : "skipped");
 
-    if (!cold || !wanted) {
+    if (!wanted) {
         fade_ask();
         return;
     }
@@ -130,8 +130,20 @@ void intro_begin (menu_t *menu) {
     music_volume(0.0f);
 }
 
-const char *intro_fade_speed_name (int choice) {
-    return (choice == 1) ? "1 Second" : "2 Seconds";
+const char *intro_choice_name (int choice) {
+    switch (choice) {
+        case INTRO_OFF: return "Off";
+        case INTRO_BOTH: return "Both";
+        default: return "On";
+    }
+}
+
+const char *intro_fade_name (int choice) {
+    switch (choice) {
+        case FADE_OFF: return "Off";
+        case FADE_1_SECOND: return "1 Second";
+        default: return "2 Seconds";
+    }
 }
 
 void intro_poll (void) {

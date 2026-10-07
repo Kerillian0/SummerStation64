@@ -13,7 +13,8 @@ typedef enum {
     OPTION_SORT_ORDER,  /**< a sort_order_t value */
     OPTION_FONT,        /**< a font_choice_t value */
     OPTION_FRAME_RATE,  /**< a frame_rate_t value */
-    OPTION_FADE_SPEED,  /**< how long the fade-in takes: 0 two seconds, 1 one second (see intro.h) */
+    OPTION_INTRO,       /**< an intro_choice_t value (see intro.h) */
+    OPTION_FADE,        /**< an intro_fade_t value (see intro.h) */
     OPTION_COUNT
 } option_t;
 

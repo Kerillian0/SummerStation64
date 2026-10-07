@@ -5,11 +5,12 @@
  * The menu's name fades in over the theme background with a short tune,
  * then the first screen appears. Any button skips it. It is not shown after
  * pressing RESET (coming back from a game), in safe mode, or when a game is
- * set to start by itself. Feature `boot_animation`.
+ * set to start by itself. Option `intro`: off, at power-on, or at power-on
+ * and after RESET both.
  *
  * Also the fade-in that follows every start, intro or not: the first screen
  * comes up from black and the background music rises with it, over two
- * seconds or one (option `fade_speed`). Feature `fade_in`.
+ * seconds or one, or not at all (option `fade`).
  */
 
 #ifndef INTRO_H__
@@ -37,12 +38,28 @@ void intro_poll (void);
 
 /**
  * Call at the end of a screen's drawing, just before the picture is shown:
- * darkens it while the fade-in (feature `fade_in`) is running.
+ * darkens it while the fade-in is running.
  */
 void intro_fade_draw (void);
 
-/** Number of fade-in speeds, and the name of each, for the settings screen. */
-#define INTRO_FADE_SPEED_COUNT  (2)
-const char *intro_fade_speed_name (int choice);
+/** When the intro plays (option `intro` in options.ini). */
+typedef enum {
+    INTRO_OFF,      /**< never */
+    INTRO_ON,       /**< when the console is switched on (the default) */
+    INTRO_BOTH,     /**< when it is switched on and after RESET */
+    INTRO_CHOICE_COUNT
+} intro_choice_t;
+
+/** The fade-in (option `fade` in options.ini). */
+typedef enum {
+    FADE_OFF,
+    FADE_1_SECOND,
+    FADE_2_SECONDS, /**< the default */
+    FADE_COUNT
+} intro_fade_t;
+
+/** Names of the choices above, for the settings screen. */
+const char *intro_choice_name (int choice);
+const char *intro_fade_name (int choice);
 
 #endif /* INTRO_H__ */
