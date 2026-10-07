@@ -200,6 +200,13 @@ Claude builds in the container and the user deploys from Windows.
   clock (266 ms, then every 30 ms) instead of counting frames, so it is the
   same at any frame rate. The idea of retuning repeat for 60 came from
   N64ever; the code is ours.
+- `src/menu/play_stats.c/.h` — times started and time of last start per game,
+  keyed by a hash of the full path (a renamed file starts from zero). Up to
+  512 games, 6 KB of static memory. Saved to `sd:/menu/playstats.txt` (one
+  line per game: hash, count, time; temp file + `safe_file_replace`) at each
+  launch, by a one-line hook beside the stock history call in `load_rom.c`.
+  Feature `play_stats` (default on), "Count Plays" in Settings > Library.
+  64DD disk launches are not counted yet. The path is not profile-aware.
 - `src/menu/controls.c/.h` — button layout for the three tabbed screens:
   L/R switch tabs, Z is Options (was R), left/right scroll the carousel,
   up/down do nothing there unless the `updown_scroll` feature is on. It
@@ -349,6 +356,9 @@ Claude builds in the container and the user deploys from Windows.
   Kept from this work: the clock-based button repeat, the Game info saving,
   and `frame_rate.c` as a hidden option. The Settings row and the measurement
   were removed.
+- The 60 fps code is kept on purpose for future experiments (the user's
+  request, 2026-10-07): `frame_rate.c` and the hidden option.
+- Done and tested on hardware: menu redesign stage 5 (play counts).
 - **v0.1 user-facing features are complete.** Two dev-tooling items were
   added to v0.1 afterwards and are not started: the debug overlay and the
   PC-side tests. Before publishing, the user still wants to test Japanese
@@ -588,7 +598,10 @@ Stages, one testable build each:
    all button handling are stock and unchanged. Risk: two full-screen
    stretched pictures per frame (theme background, then the cover), so the
    frame time needs checking.
-5. Launch stats (times played, last played): a new saved file.
+5. **Launch stats (done and tested):** `play_stats.c`. Game
+   info's three boxes are now Played, Last played and Players, as in the
+   mockup; the release date moved up beside the maker, and TV region left the
+   page (still under Options > Set TV Type).
 6. Recent and Favorites as cover rows instead of lists.
 7. Intro: a few seconds with short music, then the Games screen
    (`boot_animation` feature already exists as a switch).

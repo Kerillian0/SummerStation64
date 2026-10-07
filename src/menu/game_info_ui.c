@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 #include <libdragon.h>
 
@@ -7,6 +8,7 @@
 #include "game_info_ui.h"
 #include "games_ui.h"
 #include "path.h"
+#include "play_stats.h"
 #include "theme.h"
 #include "title_font.h"
 #include "ui_components/constants.h"
@@ -209,6 +211,31 @@ static void draw_fact (int index, const char *caption, const char *value) {
     }, FNT_DEFAULT, x + PAD, FACTS_Y + (FACTS_HEIGHT / 2) - 2, "%s", value);
 }
 
+/* "Today", "Yesterday", "5 days ago", or the date once it is over a month. */
+static void format_last_played (char *out, size_t size, time_t last, time_t now, int count) {
+    if (count <= 0) {
+        snprintf(out, size, "Never");
+    } else if (last <= 0 || now <= 0) {
+        snprintf(out, size, "Unknown"); /* no working clock then, or now */
+    } else {
+        long days = (long) (now / 86400) - (long) (last / 86400);
+        if (days <= 0) {
+            snprintf(out, size, "Today");
+        } else if (days == 1) {
+            snprintf(out, size, "Yesterday");
+        } else if (days <= 30) {
+            snprintf(out, size, "%ld days ago", days);
+        } else {
+            struct tm *when = localtime(&last);
+            if (when) {
+                strftime(out, size, "%Y-%m-%d", when);
+            } else {
+                snprintf(out, size, "Unknown");
+            }
+        }
+    }
+}
+
 static bool known (const char *text) {
     return text && text[0] != '\0' && strcmp(text, "Not specified") != 0;
 }
@@ -223,13 +250,16 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
     }
     draw_cover(image);
 
-    /* Who made it, above the title. */
-    if (known(info->meta.author)) {
+    /* Who made it and when, above the title. */
+    if (known(info->meta.author) || known(info->meta.release_date)) {
         rdpq_text_printf(&(rdpq_textparms_t) {
             .width = TITLE_WIDTH,
             .wrap = WRAP_ELLIPSES,
             .style_id = STL_GRAY,
-        }, FNT_DEFAULT, X0, MAKER_Y + 14, "%s", info->meta.author);
+        }, FNT_DEFAULT, X0, MAKER_Y + 14, "%s%s%s",
+            known(info->meta.author) ? info->meta.author : "",
+            (known(info->meta.author) && known(info->meta.release_date)) ? ", " : "",
+            known(info->meta.release_date) ? info->meta.release_date : "");
     }
 
     /* The name, as big as fits in two lines. */
@@ -256,17 +286,31 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
         x = games_ui_badge(x, BADGES_Y, "Transfer Pak", STL_DEFAULT, true);
     }
 
-    /* The save type is left off this page: few people need it, and it can
-       still be seen and changed under Options. */
+    /* Played, last played, players. (The save type, TV region and release
+       date boxes made way: the date moved up beside the maker, the other two
+       can still be seen and changed under Options.) */
+    time_t last = 0;
+    int plays = menu->load.rom_path ? play_stats_get(path_get(menu->load.rom_path), &last) : 0;
+
+    char played[24];
+    if (plays <= 0) {
+        snprintf(played, sizeof(played), "Never");
+    } else {
+        snprintf(played, sizeof(played), (plays == 1) ? "1 time" : "%d times", plays);
+    }
+    char last_played[24];
+    format_last_played(last_played, sizeof(last_played), last, menu->current_time, plays);
+
     char players[16];
     if (info->meta.num_players > 1) {
         snprintf(players, sizeof(players), "1 to %d", (int) info->meta.num_players);
     } else {
         snprintf(players, sizeof(players), "1");
     }
-    draw_fact(0, "Players", players);
-    draw_fact(1, "TV region", view->tv);
-    draw_fact(2, "Released", known(info->meta.release_date) ? info->meta.release_date : "Unknown");
+
+    draw_fact(0, "Played", played);
+    draw_fact(1, "Last played", last_played);
+    draw_fact(2, "Players", players);
 
     /* Description, with this game's own switches on the last line. */
     fill(X0, DESC_Y, X1, DESC_Y + DESC_HEIGHT, panel_color());

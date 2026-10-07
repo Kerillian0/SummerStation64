@@ -9,6 +9,7 @@
 #include "../controls.h"
 #include "../display_name.h"
 #include "../game_info_ui.h"
+#include "../play_stats.h"
 #include <string.h>
 
 static bool show_extra_info_message = false;
@@ -815,6 +816,7 @@ static void load (menu_t *menu) {
     }
 
     bookkeeping_history_add(&menu->bookkeeping, menu->load.rom_path, NULL, BOOKKEEPING_TYPE_ROM);
+    play_stats_record(path_get(menu->load.rom_path), menu->current_time); // times played, last played
 
     menu->next_mode = MENU_MODE_BOOT;
 

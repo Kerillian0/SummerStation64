@@ -163,6 +163,7 @@ static const item_t library_items[] = {
     FEATURE("Hide Game Extensions", FEATURE_HIDE_EXTENSIONS, "Show games without the ending of the file name, such as .z64. Other files keep theirs."),
     FEATURE("Tidy Game Titles", FEATURE_TIDY_TITLES, "Show names like \"Legend of Zelda, The\" as \"The Legend of Zelda\". The files are not renamed."),
     FEATURE("Hide Region Tags", FEATURE_HIDE_TAGS, "Hide the region and version tags in brackets, such as (U) (V1.2) [!]. Two versions of one game then look the same in the list."),
+    FEATURE("Count Plays", FEATURE_PLAY_STATS, "Keep count of how often each game is started and when it was last played, shown on its info screen."),
     FEATURE("Remember Position", FEATURE_REMEMBER_SELECTION, "Going back into a folder returns to the game you had selected there, also after playing."),
 };
 
