@@ -20,9 +20,10 @@
 #define INTRO_BAR_START_MS  (250)   /* the line under the name starts to grow */
 #define INTRO_BAR_GROW_MS   (650)
 #define INTRO_FADE_OUT_MS   (300)   /* and goes back to black at the end */
-#define INTRO_TOTAL_MS      (2600)  /* matches the tune's length (assets/sounds/make_intro.py) */
+#define INTRO_SHORTEST_MS   (2600)  /* the intro lasts as long as its tune (intro.wav), but at least this */
+#define INTRO_LONGEST_MS    (8000)  /* and never more than this, however long the tune is */
 
-#define INTRO_CHANNEL       (SOUND_SFX_CHANNEL + 1)     /* a sound effect channel the menu doesn't use */
+#define INTRO_CHANNEL       (SOUND_SFX_CHANNEL + 2)     /* sound effect channels the menu doesn't use (a stereo tune takes two) */
 #define INTRO_VOLUME        (0.5f)
 
 /* The fade-in (option `fade`): when the first screen appears, with or
@@ -56,6 +57,7 @@ static uint64_t started_at;
 static menu_mode_t after;       /* the screen to open when the intro ends */
 static wav64_t tune;
 static bool tune_open = false;
+static int total_ms = INTRO_SHORTEST_MS;
 static bool fading = false;         /* the fade-in is waiting to start, or running */
 static bool fade_running = false;
 static uint64_t fade_asked_at;
@@ -202,7 +204,7 @@ bool intro_display (menu_t *menu, surface_t *display) {
     int t = started ? (int) (get_ticks_ms() - started_at) : 0;
 
     bool skip = menu->actions.enter || menu->actions.back || menu->actions.options || menu->actions.settings;
-    bool over = skip || (t >= INTRO_TOTAL_MS);
+    bool over = skip || (t >= total_ms);
 
     /* How dark the picture is: 1 at both ends, 0 in the middle. */
     float dark = 0.0f;
@@ -210,8 +212,8 @@ bool intro_display (menu_t *menu, surface_t *display) {
         dark = 1.0f;
     } else if (t < INTRO_FADE_IN_MS) {
         dark = 1.0f - ((float) t / INTRO_FADE_IN_MS);
-    } else if (t > (INTRO_TOTAL_MS - INTRO_FADE_OUT_MS)) {
-        dark = 1.0f - ((float) (INTRO_TOTAL_MS - t) / INTRO_FADE_OUT_MS);
+    } else if (t > (total_ms - INTRO_FADE_OUT_MS)) {
+        dark = 1.0f - ((float) (total_ms - t) / INTRO_FADE_OUT_MS);
     }
 
     /* The line grows out from the middle, quickly at first and then slowing. */
@@ -262,9 +264,16 @@ bool intro_display (menu_t *menu, surface_t *display) {
     } else if (!started) {
         started = true;
         started_at = get_ticks_ms();
+        /* The tune is opened even when it won't be heard, to learn its length. */
+        wav64_open(&tune, "rom:/intro.wav64");
+        tune_open = true;
+        if ((tune.wave.len > 0) && (tune.wave.frequency > 0.0f)) {
+            total_ms = (int) ((tune.wave.len * 1000.0f) / tune.wave.frequency);
+        }
+        if (total_ms < INTRO_SHORTEST_MS) total_ms = INTRO_SHORTEST_MS;
+        if (total_ms > INTRO_LONGEST_MS) total_ms = INTRO_LONGEST_MS;
+        debugf("intro: tune lasts %d ms\n", total_ms);
         if (menu->settings.soundfx_enabled) {
-            wav64_open(&tune, "rom:/intro.wav64");
-            tune_open = true;
             mixer_ch_set_vol(INTRO_CHANNEL, INTRO_VOLUME, INTRO_VOLUME);
             wav64_play(&tune, INTRO_CHANNEL);
         }

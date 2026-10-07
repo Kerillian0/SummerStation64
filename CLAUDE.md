@@ -718,6 +718,20 @@ Stages, one testable build each:
    1 Second / 2 Seconds, the default). This replaced the short-lived
    `fade_in` feature and `fade_speed` option; the `boot_animation` feature
    is still in the table but nothing reads it now.
+   **Sounds swapped by the user, 2026-10-07 (built, hardware test not
+   reported yet):** new `bgm.wav` (38 s, 859 KB in the ROM),
+   `settings.wav` (stereo, 0.8 s) and `intro.wav` (stereo, 3.4 s, 152 KB).
+   The user is trying out a default set to their taste; sound packs stay in
+   v0.4. The ROM is now 2.41 MB (was 1.93). Because of this the intro now
+   lasts as long as `intro.wav` (read when it is opened; at least 2.6 s, at
+   most 8 s), plays on channels 2-3 so a stereo tune can't collide with a
+   stereo sound effect on 0-1, and `make_intro.py` writes
+   `intro_generated.wav` so it can't overwrite the user's tune. The three
+   files are royalty-free sounds the user took from a few websites;
+   committed at their request. Still owed before a push or a release: the
+   name of each site and its licence (some royalty-free licences do not
+   allow passing the file on by itself, which a public repo does), and a
+   credits entry for each sound that stays.
 Constraints found so far: rounded corners are not cheap on the N64 (square
 corners used); small label text from the mockups would not be readable on a
 composite CRT; there is one font size (15 px), so a big title needs a second

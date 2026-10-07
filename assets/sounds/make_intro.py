@@ -1,19 +1,23 @@
 #!/usr/bin/env python3
-"""Writes intro.wav, the short tune played with the start-up intro.
+"""Writes intro_generated.wav, a short tune for the start-up intro.
+
+This was the first intro tune. The one in use now is intro.wav, chosen by
+the project owner; this script no longer touches it. To use the generated
+tune again, copy intro_generated.wav over intro.wav.
 
 The tune is made here from plain sine waves, so it is the project's own and
 can be changed by editing the notes below. Run it from this folder:
 
     python3 make_intro.py
 
-then build as usual; the Makefile turns intro.wav into intro.wav64.
+The intro lasts as long as intro.wav does, so no code needs changing.
 """
 import math
 import struct
 import wave
 
 RATE = 22050            # samples a second; half the menu's rate keeps the ROM small
-LENGTH = 2.6            # seconds; matches INTRO_TOTAL_MS in src/menu/intro.c
+LENGTH = 2.6            # seconds
 
 # (start in seconds, pitch in Hz, loudness, seconds for the note to die away)
 NOTES = [
@@ -51,10 +55,10 @@ for i in range(int(RATE * LENGTH)):
 peak = max(abs(s) for s in samples)
 scale = 0.7 * 32767 / peak
 
-with wave.open("intro.wav", "wb") as out:
+with wave.open("intro_generated.wav", "wb") as out:
     out.setnchannels(1)
     out.setsampwidth(2)
     out.setframerate(RATE)
     out.writeframes(b"".join(struct.pack("<h", int(s * scale)) for s in samples))
 
-print(f"intro.wav: {len(samples)} samples, {LENGTH} s at {RATE} Hz")
+print(f"intro_generated.wav: {len(samples)} samples, {LENGTH} s at {RATE} Hz")
