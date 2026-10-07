@@ -174,10 +174,19 @@ Two things it does that we should copy if we ship 60:
   and frees it straight away. Their comment explains why: after covers of
   different sizes have come and gone, an 80 KB allocation can fail with
   megabytes free in small pieces, and libdragon's asset loader stops the
-  program on a failed allocation instead of returning an error. Our side-cover
-  check (`SIDE_ART_MIN_FREE` in `carousel_art.c`) compares total free memory,
-  so it has exactly the blind spot they describe. This is the single most
-  useful thing in the fork for us, and it is a few lines.
+  program on a failed allocation instead of returning an error.
+  **Correction, 2026-10-07:** an earlier version of this note called this the
+  most useful thing in the fork for us. On checking our own loading path, the
+  danger they guard against does not apply here. N64ever loads baked sprites
+  through libdragon's asset loader, which stops the program. We load PNG files
+  through the menu's own decoder (`png_decoder.c`), which checks every
+  allocation, returns an out-of-memory error, and (since upstream 0.3.3) even
+  halves the picture's size to make it fit. A cover that cannot be loaded
+  here shows as a placeholder; nothing crashes. Our side-cover check
+  (`SIDE_ART_MIN_FREE` in `carousel_art.c`) does compare total free memory
+  and so can misjudge a fragmented heap, but the cost is a missing or
+  half-size side cover, not a failure. The probe remains a neat technique,
+  and would matter if we ever load baked sprites the way they do.
 - **Never free a cover that is still decoding.** They skip those when evicting,
   noting that freeing one aborts the decode and can leave the decoder's
   callback pointing at freed memory. Worth checking our cache against.
@@ -193,8 +202,9 @@ Two things it does that we should copy if we ship 60:
 
 ## Suggested order, if we take anything
 
-1. The free-block check for covers. Small, and it closes a real gap.
-2. Input repeat tuned for 60, if the frame rate work is kept.
+1. ~~The free-block check for covers.~~ Not needed: see the correction under
+   "Techniques worth borrowing".
+2. Input repeat tuned for 60. Done 2026-10-07 in our own, clock-based form.
 3. PAL60 confirm-with-timeout. Small, removes a way to lock yourself out.
 4. Build-type and hardware-variant badges. Small, no data needed.
 5. 64DD disc linking, when v0.3 is reached. Their `disclink.c` is the best
