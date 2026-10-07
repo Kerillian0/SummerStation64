@@ -24,6 +24,7 @@
 #include "safe_mode.h"
 #include "crash_screen.h"
 #include "debug_stats.h"
+#include "intro.h"
 #include "frame_rate.h"
 #include "sound.h"
 #include "usb_comm.h"
@@ -275,6 +276,7 @@ void menu_run (boot_params_t *boot_params) {
 
             time(&menu->current_time);
             debug_stats_frame(menu);
+            intro_poll();
         }
 
         sound_poll();

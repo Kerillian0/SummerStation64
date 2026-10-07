@@ -483,7 +483,8 @@ quick_launch = 1       ; any key from menu_features.c: quick_launch,
                        ; hold_launch, side_covers, frame_borders,
                        ; updown_scroll, cover_art, carousel_animation,
                        ; see_through_covers, remember_selection,
-                       ; hide_extensions, tidy_titles, hide_tags
+                       ; hide_extensions, tidy_titles, hide_tags,
+                       ; boot_animation, fade_in
                        ; (0 or 1; leave out = default)
 ```
 
@@ -704,9 +705,16 @@ Stages, one testable build each:
    that RESET. With the USB cable in, the cart never loses power, so the
    intro shows only on the first start after an upload. The log prints the
    mark it read and `intro: power-on start, playing` or why it was skipped.
-   Not done: Background Music, if on, plays quietly under the tune; the
-   first folder still loads after the intro (about 1.4 s) instead of during
-   it.
+   **Fade-in (done and tested):** feature
+   `fade_in` (default on), "Fade In" in Settings > System. On every start,
+   intro or not, the Games screen comes up from black and the background
+   music rises from silence, together, over 3 s (`FADE_MS`; the user found
+   3 s right for the music). The picture brightens fast at first, so the
+   menu is readable early. It also hides the short black gap between the
+   intro and the Games screen. The music is silent during the intro either
+   way. Hooks: `intro_poll()` in the `menu.c` loop, `intro_fade_draw()` at
+   the end of the Games screen's `draw()` in `browser.c`. Not in the Theme
+   Maker or the share codes yet.
 Constraints found so far: rounded corners are not cheap on the N64 (square
 corners used); small label text from the mockups would not be readable on a
 composite CRT; there is one font size (15 px), so a big title needs a second

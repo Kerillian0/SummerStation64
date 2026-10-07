@@ -21,6 +21,7 @@
 #include "../sort_order.h"
 #include "../display_name.h"
 #include "../games_ui.h"
+#include "../intro.h"
 #include "../ui_components/constants.h"
 
 static const char *archive_extensions[] = { "zip", NULL };
@@ -1043,6 +1044,8 @@ static void draw (menu_t *menu, surface_t *d) {
     ui_components_context_menu_draw(menu->browser.archive ? &archive_context_menu : &entry_context_menu);
 
     ui_components_context_menu_draw(&settings_context_menu);
+
+    intro_fade_draw(); // the fade-in after the menu starts
 
     rdpq_detach_show();
 }

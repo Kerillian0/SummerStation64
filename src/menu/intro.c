@@ -25,6 +25,13 @@
 #define INTRO_CHANNEL       (SOUND_SFX_CHANNEL + 1)     /* a sound effect channel the menu doesn't use */
 #define INTRO_VOLUME        (0.5f)
 
+/* The fade-in (feature `fade_in`): when the first screen appears, with or
+   without the intro before it, the picture comes up from black and the
+   background music (if the player has it on) rises from silence, together. */
+#define FADE_MS             (3000)
+#define FADE_WAIT_MS        (1000)  /* if no screen has drawn the fade by then, the music starts rising anyway */
+#define MUSIC_VOLUME        (0.1f)  /* the level sound.c plays it at */
+
 #define TITLE_HEIGHT        (40)
 #define TITLE_Y             (DISPLAY_CENTER_Y - TITLE_HEIGHT)
 #define BAR_Y               (DISPLAY_CENTER_Y + 10)
@@ -48,6 +55,14 @@ static uint64_t started_at;
 static menu_mode_t after;       /* the screen to open when the intro ends */
 static wav64_t tune;
 static bool tune_open = false;
+static bool fading = false;         /* the fade-in is waiting to start, or running */
+static bool fade_running = false;
+static uint64_t fade_asked_at;
+static uint64_t fade_from;
+
+static void music_volume (float volume) {
+    mixer_ch_set_vol(SOUND_BGM_CHANNEL, volume, volume);
+}
 
 static void finish (menu_t *menu) {
     if (tune_open) {
@@ -57,6 +72,24 @@ static void finish (menu_t *menu) {
     }
     playing = false;
     menu->next_mode = after;
+}
+
+/* Ask for the fade-in. It starts on the first frame the next screen draws. */
+static void fade_ask (void) {
+    if (!features_enabled(FEATURE_FADE_IN)) {
+        music_volume(MUSIC_VOLUME);
+        return;
+    }
+    music_volume(0.0f);
+    fading = true;
+    fade_running = false;
+    fade_asked_at = get_ticks_ms();
+}
+
+/* How far the fade-in has got, 0 to 1. */
+static float fade_progress (void) {
+    float t = (float) (get_ticks_ms() - fade_from) / FADE_MS;
+    return (t > 1.0f) ? 1.0f : t;
 }
 
 /* True if the cart has been powered since the menu last started. Only the
@@ -83,6 +116,7 @@ void intro_begin (menu_t *menu) {
     debugf("intro: %s start, %s\n", cold ? "power-on" : "reset", (cold && wanted) ? "playing" : "skipped");
 
     if (!cold || !wanted) {
+        fade_ask();
         return;
     }
 
@@ -90,6 +124,53 @@ void intro_begin (menu_t *menu) {
     menu->next_mode = MENU_MODE_STARTUP;    /* stay on the startup screen while the intro runs */
     playing = true;
     started = false;
+    music_volume(0.0f);
+}
+
+void intro_poll (void) {
+    if (!fading) {
+        return;
+    }
+    if (!fade_running) {
+        if ((get_ticks_ms() - fade_asked_at) < FADE_WAIT_MS) {
+            return;
+        }
+        fade_running = true;
+        fade_from = get_ticks_ms();
+    }
+    float t = fade_progress();
+    music_volume(MUSIC_VOLUME * t);
+    if (t >= 1.0f) {
+        fading = false;
+    }
+}
+
+void intro_fade_draw (void) {
+    if (!fading) {
+        return;
+    }
+    if (!fade_running) {
+        fade_running = true;
+        fade_from = get_ticks_ms();
+    }
+    /* The picture brightens quickly at first and then more slowly, so the
+       menu can be read long before the fade is over. */
+    float left = 1.0f - fade_progress();
+    int dark = (int) (left * left * 255.0f);
+    if (dark <= 0) {
+        return;
+    }
+    rdpq_mode_push();
+        if (dark >= 255) {
+            rdpq_set_mode_fill(RGBA32(0x00, 0x00, 0x00, 0xFF));
+        } else {
+            rdpq_set_mode_standard();
+            rdpq_set_prim_color(RGBA32(0x00, 0x00, 0x00, dark));
+            rdpq_mode_combiner(RDPQ_COMBINER_FLAT);
+            rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+        }
+        rdpq_fill_rectangle(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    rdpq_mode_pop();
 }
 
 bool intro_display (menu_t *menu, surface_t *display) {
@@ -158,6 +239,7 @@ bool intro_display (menu_t *menu, surface_t *display) {
 
     if (over) {
         finish(menu);
+        fade_ask();
     } else if (!started) {
         started = true;
         started_at = get_ticks_ms();

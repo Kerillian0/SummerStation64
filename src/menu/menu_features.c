@@ -36,6 +36,7 @@ static const feature_info_t feature_info[FEATURE_COUNT] = {
     [FEATURE_HIDE_TAGS]           = { "hide_tags",           false, false },
     [FEATURE_REMEMBER_SETTINGS]   = { "remember_settings",   true,  false },
     [FEATURE_PLAY_STATS]          = { "play_stats",          true,  false },
+    [FEATURE_FADE_IN]             = { "fade_in",             true,  false },
 };
 
 #define FEATURES_USER_PATH      "sd:/menu/features.ini"

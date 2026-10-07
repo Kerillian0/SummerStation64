@@ -6,6 +6,10 @@
  * then the first screen appears. Any button skips it. It is not shown after
  * pressing RESET (coming back from a game), in safe mode, or when a game is
  * set to start by itself. Feature `boot_animation`.
+ *
+ * Also the fade-in that follows every start, intro or not: the first screen
+ * comes up from black and the background music rises with it, over three
+ * seconds. Feature `fade_in`.
  */
 
 #ifndef INTRO_H__
@@ -27,5 +31,14 @@ void intro_begin (menu_t *menu);
  * @return false if the intro is not playing (the caller draws as usual).
  */
 bool intro_display (menu_t *menu, surface_t *display);
+
+/** Call once a frame: brings the background music up during the fade-in. */
+void intro_poll (void);
+
+/**
+ * Call at the end of a screen's drawing, just before the picture is shown:
+ * darkens it while the fade-in (feature `fade_in`) is running.
+ */
+void intro_fade_draw (void);
 
 #endif /* INTRO_H__ */

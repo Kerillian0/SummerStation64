@@ -185,6 +185,7 @@ static const item_t system_items[] = {
         "Latin Only frees about 700 KB of memory but can't show Japanese names. Auto uses Latin Only without the Expansion Pak, Full with it. Restart the console to apply."),
     INFO("Start Folder", default_folder, "The folder the menu opens in. Change it from Options on the Files screen."),
     FEATURE("Intro", FEATURE_BOOT_ANIMATION, "Show the short intro with its tune when the console is switched on. Any button skips it. The tune follows the Sound Effects setting."),
+    FEATURE("Fade In", FEATURE_FADE_IN, "When the menu starts, the picture comes up from black and the background music rises, over three seconds. Off shows the menu at once."),
     FEATURE("Remember Settings Page", FEATURE_REMEMBER_SETTINGS, "Reopen Settings on the page and row you last used, until the console is switched off."),
     ACTION("Reset Settings", ask_reset, "Put the stock settings back to how they were on a fresh install."),
 };
