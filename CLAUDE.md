@@ -726,12 +726,13 @@ Stages, one testable build each:
    lasts as long as `intro.wav` (read when it is opened; at least 2.6 s, at
    most 8 s), plays on channels 2-3 so a stereo tune can't collide with a
    stereo sound effect on 0-1, and `make_intro.py` writes
-   `intro_generated.wav` so it can't overwrite the user's tune. The three
-   files are royalty-free sounds the user took from a few websites;
-   committed at their request. Still owed before a push or a release: the
-   name of each site and its licence (some royalty-free licences do not
-   allow passing the file on by itself, which a public repo does), and a
-   credits entry for each sound that stays.
+   `intro_generated.wav` so it can't overwrite the user's tune. Sources and
+   licences are in `assets/sounds/CREDITS.md` (checked 2026-10-07): the
+   intro and settings sounds are CC0 (Lokif, opengameart.org); the music is
+   by Eric Matyas (soundimage.org), free to share **with credit shown in
+   the product itself**: "Music by Eric Matyas www.soundimage.org". Still
+   owed: the track's title from the user, and that credit line on the
+   menu's credits screen before the music is released.
 Constraints found so far: rounded corners are not cheap on the N64 (square
 corners used); small label text from the mockups would not be readable on a
 composite CRT; there is one font size (15 px), so a big title needs a second
