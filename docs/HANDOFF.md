@@ -54,8 +54,8 @@ The v0.1 features a player sees are complete.
 
 ### The menu redesign
 
-Fast-tracked from two mockups the owner supplied. Stages 1 to 5 are done and
-tested:
+Fast-tracked from two mockups the owner supplied. Stages 1 to 5 and 7 are
+done and tested:
 
 1. Games screen layout
 2. Badges on the title panel
@@ -67,14 +67,15 @@ Remaining:
 
 6. **Recent and Favorites as cover rows** instead of lists. Large. Proposed
    as two builds, Recent first.
-7. **Intro:** a few seconds with short music, then the Games screen. Medium.
-   The `boot_animation` feature switch already exists.
+7. **Intro:** done and tested 2026-10-07 (`src/menu/intro.c`). Plays at
+   power-on only; details in `CLAUDE.md` under "Menu redesign".
+
+Stage 6 is the only stage left.
 
 ## Next steps
 
-1. **Ask the owner which comes first:** stage 6, stage 7, or the asset prep
-   tool (see the open question below). This was the question on the table
-   when the session ended.
+1. **Ask the owner whether to start stage 6** (Recent tab first) or the
+   asset prep tool (see the open question below).
 2. If stage 6: reuse the carousel from `views/browser.c` and the cover cache
    in `carousel_art.c` for the Recent tab in `views/history_favorites.c`.
    That screen still uses its text hints; move it to the button-badge hints

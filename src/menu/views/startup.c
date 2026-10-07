@@ -1,4 +1,5 @@
 #include "utils/fs.h"
+#include "../intro.h"
 #include "views.h"
 
 
@@ -40,8 +41,13 @@ void view_startup_init (menu_t *menu) {
     else {
         menu->next_mode = MENU_MODE_BROWSER;
     }
+
+    intro_begin(menu); // plays the intro first, if it is wanted
 }
 
 void view_startup_display (menu_t *menu, surface_t *display) {
+    if (intro_display(menu, display)) {
+        return;
+    }
     draw(menu, display);
 }

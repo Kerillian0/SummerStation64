@@ -1,0 +1,173 @@
+/**
+ * @file intro.c
+ * @brief The short intro shown when the console is switched on.
+ */
+
+#include <libdragon.h>
+#include "flashcart/flashcart.h"
+#include "fonts.h"
+#include "intro.h"
+#include "menu_features.h"
+#include "menu_name.h"
+#include "safe_mode.h"
+#include "sound.h"
+#include "theme.h"
+#include "ui_components.h"
+#include "ui_components/constants.h"
+
+/* All times are in milliseconds from the first frame. */
+#define INTRO_FADE_IN_MS    (400)   /* the picture comes up from black */
+#define INTRO_BAR_START_MS  (250)   /* the line under the name starts to grow */
+#define INTRO_BAR_GROW_MS   (650)
+#define INTRO_FADE_OUT_MS   (300)   /* and goes back to black at the end */
+#define INTRO_TOTAL_MS      (2600)  /* matches the tune's length (assets/sounds/make_intro.py) */
+
+#define INTRO_CHANNEL       (SOUND_SFX_CHANNEL + 1)     /* a sound effect channel the menu doesn't use */
+#define INTRO_VOLUME        (0.5f)
+
+#define TITLE_HEIGHT        (40)
+#define TITLE_Y             (DISPLAY_CENTER_Y - TITLE_HEIGHT)
+#define BAR_Y               (DISPLAY_CENTER_Y + 10)
+#define BAR_HEIGHT          (4)
+#define BAR_WIDTH           (240)
+
+/* How power-on is told from RESET. The console can't tell us: the cart's
+   own start-up program always reports a reset. So a mark is left in a small
+   piece of the cart's memory (the last 8 bytes of its 64DD sector buffer,
+   unused unless a 64DD game runs). The cart keeps its memory through RESET
+   and loses it when the power goes, so finding the mark means RESET.
+   While the USB cable powers the cart the mark also survives the power
+   switch; unplug the cable to see the intro again. */
+#define MARK_ADDRESS        (0x1FFE28F8UL)  /* SC64_BUFFERS->DD_SECTOR[248], see flashcart/sc64/sc64_ll.h */
+#define MARK_A              (0x53533634)    /* "SS64" */
+#define MARK_B              (0x494E5452)    /* "INTR" */
+
+static bool playing = false;
+static bool started = false;
+static uint64_t started_at;
+static menu_mode_t after;       /* the screen to open when the intro ends */
+static wav64_t tune;
+static bool tune_open = false;
+
+static void finish (menu_t *menu) {
+    if (tune_open) {
+        mixer_ch_stop(INTRO_CHANNEL);
+        wav64_close(&tune);
+        tune_open = false;
+    }
+    playing = false;
+    menu->next_mode = after;
+}
+
+/* True if the cart has been powered since the menu last started. Only the
+   SummerCart64 has this memory (it is also the only cart with diagnostic
+   data, which is how it is recognised); on other carts the answer is "no". */
+static bool cart_stayed_on (void) {
+    if (!flashcart_has_feature(FLASHCART_FEATURE_DIAGNOSTIC_DATA)) {
+        return false;
+    }
+    uint32_t a = io_read(MARK_ADDRESS);
+    uint32_t b = io_read(MARK_ADDRESS + 4);
+    io_write(MARK_ADDRESS, MARK_A);
+    io_write(MARK_ADDRESS + 4, MARK_B);
+    debugf("intro: mark read %08lX %08lX, written back as %08lX %08lX\n",
+        (unsigned long) a, (unsigned long) b,
+        (unsigned long) io_read(MARK_ADDRESS), (unsigned long) io_read(MARK_ADDRESS + 4));
+    return (a == MARK_A) && (b == MARK_B);
+}
+
+void intro_begin (menu_t *menu) {
+    bool cold = !cart_stayed_on();
+    bool wanted = features_enabled(FEATURE_BOOT_ANIMATION) && !safe_mode_active();
+
+    debugf("intro: %s start, %s\n", cold ? "power-on" : "reset", (cold && wanted) ? "playing" : "skipped");
+
+    if (!cold || !wanted) {
+        return;
+    }
+
+    after = menu->next_mode;
+    menu->next_mode = MENU_MODE_STARTUP;    /* stay on the startup screen while the intro runs */
+    playing = true;
+    started = false;
+}
+
+bool intro_display (menu_t *menu, surface_t *display) {
+    if (!playing) {
+        return false;
+    }
+
+    /* The first frame builds the theme background, which takes a moment, so
+       it is drawn fully black and the clock and the tune start after it. */
+    int t = started ? (int) (get_ticks_ms() - started_at) : 0;
+
+    bool skip = menu->actions.enter || menu->actions.back || menu->actions.options || menu->actions.settings;
+    bool over = skip || (t >= INTRO_TOTAL_MS);
+
+    /* How dark the picture is: 1 at both ends, 0 in the middle. */
+    float dark = 0.0f;
+    if (over) {
+        dark = 1.0f;
+    } else if (t < INTRO_FADE_IN_MS) {
+        dark = 1.0f - ((float) t / INTRO_FADE_IN_MS);
+    } else if (t > (INTRO_TOTAL_MS - INTRO_FADE_OUT_MS)) {
+        dark = 1.0f - ((float) (INTRO_TOTAL_MS - t) / INTRO_FADE_OUT_MS);
+    }
+
+    /* The line grows out from the middle, quickly at first and then slowing. */
+    float grow = (float) (t - INTRO_BAR_START_MS) / INTRO_BAR_GROW_MS;
+    if (grow < 0.0f) grow = 0.0f;
+    if (grow > 1.0f) grow = 1.0f;
+    grow = 1.0f - ((1.0f - grow) * (1.0f - grow));
+    int half_bar = (int) ((BAR_WIDTH / 2) * grow);
+
+    rdpq_attach(display, NULL);
+
+    ui_components_background_draw();
+
+    rdpq_text_printf(&(rdpq_textparms_t) {
+        .width = DISPLAY_WIDTH,
+        .height = TITLE_HEIGHT,
+        .align = ALIGN_CENTER,
+        .valign = VALIGN_CENTER,
+        .style_id = STL_DEFAULT,
+    }, FNT_TITLE, 0, TITLE_Y, "%s", MENU_DISPLAY_NAME);
+
+    if (half_bar > 0) {
+        rdpq_mode_push();
+            rdpq_set_mode_fill(theme_get()->accent);
+            rdpq_fill_rectangle(DISPLAY_CENTER_X - half_bar, BAR_Y, DISPLAY_CENTER_X + half_bar, BAR_Y + BAR_HEIGHT);
+        rdpq_mode_pop();
+    }
+
+    if (dark > 0.0f) {
+        rdpq_mode_push();
+            if (dark >= 1.0f) {
+                rdpq_set_mode_fill(RGBA32(0x00, 0x00, 0x00, 0xFF));
+            } else {
+                rdpq_set_mode_standard();
+                rdpq_set_prim_color(RGBA32(0x00, 0x00, 0x00, (int) (dark * 255.0f)));
+                rdpq_mode_combiner(RDPQ_COMBINER_FLAT);
+                rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+            }
+            rdpq_fill_rectangle(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+        rdpq_mode_pop();
+    }
+
+    rdpq_detach_show();
+
+    if (over) {
+        finish(menu);
+    } else if (!started) {
+        started = true;
+        started_at = get_ticks_ms();
+        if (menu->settings.soundfx_enabled) {
+            wav64_open(&tune, "rom:/intro.wav64");
+            tune_open = true;
+            mixer_ch_set_vol(INTRO_CHANNEL, INTRO_VOLUME, INTRO_VOLUME);
+            wav64_play(&tune, INTRO_CHANNEL);
+        }
+    }
+
+    return true;
+}

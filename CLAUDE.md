@@ -105,14 +105,15 @@ Ours (new files, free to change), all in `src/menu/`: `theme`,
 `menu_features`, `menu_options`, `safe_file`, `safe_mode`, `crash_screen`,
 `debug_stats`, `controls`, `carousel_art`, `folder_memory`, `sort_order`,
 `display_name`, `font_choice`, `title_font`, `frame_rate`, `games_ui`,
-`game_facts`, `game_info_ui`, `play_stats`, and `views/settings_menu`
+`game_facts`, `game_info_ui`, `play_stats`, `intro`, `menu_name.h`, and
+`views/settings_menu`
 (`views/features_menu` is ours too but no longer reachable).
 
 Stock files we have edited (keep these edits small): `menu.c`, `actions.c`,
 `fonts.c/.h`, `rom_info.c/.h`, `ui_components/background.c`, `common.c`,
 `constants.h`, `views/browser.c` (the carousel lives here, the one large
 edit), `views/history_favorites.c`, `views/load_rom.c`, `views/load_disk.c`,
-`views/settings_editor.c`. `git diff --stat origin/main..carousel-ui` lists
+`views/startup.c`, `views/settings_editor.c`. `git diff --stat origin/main..carousel-ui` lists
 them all.
 
 Files the menu keeps on the SD card, all under `sd:/menu/`:
@@ -437,6 +438,8 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
 - The 60 fps code is kept on purpose for future experiments (the user's
   request, 2026-10-07): `frame_rate.c` and the hidden option.
 - Done and tested on hardware: menu redesign stage 5 (play counts).
+- Done and tested on hardware: menu redesign stage 7 (intro), including
+  the power-on check by a mark in the cart's memory.
 - **v0.1 user-facing features are complete.** Two dev-tooling items were
   added to v0.1 afterwards and are not started: the debug overlay and the
   PC-side tests. Before publishing, the user still wants to test Japanese
@@ -681,8 +684,29 @@ Stages, one testable build each:
    mockup; the release date moved up beside the maker, and TV region left the
    page (still under Options > Set TV Type).
 6. Recent and Favorites as cover rows instead of lists.
-7. Intro: a few seconds with short music, then the Games screen
-   (`boot_animation` feature already exists as a switch).
+7. **Intro (done and tested):** `intro.c`. The name (`MENU_DISPLAY_NAME`,
+   defined in `menu_name.h`) in the 26 px title font over the theme
+   background, an accent line growing under it, up from black and back to
+   black, 2.6 s, with a tune on sound channel 1. Runs inside the stock
+   startup screen (two hook lines in `views/startup.c`). Only after
+   power-on, so not when coming back from a game; not in safe mode or with
+   autoload. Any button skips. Feature `boot_animation`, "Intro" in
+   Settings > System. The tune follows the Sound Effects setting. It is our
+   own, written by `assets/sounds/make_intro.py` (sine waves, 22 kHz mono;
+   29 KB in the ROM, streamed, so no real RAM cost).
+   **Telling power-on from RESET:** `sys_reset_type()` is no use, because
+   the cart's start-up program always reports a reset (seen in the log). So
+   the menu leaves a mark in the last 8 bytes of the cart's 64DD sector
+   buffer (0x1FFE28F8) at every start. Confirmed on hardware: the mark
+   reads as zeros after power-on and is still there after RESET, also after
+   a game has run. SummerCart64 only; other carts play the intro on every
+   start. After a 64DD game the mark is overwritten, so the intro plays on
+   that RESET. With the USB cable in, the cart never loses power, so the
+   intro shows only on the first start after an upload. The log prints the
+   mark it read and `intro: power-on start, playing` or why it was skipped.
+   Not done: Background Music, if on, plays quietly under the tune; the
+   first folder still loads after the intro (about 1.4 s) instead of during
+   it.
 Constraints found so far: rounded corners are not cheap on the N64 (square
 corners used); small label text from the mockups would not be readable on a
 composite CRT; there is one font size (15 px), so a big title needs a second
@@ -748,7 +772,8 @@ Everything else, once each
 15. Sort By each order; Remember Position after a restart.
 16. Launch a game, reset: the menu returns (USB cable unplugged).
 17. The music player and the text viewer open and close.
-18. The friendly crash screen has not been seen on 4MB; if anything crashes,
+18. The intro plays at power-on (USB cable unplugged) and not after RESET.
+19. The friendly crash screen has not been seen on 4MB; if anything crashes,
     note what the screen shows.
 
 Also still untested on any console: a theme with `dither = 0`, and Japanese

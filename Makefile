@@ -77,6 +77,7 @@ SRCS = \
 	menu/rom_info.c \
 	menu/settings.c \
 	menu/sound.c \
+	menu/intro.c \
 	menu/theme.c \
 	menu/menu_features.c \
 	menu/zip_entry_count.c \
@@ -125,6 +126,7 @@ SOUNDS_WAV = \
 	bgm.wav \
 	enter.wav \
 	error.wav \
+	intro.wav \
 	settings.wav
 
 SOUNDS_XM ?=
