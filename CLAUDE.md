@@ -121,7 +121,7 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
 |---|---|---|
 | `theme/theme.ini` (or `theme.txt`) | the theme; read only | the user / Theme Maker |
 | `features.ini` | the player's On/Off choices | `menu_features.c` |
-| `options.ini` | `sort_order`, `font`, `frame_rate_experiment` | `menu_options.c` |
+| `options.ini` | `sort_order`, `font`, `frame_rate_experiment`, `fade_speed` | `menu_options.c` |
 | `folders.ini` | selected entry per folder | `folder_memory.c` |
 | `playstats.txt` | play count and last played | `play_stats.c` |
 | `metadata/` | box art and `metadata.ini` per game; read only | the user's metadata pack |
@@ -708,8 +708,9 @@ Stages, one testable build each:
    **Fade-in (done and tested):** feature
    `fade_in` (default on), "Fade In" in Settings > System. On every start,
    intro or not, the Games screen comes up from black and the background
-   music rises from silence, together, over 3 s (`FADE_MS`; the user found
-   3 s right for the music). The picture brightens fast at first, so the
+   music rises from silence, together, over 2 s (`FADE_MS`; 3 s and 2.25 s were tried first, the user chose
+   2 s). Option `fade_speed` in `options.ini` ("Fade Speed" in Settings >
+   System: 2 Seconds or 1 Second; built, awaiting hardware test). The picture brightens fast at first, so the
    menu is readable early. It also hides the short black gap between the
    intro and the Games screen. The music is silent during the intro either
    way. Hooks: `intro_poll()` in the `menu.c` loop, `intro_fade_draw()` at
@@ -856,6 +857,10 @@ Also still untested on any console: a theme with `dither = 0`, and Japanese
 - **v0.5 polish:** setup wizard, accessibility, overscan + CRT test patterns,
   240p mode, wraparound scrolling, rumble, attract mode, what's new screen,
   README/FAQ, theme gallery, acknowledgements + AI disclosure.
+  - Setup wizard and the intro: the wizard asks whether the player wants
+    the intro and the fade-in, and on that first run plays the intro and
+    then fades in (today the fade only draws on the Games screen, so the
+    first run, which opens on the credits, fades the music only).
   - Controller test screen: button presses and stick range. Put it in the
     same settings area as screen calibration (overscan + CRT test patterns).
   - Widescreen layout: optional 16:9 anamorphic layout for stretched TVs.

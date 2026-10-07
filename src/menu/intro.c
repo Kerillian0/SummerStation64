@@ -9,6 +9,7 @@
 #include "intro.h"
 #include "menu_features.h"
 #include "menu_name.h"
+#include "menu_options.h"
 #include "safe_mode.h"
 #include "sound.h"
 #include "theme.h"
@@ -28,7 +29,8 @@
 /* The fade-in (feature `fade_in`): when the first screen appears, with or
    without the intro before it, the picture comes up from black and the
    background music (if the player has it on) rises from silence, together. */
-#define FADE_MS             (3000)
+#define FADE_MS             (2000)
+#define FADE_FAST_MS        (1000)  /* the player's other choice, option `fade_speed` */
 #define FADE_WAIT_MS        (1000)  /* if no screen has drawn the fade by then, the music starts rising anyway */
 #define MUSIC_VOLUME        (0.1f)  /* the level sound.c plays it at */
 
@@ -88,7 +90,8 @@ static void fade_ask (void) {
 
 /* How far the fade-in has got, 0 to 1. */
 static float fade_progress (void) {
-    float t = (float) (get_ticks_ms() - fade_from) / FADE_MS;
+    int length = (options_get(OPTION_FADE_SPEED) == 1) ? FADE_FAST_MS : FADE_MS;
+    float t = (float) (get_ticks_ms() - fade_from) / length;
     return (t > 1.0f) ? 1.0f : t;
 }
 
@@ -125,6 +128,10 @@ void intro_begin (menu_t *menu) {
     playing = true;
     started = false;
     music_volume(0.0f);
+}
+
+const char *intro_fade_speed_name (int choice) {
+    return (choice == 1) ? "1 Second" : "2 Seconds";
 }
 
 void intro_poll (void) {

@@ -8,8 +8,8 @@
  * set to start by itself. Feature `boot_animation`.
  *
  * Also the fade-in that follows every start, intro or not: the first screen
- * comes up from black and the background music rises with it, over three
- * seconds. Feature `fade_in`.
+ * comes up from black and the background music rises with it, over two
+ * seconds or one (option `fade_speed`). Feature `fade_in`.
  */
 
 #ifndef INTRO_H__
@@ -40,5 +40,9 @@ void intro_poll (void);
  * darkens it while the fade-in (feature `fade_in`) is running.
  */
 void intro_fade_draw (void);
+
+/** Number of fade-in speeds, and the name of each, for the settings screen. */
+#define INTRO_FADE_SPEED_COUNT  (2)
+const char *intro_fade_speed_name (int choice);
 
 #endif /* INTRO_H__ */
