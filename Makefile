@@ -46,6 +46,7 @@ SRCS = \
 	menu/ini_parser.c \
 	menu/actions.c \
 	menu/controls.c \
+	menu/frame_rate.c \
 	menu/title_font.c \
 	menu/games_ui.c \
 	menu/game_info_ui.c \

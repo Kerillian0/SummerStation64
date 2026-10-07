@@ -16,6 +16,9 @@ typedef struct {
 static const option_info_t option_info[OPTION_COUNT] = {
     [OPTION_SORT_ORDER] = { "sort_order", 0 },
     [OPTION_FONT] = { "font", 0 },
+    /* Not "frame_rate": that key was written while the setting was on trial, and
+       a leftover 60 must not stay switched on now that the row is hidden. */
+    [OPTION_FRAME_RATE] = { "frame_rate_experiment", 0 },
 };
 
 static int values[OPTION_COUNT];

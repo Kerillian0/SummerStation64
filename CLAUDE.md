@@ -15,6 +15,12 @@ libdragon. Think ES-DE / Pegasus, on a real N64.
   only, never push there. `fork` is the user's public fork
   (https://github.com/Kerillian0/SummerStation64); `carousel-ui` tracks
   `fork/carousel-ui`. Push only when the user asks.
+- `n64ever` is a third remote, for reading only (its push address is
+  disabled): https://github.com/bjerreman/N64FlashcartMenu-N64ever , another
+  fork of the same menu, based on upstream V0.3.2. Never merge it. What it
+  has and how it maps to our roadmap is in `docs/n64ever-notes.md`. Do not
+  copy its baked-in box art or game descriptions; keep its notices on any
+  code reused and credit N64ever in the acknowledgements.
 
 ## Build and test
 - Build inside this dev container: `make sc64`
@@ -187,6 +193,13 @@ Claude builds in the container and the user deploys from Windows.
   position bar. Colors come from existing theme keys (`tab_active`,
   `tab_inactive`, `accent`, `panel`). Used by the carousel in `browser.c` and
   by `history_favorites.c` in place of the stock tabs and frame.
+- `src/menu/frame_rate.c/.h` — option `frame_rate_experiment` in
+  `options.ini`: 0 for 30 (the stock cap, default) or 1 for 60. **Not shown in Settings**, because no screen can
+  hold 60 (see Status); it stays as a hidden switch for experiments.
+- `src/menu/actions.c` (stock, edited) — held-direction repeat is timed by the
+  clock (266 ms, then every 30 ms) instead of counting frames, so it is the
+  same at any frame rate. The idea of retuning repeat for 60 came from
+  N64ever; the code is ours.
 - `src/menu/controls.c/.h` — button layout for the three tabbed screens:
   L/R switch tabs, Z is Options (was R), left/right scroll the carousel,
   up/down do nothing there unless the `updown_scroll` feature is on. It
@@ -318,6 +331,24 @@ Claude builds in the container and the user deploys from Windows.
   leaves 16 px spare, because the text drawer counts the space after the
   last character and otherwise cuts the name with "...".
 - Done and tested on hardware: menu redesign stage 4 (Game info screen).
+- **60 frames a second: tried 2026-10-06/07, not reachable yet.** The cap can
+  be lifted, but no screen finishes its work in the 16.7 ms that 60 needs, so
+  each one falls back to 30. Work per frame (8MB, 240p, small font, measured
+  with a temporary figure that waits for the graphics chip each frame):
+  Settings 17-20 ms depending on the page, Games with one cover about 19 ms,
+  Games with five covers about 23 ms, Game info 18.6 ms.
+  What was tried: drawing the full-size background in copy mode instead of
+  the stretched half-size one made no measurable difference (Settings 17.0
+  against 17.6 ms), so that change was backed out and the background stays
+  half-size (300 KB) on every console. Skipping the theme background under
+  the Game info backdrop did help (24 to 18.6 ms) and was kept.
+  What the numbers point to: cost rises with the amount of text on screen
+  (Settings pages with more rows cost more) and by about 1 ms per extra
+  cover. Text is laid out again every frame. Reaching 60 would mean laying
+  text out once and reusing it, which is a project of its own and not started.
+  Kept from this work: the clock-based button repeat, the Game info saving,
+  and `frame_rate.c` as a hidden option. The Settings row and the measurement
+  were removed.
 - **v0.1 user-facing features are complete.** Two dev-tooling items were
   added to v0.1 afterwards and are not started: the debug overlay and the
   PC-side tests. Before publishing, the user still wants to test Japanese
@@ -438,7 +469,8 @@ What this means:
 - A full-screen 16-bit image costs 600 KB; a second one does not fit.
 - Theme background: built at 320x240 in 32-bit color (`BG_SCALE` in
   `theme.c`), stretched 2x when drawn, dithered by the RDP at full resolution
-  (`DITHER_BAYER_NONE`). Tried first as 16-bit with baked dither (150 KB): the
+  (`DITHER_BAYER_NONE`). A full-size copy-mode version was tried again on
+  2026-10-07 for speed and made no measurable difference, so it was dropped. Tried first as 16-bit with baked dither (150 KB): the
   dither looked coarse on the CRT. The 32-bit version looks almost identical
   to the original full-size one, frame time unchanged (33.1-33.4 ms). The
   user prefers saving RAM over keeping the full-size background.

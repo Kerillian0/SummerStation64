@@ -132,6 +132,10 @@ static void backdrop_update (menu_t *menu, surface_t *image, bool front_picture)
     }
 }
 
+bool game_info_ui_backdrop_ready (menu_t *menu) {
+    return backdrop.buffer && menu->load.rom_path && (backdrop_key == text_hash(path_get(menu->load.rom_path)));
+}
+
 /* The backdrop stretched over the whole screen. Stretching so small a
    picture this far with smoothing blurs it, and drawing it at a third of its
    brightness keeps the text on top readable. */

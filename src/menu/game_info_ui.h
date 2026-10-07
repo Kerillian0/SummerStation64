@@ -32,4 +32,10 @@ typedef struct {
  */
 void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_view_t *view);
 
+/**
+ * True if the backdrop for the game being shown is ready. It covers the whole
+ * screen, so the shared background underneath need not be drawn.
+ */
+bool game_info_ui_backdrop_ready (menu_t *menu);
+
 #endif /* GAME_INFO_UI_H__ */

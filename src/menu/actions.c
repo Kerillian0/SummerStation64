@@ -3,10 +3,15 @@
 #include "actions.h"
 
 
-#define ACTIONS_REPEAT_DELAY    (8)
+/* Held-direction repeat, timed by the clock so it is the same at 30 and at 60
+   frames a second: a pause after the first step, then one step every 30 ms.
+   (Stock counted frames: 8 frames, then every frame, which doubles in speed
+   at 60.) */
+#define ACTIONS_REPEAT_FIRST_MS (266)
+#define ACTIONS_REPEAT_NEXT_MS  (30)
 
 
-static int dir_repeat_delay;
+static uint64_t dir_repeat_at_ms;
 static joypad_8way_t last_dir = JOYPAD_8WAY_NONE;
 
 
@@ -43,10 +48,14 @@ static void actions_update_direction (menu_t *menu) {
 
     joypad_8way_t final_dir = held_dir;
 
+    uint64_t now_ms = get_ticks_ms();
+
     if ((last_dir != held_dir) && (last_dir == JOYPAD_8WAY_NONE)) {
-        dir_repeat_delay = ACTIONS_REPEAT_DELAY;
-    } else if (dir_repeat_delay > 0) {
+        dir_repeat_at_ms = now_ms + ACTIONS_REPEAT_FIRST_MS;
+    } else if (now_ms < dir_repeat_at_ms) {
         final_dir = JOYPAD_8WAY_NONE;
+    } else if (held_dir != JOYPAD_8WAY_NONE) {
+        dir_repeat_at_ms = now_ms + ACTIONS_REPEAT_NEXT_MS;
     }
 
     switch (final_dir) {
@@ -80,10 +89,6 @@ static void actions_update_direction (menu_t *menu) {
             menu->actions.go_down = true;
             menu->actions.go_right = true;
             break;
-    }
-
-    if (dir_repeat_delay > 0) {
-        dir_repeat_delay -= 1;
     }
 
     last_dir = held_dir;

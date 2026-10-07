@@ -24,6 +24,7 @@
 #include "safe_mode.h"
 #include "crash_screen.h"
 #include "debug_stats.h"
+#include "frame_rate.h"
 #include "sound.h"
 #include "usb_comm.h"
 #include "utils/fs.h"
@@ -120,6 +121,7 @@ static void menu_init (boot_params_t *boot_params) {
     }
     
     display_set_fps_limit(FPS_LIMIT);
+    frame_rate_apply(); // the player's choice of 30 or 60
 
     path_push(path, MENU_CUSTOM_FONT_FILE);
     fonts_init(path_get(path));
