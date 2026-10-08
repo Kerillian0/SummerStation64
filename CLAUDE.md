@@ -113,7 +113,7 @@ Stock files we have edited (keep these edits small): `menu.c`, `actions.c`,
 `fonts.c/.h`, `rom_info.c/.h`, `ui_components/background.c`, `common.c`,
 `constants.h`, `views/browser.c` (the carousel lives here, the one large
 edit), `views/history_favorites.c`, `views/load_rom.c`, `views/load_disk.c`,
-`views/startup.c`, `views/settings_editor.c`. `git diff --stat origin/main..carousel-ui` lists
+`views/startup.c`, `views/credits.c`, `views/settings_editor.c`. `git diff --stat origin/main..carousel-ui` lists
 them all.
 
 Files the menu keeps on the SD card, all under `sd:/menu/`:
@@ -730,9 +730,12 @@ Stages, one testable build each:
    licences are in `assets/sounds/CREDITS.md` (checked 2026-10-07): the
    intro and settings sounds are CC0 (Lokif, opengameart.org); the music is
    by Eric Matyas (soundimage.org), free to share **with credit shown in
-   the product itself**: "Music by Eric Matyas www.soundimage.org". Still
-   owed: the track's title from the user, and that credit line on the
-   menu's credits screen before the music is released.
+   the product itself**: "Music by Eric Matyas www.soundimage.org". The
+   track is "Cyber-dream-loop". That line is on the menu's credits screen
+   (`views/credits.c`, in place of one blank line, so the page is no
+   longer; built 2026-10-08, awaiting the user's look), and Lokif is named
+   in that screen's library pop-up. The user reports the new sounds are
+   good on the console.
 Constraints found so far: rounded corners are not cheap on the N64 (square
 corners used); small label text from the mockups would not be readable on a
 composite CRT; there is one font size (15 px), so a big title needs a second

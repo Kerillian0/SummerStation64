@@ -58,7 +58,8 @@ static void draw (menu_t *menu, surface_t *d) {
         "\tand contributors:\n"
         "\tThank you to ALL project contributors,\n"
         "\tno matter how small the commit.\n"
-        "\n\nThis menu is licensed under the AGPL-3.0 License.\n",
+        "\nMusic by Eric Matyas www.soundimage.org\n" // this wording, shown here, is a condition of the music's licence (assets/sounds/CREDITS.md)
+        "This menu is licensed under the AGPL-3.0 License.\n",
         MENU_VERSION,
         BUILD_TIMESTAMP,
         sdk_version.branch, sdk_version.dirty ? "*" : "",
@@ -74,6 +75,8 @@ static void draw (menu_t *menu, surface_t *d) {
             "\tminimp3 (CC0 1.0 Universal)\n"
             "\tminiz (MIT License)\n"
             "\tdr_flac (MIT License)\n"
+            "\nSounds:\n\n"
+            "\tGUI Sound Effects by Lokif (CC0)\n"
         );
     }
 

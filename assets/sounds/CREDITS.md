@@ -7,7 +7,7 @@ file is replaced: some of these licences require credit.
 |---|---|---|---|---|
 | `intro.wav` | [GUI Sound Effects](https://opengameart.org/content/gui-sound-effects) | Lokif | CC0 (public domain) | No, given anyway |
 | `settings.wav` | [GUI Sound Effects](https://opengameart.org/content/gui-sound-effects) | Lokif | CC0 (public domain) | No, given anyway |
-| `bgm.wav` | [soundimage.org, Looping Music](https://soundimage.org/looping-music/). Track title: **to be filled in** | Eric Matyas | [Soundimage International Public License](https://soundimage.org/sample-page/) | **Yes**, see below |
+| `bgm.wav` | [soundimage.org, Looping Music](https://soundimage.org/looping-music/). Track title: Cyber-dream-loop | Eric Matyas | [Soundimage International Public License](https://soundimage.org/sample-page/) | **Yes**, see below |
 | `back.wav`, `cursorsound.wav`, `enter.wav`, `error.wav` | N64FlashcartMenu (upstream) | see upstream | as upstream | as upstream |
 | `intro_generated.wav` (not in the build) | written by `make_intro.py` | this project | as this project | No |
 
