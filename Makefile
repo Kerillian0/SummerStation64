@@ -143,7 +143,8 @@ IMAGES = \
 	button.png \
 	heart.png \
 	logo_holo.png \
-	logo_stripes.png
+	logo_stripes.png \
+	wordmark.png
 
 # The smallest formats that hold them: 16 colors for the paks, 16 shades for the button disc.
 MKSPRITE_FLAGS ?= --format CI4
@@ -151,6 +152,8 @@ $(FILESYSTEM_DIR)/button.sprite: MKSPRITE_FLAGS=--format I4
 $(FILESYSTEM_DIR)/heart.sprite: MKSPRITE_FLAGS=--format I4
 $(FILESYSTEM_DIR)/logo_holo.sprite: MKSPRITE_FLAGS=--format RGBA16
 $(FILESYSTEM_DIR)/logo_stripes.sprite: MKSPRITE_FLAGS=--format RGBA16
+# The intro's title needs soft edges for its glow, so it keeps full color.
+$(FILESYSTEM_DIR)/wordmark.sprite: MKSPRITE_FLAGS=--format RGBA32
 
 OBJS = $(addprefix $(BUILD_DIR)/, $(addsuffix .o,$(basename $(SRCS))))
 MINIZ_OBJS = $(filter $(BUILD_DIR)/libs/miniz/%.o,$(OBJS))

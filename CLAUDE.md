@@ -126,7 +126,7 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
 |---|---|---|
 | `theme/theme.ini` (or `theme.txt`) | the theme; read only | the user / Theme Maker |
 | `features.ini` | the player's On/Off choices | `menu_features.c` |
-| `options.ini` | `sort_order`, `font`, `frame_rate_experiment`, `intro`, `fade`, `tab1`..`tab4` | `menu_options.c` |
+| `options.ini` | `sort_order`, `font`, `frame_rate_experiment`, `intro`, `fade`, `intro_logo`, `tab1`..`tab4` | `menu_options.c` |
 | `folders.ini` | selected entry per folder | `folder_memory.c` |
 | `playstats.txt` | play count and last played | `play_stats.c` |
 | `metadata/` | box art and `metadata.ini` per game; read only | the user's metadata pack |
@@ -808,6 +808,28 @@ Stages, one testable build each:
      `make_icons.py`, loaded for the intro only), drawn as textured,
      perspective-correct, shaded triangles. A GIF the user pastes can be
      split into frames with Pillow to look at.
+     Fourth version (built, awaiting test, not committed), from a clearer
+     reference: one pattern covers each whole side (both pillars and the
+     bar across them), the bar's upper edge is red and its lower edge
+     grey, the pillars' gap sides teal. A per-side bar color was tried in
+     between and dropped. New option `intro_logo` ("Intro Logo" in
+     Settings > System): Vaporwave (default) or Classic, the console's own
+     green, blue, red and yellow, plain and glossy with no patterns. The
+     classic colors and which face gets which were set from memory, not
+     from a picture; expect the user to correct them.
+     Then, at the user's request: the logo is smaller (52 px half
+     width, middle at y=160) and further from the title; and the title
+     is a picture, `wordmark.sprite` (448x124, RGBA32 for its soft glow,
+     70 KB in the ROM, **about 220 KB in RAM, loaded for the intro only**
+     and skipped when less than 700 KB is free, in which case the plain
+     text title and accent line are used). `make_wordmark.py` draws it
+     in an 80s style after a reference the user gave: "SUMMERSTATION" in
+     chunky pink-to-yellow letters with a white rim and a slab of depth,
+     "64" in neon handwriting across it. Fonts: Anton and Mr Dafoe, both
+     Open Font License, kept with their licences in
+     `assets/images/wordmark/`; see `assets/images/CREDITS.md`. Seen by
+     the user 2026-10-08: "looks good", to be left as it is for now and
+     come back to later.
      **Tested on hardware 2026-10-08 (photo): passed**, along with the
      tab look, hint band, underscores, position letter, "Detected" and
      the remove prompt. The maths was checked on the PC first by drawing it from eight

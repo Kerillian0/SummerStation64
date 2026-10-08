@@ -37,9 +37,17 @@
 
 /* The logo turns steadily the whole time, as it does at the start of
    Ocarina of Time. */
-#define LOGO_Y              (166)   /* its middle */
-#define LOGO_SIZE           (66.0f) /* pixels for half its width */
+#define LOGO_Y              (160)   /* its middle */
+#define LOGO_SIZE           (52.0f) /* pixels for half its width */
 #define LOGO_TURN_MS        (2600)  /* time for one full turn */
+
+/* The title is a picture (rom:/wordmark.sprite, drawn by
+   assets/images/make_wordmark.py): the name in 80s-style letters with "64"
+   in neon across it. It is big for this console, about 220 KB, so it is in
+   memory only while the intro plays, and when memory is short the name is
+   written in plain text with the accent line instead. */
+#define WORDMARK_Y          (258)
+#define WORDMARK_MIN_FREE   (700 * 1024)
 
 #define TITLE_HEIGHT        (40)
 #define TITLE_Y             (272)
@@ -64,6 +72,7 @@ static uint64_t started_at;
 static menu_mode_t after;       /* the screen to open when the intro ends */
 static wav64_t tune;
 static bool tune_open = false;
+static sprite_t *wordmark = NULL;
 static int total_ms = INTRO_SHORTEST_MS;
 static bool fading = false;         /* the fade-in is waiting to start, or running */
 static bool fade_running = false;
@@ -81,6 +90,10 @@ static void finish (menu_t *menu) {
         tune_open = false;
     }
     intro_logo_close();
+    if (wordmark) {
+        sprite_free(wordmark);
+        wordmark = NULL;
+    }
     playing = false;
     menu->next_mode = after;
 }
@@ -137,7 +150,14 @@ void intro_begin (menu_t *menu) {
     menu->next_mode = MENU_MODE_STARTUP;    /* stay on the startup screen while the intro runs */
     playing = true;
     started = false;
-    intro_logo_open();
+    intro_logo_open((intro_logo_t) options_get(OPTION_INTRO_LOGO));
+
+    heap_stats_t heap;
+    sys_get_heap_stats(&heap);
+    if ((heap.total - heap.used) >= WORDMARK_MIN_FREE) {
+        wordmark = sprite_load("rom:/wordmark.sprite");
+    }
+    debugf("intro: title %s\n", wordmark ? "picture" : "as text (memory is short)");
     music_volume(0.0f);
 }
 
@@ -238,19 +258,27 @@ bool intro_display (menu_t *menu, surface_t *display) {
 
     intro_logo_draw(DISPLAY_CENTER_X, LOGO_Y, LOGO_SIZE, ((t % LOGO_TURN_MS) * 360.0f) / LOGO_TURN_MS);
 
-    rdpq_text_printf(&(rdpq_textparms_t) {
-        .width = DISPLAY_WIDTH,
-        .height = TITLE_HEIGHT,
-        .align = ALIGN_CENTER,
-        .valign = VALIGN_CENTER,
-        .style_id = STL_DEFAULT,
-    }, FNT_TITLE, 0, TITLE_Y, "%s", MENU_DISPLAY_NAME);
-
-    if (half_bar > 0) {
+    if (wordmark) {
         rdpq_mode_push();
-            rdpq_set_mode_fill(theme_get()->accent);
-            rdpq_fill_rectangle(DISPLAY_CENTER_X - half_bar, BAR_Y, DISPLAY_CENTER_X + half_bar, BAR_Y + BAR_HEIGHT);
+            rdpq_set_mode_standard();
+            rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+            rdpq_sprite_blit(wordmark, DISPLAY_CENTER_X - (wordmark->width / 2), WORDMARK_Y, NULL);
         rdpq_mode_pop();
+    } else {
+        rdpq_text_printf(&(rdpq_textparms_t) {
+            .width = DISPLAY_WIDTH,
+            .height = TITLE_HEIGHT,
+            .align = ALIGN_CENTER,
+            .valign = VALIGN_CENTER,
+            .style_id = STL_DEFAULT,
+        }, FNT_TITLE, 0, TITLE_Y, "%s", MENU_DISPLAY_NAME);
+    
+        if (half_bar > 0) {
+            rdpq_mode_push();
+                rdpq_set_mode_fill(theme_get()->accent);
+                rdpq_fill_rectangle(DISPLAY_CENTER_X - half_bar, BAR_Y, DISPLAY_CENTER_X + half_bar, BAR_Y + BAR_HEIGHT);
+            rdpq_mode_pop();
+        }
     }
 
     if (dark > 0.0f) {

@@ -6,6 +6,7 @@
 #include "../folder_memory.h"
 #include "../font_choice.h"
 #include "../intro.h"
+#include "../intro_logo.h"
 #include "../tabs.h"
 #include "../games_ui.h"
 #include "../menu_features.h"
@@ -203,6 +204,8 @@ static const item_t system_items[] = {
     INFO("Start Folder", default_folder, "The folder the menu opens in. Change it from Options on the Files screen."),
     CHOICES("Intro", OPTION_INTRO, INTRO_CHOICE_COUNT, intro_choice_name, NULL,
         "The short intro with its tune. On shows it when the console is switched on. Both shows it after RESET as well. Any button skips it. The tune follows the Sound Effects setting."),
+    CHOICES("Intro Logo", OPTION_INTRO_LOGO, INTRO_LOGO_COUNT, intro_logo_name, NULL,
+        "The look of the spinning logo in the intro. Vaporwave has patterned sides. Classic is the console's own green, blue, red and yellow."),
     CHOICES("Fade In", OPTION_FADE, FADE_COUNT, intro_fade_name, NULL,
         "When the menu starts, the picture comes up from black and the background music rises, over one or two seconds. Off shows the menu at once."),
     FEATURE("Remember Settings Page", FEATURE_REMEMBER_SETTINGS, "Reopen Settings on the page and row you last used, until the console is switched off."),

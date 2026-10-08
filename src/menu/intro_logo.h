@@ -18,8 +18,18 @@
 #ifndef INTRO_LOGO_H__
 #define INTRO_LOGO_H__
 
-/** Load the logo's two patterns (4 KB). Call when the intro starts. */
-void intro_logo_open (void);
+/** The two looks (option `intro_logo` in options.ini). */
+typedef enum {
+    INTRO_LOGO_VAPORWAVE,   /**< patterned sides, after the owner's reference picture (the default) */
+    INTRO_LOGO_CLASSIC,     /**< the console's own green, blue, red and yellow */
+    INTRO_LOGO_COUNT
+} intro_logo_t;
+
+/** Name of a look, for the settings screen. */
+const char *intro_logo_name (int choice);
+
+/** Choose the look and load what it needs (the vaporwave patterns, 4 KB). Call when the intro starts. */
+void intro_logo_open (intro_logo_t which);
 
 /** Free them again. Call when the intro ends. */
 void intro_logo_close (void);

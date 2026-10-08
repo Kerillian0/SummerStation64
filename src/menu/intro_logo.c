@@ -26,33 +26,50 @@
 typedef struct { float x, y, z; } vec_t;
 
 typedef enum {
-    COLOR_PILLAR,       /* outer face of a pillar; every other side is COLOR_PILLAR_2 */
-    COLOR_PILLAR_2,
-    COLOR_BAR,          /* outer face of a slanted bar */
-    COLOR_BAR_EDGE,     /* its upper and lower edges */
+    COLOR_FACE,         /* the outside of a side: both pillars and the bar across them */
+    COLOR_FACE_2,       /* the same on the two sides in between */
+    COLOR_BAR_UPPER,    /* the bar's upper edge */
+    COLOR_BAR_LOWER,    /* and its lower one */
     COLOR_PILLAR_SIDE,  /* the sides of the pillars that face the gaps */
     COLOR_BAR_INSIDE,   /* a bar seen from the inside */
     COLOR_TOP,
+    COLOR_COUNT
 } logo_color_t;
 
-/* Taken from the reference picture. The pillars' outer faces are not a
-   flat color: they carry one of two patterns (see below), and these two
-   entries only tint them (white = the pattern as it is). */
-static const color_t colors[] = {
-    [COLOR_PILLAR]      = { 0xFF, 0xFF, 0xFF, 0xFF },
-    [COLOR_PILLAR_2]    = { 0xFF, 0xFF, 0xFF, 0xFF },
-    [COLOR_BAR]         = { 0xD2, 0x40, 0x41, 0xFF },
-    [COLOR_BAR_EDGE]    = { 0x29, 0x8D, 0x8B, 0xFF },
-    [COLOR_PILLAR_SIDE] = { 0x7B, 0x77, 0x92, 0xFF },
-    [COLOR_BAR_INSIDE]  = { 0x1E, 0x70, 0x70, 0xFF },
-    [COLOR_TOP]         = { 0xF3, 0xBE, 0x22, 0xFF },
+/* Two looks (option `intro_logo`).
+   Vaporwave: colors taken from the reference picture; the outside of each
+   side is not a flat color but carries a pattern (see below), and the two
+   FACE entries only tint it (white = the pattern as it is).
+   Classic: the console's own green, blue, red and yellow, plain and glossy. */
+static const color_t looks[INTRO_LOGO_COUNT][COLOR_COUNT] = {
+    [INTRO_LOGO_VAPORWAVE] = {
+        [COLOR_FACE]        = { 0xFF, 0xFF, 0xFF, 0xFF },
+        [COLOR_FACE_2]      = { 0xFF, 0xFF, 0xFF, 0xFF },
+        [COLOR_BAR_UPPER]   = { 0xD2, 0x40, 0x41, 0xFF },
+        [COLOR_BAR_LOWER]   = { 0x7B, 0x77, 0x92, 0xFF },
+        [COLOR_PILLAR_SIDE] = { 0x29, 0x8D, 0x8B, 0xFF },
+        [COLOR_BAR_INSIDE]  = { 0x1E, 0x70, 0x70, 0xFF },
+        [COLOR_TOP]         = { 0xF3, 0xBE, 0x22, 0xFF },
+    },
+    [INTRO_LOGO_CLASSIC] = {
+        [COLOR_FACE]        = { 0x00, 0x94, 0x46, 0xFF },
+        [COLOR_FACE_2]      = { 0x1C, 0x3C, 0xC8, 0xFF },
+        [COLOR_BAR_UPPER]   = { 0xE0, 0x20, 0x28, 0xFF },
+        [COLOR_BAR_LOWER]   = { 0xA0, 0x14, 0x1C, 0xFF },
+        [COLOR_PILLAR_SIDE] = { 0x14, 0x2C, 0x98, 0xFF },
+        [COLOR_BAR_INSIDE]  = { 0x00, 0x6C, 0x34, 0xFF },
+        [COLOR_TOP]         = { 0xFF, 0xC4, 0x00, 0xFF },
+    },
 };
+static intro_logo_t look = INTRO_LOGO_VAPORWAVE;
 
-/* The patterns: a marbled "hologram" on two opposite sides and pink-to-blue
-   stripes on the other two (rom:/logo_holo.sprite, rom:/logo_stripes.sprite,
-   2 KB each, made by assets/images/make_icons.py). Loaded for the intro
-   only. */
-#define PATTERN_HEIGHT  (64)    /* texels from the top of a pillar to its foot */
+/* The vaporwave patterns: a marbled "hologram" across two opposite sides
+   and pink-to-blue stripes across the other two (rom:/logo_holo.sprite,
+   rom:/logo_stripes.sprite, 2 KB each, made by assets/images/make_icons.py).
+   One pattern covers a whole side, pillars and bar alike. Loaded for the
+   intro only. */
+#define PATTERN_HEIGHT  (64)    /* texels from the top of a side to its foot */
+static const float pattern_across[2] = { 64.0f, 16.0f };   /* texels from its left edge to its right */
 static sprite_t *pattern[2] = { NULL, NULL };
 static sprite_t *pattern_set = NULL;    /* the one the graphics chip has now */
 
@@ -71,14 +88,14 @@ static const face_t side[] = {
     { { { -IN, -H, IN }, { -IN, -H, 1 }, { -IN, YA, 1 }, { -IN, YA, IN } }, { 1, 0, 0 }, COLOR_PILLAR_SIDE },
     { { { IN, YB, IN }, { IN, YB, 1 }, { IN, H, 1 }, { IN, H, IN } }, { -1, 0, 0 }, COLOR_PILLAR_SIDE },
     /* The bar's upper and lower edges, between the pillars. */
-    { { { -IN, H, IN }, { -IN, H, 1 }, { IN, YB, 1 }, { IN, YB, IN } }, { (2.0f * H) / SLANT, (2.0f - T) / SLANT, 0 }, COLOR_BAR_EDGE },
-    { { { -IN, YA, IN }, { -IN, YA, 1 }, { IN, -H, 1 }, { IN, -H, IN } }, { -(2.0f * H) / SLANT, -(2.0f - T) / SLANT, 0 }, COLOR_BAR_EDGE },
+    { { { -IN, H, IN }, { -IN, H, 1 }, { IN, YB, 1 }, { IN, YB, IN } }, { (2.0f * H) / SLANT, (2.0f - T) / SLANT, 0 }, COLOR_BAR_UPPER },
+    { { { -IN, YA, IN }, { -IN, YA, 1 }, { IN, -H, 1 }, { IN, -H, IN } }, { -(2.0f * H) / SLANT, -(2.0f - T) / SLANT, 0 }, COLOR_BAR_LOWER },
     /* The bar from the inside, between the pillars. */
     { { { -IN, H, IN }, { IN, YB, IN }, { IN, -H, IN }, { -IN, YA, IN } }, { 0, 0, -1 }, COLOR_BAR_INSIDE },
     /* The outside: both pillars, then the bar across them. */
-    { { { -1, -H, 1 }, { -IN, -H, 1 }, { -IN, H, 1 }, { -1, H, 1 } }, { 0, 0, 1 }, COLOR_PILLAR },
-    { { { IN, -H, 1 }, { 1, -H, 1 }, { 1, H, 1 }, { IN, H, 1 } }, { 0, 0, 1 }, COLOR_PILLAR },
-    { { { -1, H, 1 }, { -IN, H, 1 }, { 1, -H, 1 }, { IN, -H, 1 } }, { 0, 0, 1 }, COLOR_BAR },
+    { { { -1, -H, 1 }, { -IN, -H, 1 }, { -IN, H, 1 }, { -1, H, 1 } }, { 0, 0, 1 }, COLOR_FACE },
+    { { { IN, -H, 1 }, { 1, -H, 1 }, { 1, H, 1 }, { IN, H, 1 } }, { 0, 0, 1 }, COLOR_FACE },
+    { { { -1, H, 1 }, { -IN, H, 1 }, { 1, -H, 1 }, { IN, -H, 1 } }, { 0, 0, 1 }, COLOR_FACE },
 };
 #define SIDE_FACES  ((int) (sizeof(side) / sizeof(side[0])))
 
@@ -124,8 +141,9 @@ static void face_draw (const face_t *face, int quarter, logo_color_t color) {
 
     /* Faces turned toward the light are brighter, and each face is a
        little lighter at the top than at the bottom; the console blends the
-       shades between the corners. A face turned almost exactly at the light
-       catches a faint glint. (The first try glinted on every face that
+       shades between the corners. A plain face turned almost exactly at
+       the light catches a glint: a faint one, or a strong one on the
+       glossy classic logo. (The first try glinted on every face that
        looked our way, which washed all the colors out to white.) */
     float lit = (facing.x * light.x) + (facing.y * light.y) + (facing.z * light.z);
     float diffuse = 0.60f + (0.40f * ((lit > 0.0f) ? lit : 0.0f));
@@ -133,13 +151,12 @@ static void face_draw (const face_t *face, int quarter, logo_color_t color) {
     shine = shine * shine;      /* raised to the 16th power */
     shine = shine * shine;
     shine = shine * shine;
-    shine = shine * shine * 0.20f;
+    shine = shine * shine * ((look == INTRO_LOGO_CLASSIC) ? 0.45f : 0.20f);
 
-    sprite_t *wanted = NULL;
-    if (color == COLOR_PILLAR) wanted = pattern[0];
-    if (color == COLOR_PILLAR_2) wanted = pattern[1];
+    int which = (color == COLOR_FACE_2) ? 1 : 0;
+    sprite_t *wanted = ((color == COLOR_FACE) || (color == COLOR_FACE_2)) ? pattern[which] : NULL;
 
-    color_t c = colors[color];
+    color_t c = looks[look][color];
     float corners[4][9];
     for (int i = 0; i < 4; i++) {
         /* Things further away look smaller. */
@@ -157,10 +174,10 @@ static void face_draw (const face_t *face, int quarter, logo_color_t color) {
         }
         corners[i][5] = 1.0f;
 
-        /* Where on the pattern this corner is. A pillar's outer face lists
-           its corners bottom-left, bottom-right, top-right, top-left. */
-        corners[i][6] = (wanted && (i == 1 || i == 2)) ? (float) wanted->width : 0.0f;
-        corners[i][7] = (i < 2) ? (float) PATTERN_HEIGHT : 0.0f;
+        /* Where on the pattern this corner is: the pattern is laid over the
+           whole side, from its left edge to its right and from top to foot. */
+        corners[i][6] = ((face->corner[i].x + 1.0f) / 2.0f) * pattern_across[which];
+        corners[i][7] = (1.0f - height) * PATTERN_HEIGHT;
         corners[i][8] = 1.0f / distance;
     }
 
@@ -182,9 +199,12 @@ static void face_draw (const face_t *face, int quarter, logo_color_t color) {
     }
 }
 
-void intro_logo_open (void) {
-    if (!pattern[0]) pattern[0] = sprite_load("rom:/logo_holo.sprite");
-    if (!pattern[1]) pattern[1] = sprite_load("rom:/logo_stripes.sprite");
+void intro_logo_open (intro_logo_t which) {
+    look = (which == INTRO_LOGO_CLASSIC) ? INTRO_LOGO_CLASSIC : INTRO_LOGO_VAPORWAVE;
+    if (look == INTRO_LOGO_VAPORWAVE) {
+        if (!pattern[0]) pattern[0] = sprite_load("rom:/logo_holo.sprite");
+        if (!pattern[1]) pattern[1] = sprite_load("rom:/logo_stripes.sprite");
+    }
 }
 
 void intro_logo_close (void) {
@@ -196,8 +216,12 @@ void intro_logo_close (void) {
     }
 }
 
+const char *intro_logo_name (int choice) {
+    return (choice == INTRO_LOGO_CLASSIC) ? "Classic" : "Vaporwave";
+}
+
 void intro_logo_draw (int center_x, int center_y, float size, float angle) {
-    if (!pattern[0] || !pattern[1]) {
+    if ((look == INTRO_LOGO_VAPORWAVE) && (!pattern[0] || !pattern[1])) {
         return;     /* not opened */
     }
     float radians = angle * (3.14159265f / 180.0f);
@@ -236,8 +260,8 @@ void intro_logo_draw (int center_x, int center_y, float size, float angle) {
             int quarter = order[i];
             for (int f = 0; f < SIDE_FACES; f++) {
                 logo_color_t color = side[f].color;
-                if (color == COLOR_PILLAR && (quarter & 1)) {
-                    color = COLOR_PILLAR_2;
+                if (color == COLOR_FACE && (quarter & 1)) {
+                    color = COLOR_FACE_2;
                 }
                 face_draw(&side[f], quarter, color);
             }

@@ -21,6 +21,7 @@ static const option_info_t option_info[OPTION_COUNT] = {
     [OPTION_FRAME_RATE] = { "frame_rate_experiment", 0 },
     [OPTION_INTRO] = { "intro", 1 },    /* INTRO_ON: at power-on */
     [OPTION_FADE] = { "fade", 2 },      /* FADE_2_SECONDS */
+    [OPTION_INTRO_LOGO] = { "intro_logo", 0 },  /* vaporwave */
     [OPTION_TAB1] = { "tab1", 1 },      /* Games */
     [OPTION_TAB2] = { "tab2", 2 },      /* Favorites */
     [OPTION_TAB3] = { "tab3", 3 },      /* Folders */
