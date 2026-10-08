@@ -78,6 +78,7 @@ SRCS = \
 	menu/settings.c \
 	menu/sound.c \
 	menu/intro.c \
+	menu/intro_logo.c \
 	menu/cover_list.c \
 	menu/cover_row.c \
 	menu/tabs.c \
@@ -139,11 +140,17 @@ SOUNDS_XM ?=
 IMAGES = \
 	expansion_pak.png \
 	jumper_pak.png \
-	button.png
+	button.png \
+	heart.png \
+	logo_holo.png \
+	logo_stripes.png
 
 # The smallest formats that hold them: 16 colors for the paks, 16 shades for the button disc.
 MKSPRITE_FLAGS ?= --format CI4
 $(FILESYSTEM_DIR)/button.sprite: MKSPRITE_FLAGS=--format I4
+$(FILESYSTEM_DIR)/heart.sprite: MKSPRITE_FLAGS=--format I4
+$(FILESYSTEM_DIR)/logo_holo.sprite: MKSPRITE_FLAGS=--format RGBA16
+$(FILESYSTEM_DIR)/logo_stripes.sprite: MKSPRITE_FLAGS=--format RGBA16
 
 OBJS = $(addprefix $(BUILD_DIR)/, $(addsuffix .o,$(basename $(SRCS))))
 MINIZ_OBJS = $(filter $(BUILD_DIR)/libs/miniz/%.o,$(OBJS))
@@ -198,6 +205,15 @@ $(FILESYSTEM_DIR)/Firple-Bold-Title.font64: $(ASSETS_DIR)/fonts/Firple-Bold.ttf 
 	@mkdir -p $(BUILD_DIR)/font-title
 	@$(N64_MKFONT) --compress 1 --outline 1 --size 26 --charset $(ASSETS_DIR)/fonts/charset-title.txt --ellipsis 2026,1 -o $(BUILD_DIR)/font-title "$<"
 	@cp $(BUILD_DIR)/font-title/Firple-Bold.font64 $@
+
+# A small one (12 px, English letters only, about 10 KB in RAM) for the few
+# places a second line has to fit under another, such as "Detected".
+$(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM_DIR)/Firple-Bold-Small.font64
+$(FILESYSTEM_DIR)/Firple-Bold-Small.font64: $(ASSETS_DIR)/fonts/Firple-Bold.ttf $(ASSETS_DIR)/fonts/charset-small.txt
+	@echo "    [FONT] $@"
+	@mkdir -p $(BUILD_DIR)/font-small
+	@$(N64_MKFONT) --compress 1 --outline 1 --size 12 --charset $(ASSETS_DIR)/fonts/charset-small.txt -o $(BUILD_DIR)/font-small "$<"
+	@cp $(BUILD_DIR)/font-small/Firple-Bold.font64 $@
 
 # The same at 20 px, for titles too long for the 26 px one.
 $(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM_DIR)/Firple-Bold-Title20.font64

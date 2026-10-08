@@ -7,6 +7,7 @@
 #include "flashcart/flashcart.h"
 #include "fonts.h"
 #include "intro.h"
+#include "intro_logo.h"
 #include "menu_name.h"
 #include "menu_options.h"
 #include "safe_mode.h"
@@ -34,9 +35,15 @@
 #define FADE_WAIT_MS        (1000)  /* if no screen has drawn the fade by then, the music starts rising anyway */
 #define MUSIC_VOLUME        (0.1f)  /* the level sound.c plays it at */
 
+/* The logo turns steadily the whole time, as it does at the start of
+   Ocarina of Time. */
+#define LOGO_Y              (166)   /* its middle */
+#define LOGO_SIZE           (66.0f) /* pixels for half its width */
+#define LOGO_TURN_MS        (2600)  /* time for one full turn */
+
 #define TITLE_HEIGHT        (40)
-#define TITLE_Y             (DISPLAY_CENTER_Y - TITLE_HEIGHT)
-#define BAR_Y               (DISPLAY_CENTER_Y + 10)
+#define TITLE_Y             (272)
+#define BAR_Y               (TITLE_Y + TITLE_HEIGHT + 8)
 #define BAR_HEIGHT          (4)
 #define BAR_WIDTH           (240)
 
@@ -73,6 +80,7 @@ static void finish (menu_t *menu) {
         wav64_close(&tune);
         tune_open = false;
     }
+    intro_logo_close();
     playing = false;
     menu->next_mode = after;
 }
@@ -129,6 +137,7 @@ void intro_begin (menu_t *menu) {
     menu->next_mode = MENU_MODE_STARTUP;    /* stay on the startup screen while the intro runs */
     playing = true;
     started = false;
+    intro_logo_open();
     music_volume(0.0f);
 }
 
@@ -226,6 +235,8 @@ bool intro_display (menu_t *menu, surface_t *display) {
     rdpq_attach(display, NULL);
 
     ui_components_background_draw();
+
+    intro_logo_draw(DISPLAY_CENTER_X, LOGO_Y, LOGO_SIZE, ((t % LOGO_TURN_MS) * 360.0f) / LOGO_TURN_MS);
 
     rdpq_text_printf(&(rdpq_textparms_t) {
         .width = DISPLAY_WIDTH,

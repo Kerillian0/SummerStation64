@@ -1013,7 +1013,7 @@ void carousel_draw (menu_t *menu) {
     // Title panel and position bar under the covers.
     const char *title = display_name(selected_entry);
     games_ui_title_panel_draw(title, carousel_kind_label(selected_entry->type), game_facts_update(menu));
-    games_ui_position_draw(title, covers->selected, covers->entries);
+    games_ui_position_draw(selected_entry->name, covers->selected, covers->entries); // the file name: that is what the list is sorted by
 }
 #endif
 
@@ -1023,6 +1023,8 @@ static void carousel_hints_draw (menu_t *menu) {
     // Upper row: what A does. Lower row: back and options. Right side: the
     // two that are always there.
     int x = GAMES_UI_HINTS_X;
+
+    games_ui_hints_backdrop_draw();
 
     if (menu->browser.entry) {
         const char *tap = "Info";

@@ -16,6 +16,7 @@ static void load (uint8_t id, const char *path) {
     const theme_t *theme = theme_get();
     rdpq_font_style(font, STL_DEFAULT, &((rdpq_fontstyle_t) { .color = theme->text }));
     rdpq_font_style(font, STL_GRAY, &((rdpq_fontstyle_t) { .color = theme->text_dim }));
+    rdpq_font_style(font, STL_GREEN, &((rdpq_fontstyle_t) { .color = RGBA32(0x70, 0xFF, 0x70, 0xFF) }));
 
     rdpq_text_register_font(id, font);
 }
@@ -23,6 +24,7 @@ static void load (uint8_t id, const char *path) {
 void title_font_init (void) {
     load(FNT_TITLE, "rom:/Firple-Bold-Title.font64");
     load(FNT_TITLE_MEDIUM, "rom:/Firple-Bold-Title20.font64");
+    load(FNT_SMALL, "rom:/Firple-Bold-Small.font64");
     loaded = true;
 }
 

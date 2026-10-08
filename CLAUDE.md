@@ -110,7 +110,7 @@ Ours (new files, free to change), all in `src/menu/`: `theme`,
 `display_name`, `font_choice`, `title_font`, `frame_rate`, `games_ui`,
 `game_facts`, `game_info_ui`, `play_stats`, `intro`, `menu_name.h`,
 `cover_list`, `cover_row`, `carousel.h`, `tabs`, `folders_ui`,
-`start_menu`, and
+`start_menu`, `intro_logo`, and
 `views/settings_menu`
 (`views/features_menu` is ours too but no longer reachable).
 
@@ -758,7 +758,67 @@ Stages, one testable build each:
      gives the old boxes.
    - Same build: pressing START again closes the START menu (one line in
      `browser.c`, and in `start_menu.c`).
-   - Not done yet: Favorites as a cover row; the Games tab has no way to change folder
+   - Icons build tested on hardware and committed (`61831769`).
+   - **Built 2026-10-08, awaiting hardware test, not committed:**
+     Favorites is a cover row too (`COVER_ROWS` switch in
+     `history_favorites.c`; Z removes the selected favorite and the row is
+     rebuilt in place). The memory badge has "Detected" in green under
+     "8MB"/"4MB", in a new 12 px font (`FNT_SMALL`,
+     `Firple-Bold-Small.font64`, English letters only, 7 KB in the ROM,
+     about 10 KB in RAM, loaded by `title_font.c`), and is hidden on the
+     Folders tab, where it ran into the list. Feature `favorite_heart`
+     (default on, "Favorite Heart" in Settings > Display): a pink heart
+     (`heart.sprite`, 16x14, I4, 112 bytes) after the game's name on the
+     title panel, with room always kept for it so the name never changes
+     size; off shows the word "Favorite" as before. 12 px text was
+     earlier judged too small for a composite CRT; the user asked for it
+     here, so check the photo.
+   - Test of that build (2026-10-08, photo): passed except that "8MB"
+     and "Detected" did not show (their text boxes were lower than one
+     line of the font, and rdpq drops text that does not fit its box:
+     **give a text box at least the font's line height**), and Z removed
+     a favorite too easily.
+   - **Next build (the memory text and the Z confirmation confirmed
+     working by the user; the rest awaiting comment; not committed):** that text fixed; Z on
+     Favorites asks "Remove from Favorites?" (A removes, B keeps); and
+     four visual changes the user approved: the selected tab is a solid
+     accent-colored block with black or white text chosen by the accent's
+     brightness (`STL_BLACK` added); Tidy Game Titles also turns
+     underscores into spaces; a see-through dark band sits behind the
+     button hints (`games_ui_hints_backdrop_draw()`); the position bar's
+     letter comes from the file name, which is what the list is sorted by.
+   - **Intro logo (same build, awaiting test):** `intro_logo.c` draws a
+     spinning 3D "N" above the name: four pillars and four slanted bars as
+     44 flat-colored, lit quads (88 triangles, no picture file, no memory),
+     sorted side by side instead of using a depth buffer (which would cost
+     600 KB). First version spun twice and slowed to a stop; the user
+     then gave the Ocarina of Time boot logo as a second reference
+     (keep our colors, same size), so it now turns steadily (one turn in
+     2.6 s), is a little squatter, and looks polished: each face is shaded
+     from top to bottom (smooth-shaded triangles) and glints when turned
+     toward the light. The user's recording (2026-10-08) showed it
+     working but washed out to pale colors and without the reference's
+     patterns. Cause of the wash: the glint was aimed almost straight at
+     the viewer, so every face looking our way was whitened. Third version
+     (awaiting test): the reference picture's own colors (sampled from
+     it), the glint cut to a faint one, and two generated patterns on the
+     pillars, a marbled "hologram" on two opposite sides and pink-to-blue
+     stripes on the other two (`logo_holo.sprite` 32x32 and
+     `logo_stripes.sprite` 16x64, RGBA16, 2 KB each, made by
+     `make_icons.py`, loaded for the intro only), drawn as textured,
+     perspective-correct, shaded triangles. A GIF the user pastes can be
+     split into frames with Pillow to look at.
+     **Tested on hardware 2026-10-08 (photo): passed**, along with the
+     tab look, hint band, underscores, position letter, "Detected" and
+     the remove prompt. The maths was checked on the PC first by drawing it from eight
+     angles with a Python copy. **The shape is Nintendo's N64 logo. The
+     user decided on 2026-10-08 to use it, knowing that, and will remove it
+     if asked; do not raise it again.** The name and accent line moved
+     down to make room (name at y=272).
+   - **Approved by the user, not built yet:** the cover row wrapping round
+     (last game shown left of the first); covers sliding sideways when
+     switching tabs.
+   - Not done yet: the Games tab has no way to change folder
      except through Folders.
 7. **Intro (done and tested):** `intro.c`. The name (`MENU_DISPLAY_NAME`,
    defined in `menu_name.h`) in the 26 px title font over the theme

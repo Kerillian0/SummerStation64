@@ -12,7 +12,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-/** Load and register the title fonts (FNT_TITLE, FNT_TITLE_MEDIUM). Call once, with the other fonts. */
+/** Load and register the title fonts (FNT_TITLE, FNT_TITLE_MEDIUM) and the small one (FNT_SMALL). Call once, with the other fonts. */
 void title_font_init (void);
 
 /**

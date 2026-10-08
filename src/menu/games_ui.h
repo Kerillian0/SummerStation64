@@ -44,7 +44,11 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const gam
  */
 int games_ui_badge (int x, int y, const char *label, menu_font_style_t style, bool boxed);
 
-/** "You are here" bar: first letter, a track with a marker, and "13 of 79". */
+/**
+ * "You are here" bar: first letter, a track with a marker, and "13 of 79".
+ * @param name The name the list is sorted by (the file name), so the letter
+ *             matches the order: "Legend of Zelda, The" is under L, not T.
+ */
 void games_ui_position_draw (const char *title, int selected, int count);
 
 /**
@@ -56,6 +60,13 @@ void games_ui_position_draw (const char *title, int selected, int count);
 
 /** Left edge of the button hints along the bottom. They sit in two rows. */
 #define GAMES_UI_HINTS_X    (GAMES_UI_CONTENT_X0)
+
+/**
+ * A see-through dark band behind the two rows of hints, like the title
+ * panel's, so a busy background doesn't run through the text. Draw it
+ * before the hints.
+ */
+void games_ui_hints_backdrop_draw (void);
 
 /**
  * One button hint: the button in a small box, then what it does.

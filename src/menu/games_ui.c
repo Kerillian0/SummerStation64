@@ -71,13 +71,16 @@ static void pill (int x, int width, const char *label, bool active) {
     const theme_t *t = theme_get();
 
     if (active) {
-        /* The selected tab is outlined in the accent color. */
+        /* The selected tab is filled with the accent color, a little larger
+           than the others, with whichever of black or white text shows best
+           on it. An outline alone was hard to read on a composite TV. */
+        int brightness = ((t->accent.r * 3) + (t->accent.g * 6) + t->accent.b) / 10;
         fill(x - 2, TOPBAR_Y - 2, x + width + 2, TOPBAR_Y + TOPBAR_HEIGHT + 2, t->accent);
-        fill(x, TOPBAR_Y, x + width, TOPBAR_Y + TOPBAR_HEIGHT, t->tab_active);
-    } else {
-        fill(x, TOPBAR_Y, x + width, TOPBAR_Y + TOPBAR_HEIGHT, t->tab_inactive);
+        text(x, TOPBAR_Y, width, TOPBAR_HEIGHT, ALIGN_CENTER, (brightness >= 128) ? STL_BLACK : STL_WHITE, label);
+        return;
     }
-    text(x, TOPBAR_Y, width, TOPBAR_HEIGHT, ALIGN_CENTER, active ? STL_DEFAULT : STL_GRAY, label);
+    fill(x, TOPBAR_Y, x + width, TOPBAR_Y + TOPBAR_HEIGHT, t->tab_inactive);
+    text(x, TOPBAR_Y, width, TOPBAR_HEIGHT, ALIGN_CENTER, STL_GRAY, label);
 }
 
 /* Under the clock: what sits in the console's memory slot, and how much
@@ -85,7 +88,7 @@ static void pill (int x, int width, const char *label, bool active) {
    Jumper Pak that consoles shipped with. */
 #define PAK_WIDTH       (24)
 #define MEMORY_Y        (GAMES_UI_TOPBAR_BOTTOM + 6)
-#define MEMORY_TEXT     (44)    /* room for "8MB" */
+#define MEMORY_TEXT     (62)    /* room for "8MB" with "Detected" under it */
 
 static void memory_badge_draw (void) {
     bool expanded = is_memory_expanded();
@@ -104,7 +107,17 @@ static void memory_badge_draw (void) {
         rdpq_mode_alphacompare(1);
         rdpq_sprite_blit(pak, x0, MEMORY_Y, NULL);
     rdpq_mode_pop();
-    text(x0 + pak->width, MEMORY_Y, MEMORY_TEXT, pak->height, ALIGN_RIGHT, STL_GRAY, expanded ? "8MB" : "4MB");
+    /* Two lines beside the pak: the amount, and in small green "Detected". */
+    /* The boxes are taller than they look: text is dropped altogether when
+       its box is lower than one line of its font, so they overlap a little. */
+    text(x0 + pak->width, MEMORY_Y - 6, MEMORY_TEXT, 24, ALIGN_RIGHT, STL_GRAY, expanded ? "8MB" : "4MB");
+    rdpq_text_printf(&(rdpq_textparms_t) {
+        .width = MEMORY_TEXT,
+        .height = 22,
+        .align = ALIGN_RIGHT,
+        .valign = VALIGN_CENTER,
+        .style_id = STL_GREEN,
+    }, FNT_SMALL, x0 + pak->width, MEMORY_Y + 9, "Detected");
 }
 
 void games_ui_topbar_draw (menu_t *menu, games_tab_t selected) {
@@ -129,7 +142,8 @@ void games_ui_topbar_draw (menu_t *menu, games_tab_t selected) {
         }
     }
 
-    if (features_enabled(FEATURE_MEMORY_BADGE)) {
+    /* Not on Folders: the list there starts right under the tab bar. */
+    if (features_enabled(FEATURE_MEMORY_BADGE) && selected != GAMES_TAB_FOLDERS) {
         memory_badge_draw();
     }
 }
@@ -167,6 +181,26 @@ int games_ui_badge (int x, int y, const char *label, menu_font_style_t style, bo
     return x + width + BADGE_SPACING;
 }
 
+/* The heart that marks a favorite (feature `favorite_heart`): a small white
+   shape (rom:/heart.sprite, 112 bytes) tinted here. */
+#define HEART_WIDTH     (16)
+#define HEART_HEIGHT    (14)
+#define HEART_GAP       (8)
+
+static void heart_draw (int x, int y) {
+    static sprite_t *heart = NULL;
+    if (!heart) {
+        heart = sprite_load("rom:/heart.sprite");
+    }
+    rdpq_mode_push();
+        rdpq_set_mode_standard();
+        rdpq_mode_combiner(RDPQ_COMBINER1((0,0,0,PRIM), (0,0,0,TEX0)));
+        rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+        rdpq_set_prim_color(RGBA32(0xFF, 0x48, 0x68, 0xFF));
+        rdpq_sprite_blit(heart, x, y, NULL);
+    rdpq_mode_pop();
+}
+
 void games_ui_title_panel_draw (const char *title, const char *detail, const game_facts_t *facts) {
     const theme_t *t = theme_get();
     int x0 = GAMES_UI_CONTENT_X0;
@@ -175,13 +209,26 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const gam
 
     fill(x0, PANEL_Y, x1, PANEL_Y + PANEL_HEIGHT, RGBA32(t->panel.r, t->panel.g, t->panel.b, 0xD8));
 
+    /* With the heart switched on, room for it is always kept after the
+       name, so the name doesn't change size when the heart turns up. */
+    bool heart = features_enabled(FEATURE_FAVORITE_HEART);
+    int title_width = x1 - x0 - 24 - (heart ? (HEART_WIDTH + HEART_GAP) : 0);
+
     /* The big title font when the name fits on one line in it, the body font otherwise. */
-    rdpq_text_printf(&(rdpq_textparms_t) {
-        .width = x1 - x0 - 24,
+    int title_bytes = strlen(title);
+    rdpq_paragraph_t *title_layout = rdpq_paragraph_build(&(rdpq_textparms_t) {
+        .width = title_width,
         .height = PANEL_TITLE,
         .valign = VALIGN_CENTER,
         .wrap = WRAP_ELLIPSES,
-    }, title_font_pick(title, x1 - x0 - 24), x0 + 12, PANEL_Y + 2, "%s", title);
+    }, title_font_pick(title, title_width), title, &title_bytes);
+    rdpq_paragraph_render(title_layout, x0 + 12, PANEL_Y + 2);
+    int title_end = x0 + 12 + (int) title_layout->bbox.x1;
+    rdpq_paragraph_free(title_layout);
+
+    if (heart && facts && facts->favorite) {
+        heart_draw(title_end + HEART_GAP, PANEL_Y + 2 + ((PANEL_TITLE - HEART_HEIGHT) / 2));
+    }
 
     if (!facts) {
         text(x0 + 12, line2_y, x1 - x0 - 24, PANEL_LINE, ALIGN_LEFT, STL_GRAY, detail);
@@ -204,7 +251,7 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const gam
     if (facts->save_found) {
         x = games_ui_badge(x, y, "Save found", STL_GREEN, true);
     }
-    if (facts->favorite) {
+    if (facts->favorite && !heart) {
         x = games_ui_badge(x, y, "Favorite", STL_YELLOW, true);
     }
 
@@ -292,6 +339,12 @@ static void button_icon_draw (int x, int y, const char *button) {
     }
 
     text(x, y, width, BADGE_HEIGHT, ALIGN_CENTER, STL_WHITE, button);
+}
+
+void games_ui_hints_backdrop_draw (void) {
+    const theme_t *t = theme_get();
+    fill(GAMES_UI_CONTENT_X0 - 8, HINTS_Y - 5, GAMES_UI_CONTENT_X1 + 8, HINTS_Y + (2 * HINT_ROW_HEIGHT) + 1,
+        RGBA32(t->panel.r, t->panel.g, t->panel.b, 0xD8));
 }
 
 int games_ui_hint_width (const char *button, const char *action) {

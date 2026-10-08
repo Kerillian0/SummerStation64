@@ -1,6 +1,6 @@
 /**
  * @file cover_row.h
- * @brief A row of covers for a saved list of games (the Recent tab).
+ * @brief A row of covers for a saved list of games (the Recent and Favorites tabs).
  *
  * Shows the games of a history or favorites list the way the Games screen
  * shows a folder: covers with box art, the title panel, badges and the
@@ -27,8 +27,12 @@ void cover_row_open (menu_t *menu, bookkeeping_item_t *items, int count);
  */
 int cover_row_process (menu_t *menu);
 
-/** Draw the covers and the button hints. */
-void cover_row_draw (menu_t *menu, const char *empty_message);
+/**
+ * Draw the covers and the button hints.
+ * @param empty_message Shown when the list has no games.
+ * @param z_action What Z does here ("Remove"), or NULL if nothing.
+ */
+void cover_row_draw (menu_t *menu, const char *empty_message, const char *z_action);
 
 /** Stop showing the list and free its box art. */
 void cover_row_close (void);

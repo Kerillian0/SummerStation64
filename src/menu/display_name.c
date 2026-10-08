@@ -50,6 +50,26 @@ static void article_to_front (char *name) {
 }
 
 /* "Name (U) (V1.2) [!]" -> "Name": drops every (...) and [...] group. */
+/* "Ocarina of Time _redux_patch" -> "Ocarina of Time redux patch": every
+   underscore becomes a space, and runs of spaces become one. */
+static void underscores_to_spaces (char *name) {
+    char *out = name;
+    bool space = true;      /* true at the start too, so leading spaces go */
+
+    for (const char *in = name; *in; in++) {
+        char c = (*in == '_') ? ' ' : *in;
+        if (c == ' ' && space) {
+            continue;
+        }
+        space = (c == ' ');
+        *out++ = c;
+    }
+    if (out > name && out[-1] == ' ') {
+        out--;
+    }
+    *out = '\0';
+}
+
 static void strip_tags (char *name) {
     char kept[NAME_LENGTH];
     size_t length = 0;
@@ -131,6 +151,7 @@ const char *display_name_file (const char *filename) {
 
     if (tidy) {
         article_to_front(shown);
+        underscores_to_spaces(shown);
     }
 
     if (!hide_extension && (strlen(shown) + strlen(extension) < sizeof(shown))) {

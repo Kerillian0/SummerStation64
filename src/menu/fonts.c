@@ -31,6 +31,7 @@ static void load_default_font (char *custom_font_path) {
     rdpq_font_style(default_font, STL_RED, &((rdpq_fontstyle_t) { .color = RGBA32(0xFF, 0x40, 0x40, 0xFF) }));
     rdpq_font_style(default_font, STL_GRAY, &((rdpq_fontstyle_t) { .color = theme->text_dim }));
     rdpq_font_style(default_font, STL_WHITE, &((rdpq_fontstyle_t) { .color = RGBA32(0xFF, 0xFF, 0xFF, 0xFF) }));
+    rdpq_font_style(default_font, STL_BLACK, &((rdpq_fontstyle_t) { .color = RGBA32(0x00, 0x00, 0x00, 0xFF) }));
 
     rdpq_text_register_font(FNT_DEFAULT, default_font);
 }

@@ -19,6 +19,11 @@ typedef enum {
 } bookkeeping_tab_context_t;
 
 
+// Both tabs are rows of covers now. 0 brings the stock text lists back.
+#define COVER_ROWS  (1)
+
+static bool confirm_remove = false;  // "Remove this favorite?" is showing
+
 static bookkeeping_tab_context_t tab_context = BOOKKEEPING_TAB_CONTEXT_NONE;
 static int selected_item = -1;
 static bookkeeping_item_t *item_list;
@@ -73,8 +78,23 @@ static void process(menu_t *menu) {
     if (start_menu_process(menu)) {
         return; // the START menu is open
     }
-    if (tab_context == BOOKKEEPING_TAB_CONTEXT_HISTORY) {
-        // Recent is a row of covers: left/right move along it, L/R switch tabs.
+
+    // Z asks first: it is easy to press by accident.
+    if (confirm_remove) {
+        if (menu->actions.enter && selected_item != -1) {
+            confirm_remove = false;
+            bookkeeping_favorite_remove(&menu->bookkeeping, selected_item);
+            item_reset_selected(menu);
+            if (COVER_ROWS) cover_row_open(menu, item_list, item_max); // the list changed: build the row again
+            sound_play_effect(SFX_SETTING);
+        } else if (menu->actions.back || menu->actions.options) {
+            confirm_remove = false;
+            sound_play_effect(SFX_EXIT);
+        }
+        return;
+    }
+    if (COVER_ROWS) {
+        // A row of covers: left/right move along it, L/R switch tabs.
         controls_remap_tabs(menu, true);
         selected_item = cover_row_process(menu);
         menu->actions.go_up = false;
@@ -111,8 +131,7 @@ static void process(menu_t *menu) {
     } else if (menu->actions.settings) {
         start_menu_show();
     }else if(tab_context == BOOKKEEPING_TAB_CONTEXT_FAVORITE && menu->actions.options && selected_item != -1) {
-        bookkeeping_favorite_remove(&menu->bookkeeping, selected_item);
-        item_reset_selected(menu);
+        confirm_remove = true;
         sound_play_effect(SFX_SETTING);
     }
 }
@@ -178,10 +197,22 @@ static void draw(menu_t *menu, surface_t *display) {
 
     // (the redesigned screens have no frame)
 
-    if (tab_context == BOOKKEEPING_TAB_CONTEXT_HISTORY) {
-        cover_row_draw(menu, "No games played yet");
+    if (COVER_ROWS) {
+        if (tab_context == BOOKKEEPING_TAB_CONTEXT_FAVORITE) {
+            cover_row_draw(menu, "No favorites yet\n\nAdd one from a game's info screen: Options", "Remove");
+        } else {
+            cover_row_draw(menu, "No games played yet", NULL);
+        }
         games_ui_hint_right_draw(0, "START", "Settings");
         start_menu_draw();
+        if (confirm_remove && selected_item != -1) {
+            ui_components_messagebox_draw(
+                "Remove from Favorites?\n\n"
+                "%s\n\n"
+                "A: Remove    B: Keep",
+                display_name_file(path_last_get(item_list[selected_item].primary_path))
+            );
+        }
         rdpq_detach_show();
         return;
     }
@@ -221,17 +252,20 @@ static void draw(menu_t *menu, surface_t *display) {
 
 void view_favorite_init (menu_t *menu) {
     tab_context = BOOKKEEPING_TAB_CONTEXT_FAVORITE;
+    confirm_remove = false;
     start_menu_init();
     games_ui_set_origin(MENU_MODE_FAVORITE);
     item_list = menu->bookkeeping.favorite_items;
     item_max = FAVORITES_COUNT;
 
     item_reset_selected(menu);
+    if (COVER_ROWS) cover_row_open(menu, item_list, item_max);
 }
 
 void view_favorite_display (menu_t *menu, surface_t *display) {
     process(menu);
     draw(menu, display); 
+    if (menu->next_mode != MENU_MODE_FAVORITE) cover_row_close(); // free the covers before another screen loads its own
 }
 
 void view_history_init (menu_t *menu) {
@@ -242,7 +276,7 @@ void view_history_init (menu_t *menu) {
     item_max = HISTORY_COUNT;
 
     item_reset_selected(menu);
-    cover_row_open(menu, item_list, item_max);
+    if (COVER_ROWS) cover_row_open(menu, item_list, item_max);
 }
 
 void view_history_display (menu_t *menu, surface_t *display) {

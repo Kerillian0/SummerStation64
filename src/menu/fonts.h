@@ -17,6 +17,7 @@ typedef enum {
     FNT_DEFAULT = 1, /**< Default font type */
     FNT_TITLE = 2,   /**< Larger font for game titles (see title_font.h) */
     FNT_TITLE_MEDIUM = 3, /**< In-between size, for titles too long for FNT_TITLE */
+    FNT_SMALL = 4,   /**< 12 px, English letters only, for a second line under another (see title_font.h) */
 } menu_font_type_t;
 
 /**
@@ -34,6 +35,7 @@ typedef enum {
     STL_RED,         /**< Red font style */
     STL_GRAY,        /**< Gray font style */
     STL_WHITE,       /**< Always white, whatever the theme (text on the button icons) */
+    STL_BLACK,       /**< Always black (text on a light accent color) */
 } menu_font_style_t;
 
 /**

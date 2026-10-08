@@ -1,6 +1,6 @@
 /**
  * @file cover_row.c
- * @brief A row of covers for a saved list of games (the Recent tab).
+ * @brief A row of covers for a saved list of games (the Recent and Favorites tabs).
  */
 
 #include <libdragon.h>
@@ -36,6 +36,8 @@ static path_t *row_path (menu_t *menu, int index) {
 void cover_row_open (menu_t *menu, bookkeeping_item_t *items, int count) {
     (void) menu;
 
+    int before = (items == last_items) ? row.selected : 0;
+
     row_items = items;
     row.list = row_entries;
     row.entries = 0;
@@ -57,6 +59,12 @@ void cover_row_open (menu_t *menu, bookkeeping_item_t *items, int count) {
     }
 
     if (items == last_items) {
+        /* Same list as last time: back to the same game, or (after one was
+           removed) to the one that took its place. */
+        row.selected = (before < row.entries) ? before : (row.entries - 1);
+        if (row.selected < 0) {
+            row.selected = 0;
+        }
         for (int i = 0; i < row.entries; i++) {
             if (row_places[i] == last_place) {
                 row.selected = i;
@@ -90,7 +98,7 @@ int cover_row_process (menu_t *menu) {
     return last_place;
 }
 
-void cover_row_draw (menu_t *menu, const char *empty_message) {
+void cover_row_draw (menu_t *menu, const char *empty_message, const char *z_action) {
     if (row.entries <= 0) {
         rdpq_text_printf(&(rdpq_textparms_t) {
             .width = DISPLAY_WIDTH,
@@ -103,6 +111,7 @@ void cover_row_draw (menu_t *menu, const char *empty_message) {
     }
 
     carousel_draw(menu);
+    games_ui_hints_backdrop_draw();
 
     const char *tap = "Load";
     const char *hold = NULL;
@@ -113,12 +122,14 @@ void cover_row_draw (menu_t *menu, const char *empty_message) {
     if (hold) {
         games_ui_hint_draw(x, 0, "Hold", hold);
     }
+    if (z_action) {
+        games_ui_hint_draw(GAMES_UI_HINTS_X, 1, "Z", z_action);
+    }
 }
 
 void cover_row_close (void) {
     carousel_art_reset();
     game_facts_reset();
     cover_list_use(NULL);
-    row.entries = 0;
     row_items = NULL;
 }

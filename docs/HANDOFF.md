@@ -74,13 +74,15 @@ Stage 6 is the only stage left.
 
 ## In progress (2026-10-08)
 
-Built and waiting for the owner's hardware test, not committed: the Recent
-tab as a cover row; B on a game's info returns to the tab it came from; the
-L/R badges removed; a memory badge under the clock; the Games tab showing
-games only; a new Folders tab; and a player-chosen tab order (Settings >
-Tabs; default Games, Favorites, Folders). Details in `CLAUDE.md` under "Menu
-redesign", stage 6. After that: Favorites as a cover row, then picture icons
-for the button hints.
+Stage 6 grew into a redesign of the tabs, all on `carousel-ui`, most of it
+tested and committed but not pushed since `701e9e8d`: the Games tab shows
+games only (from the start folder); a new Folders tab is the plain file
+browser; the tab order is the player's (Settings > Tabs; default Games,
+Favorites, Folders; Recent can be added); Recent and Favorites are cover
+rows; button icons, a drawn Expansion/Jumper Pak badge and a favorite
+heart. The last build (Favorites row, "Detected" line, heart) is waiting
+for the owner's test and is not committed. Details in `CLAUDE.md` under
+"Menu redesign", stage 6.
 
 ## Next steps
 
