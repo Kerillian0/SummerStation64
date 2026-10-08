@@ -329,8 +329,17 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
   water, color2 foam, color3 sky) drawn by sums in `theme.c`: water running
   to a horizon a tenth of the way down, with a net of curved foam lines
   (borders between scattered points, bent with a sine) fading into haze.
-  It costs nine distance sums per background pixel, so building it may
-  take noticeably longer than a gradient; time it on hardware. The Theme
+  Tested on hardware: passed, slightly speckled far off (the user is
+  fine with that), but about 1.4 s to build against 0.3 s for a
+  gradient (measured: Sunset 295 ms, Night Drive 302, Beach 236, Ocean
+  1358-1373). Skipping far cells and a sine table made no real
+  difference. Second attempt (awaiting test): the foam is worked out once
+  for a 96x96 square covering 4x4 cells that repeats, stored as "distance
+  from a border" in one byte each (9 KB, freed after the build), and each
+  screen pixel blends its four nearest values and applies the line
+  threshold, which keeps the lines crisp when stretched. Tested on hardware
+  2026-10-08: **621 ms** (was 1358), water looks the same. The log prints `theme: background "..." built in N ms`. The
+  Theme
   Maker does not know this type yet. Ideas the user has not picked yet: a banded sun in the
   intro, a "horizon grid" pattern, palm silhouettes, a time-of-day look,
   summer sounds.

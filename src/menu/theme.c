@@ -267,8 +267,23 @@ static bool pattern_hit (const theme_t *t, int x, int y) {
 #define OCEAN_LINE_SOFT (0.11f)     /* ...and gone beyond this */
 #define OCEAN_HAZE      (0.30f)     /* the far part of the water, this much of it, fades into the sky */
 
-/* A fixed scatter of points: the same "random" spot for a cell every time. */
+/* Working the foam out for every pixel of the screen took about 1.4 s (a
+   plain gradient takes 0.3 s). So it is worked out once for a small square
+   of water, OCEAN_PERIOD cells each way, that repeats; the screen's pixels
+   then only look their place up in that square. The square holds "how far
+   from a border" rather than a picture of the lines, and four neighboring
+   values are blended for each pixel, so the lines stay crisp however much
+   the square is stretched near the bottom of the screen. */
+#define OCEAN_TILE      (96)        /* the square's size in values each way */
+#define OCEAN_PERIOD    (4)         /* cells across it before it repeats */
+#define OCEAN_STORE     (1020.0f)   /* a border distance of 0.25 fills the byte */
+static uint8_t *ocean_tile = NULL;
+
+/* A fixed scatter of points: the same "random" spot for a cell every time,
+   and the same again OCEAN_PERIOD cells on, so the square's edges meet. */
 static uint32_t ocean_scatter (int ix, int iz) {
+    ix = ((ix % OCEAN_PERIOD) + OCEAN_PERIOD) % OCEAN_PERIOD;
+    iz = ((iz % OCEAN_PERIOD) + OCEAN_PERIOD) % OCEAN_PERIOD;
     uint32_t h = ((uint32_t) ix * 374761393u) + ((uint32_t) iz * 668265263u);
     h = (h ^ (h >> 13)) * 1274126177u;
     return h ^ (h >> 16);
@@ -276,15 +291,17 @@ static uint32_t ocean_scatter (int ix, int iz) {
 
 /* How much nearer the nearest point is than the next nearest: 0 on a border. */
 static float ocean_border (float x, float z) {
-    int ix = (int) floorf(x);
-    int iz = (int) floorf(z);
+    int ix = (int) x;
+    int iz = (int) z;
+    if (x < ix) ix--;       /* round down, also below zero */
+    if (z < iz) iz--;
     float nearest = 9.0f, second = 9.0f;
 
     for (int dz = -1; dz <= 1; dz++) {
         for (int dx = -1; dx <= 1; dx++) {
             uint32_t h = ocean_scatter(ix + dx, iz + dz);
-            float px = (ix + dx) + ((h & 0xFFFF) / 65536.0f);
-            float pz = (iz + dz) + (((h >> 16) & 0xFFFF) / 65536.0f);
+            float px = (ix + dx) + ((h & 0xFFFF) * (1.0f / 65536.0f));
+            float pz = (iz + dz) + (((h >> 16) & 0xFFFF) * (1.0f / 65536.0f));
             float d = ((px - x) * (px - x)) + ((pz - z) * (pz - z));
             if (d < nearest) {
                 second = nearest;
@@ -295,6 +312,65 @@ static float ocean_border (float x, float z) {
         }
     }
     return sqrtf(second) - sqrtf(nearest);
+}
+
+/* The bend in the lines needs two sines for every pixel, and working a sine
+   out properly is slow on this console, so they are looked up in a small
+   table instead. The bend is gentle; the table's steps don't show. */
+#define OCEAN_WAVE_STEPS    (256)
+static float ocean_wave_table[OCEAN_WAVE_STEPS];
+
+static float ocean_wave (float angle) {
+    int step = (int) (angle * (OCEAN_WAVE_STEPS / 6.2831853f));
+    return ocean_wave_table[step & (OCEAN_WAVE_STEPS - 1)];
+}
+
+/* Work out the square of water and the sine table. False if out of memory. */
+static bool ocean_prepare (void) {
+    ocean_tile = malloc(OCEAN_TILE * OCEAN_TILE);
+    if (!ocean_tile) {
+        return false;
+    }
+    for (int tz = 0; tz < OCEAN_TILE; tz++) {
+        for (int tx = 0; tx < OCEAN_TILE; tx++) {
+            float border = ocean_border((tx * (float) OCEAN_PERIOD) / OCEAN_TILE, (tz * (float) OCEAN_PERIOD) / OCEAN_TILE);
+            int stored = (int) (border * OCEAN_STORE);
+            ocean_tile[(tz * OCEAN_TILE) + tx] = (stored > 255) ? 255 : stored;
+        }
+    }
+    for (int i = 0; i < OCEAN_WAVE_STEPS; i++) {
+        ocean_wave_table[i] = sinf((i * 6.2831853f) / OCEAN_WAVE_STEPS);
+    }
+    return true;
+}
+
+static void ocean_finish (void) {
+    free(ocean_tile);
+    ocean_tile = NULL;
+}
+
+/* The border distance at a spot on the water, blended from the square's
+   four nearest values. */
+static float ocean_lookup (float side, float away) {
+    /* Moved a long way along first, so the sums never go below zero. */
+    float tu = (side + 4096.0f) * ((float) OCEAN_TILE / OCEAN_PERIOD);
+    float tz = (away + 4096.0f) * ((float) OCEAN_TILE / OCEAN_PERIOD);
+    int iu = (int) tu;
+    int iz = (int) tz;
+    float fu = tu - iu;
+    float fz = tz - iz;
+    int u0 = iu % OCEAN_TILE;
+    int z0 = iz % OCEAN_TILE;
+    int u1 = (u0 + 1 == OCEAN_TILE) ? 0 : (u0 + 1);
+    int z1 = (z0 + 1 == OCEAN_TILE) ? 0 : (z0 + 1);
+
+    float a = ocean_tile[(z0 * OCEAN_TILE) + u0];
+    float b = ocean_tile[(z0 * OCEAN_TILE) + u1];
+    float c = ocean_tile[(z1 * OCEAN_TILE) + u0];
+    float d = ocean_tile[(z1 * OCEAN_TILE) + u1];
+    float upper = a + ((b - a) * fu);
+    float lower = c + ((d - c) * fu);
+    return (upper + ((lower - upper) * fz)) * (1.0f / OCEAN_STORE);
 }
 
 static rgbf_t ocean_color (int x, int y, int w, int h, rgbf_t water, rgbf_t foam, rgbf_t sky) {
@@ -312,7 +388,7 @@ static rgbf_t ocean_color (int x, int y, int w, int h, rgbf_t water, rgbf_t foam
     float away = (OCEAN_ACROSS * 1.1f * h) / down;
     float side = ((x - (w / 2)) * OCEAN_ACROSS) / down;
 
-    float border = ocean_border(side + (0.22f * sinf((away * 2.3f) + (side * 1.1f))), away + (0.22f * sinf((side * 1.9f) - (away * 0.7f))));
+    float border = ocean_lookup(side + (0.22f * ocean_wave((away * 2.3f) + (side * 1.1f))), away + (0.22f * ocean_wave((side * 1.9f) - (away * 0.7f))));
     float line = (border > OCEAN_LINE_SOFT) ? 0.0f : ((border < OCEAN_LINE) ? 1.0f : ((OCEAN_LINE_SOFT - border) / (OCEAN_LINE_SOFT - OCEAN_LINE)));
 
     float near = down / (h - horizon);
@@ -327,6 +403,7 @@ static uint32_t to_byte (float v) {
 }
 
 static void theme_build_background (const theme_t *t) {
+    uint64_t build_started = get_ticks_ms();
     int w = display_get_width();
     int h = display_get_height();
     int bw = w / BG_SCALE;
@@ -349,6 +426,9 @@ static void theme_build_background (const theme_t *t) {
 
     /* Image backgrounds aren't decoded yet: fall back to color1. */
     theme_bg_type_t type = (t->bg_type == THEME_BG_IMAGE) ? THEME_BG_SOLID : t->bg_type;
+    if (type == THEME_BG_OCEAN && !ocean_prepare()) {
+        type = THEME_BG_SOLID;      /* no memory to spare for it: plain water */
+    }
 
     for (int by = 0; by < bh; by++) {
         for (int bx = 0; bx < bw; bx++) {
@@ -380,6 +460,8 @@ static void theme_build_background (const theme_t *t) {
     }
 
     free(row);
+    ocean_finish();
+    debugf("theme: background \"%s\" built in %d ms\n", t->name, (int) (get_ticks_ms() - build_started));
 }
 
 /* ---------- public API ---------- */
