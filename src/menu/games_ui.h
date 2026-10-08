@@ -16,6 +16,7 @@ typedef enum {
     GAMES_TAB_GAMES,
     GAMES_TAB_RECENT,
     GAMES_TAB_FAVORITES,
+    GAMES_TAB_FOLDERS,
     GAMES_TAB_COUNT
 } games_tab_t;
 
@@ -25,7 +26,10 @@ typedef enum {
 /** Where a list under the tab bar starts (Recent, Favorites). */
 #define GAMES_UI_LIST_TOP       (GAMES_UI_TOPBAR_BOTTOM + 6)
 
-/** Tab bar across the top: L, the three tabs, R, and the clock on the right. */
+/**
+ * Tab bar across the top: the tabs the player chose (see tabs.h), and on the right the clock with
+ * the memory badge under it (feature `memory_badge`). L and R switch tabs.
+ */
 void games_ui_topbar_draw (menu_t *menu, games_tab_t selected);
 
 /**
@@ -65,5 +69,12 @@ int games_ui_hint_width (const char *button, const char *action);
 
 /** The same, placed against the right edge. */
 void games_ui_hint_right_draw (int row, const char *button, const char *action);
+
+/**
+ * Each tabbed screen says "I am showing" when it opens, so that a screen
+ * opened from it (a game's info) knows where B should go back to.
+ */
+void games_ui_set_origin (menu_mode_t tab);
+menu_mode_t games_ui_origin (void);
 
 #endif /* GAMES_UI_H__ */

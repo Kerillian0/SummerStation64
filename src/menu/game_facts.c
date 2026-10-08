@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "cart_load.h"
+#include "cover_list.h"
 #include "game_facts.h"
 #include "ini_parser.h"
 #include "path.h"
@@ -82,12 +83,12 @@ static bool is_favorite (menu_t *menu, path_t *rom_path) {
     return false;
 }
 
-static void lookup (menu_t *menu, entry_t *entry) {
+static void lookup (menu_t *menu, int index) {
     static rom_info_t info;
 
     memset(&facts, 0, sizeof(facts));
 
-    path_t *path = path_clone_push(menu->browser.directory, entry->name);
+    path_t *path = cover_list_current(menu)->path(menu, index);
     uint32_t key = name_hash(path_get(path));
     if (key == 0) {
         key = 1;
@@ -141,18 +142,19 @@ static void lookup (menu_t *menu, entry_t *entry) {
 }
 
 const game_facts_t *game_facts_update (menu_t *menu) {
-    if (menu->browser.entries <= 0 || menu->browser.selected < 0 || !menu->browser.entry) {
+    const cover_list_t *covers = cover_list_current(menu);
+    if (covers->entries <= 0 || covers->selected < 0 || covers->selected >= covers->entries) {
         game_facts_reset();
         return NULL;
     }
 
     uint64_t now = get_ticks_ms();
-    entry_t *entry = menu->browser.entry;
+    entry_t *entry = &covers->list[covers->selected];
     uint32_t hash = name_hash(entry->name);
 
-    if (entry != watched_entry || menu->browser.selected != watched_index || hash != watched_hash) {
+    if (entry != watched_entry || covers->selected != watched_index || hash != watched_hash) {
         watched_entry = entry;
-        watched_index = menu->browser.selected;
+        watched_index = covers->selected;
         watched_hash = hash;
         changed_at = now;
         known = false;
@@ -161,7 +163,7 @@ const game_facts_t *game_facts_update (menu_t *menu) {
 
     if (pending && (now - changed_at) >= SETTLE_TIME_MS) {
         pending = false;
-        lookup(menu, entry);
+        lookup(menu, covers->selected);
     }
 
     return known ? &facts : NULL;

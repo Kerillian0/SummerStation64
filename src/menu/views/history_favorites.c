@@ -7,6 +7,8 @@
 #include "../controls.h"
 #include "../display_name.h"
 #include "../games_ui.h"
+#include "../cover_row.h"
+#include "../tabs.h"
 
 
 typedef enum {
@@ -67,7 +69,15 @@ static void item_move_previous() {
 }
 
 static void process(menu_t *menu) {
-    controls_remap_tabs(menu, false); // L/R tabs, Z options
+    if (tab_context == BOOKKEEPING_TAB_CONTEXT_HISTORY) {
+        // Recent is a row of covers: left/right move along it, L/R switch tabs.
+        controls_remap_tabs(menu, true);
+        selected_item = cover_row_process(menu);
+        menu->actions.go_up = false;
+        menu->actions.go_down = false;
+    } else {
+        controls_remap_tabs(menu, false); // L/R tabs, Z options
+    }
     if(menu->actions.go_down) {
         item_move_next();   
     } else if(menu->actions.go_up) {
@@ -89,19 +99,10 @@ static void process(menu_t *menu) {
             menu->next_mode = MENU_MODE_LOAD_ROM;
             sound_play_effect(SFX_ENTER);
         }
-    } else if (menu->actions.go_left) {
-        if(tab_context == BOOKKEEPING_TAB_CONTEXT_FAVORITE) {
-            menu->next_mode = MENU_MODE_HISTORY;
-        } else if(tab_context == BOOKKEEPING_TAB_CONTEXT_HISTORY) {
-            menu->next_mode = MENU_MODE_BROWSER;
-        }
-        sound_play_effect(SFX_CURSOR);       
-    } else if (menu->actions.go_right) {
-        if(tab_context == BOOKKEEPING_TAB_CONTEXT_FAVORITE) {
-            menu->next_mode = MENU_MODE_BROWSER;
-        } else if(tab_context == BOOKKEEPING_TAB_CONTEXT_HISTORY) {
-            menu->next_mode = MENU_MODE_FAVORITE;
-        }
+    } else if (menu->actions.go_left || menu->actions.go_right) {
+        // L and R: the tab before or after this one, in the player's order.
+        games_tab_t here = (tab_context == BOOKKEEPING_TAB_CONTEXT_FAVORITE) ? GAMES_TAB_FAVORITES : GAMES_TAB_RECENT;
+        tabs_open(menu, tabs_step(here, menu->actions.go_right ? 1 : -1));
         sound_play_effect(SFX_CURSOR);
     }else if(tab_context == BOOKKEEPING_TAB_CONTEXT_FAVORITE && menu->actions.options && selected_item != -1) {
         bookkeeping_favorite_remove(&menu->bookkeeping, selected_item);
@@ -171,6 +172,12 @@ static void draw(menu_t *menu, surface_t *display) {
 
     // (the redesigned screens have no frame)
 
+    if (tab_context == BOOKKEEPING_TAB_CONTEXT_HISTORY) {
+        cover_row_draw(menu, "No games played yet");
+        rdpq_detach_show();
+        return;
+    }
+
     draw_list(menu, display);
 
     if(selected_item != -1) {
@@ -204,6 +211,7 @@ static void draw(menu_t *menu, surface_t *display) {
 
 void view_favorite_init (menu_t *menu) {
     tab_context = BOOKKEEPING_TAB_CONTEXT_FAVORITE;
+    games_ui_set_origin(MENU_MODE_FAVORITE);
     item_list = menu->bookkeeping.favorite_items;
     item_max = FAVORITES_COUNT;
 
@@ -217,13 +225,16 @@ void view_favorite_display (menu_t *menu, surface_t *display) {
 
 void view_history_init (menu_t *menu) {
     tab_context = BOOKKEEPING_TAB_CONTEXT_HISTORY;
+    games_ui_set_origin(MENU_MODE_HISTORY);
     item_list = menu->bookkeeping.history_items;
     item_max = HISTORY_COUNT;
 
     item_reset_selected(menu);
+    cover_row_open(menu, item_list, item_max);
 }
 
 void view_history_display (menu_t *menu, surface_t *display) {
     process(menu);
     draw(menu, display); 
+    if (menu->next_mode != MENU_MODE_HISTORY) cover_row_close(); // free the covers before another screen loads its own
 }

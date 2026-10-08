@@ -6,6 +6,7 @@
 #include "../folder_memory.h"
 #include "../font_choice.h"
 #include "../intro.h"
+#include "../tabs.h"
 #include "../menu_features.h"
 #include "../menu_options.h"
 #include "../sort_order.h"
@@ -138,6 +139,7 @@ static const item_t display_items[] = {
     FEATURE("Previous/Next Covers", FEATURE_SIDE_COVERS, "Show smaller covers either side of the selected one."),
     FEATURE("See-through Side Covers", FEATURE_SEE_THROUGH_COVERS, "Let the background show through the previous and next covers. Off draws them solid."),
     FEATURE("Cover Slide", FEATURE_CAROUSEL_ANIMATION, "Covers slide into place when you move left or right."),
+    FEATURE("Memory Badge", FEATURE_MEMORY_BADGE, "Show a small Expansion Pak or Jumper Pak under the clock, with the console's memory (8MB or 4MB)."),
     FEATURE("Frame Borders", FEATURE_FRAME_BORDERS, "Draw the frame around the screen and the line above the button hints."),
     CHOICE("Video Output", force_progressive_scan, false, "480i", "240p", NULL,
         "480i is sharper but can flicker. 240p is steady with softer text, and suits TVs that struggle with interlaced video. Restart the console to apply."),
@@ -181,6 +183,17 @@ static const item_t file_items[] = {
 #endif
 };
 
+static const item_t tab_items[] = {
+    CHOICES("First Tab", OPTION_TAB1, TAB_CHOICE_COUNT, tabs_choice_name, NULL,
+        "What the first place on the tab bar holds. The menu opens on this tab. L and R step through the tabs."),
+    CHOICES("Second Tab", OPTION_TAB2, TAB_CHOICE_COUNT, tabs_choice_name, NULL,
+        "What the second place on the tab bar holds. None leaves it out."),
+    CHOICES("Third Tab", OPTION_TAB3, TAB_CHOICE_COUNT, tabs_choice_name, NULL,
+        "What the third place on the tab bar holds. None leaves it out."),
+    CHOICES("Fourth Tab", OPTION_TAB4, TAB_CHOICE_COUNT, tabs_choice_name, NULL,
+        "What the fourth place on the tab bar holds. Choose Recent here to add the games you played last."),
+};
+
 static const item_t system_items[] = {
     CHOICES("Character Set", OPTION_FONT, FONT_COUNT, font_choice_name, NULL,
         "Latin Only frees about 700 KB of memory but can't show Japanese names. Auto uses Latin Only without the Expansion Pak, Full with it. Restart the console to apply."),
@@ -197,6 +210,7 @@ static const category_t categories[] = {
     { "Display", display_items, COUNT(display_items) },
     { "Controls", control_items, COUNT(control_items) },
     { "Sound", sound_items, COUNT(sound_items) },
+    { "Tabs", tab_items, COUNT(tab_items) },
     { "Library", library_items, COUNT(library_items) },
     { "Files", file_items, COUNT(file_items) },
     { "System", system_items, COUNT(system_items) },

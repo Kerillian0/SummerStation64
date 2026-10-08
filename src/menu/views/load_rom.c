@@ -5,6 +5,7 @@
 #include "../sound.h"
 #include "boot/boot.h"
 #include "utils/fs.h"
+#include "../games_ui.h"
 #include "views.h"
 #include "../controls.h"
 #include "../display_name.h"
@@ -581,7 +582,7 @@ static void process (menu_t *menu) {
         }
     } else if (menu->actions.back) {
         sound_play_effect(SFX_EXIT);
-        menu->next_mode = MENU_MODE_BROWSER;
+        menu->next_mode = games_ui_origin(); // back to the tab this was opened from
     } else if (menu->actions.options) {
         ui_components_context_menu_show(&options_context_menu);
         sound_play_effect(SFX_SETTING);

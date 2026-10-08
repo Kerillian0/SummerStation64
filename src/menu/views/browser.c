@@ -21,6 +21,10 @@
 #include "../sort_order.h"
 #include "../display_name.h"
 #include "../games_ui.h"
+#include "../cover_list.h"
+#include "../carousel.h"
+#include "../tabs.h"
+#include "../folders_ui.h"
 #include "../intro.h"
 #include "../ui_components/constants.h"
 
@@ -39,6 +43,11 @@ static const char *rom_meta_extensions[] = { "meta", "metadata", NULL };
 #define ARCHIVE_MAX_ENTRIES_JUMPER_PAK 512
 // Fixed cap keeps memory use predictable on 4MB systems when scanning huge folders.
 #define DIRECTORY_MAX_ENTRIES_JUMPER_PAK 1024
+
+// The browser screen is two tabs: Games (the games of the start folder, as
+// covers) and Folders (everything, as a plain list). Each has its own place.
+static bool folders_tab = false;
+static path_t *folders_directory = NULL;    // where the Folders tab was left
 
 static bool archive_entry_limit_exceeded = false;
 static bool archive_entry_precheck_failed = false;
@@ -391,6 +400,14 @@ static bool load_directory (menu_t *menu) {
                 entry->type = ENTRY_TYPE_OTHER;
             }
 
+            // The Games tab lists games only.
+            if (!folders_tab && entry->type != ENTRY_TYPE_ROM && entry->type != ENTRY_TYPE_DISK && entry->type != ENTRY_TYPE_EMULATOR) {
+                free(entry->name);
+                entry->name = NULL;
+                result = dir_findnext(path_get(path), &info);
+                continue;
+            }
+
             entry->size = info.d_size;
             entry->index = menu->browser.entries;
             menu->browser.entries++;
@@ -578,6 +595,59 @@ static component_context_menu_t settings_context_menu = {
     }
 };
 
+// Switch the browser between its two tabs. The list is loaded again by
+// view_browser_init(), which sees that it is no longer valid.
+static void browser_show_tab (menu_t *menu, bool folders) {
+    if (folders == folders_tab) {
+        return;
+    }
+
+    carousel_art_reset();
+    game_facts_reset();
+    folder_memory_flush();
+
+    if (folders_tab) {
+        // Leaving Folders: remember where it was (a zip counts as its folder).
+        if (menu->browser.archive) {
+            path_pop(menu->browser.directory);
+            menu->browser.archive = false;
+        }
+        if (folders_directory) {
+            path_free(folders_directory);
+        }
+        folders_directory = path_clone(menu->browser.directory);
+    }
+
+    folders_tab = folders;
+
+    path_free(menu->browser.directory);
+    if (folders && folders_directory) {
+        menu->browser.directory = path_clone(folders_directory);
+    } else {
+        menu->browser.directory = path_init(menu->storage_prefix, menu->settings.default_directory);
+    }
+    if (!directory_exists(path_get(menu->browser.directory))) {
+        path_free(menu->browser.directory);
+        menu->browser.directory = path_init(menu->storage_prefix, "/");
+    }
+
+    menu->browser.valid = false;
+}
+
+// L or R: the tab before or after this one, in the player's order.
+static void browser_step_tab (menu_t *menu, int direction) {
+    games_tab_t here = folders_tab ? GAMES_TAB_FOLDERS : GAMES_TAB_GAMES;
+    games_tab_t next = tabs_step(here, direction);
+    if (next == here) {
+        return;
+    }
+    sound_play_effect(SFX_CURSOR);
+    tabs_open(menu, next);
+    if (menu->next_mode == MENU_MODE_BROWSER) {
+        view_browser_init(menu); // Games <-> Folders: the same screen with the other list
+    }
+}
+
 static void process (menu_t *menu) {
     if (ui_components_context_menu_process(menu, menu->browser.archive ? &archive_context_menu : &entry_context_menu)) {
         return;
@@ -587,8 +657,8 @@ static void process (menu_t *menu) {
         return;
     }
 
-    controls_remap_tabs(menu, true); // carousel: left/right scroll, L/R tabs, Z options
-    if (controls_consume_flip_request() && carousel_art_flip()) sound_play_effect(SFX_CURSOR); // up/down: turn the box over
+    controls_remap_tabs(menu, !folders_tab); // Games: left/right scroll the covers. Folders: up/down move down the list. L/R tabs, Z options
+    if (!folders_tab && controls_consume_flip_request() && carousel_art_flip()) sound_play_effect(SFX_CURSOR); // up/down: turn the box over
 
     int scroll_speed = menu->actions.go_fast ? 10 : 1;
 
@@ -683,7 +753,7 @@ static void process (menu_t *menu) {
                 menu->next_mode = MENU_MODE_FILE_INFO;
                 break;
         }
-    } else if (menu->actions.back && !path_is_root(menu->browser.directory)) {
+    } else if (menu->actions.back && folders_tab && !path_is_root(menu->browser.directory)) {
         if (pop_directory(menu)) {
             menu->browser.valid = false;
             menu_show_error(
@@ -701,11 +771,9 @@ static void process (menu_t *menu) {
         ui_components_context_menu_show(&settings_context_menu);
         sound_play_effect(SFX_SETTING);
     } else if (menu->actions.go_right) {
-        menu->next_mode = MENU_MODE_HISTORY;
-        sound_play_effect(SFX_CURSOR);
+        browser_step_tab(menu, 1);
     } else if (menu->actions.go_left) {
-        menu->next_mode = MENU_MODE_FAVORITE;
-        sound_play_effect(SFX_CURSOR);
+        browser_step_tab(menu, -1);
     }
 }
 
@@ -774,9 +842,10 @@ static uint64_t slide_last_move_ms = 0;
 // the start of a slide, 0 at rest. Timed by the clock, not by frames, so it
 // takes the same time at 50 and 60 Hz.
 static float carousel_slide (menu_t *menu) {
+    const cover_list_t *covers = cover_list_current(menu);
     uint64_t now = get_ticks_ms();
-    int selected = menu->browser.selected;
-    bool same_folder = (menu->browser.list == slide_list) && (menu->browser.entries == slide_entries);
+    int selected = covers->selected;
+    bool same_folder = (covers->list == slide_list) && (covers->entries == slide_entries);
 
     if (!same_folder || slide_selected < 0) {
         slide_dir = 0;
@@ -785,7 +854,7 @@ static float carousel_slide (menu_t *menu) {
         bool rapid = (now - slide_last_move_ms) < CAROUSEL_RAPID_MS;
         if (features_enabled(FEATURE_CAROUSEL_ANIMATION) && !rapid) {
             // Wrapping from the last item to the first still counts as "next".
-            if (menu->settings.wrap_file_list_scrolling && (delta == menu->browser.entries - 1 || delta == 1 - menu->browser.entries)) {
+            if (menu->settings.wrap_file_list_scrolling && (delta == covers->entries - 1 || delta == 1 - covers->entries)) {
                 delta = -delta;
             }
             slide_dir = (delta > 0) ? 1 : -1;
@@ -796,8 +865,8 @@ static float carousel_slide (menu_t *menu) {
         slide_last_move_ms = now;
     }
 
-    slide_list = menu->browser.list;
-    slide_entries = menu->browser.entries;
+    slide_list = covers->list;
+    slide_entries = covers->entries;
     slide_selected = selected;
 
     if (slide_dir == 0) {
@@ -814,11 +883,14 @@ static float carousel_slide (menu_t *menu) {
     return slide_dir * remaining;
 }
 
-static void carousel_draw (menu_t *menu) {
+// Not static: the Recent tab draws its covers with this too (see carousel.h).
+void carousel_draw (menu_t *menu) {
     const theme_t *t = theme_get();
-    if (menu->browser.entries <= 0 || menu->browser.selected < 0) {
+    const cover_list_t *covers = cover_list_current(menu);
+    if (covers->entries <= 0 || covers->selected < 0 || covers->selected >= covers->entries) {
         return;
     }
+    entry_t *selected_entry = &covers->list[covers->selected];
 
     const int screen_w = (int) display_get_width();
     const int cx = screen_w / 2;
@@ -839,8 +911,8 @@ static void carousel_draw (menu_t *menu) {
                 continue; // center is drawn once
             }
             int offset = dist * sign;
-            int i = menu->browser.selected + offset;
-            if (i < 0 || i >= menu->browser.entries) {
+            int i = covers->selected + offset;
+            if (i < 0 || i >= covers->entries) {
                 continue;
             }
 
@@ -901,7 +973,7 @@ static void carousel_draw (menu_t *menu) {
                 continue;
             }
 
-            entry_t *e = &menu->browser.list[i];
+            entry_t *e = &covers->list[i];
 
             rdpq_text_printf(&(rdpq_textparms_t) {
                 .width = w - 16,
@@ -938,9 +1010,9 @@ static void carousel_draw (menu_t *menu) {
     }
 
     // Title panel and position bar under the covers.
-    const char *title = display_name(menu->browser.entry);
-    games_ui_title_panel_draw(title, carousel_kind_label(menu->browser.entry->type), game_facts_update(menu));
-    games_ui_position_draw(title, menu->browser.selected, menu->browser.entries);
+    const char *title = display_name(selected_entry);
+    games_ui_title_panel_draw(title, carousel_kind_label(selected_entry->type), game_facts_update(menu));
+    games_ui_position_draw(title, covers->selected, covers->entries);
 }
 #endif
 
@@ -971,7 +1043,7 @@ static void carousel_hints_draw (menu_t *menu) {
     }
 
     x = GAMES_UI_HINTS_X;
-    if (!path_is_root(menu->browser.directory)) {
+    if (folders_tab && !path_is_root(menu->browser.directory)) {
         x = games_ui_hint_draw(x, 1, "B", "Back");
     }
     if (menu->browser.entry) {
@@ -989,8 +1061,26 @@ static void draw (menu_t *menu, surface_t *d) {
     ui_components_background_draw();
 
 #if BROWSER_CAROUSEL
-    games_ui_topbar_draw(menu, GAMES_TAB_GAMES);
-    carousel_draw(menu);
+    if (folders_tab) {
+        games_ui_topbar_draw(menu, GAMES_TAB_FOLDERS);
+        folders_ui_draw(menu);
+    } else {
+        games_ui_topbar_draw(menu, GAMES_TAB_GAMES);
+        carousel_draw(menu);
+        if (menu->browser.entries <= 0) {
+            rdpq_text_printf(&(rdpq_textparms_t) {
+                .width = DISPLAY_WIDTH - (2 * GAMES_UI_CONTENT_X0),
+                .height = 200,
+                .align = ALIGN_CENTER,
+                .valign = VALIGN_CENTER,
+                .wrap = WRAP_WORD,
+                .style_id = STL_GRAY,
+            }, FNT_DEFAULT, GAMES_UI_CONTENT_X0, 100,
+                "No games in the start folder.\n\n"
+                "Open the Folders tab, go to the folder with your games, "
+                "press Z and choose \"Set current directory as default\".");
+        }
+    }
 #else
     ui_components_tabs_common_draw(0);
     ui_components_layout_draw_tabbed();
@@ -1052,6 +1142,9 @@ static void draw (menu_t *menu, surface_t *d) {
 
 
 void view_browser_init (menu_t *menu) {
+    games_ui_set_origin(MENU_MODE_BROWSER); // where B on a game's info screen comes back to
+    if (menu->browser.select_file) tabs_browser_show_folders(true); // being sent to a particular file: that is the Folders tab's job
+    browser_show_tab(menu, tabs_browser_shows_folders());
     if (!menu->browser.valid) {
         ui_components_context_menu_init(&entry_context_menu);
         ui_components_context_menu_init(&archive_context_menu);

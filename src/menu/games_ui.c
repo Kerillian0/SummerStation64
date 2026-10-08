@@ -7,6 +7,8 @@
 
 #include "fonts.h"
 #include "games_ui.h"
+#include "tabs.h"
+#include "menu_features.h"
 #include "theme.h"
 #include "title_font.h"
 #include "ui_components/constants.h"
@@ -16,10 +18,9 @@
 #define TOPBAR_INSET    (16)
 #define TOPBAR_Y        (34)
 #define TOPBAR_HEIGHT   (GAMES_UI_TOPBAR_BOTTOM - TOPBAR_Y)
-#define BADGE_WIDTH     (22)
 #define TOPBAR_TAB_WIDTH       (104)
 #define TOPBAR_TAB_GAP         (6)
-#define TABS_X          (VISIBLE_AREA_X0 + TOPBAR_INSET + BADGE_WIDTH + TOPBAR_TAB_GAP + 2)
+#define TABS_X          (VISIBLE_AREA_X0 + TOPBAR_INSET)
 #define CLOCK_WIDTH     (100)
 
 /* Title panel */
@@ -79,18 +80,42 @@ static void pill (int x, int width, const char *label, bool active) {
     text(x, TOPBAR_Y, width, TOPBAR_HEIGHT, ALIGN_CENTER, active ? STL_DEFAULT : STL_GRAY, label);
 }
 
+/* Under the clock: a tiny drawing of what sits in the console's memory slot,
+   and how much memory that gives. The Expansion Pak has a red top; the
+   Jumper Pak that consoles shipped with is plain. */
+#define PAK_WIDTH       (22)
+#define PAK_HEIGHT      (16)
+#define PAK_TOP         (6)     /* height of the colored top */
+#define MEMORY_Y        (GAMES_UI_TOPBAR_BOTTOM + 6)
+#define MEMORY_TEXT     (44)    /* room for "8MB" */
+
+static void memory_badge_draw (void) {
+    bool expanded = is_memory_expanded();
+    int x1 = VISIBLE_AREA_X1 - TOPBAR_INSET;
+    int x0 = x1 - MEMORY_TEXT - PAK_WIDTH;
+
+    color_t top = expanded ? RGBA32(0xD0, 0x20, 0x28, 0xFF) : RGBA32(0x60, 0x60, 0x60, 0xFF);
+    color_t body = RGBA32(0x2C, 0x2C, 0x30, 0xFF);
+    color_t line = RGBA32(0x10, 0x10, 0x12, 0xFF);
+
+    fill(x0, MEMORY_Y, x0 + PAK_WIDTH, MEMORY_Y + PAK_TOP, top);
+    fill(x0 + 2, MEMORY_Y + PAK_TOP, x0 + PAK_WIDTH - 2, MEMORY_Y + PAK_HEIGHT, body);
+    /* Two grooves across the top, as on the real thing. */
+    fill(x0 + 5, MEMORY_Y + 2, x0 + PAK_WIDTH - 5, MEMORY_Y + 4, line);
+
+    text(x0 + PAK_WIDTH, MEMORY_Y - 2, MEMORY_TEXT, PAK_HEIGHT + 4, ALIGN_RIGHT, STL_GRAY, expanded ? "8MB" : "4MB");
+}
+
 void games_ui_topbar_draw (menu_t *menu, games_tab_t selected) {
-    static const char *const labels[GAMES_TAB_COUNT] = { "Games", "Recent", "Favorites" };
+    static const char *const labels[GAMES_TAB_COUNT] = { "Games", "Recent", "Favorites", "Folders" };
+    games_tab_t shown[GAMES_TAB_COUNT];
+    int count = tabs_list(shown);
 
-    int x = VISIBLE_AREA_X0 + TOPBAR_INSET;
-    pill(x, BADGE_WIDTH, "L", false);
-
-    x = TABS_X;
-    for (int i = 0; i < GAMES_TAB_COUNT; i++) {
-        pill(x, TOPBAR_TAB_WIDTH, labels[i], i == (int) selected);
+    int x = TABS_X;
+    for (int i = 0; i < count; i++) {
+        pill(x, TOPBAR_TAB_WIDTH, labels[shown[i]], shown[i] == selected);
         x += TOPBAR_TAB_WIDTH + TOPBAR_TAB_GAP;
     }
-    pill(x + 2, BADGE_WIDTH, "R", false);
 
     /* The clock only shows when the cart's clock is working. */
     if (menu->current_time >= 0) {
@@ -102,6 +127,20 @@ void games_ui_topbar_draw (menu_t *menu, games_tab_t selected) {
             pill(VISIBLE_AREA_X1 - TOPBAR_INSET - CLOCK_WIDTH, CLOCK_WIDTH, clock, false);
         }
     }
+
+    if (features_enabled(FEATURE_MEMORY_BADGE)) {
+        memory_badge_draw();
+    }
+}
+
+static menu_mode_t origin = MENU_MODE_BROWSER;
+
+void games_ui_set_origin (menu_mode_t tab) {
+    origin = tab;
+}
+
+menu_mode_t games_ui_origin (void) {
+    return origin;
 }
 
 #define BADGE_HEIGHT    (20)

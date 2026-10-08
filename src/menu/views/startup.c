@@ -1,5 +1,6 @@
 #include "utils/fs.h"
 #include "../intro.h"
+#include "../tabs.h"
 #include "views.h"
 
 
@@ -42,6 +43,7 @@ void view_startup_init (menu_t *menu) {
         menu->next_mode = MENU_MODE_BROWSER;
     }
 
+    if (menu->next_mode == MENU_MODE_BROWSER) tabs_open(menu, tabs_first()); // the menu opens on the player's first tab
     intro_begin(menu); // plays the intro first, if it is wanted
 }
 

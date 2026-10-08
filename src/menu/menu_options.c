@@ -21,6 +21,10 @@ static const option_info_t option_info[OPTION_COUNT] = {
     [OPTION_FRAME_RATE] = { "frame_rate_experiment", 0 },
     [OPTION_INTRO] = { "intro", 1 },    /* INTRO_ON: at power-on */
     [OPTION_FADE] = { "fade", 2 },      /* FADE_2_SECONDS */
+    [OPTION_TAB1] = { "tab1", 1 },      /* Games */
+    [OPTION_TAB2] = { "tab2", 2 },      /* Favorites */
+    [OPTION_TAB3] = { "tab3", 3 },      /* Folders */
+    [OPTION_TAB4] = { "tab4", 0 },      /* nothing; Recent is the player's to add */
 };
 
 static int values[OPTION_COUNT];

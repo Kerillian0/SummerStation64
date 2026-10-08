@@ -78,6 +78,10 @@ SRCS = \
 	menu/settings.c \
 	menu/sound.c \
 	menu/intro.c \
+	menu/cover_list.c \
+	menu/cover_row.c \
+	menu/tabs.c \
+	menu/folders_ui.c \
 	menu/theme.c \
 	menu/menu_features.c \
 	menu/zip_entry_count.c \

@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "carousel_art.h"
+#include "cover_list.h"
 #include "menu_features.h"
 #include "path.h"
 #include "ui_components.h"
@@ -76,10 +77,10 @@ static void slot_clear (slot_t *slot) {
 
 /* The slot holding list entry `index`, if it is still the same file. */
 static slot_t *slot_find (menu_t *menu, int index) {
-    if (index < 0 || index >= menu->browser.entries) {
+    if (index < 0 || index >= cover_list_current(menu)->entries) {
         return NULL;
     }
-    entry_t *entry = &menu->browser.list[index];
+    entry_t *entry = &cover_list_current(menu)->list[index];
     for (int i = 0; i < SLOT_COUNT; i++) {
         slot_t *slot = &slots[i];
         if (slot->used && slot->index == index && slot->entry == entry && slot->hash == name_hash(entry->name)) {
@@ -128,10 +129,10 @@ static void fix_header_byte_order (uint8_t *h) {
 }
 
 /* Start decoding the art for an entry. Returns NULL if it has none. */
-static component_boxart_t *art_load (menu_t *menu, entry_t *entry, file_image_type_t *which) {
+static component_boxart_t *art_load (menu_t *menu, int index, file_image_type_t *which) {
     uint8_t header[ROM_HEADER_SIZE];
 
-    path_t *path = path_clone_push(menu->browser.directory, entry->name);
+    path_t *path = cover_list_current(menu)->path(menu, index);
     FILE *f = fopen(path_get(path), "rb");
     path_free(path);
     if (!f) {
@@ -204,7 +205,7 @@ static void flip_update (menu_t *menu) {
             ui_components_boxart_free(center->art);
         }
         side = (side == IMAGE_BOXART_FRONT) ? IMAGE_BOXART_BACK : IMAGE_BOXART_FRONT;
-        center->art = art_load(menu, center->entry, &side);
+        center->art = art_load(menu, center->index, &side);
         flip = FLIP_LOADING;
     }
 
@@ -251,14 +252,14 @@ void carousel_art_reset (void) {
 void carousel_art_update (menu_t *menu, bool side_covers) {
     art_menu = menu;
 
-    if (!features_enabled(FEATURE_COVER_ART) || menu->browser.entries <= 0 || menu->browser.selected < 0) {
+    if (!features_enabled(FEATURE_COVER_ART) || cover_list_current(menu)->entries <= 0 || cover_list_current(menu)->selected < 0) {
         carousel_art_reset();
         return;
     }
 
     uint64_t now = get_ticks_ms();
-    int selected = menu->browser.selected;
-    entry_t *entry = &menu->browser.list[selected];
+    int selected = cover_list_current(menu)->selected;
+    entry_t *entry = &cover_list_current(menu)->list[selected];
     uint32_t hash = name_hash(entry->name);
 
     if (selected != center_index || entry != center_entry || hash != center_hash) {
@@ -284,7 +285,7 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
     int wanted_count = 0;
     for (int i = 0; i < (side_covers ? SLOT_COUNT : 1); i++) {
         int index = selected + order[i];
-        if (index >= 0 && index < menu->browser.entries) {
+        if (index >= 0 && index < cover_list_current(menu)->entries) {
             wanted[wanted_count++] = index;
         }
     }
@@ -318,7 +319,7 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
             if (!slot) {
                 break;
             }
-            entry_t *e = &menu->browser.list[index];
+            entry_t *e = &cover_list_current(menu)->list[index];
             slot->used = true;
             slot->index = index;
             slot->entry = e;
@@ -326,7 +327,7 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
             slot->art = NULL;
             if (e->type == ENTRY_TYPE_ROM && (index == selected || memory_for_side_art())) {
                 file_image_type_t which = IMAGE_BOXART_FRONT;
-                slot->art = art_load(menu, e, &which);
+                slot->art = art_load(menu, index, &which);
             }
             if (slot->art) {
                 break;

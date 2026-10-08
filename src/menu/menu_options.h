@@ -15,6 +15,10 @@ typedef enum {
     OPTION_FRAME_RATE,  /**< a frame_rate_t value */
     OPTION_INTRO,       /**< an intro_choice_t value (see intro.h) */
     OPTION_FADE,        /**< an intro_fade_t value (see intro.h) */
+    OPTION_TAB1,        /**< first place on the tab bar: a tab_choice_t value (see tabs.h) */
+    OPTION_TAB2,
+    OPTION_TAB3,
+    OPTION_TAB4,
     OPTION_COUNT
 } option_t;
 

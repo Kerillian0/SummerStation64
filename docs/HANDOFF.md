@@ -72,6 +72,16 @@ Remaining:
 
 Stage 6 is the only stage left.
 
+## In progress (2026-10-08)
+
+Built and waiting for the owner's hardware test, not committed: the Recent
+tab as a cover row; B on a game's info returns to the tab it came from; the
+L/R badges removed; a memory badge under the clock; the Games tab showing
+games only; a new Folders tab; and a player-chosen tab order (Settings >
+Tabs; default Games, Favorites, Folders). Details in `CLAUDE.md` under "Menu
+redesign", stage 6. After that: Favorites as a cover row, then picture icons
+for the button hints.
+
 ## Next steps
 
 1. **Ask the owner whether to start stage 6** (Recent tab first) or the

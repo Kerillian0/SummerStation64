@@ -105,7 +105,8 @@ Ours (new files, free to change), all in `src/menu/`: `theme`,
 `menu_features`, `menu_options`, `safe_file`, `safe_mode`, `crash_screen`,
 `debug_stats`, `controls`, `carousel_art`, `folder_memory`, `sort_order`,
 `display_name`, `font_choice`, `title_font`, `frame_rate`, `games_ui`,
-`game_facts`, `game_info_ui`, `play_stats`, `intro`, `menu_name.h`, and
+`game_facts`, `game_info_ui`, `play_stats`, `intro`, `menu_name.h`,
+`cover_list`, `cover_row`, `carousel.h`, `tabs`, `folders_ui`, and
 `views/settings_menu`
 (`views/features_menu` is ours too but no longer reachable).
 
@@ -121,7 +122,7 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
 |---|---|---|
 | `theme/theme.ini` (or `theme.txt`) | the theme; read only | the user / Theme Maker |
 | `features.ini` | the player's On/Off choices | `menu_features.c` |
-| `options.ini` | `sort_order`, `font`, `frame_rate_experiment`, `intro`, `fade` | `menu_options.c` |
+| `options.ini` | `sort_order`, `font`, `frame_rate_experiment`, `intro`, `fade`, `tab1`..`tab4` | `menu_options.c` |
 | `folders.ini` | selected entry per folder | `folder_memory.c` |
 | `playstats.txt` | play count and last played | `play_stats.c` |
 | `metadata/` | box art and `metadata.ini` per game; read only | the user's metadata pack |
@@ -684,6 +685,55 @@ Stages, one testable build each:
    mockup; the release date moved up beside the maker, and TV region left the
    page (still under Options > Set TV Type).
 6. Recent and Favorites as cover rows instead of lists.
+   **Recent (built 2026-10-08, awaiting hardware test, not committed):**
+   `cover_list.c/.h` is a small layer that says which list the cover row
+   shows: the open folder (default) or another list. The cover drawing
+   (`carousel_draw()` in `browser.c`, now exported through `carousel.h`),
+   the art cache (`carousel_art.c`) and the badge lookup (`game_facts.c`)
+   read entries, selection and file paths through it instead of from
+   `menu->browser`. `cover_row.c/.h` builds such a list from the history
+   (empty places left out), moves along it, draws it with A/Hold hints,
+   and remembers the selected cover while the console is on. Hooked into
+   `views/history_favorites.c` for the Recent tab only; launching still
+   goes through the stock `load_history_id` path. A 64DD entry's second
+   file (disk + game pairs) is no longer shown. Favorites still uses the
+   list and its text hints; it is the next build.
+   Hardware test 2026-10-08: everything passed except that B on a game's
+   info screen went to the Games tab (stock behaviour). Fixed in the next
+   build (awaiting test): each tab calls `games_ui_set_origin()` when it
+   opens and `load_rom.c` / `load_disk.c` go back to `games_ui_origin()`.
+   Measured: Recent with three covers uses about 100 KB more than the
+   Games screen at rest, back to 1904 KB after leaving; 33.3-33.7 ms.
+   Same build: the L and R badges are gone from the tab bar (the user
+   finds them clutter), and feature `memory_badge` (default on, "Memory
+   Badge" in Settings > Display) draws a small Expansion Pak (red top) or
+   Jumper Pak (grey top) under the clock with "8MB" / "4MB". The pak is
+   drawn with rectangles, no picture file.
+   **Games-only tab, Folders tab, tab order (built 2026-10-08, awaiting
+   hardware test, not committed; the user's decisions):**
+   - The Games tab shows games only (ROMs, 64DD disks, emulator games), no
+     folders, from one folder: the start folder (`default_directory`).
+     Later it becomes every game on the card, once the metadata index
+     exists (the user chose "one folder now, whole card later").
+   - A new Folders tab is the plain file browser: every file by its real
+     name with its size, folders in yellow, the path on top
+     (`folders_ui.c`). Pictures, music, text and zips are opened from here,
+     and "Set current directory as default" in its Options is how the Games
+     tab's folder is chosen.
+   - Both are the same screen and mode (`MENU_MODE_BROWSER`, so every stock
+     "back to the browser" lands on whichever was showing). `browser.c`
+     keeps `folders_tab` and the Folders tab's own directory, filters the
+     list at load on the Games tab (one hook in `load_directory()`), and
+     reloads the list when switching between the two.
+   - `tabs.c/.h`: the bar has four places, options `tab1`..`tab4` in
+     `options.ini` (None / Games / Favorites / Folders / Recent), set in the
+     new Settings category "Tabs". Default: Games, Favorites, Folders; the
+     user wants Recent to be something the player adds. Duplicates count
+     once; all None falls back to the default. The menu opens on the first
+     tab. L/R step through the list on every tabbed screen.
+   - Not done yet: Favorites as a cover row; picture icons for the button
+     hints (wanted by the user); the Games tab has no way to change folder
+     except through Folders.
 7. **Intro (done and tested):** `intro.c`. The name (`MENU_DISPLAY_NAME`,
    defined in `menu_name.h`) in the 26 px title font over the theme
    background, an accent line growing under it, up from black and back to
