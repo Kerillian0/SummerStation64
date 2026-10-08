@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "carousel_art.h"
+#include "baked_art.h"
 #include "cover_list.h"
 #include "menu_features.h"
 #include "path.h"
@@ -11,6 +12,10 @@
 
 /* How long the selection must rest before any art is loaded. */
 #define SETTLE_TIME_MS      (250)
+/* The covers either side wait longer. Starting a load costs one slow frame
+   (finding and opening the files on the card), so while the player is
+   stepping through the row only the selected cover's art is fetched. */
+#define SIDE_SETTLE_TIME_MS (700)
 
 /* The selected cover plus two either side. */
 #define SLOT_COUNT          (5)
@@ -70,7 +75,7 @@ static bool art_ready (component_boxart_t *art) {
 
 static void slot_clear (slot_t *slot) {
     if (slot->art) {
-        ui_components_boxart_free(slot->art); /* also stops a decode in progress */
+        if (!baked_art_free(slot->art)) ui_components_boxart_free(slot->art); /* also stops a decode in progress */
     }
     memset(slot, 0, sizeof(*slot));
 }
@@ -151,12 +156,22 @@ static component_boxart_t *art_load (menu_t *menu, int index, file_image_type_t 
     title[ROM_TITLE_LENGTH] = '\0';
 
     const char *code = (const char *) &header[ROM_CODE_OFFSET];
-    component_boxart_t *art = ui_components_boxart_init(menu->storage_prefix, code, title, *which);
+    /* Art baked into the menu comes first: it needs no search of the card
+       and no unpacking. */
+    component_boxart_t *art = baked_art_load(code, *which);
+    if (art) {
+        return art;
+    }
+
+    art = ui_components_boxart_init(menu->storage_prefix, code, title, *which);
 
     /* No picture of the back for this game: show the front again. */
     if (!art && *which != IMAGE_BOXART_FRONT) {
         *which = IMAGE_BOXART_FRONT;
-        art = ui_components_boxart_init(menu->storage_prefix, code, title, *which);
+        art = baked_art_load(code, *which);
+        if (!art) {
+            art = ui_components_boxart_init(menu->storage_prefix, code, title, *which);
+        }
     }
 
     return art;
@@ -202,7 +217,7 @@ static void flip_update (menu_t *menu) {
         }
         /* Let go of this side before loading the other: no extra memory. */
         if (center->art) {
-            ui_components_boxart_free(center->art);
+            if (!baked_art_free(center->art)) ui_components_boxart_free(center->art);
         }
         side = (side == IMAGE_BOXART_FRONT) ? IMAGE_BOXART_BACK : IMAGE_BOXART_FRONT;
         center->art = art_load(menu, center->index, &side);
@@ -314,6 +329,9 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
             int index = wanted[j];
             if (slot_find(menu, index)) {
                 continue; /* already loaded, or already known to have no art */
+            }
+            if (index != selected && (now - changed_at) < SIDE_SETTLE_TIME_MS) {
+                break; /* the side covers wait until the selection has really come to rest */
             }
             slot_t *slot = slot_free();
             if (!slot) {

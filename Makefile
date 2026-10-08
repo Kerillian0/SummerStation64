@@ -78,6 +78,7 @@ SRCS = \
 	menu/settings.c \
 	menu/sound.c \
 	menu/intro.c \
+	menu/baked_art.c \
 	menu/builtin_themes.c \
 	menu/intro_logo.c \
 	menu/cover_list.c \
@@ -193,6 +194,9 @@ $(FILESYSTEM_DIR)/%.sprite: $(ASSETS_DIR)/images/%.png
 	@$(N64_MKSPRITE) $(MKSPRITE_FLAGS) -o $(dir $@) "$<"
 
 $(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM)
+
+# Box art baked into the menu, if any has been made (see assets/boxart/README.md).
+$(BUILD_DIR)/$(PROJECT_NAME).dfs: $(wildcard $(FILESYSTEM_DIR)/art)
 
 # Small font for consoles without the Expansion Pak: the same typeface with
 # Latin characters only (about 64 KB in RAM instead of 760 KB).

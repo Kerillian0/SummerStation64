@@ -16,6 +16,10 @@
 /filesystem/*.wav64
 /filesystem/*.sprite
 
+# Box art the user bakes into their own build (see assets/boxart/README.md)
+/filesystem/art/
+/assets/boxart/source/
+
 # Ignore external development tools
 /tools/*
 

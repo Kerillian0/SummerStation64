@@ -110,7 +110,7 @@ Ours (new files, free to change), all in `src/menu/`: `theme`,
 `display_name`, `font_choice`, `title_font`, `frame_rate`, `games_ui`,
 `game_facts`, `game_info_ui`, `play_stats`, `intro`, `menu_name.h`,
 `cover_list`, `cover_row`, `carousel.h`, `tabs`, `folders_ui`,
-`start_menu`, `intro_logo`, `builtin_themes`, and
+`start_menu`, `intro_logo`, `builtin_themes`, `baked_art`, and
 `views/settings_menu`
 (`views/features_menu` is ours too but no longer reachable).
 
@@ -343,6 +343,34 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
   Maker does not know this type yet. Ideas the user has not picked yet: a banded sun in the
   intro, a "horizon grid" pattern, palm silhouettes, a time-of-day look,
   summer sounds.
+- `src/menu/baked_art.c/.h` and `assets/boxart/` — box art baked into the
+  menu file (built 2026-10-08 at the user's request, to cure the slow frame
+  when a cover starts loading; **not yet tried with real art**). The user
+  copies their SD card's `menu/metadata` folder to `assets/boxart/source/`
+  (ignored by git); `python3 assets/boxart/make_baked_art.py` shrinks each
+  `boxart_front.png` / `boxart_back.png` to fit 158x158 and writes
+  `filesystem/art/NZSE_f.sprite` / `_b` (RGBA16, compressed; also ignored),
+  which the Makefile packs into the ROM. `carousel_art.c` asks
+  `baked_art_load()` first and falls back to the PNG on the card; baked
+  covers are freed through `baked_art_free()`. The loader checks the file
+  exists and 160 KB is free first, because `sprite_load` halts the menu on
+  failure. Nothing is baked by default and no art is in the repository.
+  The pipeline was checked with two made-up covers. The game's header is
+  still read from the card to learn its code. Only the cover rows use
+  baked art; the Game info screen still reads the PNG. A cover is 158x112
+  (35 KB in RAM), so the earlier "25-30 MB for the library" guess was far
+  too high for one cover, but the user's pack turned out to be the whole
+  library: 750 fronts and 296 backs, **1,046 pictures, 24.2 MB baked,
+  menu file 27.9 MB** (was 2.5). Files are sorted into
+  `filesystem/art/<2nd letter>/<3rd letter>/` so no ROM folder is long to
+  walk. The log prints `Baked art: <file> in N ms`. **Tested on hardware
+  2026-10-08:** a baked cover loads in 4-7 ms. Stepping quickly through
+  the row now averages 35-38 ms with worst frames of 55-70 ms (before:
+  40-53 ms and 90-126 ms). A game without a baked cover (NGFE) fell back
+  to the card correctly. What is left of the slow frame is reading each
+  game's header from the card and the badge lookup. Not yet reported by
+  the user: how much longer the 27.9 MB menu takes to start. If baking does not work out, the
+  agreed fallback is one cover file on the SD card with an index.
 - `src/menu/menu_features.c/.h` — Expansion Pak detection
   (`is_memory_expanded()`) and feature toggles. Named `menu_features` to avoid
   clashing with the system `features.h`.
@@ -933,8 +961,17 @@ four quarters of one 16x16 white disc (`corner.sprite`, I4, 128 bytes),
 tinted, with three plain boxes between them so see-through colors are not
 drawn twice. Used for the tabs, the clock, the title panel, the badges and
 the band behind the hints. Not rounded: the selection ring, the covers,
-Settings, the Folders list. Each rounded box is four small sprite draws;
-watch the frame time.
+Settings, the Folders list. Tested on hardware 2026-10-08: passed; at rest the Games
+screen holds 33.3 ms (worst 36) with them on, so they cost nothing that
+shows. The same log showed 40-53 ms averages and 90-126 ms worst frames
+while stepping quickly through the row with Previous/Next Covers on, the
+same with corners off: that is cover loading. Starting a load costs one
+slow frame (ROM header read, art path lookups, opening the PNG; the
+decode itself is spread out), and with side covers up to five loads start
+one after another at each stop. Change (awaiting test): side covers wait
+until the selection has rested 700 ms (`SIDE_SETTLE_TIME_MS`), the
+selected cover still 250 ms. The real cure is the metadata index and the
+asset prep tool (v0.2).
 
 Constraints found so far: rounded corners were first thought too costly on
 the N64 (square corners used) until the tinted-disc trick above; small label text from the mockups would not be readable on a
