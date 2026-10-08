@@ -15,6 +15,9 @@
 /** Load and register the title fonts (FNT_TITLE, FNT_TITLE_MEDIUM) and the small one (FNT_SMALL). Call once, with the other fonts. */
 void title_font_init (void);
 
+/** Give these fonts the current theme's colors again, after the theme changes. */
+void title_font_restyle (void);
+
 /**
  * Which font to draw a title with: the largest of FNT_TITLE and
  * FNT_TITLE_MEDIUM in which the text fits in `max_width` on one line. If it

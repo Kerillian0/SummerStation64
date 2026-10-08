@@ -22,6 +22,7 @@ typedef enum {
     THEME_BG_SOLID,
     THEME_BG_GRADIENT,
     THEME_BG_IMAGE,
+    THEME_BG_OCEAN,     /* water running to a horizon: color1 water, color2 foam, color3 sky */
 } theme_bg_type_t;
 
 typedef enum {
@@ -77,6 +78,13 @@ typedef struct {
 
 /** Load theme settings from the SD card. Safe to call more than once. */
 void theme_init (void);
+
+/**
+ * Load the theme again, after the player picks another one in Settings.
+ * The background is rebuilt on the next draw. Call fonts_restyle() too, so
+ * the text takes the new colors.
+ */
+void theme_reload (void);
 
 /** Current theme (defaults if nothing was loaded). */
 const theme_t *theme_get (void);

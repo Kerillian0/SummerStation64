@@ -10,8 +10,14 @@
 
 static bool loaded = false;
 
+static rdpq_font_t *fonts[3];
+static int font_count = 0;
+
 static void load (uint8_t id, const char *path) {
     rdpq_font_t *font = rdpq_font_load(path);
+    if (font_count < 3) {
+        fonts[font_count++] = font;
+    }
 
     const theme_t *theme = theme_get();
     rdpq_font_style(font, STL_DEFAULT, &((rdpq_fontstyle_t) { .color = theme->text }));
@@ -19,6 +25,14 @@ static void load (uint8_t id, const char *path) {
     rdpq_font_style(font, STL_GREEN, &((rdpq_fontstyle_t) { .color = RGBA32(0x70, 0xFF, 0x70, 0xFF) }));
 
     rdpq_text_register_font(id, font);
+}
+
+void title_font_restyle (void) {
+    const theme_t *theme = theme_get();
+    for (int i = 0; i < font_count; i++) {
+        rdpq_font_style(fonts[i], STL_DEFAULT, &((rdpq_fontstyle_t) { .color = theme->text }));
+        rdpq_font_style(fonts[i], STL_GRAY, &((rdpq_fontstyle_t) { .color = theme->text_dim }));
+    }
 }
 
 void title_font_init (void) {

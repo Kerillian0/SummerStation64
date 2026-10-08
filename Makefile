@@ -78,6 +78,7 @@ SRCS = \
 	menu/settings.c \
 	menu/sound.c \
 	menu/intro.c \
+	menu/builtin_themes.c \
 	menu/intro_logo.c \
 	menu/cover_list.c \
 	menu/cover_row.c \

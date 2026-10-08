@@ -110,7 +110,7 @@ Ours (new files, free to change), all in `src/menu/`: `theme`,
 `display_name`, `font_choice`, `title_font`, `frame_rate`, `games_ui`,
 `game_facts`, `game_info_ui`, `play_stats`, `intro`, `menu_name.h`,
 `cover_list`, `cover_row`, `carousel.h`, `tabs`, `folders_ui`,
-`start_menu`, `intro_logo`, and
+`start_menu`, `intro_logo`, `builtin_themes`, and
 `views/settings_menu`
 (`views/features_menu` is ours too but no longer reachable).
 
@@ -126,7 +126,7 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
 |---|---|---|
 | `theme/theme.ini` (or `theme.txt`) | the theme; read only | the user / Theme Maker |
 | `features.ini` | the player's On/Off choices | `menu_features.c` |
-| `options.ini` | `sort_order`, `font`, `frame_rate_experiment`, `intro`, `fade`, `intro_logo`, `tab1`..`tab4` | `menu_options.c` |
+| `options.ini` | `sort_order`, `font`, `frame_rate_experiment`, `intro`, `fade`, `intro_logo`, `theme`, `tab1`..`tab4` | `menu_options.c` |
 | `folders.ini` | selected entry per folder | `folder_memory.c` |
 | `playstats.txt` | play count and last played | `play_stats.c` |
 | `metadata/` | box art and `metadata.ini` per game; read only | the user's metadata pack |
@@ -312,6 +312,28 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
   wins), so every screen is themed.
 - `src/menu/fonts.c` — `STL_DEFAULT` uses theme `text`, `STL_GRAY` uses
   `text_dim`; other styles keep fixed meanings.
+- `src/menu/builtin_themes.c/.h` — four summer themes that come with the
+  menu (built 2026-10-08, awaiting hardware test): Sunset, Night Drive,
+  Beach, Pool. Option `theme` in `options.ini`, "Theme" at the top of
+  Settings > Display: From SD Card (the default: the player's `theme.ini`,
+  or Sunset when there is none), then the four. **Sunset is now the stock
+  look**; the old "Midnight Gradient" defaults in `theme.c` only supply the
+  frame colors. Safe mode shows Sunset. A change applies at once:
+  `theme_reload()` (background rebuilt on the next draw) and
+  `fonts_restyle()` (body, title and small fonts take the new text
+  colors). Built-in themes set no features. Backgrounds are kept dark on
+  purpose, since some text sits straight on them. Checked only as rough
+  PC previews. Tested on hardware 2026-10-08: passed; the user then had
+  Pool replaced by **Ocean** (built, awaiting test): a new background type
+  `ocean` (`THEME_BG_OCEAN`, also `type = ocean` in theme.ini: color1
+  water, color2 foam, color3 sky) drawn by sums in `theme.c`: water running
+  to a horizon a tenth of the way down, with a net of curved foam lines
+  (borders between scattered points, bent with a sine) fading into haze.
+  It costs nine distance sums per background pixel, so building it may
+  take noticeably longer than a gradient; time it on hardware. The Theme
+  Maker does not know this type yet. Ideas the user has not picked yet: a banded sun in the
+  intro, a "horizon grid" pattern, palm silhouettes, a time-of-day look,
+  summer sounds.
 - `src/menu/menu_features.c/.h` — Expansion Pak detection
   (`is_memory_expanded()`) and feature toggles. Named `menu_features` to avoid
   clashing with the system `features.h`.
@@ -782,8 +804,9 @@ Stages, one testable build each:
      working by the user; the rest awaiting comment; not committed):** that text fixed; Z on
      Favorites asks "Remove from Favorites?" (A removes, B keeps); and
      four visual changes the user approved: the selected tab is a solid
-     accent-colored block with black or white text chosen by the accent's
-     brightness (`STL_BLACK` added); Tidy Game Titles also turns
+     accent-colored block with white text (black text was tried on light
+     accents and ran together into a blob: the font's dark outline plus a
+     black fill; **never draw black text with this font**); Tidy Game Titles also turns
      underscores into spaces; a see-through dark band sits behind the
      button hints (`games_ui_hints_backdrop_draw()`); the position bar's
      letter comes from the file name, which is what the list is sorted by.

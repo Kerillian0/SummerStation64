@@ -7,6 +7,8 @@
 #include "utils/fs.h"
 
 
+static rdpq_font_t *body_font = NULL;
+
 static void load_default_font (char *custom_font_path) {
     char *font_path = (char *) font_choice_path(); // full or small built-in font
 
@@ -34,6 +36,16 @@ static void load_default_font (char *custom_font_path) {
     rdpq_font_style(default_font, STL_BLACK, &((rdpq_fontstyle_t) { .color = RGBA32(0x00, 0x00, 0x00, 0xFF) }));
 
     rdpq_text_register_font(FNT_DEFAULT, default_font);
+    body_font = default_font;
+}
+
+void fonts_restyle (void) {
+    const theme_t *theme = theme_get();
+    if (body_font) {
+        rdpq_font_style(body_font, STL_DEFAULT, &((rdpq_fontstyle_t) { .color = theme->text }));
+        rdpq_font_style(body_font, STL_GRAY, &((rdpq_fontstyle_t) { .color = theme->text_dim }));
+    }
+    title_font_restyle();
 }
 
 

@@ -72,11 +72,12 @@ static void pill (int x, int width, const char *label, bool active) {
 
     if (active) {
         /* The selected tab is filled with the accent color, a little larger
-           than the others, with whichever of black or white text shows best
-           on it. An outline alone was hard to read on a composite TV. */
-        int brightness = ((t->accent.r * 3) + (t->accent.g * 6) + t->accent.b) / 10;
+           than the others. Its label is always white: the font draws a
+           dark edge round every letter, which keeps white readable even on
+           a yellow accent, while black letters inside that black edge ran
+           together into a blob. */
         fill(x - 2, TOPBAR_Y - 2, x + width + 2, TOPBAR_Y + TOPBAR_HEIGHT + 2, t->accent);
-        text(x, TOPBAR_Y, width, TOPBAR_HEIGHT, ALIGN_CENTER, (brightness >= 128) ? STL_BLACK : STL_WHITE, label);
+        text(x, TOPBAR_Y, width, TOPBAR_HEIGHT, ALIGN_CENTER, STL_WHITE, label);
         return;
     }
     fill(x, TOPBAR_Y, x + width, TOPBAR_Y + TOPBAR_HEIGHT, t->tab_inactive);

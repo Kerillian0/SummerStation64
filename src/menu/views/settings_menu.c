@@ -6,6 +6,7 @@
 #include "../folder_memory.h"
 #include "../font_choice.h"
 #include "../intro.h"
+#include "../builtin_themes.h"
 #include "../intro_logo.h"
 #include "../tabs.h"
 #include "../games_ui.h"
@@ -103,6 +104,13 @@ static void resort_browser (menu_t *menu) {
     folder_memory_reselect();
 }
 
+/* A newly chosen theme shows at once: colors, text and background. */
+static void apply_theme (menu_t *menu) {
+    (void) menu;
+    theme_reload();
+    fonts_restyle();
+}
+
 static void apply_soundfx (menu_t *menu) {
     sound_use_sfx(menu->settings.soundfx_enabled);
 }
@@ -137,6 +145,8 @@ static const char *default_folder (menu_t *menu) {
 /* ---------- the menu itself ---------- */
 
 static const item_t display_items[] = {
+    CHOICES("Theme", OPTION_THEME, BUILTIN_THEME_COUNT, builtin_theme_name, apply_theme,
+        "The menu's colors and background. From SD Card uses your own theme file (menu/theme/theme.ini), or Sunset if there is none. The others are built in."),
     FEATURE("Cover Art", FEATURE_COVER_ART, "Show box art on the selected cover."),
     FEATURE("Previous/Next Covers", FEATURE_SIDE_COVERS, "Show smaller covers either side of the selected one."),
     FEATURE("See-through Side Covers", FEATURE_SEE_THROUGH_COVERS, "Let the background show through the previous and next covers. Off draws them solid."),

@@ -7,6 +7,8 @@
 
 #include "theme.h"
 #include "safe_mode.h"
+#include "builtin_themes.h"
+#include "menu_options.h"
 
 static theme_t theme;
 static surface_t background;
@@ -118,6 +120,7 @@ static void apply_key (theme_t *t, const char *section, const char *key, const c
             if (!strcasecmp(v, "solid")) t->bg_type = THEME_BG_SOLID;
             else if (!strcasecmp(v, "gradient")) t->bg_type = THEME_BG_GRADIENT;
             else if (!strcasecmp(v, "image")) t->bg_type = THEME_BG_IMAGE;
+            else if (!strcasecmp(v, "ocean")) t->bg_type = THEME_BG_OCEAN;
         } else if (!strcasecmp(key, "direction")) {
             if (!strcasecmp(v, "vertical")) t->direction = THEME_DIR_VERTICAL;
             else if (!strcasecmp(v, "horizontal")) t->direction = THEME_DIR_HORIZONTAL;
@@ -251,6 +254,72 @@ static bool pattern_hit (const theme_t *t, int x, int y) {
     }
 }
 
+/* ---------- the ocean background ---------- */
+
+/* Water seen from just above it, running away to a horizon near the top of
+   the screen, with a net of pale foam lines across it. The lines are the
+   borders between scattered points' territories (which gives the rounded,
+   uneven cells of light on water), bent a little so they aren't straight.
+   Tried out on a PC first with the same sums. */
+#define OCEAN_HORIZON   (0.10f)     /* how far down the screen the horizon is */
+#define OCEAN_ACROSS    (2.2f)      /* how many cells fit across at the very bottom, roughly halved */
+#define OCEAN_LINE      (0.06f)     /* foam is solid nearer a border than this... */
+#define OCEAN_LINE_SOFT (0.11f)     /* ...and gone beyond this */
+#define OCEAN_HAZE      (0.30f)     /* the far part of the water, this much of it, fades into the sky */
+
+/* A fixed scatter of points: the same "random" spot for a cell every time. */
+static uint32_t ocean_scatter (int ix, int iz) {
+    uint32_t h = ((uint32_t) ix * 374761393u) + ((uint32_t) iz * 668265263u);
+    h = (h ^ (h >> 13)) * 1274126177u;
+    return h ^ (h >> 16);
+}
+
+/* How much nearer the nearest point is than the next nearest: 0 on a border. */
+static float ocean_border (float x, float z) {
+    int ix = (int) floorf(x);
+    int iz = (int) floorf(z);
+    float nearest = 9.0f, second = 9.0f;
+
+    for (int dz = -1; dz <= 1; dz++) {
+        for (int dx = -1; dx <= 1; dx++) {
+            uint32_t h = ocean_scatter(ix + dx, iz + dz);
+            float px = (ix + dx) + ((h & 0xFFFF) / 65536.0f);
+            float pz = (iz + dz) + (((h >> 16) & 0xFFFF) / 65536.0f);
+            float d = ((px - x) * (px - x)) + ((pz - z) * (pz - z));
+            if (d < nearest) {
+                second = nearest;
+                nearest = d;
+            } else if (d < second) {
+                second = d;
+            }
+        }
+    }
+    return sqrtf(second) - sqrtf(nearest);
+}
+
+static rgbf_t ocean_color (int x, int y, int w, int h, rgbf_t water, rgbf_t foam, rgbf_t sky) {
+    float horizon = OCEAN_HORIZON * h;
+    rgbf_t white = { 1.0f, 1.0f, 1.0f };
+    rgbf_t haze = lerp(sky, white, 0.45f);
+
+    if (y < horizon) {
+        return lerp(sky, haze, y / horizon);
+    }
+
+    /* Each row of the screen is a line across the water; rows nearer the
+       horizon are further away, so the same cells look smaller there. */
+    float down = (y - horizon) + 1.0f;
+    float away = (OCEAN_ACROSS * 1.1f * h) / down;
+    float side = ((x - (w / 2)) * OCEAN_ACROSS) / down;
+
+    float border = ocean_border(side + (0.22f * sinf((away * 2.3f) + (side * 1.1f))), away + (0.22f * sinf((side * 1.9f) - (away * 0.7f))));
+    float line = (border > OCEAN_LINE_SOFT) ? 0.0f : ((border < OCEAN_LINE) ? 1.0f : ((OCEAN_LINE_SOFT - border) / (OCEAN_LINE_SOFT - OCEAN_LINE)));
+
+    float near = down / (h - horizon);
+    float fog = 1.0f - (near / OCEAN_HAZE);
+    return lerp(lerp(water, foam, line), haze, (fog > 0.0f) ? fog : 0.0f);
+}
+
 static uint32_t to_byte (float v) {
     if (v < 0.0f) v = 0.0f;
     if (v > 255.0f) v = 255.0f;
@@ -295,6 +364,8 @@ static void theme_build_background (const theme_t *t) {
                 } else {
                     c = lerp(c1, c2, p);
                 }
+            } else if (type == THEME_BG_OCEAN) {
+                c = ocean_color(x, y, w, h, c1, c2, c3);
             } else {
                 c = c1;
             }
@@ -320,7 +391,22 @@ void theme_init (void) {
     initialized = true;
 
     theme_set_defaults(&theme);
-    from_sd = !safe_mode_active() && (theme_load_ini(&theme, THEME_INI_PATH) || theme_load_ini(&theme, THEME_TXT_PATH));
+
+    /* One of the built-in themes, or the player's own file from the card.
+       With no file, and in safe mode, it is the stock look (Sunset). */
+    int choice = safe_mode_active() ? BUILTIN_THEME_SUNSET : options_get(OPTION_THEME);
+    builtin_theme_apply(&theme, choice);
+    from_sd = false;
+    if (choice == BUILTIN_THEME_FROM_CARD) {
+        from_sd = theme_load_ini(&theme, THEME_INI_PATH) || theme_load_ini(&theme, THEME_TXT_PATH);
+    }
+}
+
+void theme_reload (void) {
+    theme_background_suspend();     /* lets go of the old background... */
+    theme_background_resume();      /* ...and the new one is built on the next draw */
+    initialized = false;
+    theme_init();
 }
 
 /* Built on first draw, so the display is guaranteed to be set up by then. */

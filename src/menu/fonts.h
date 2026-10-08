@@ -48,4 +48,7 @@ typedef enum {
  */
 void fonts_init(char *custom_font_path);
 
+/** Give the text the current theme's colors again, after the theme changes. */
+void fonts_restyle (void);
+
 #endif /* FONTS_H__ */
