@@ -143,6 +143,7 @@ IMAGES = \
 	jumper_pak.png \
 	button.png \
 	heart.png \
+	corner.png \
 	logo_holo.png \
 	logo_stripes.png \
 	wordmark.png
@@ -151,6 +152,7 @@ IMAGES = \
 MKSPRITE_FLAGS ?= --format CI4
 $(FILESYSTEM_DIR)/button.sprite: MKSPRITE_FLAGS=--format I4
 $(FILESYSTEM_DIR)/heart.sprite: MKSPRITE_FLAGS=--format I4
+$(FILESYSTEM_DIR)/corner.sprite: MKSPRITE_FLAGS=--format I4
 $(FILESYSTEM_DIR)/logo_holo.sprite: MKSPRITE_FLAGS=--format RGBA16
 $(FILESYSTEM_DIR)/logo_stripes.sprite: MKSPRITE_FLAGS=--format RGBA16
 # The intro's title needs soft edges for its glow, so it keeps full color.

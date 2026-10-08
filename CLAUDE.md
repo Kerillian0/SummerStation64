@@ -926,8 +926,18 @@ Stages, one testable build each:
    longer; built 2026-10-08, awaiting the user's look), and Lokif is named
    in that screen's library pop-up. The user reports the new sounds are
    good on the console.
-Constraints found so far: rounded corners are not cheap on the N64 (square
-corners used); small label text from the mockups would not be readable on a
+Rounded corners (built 2026-10-08, awaiting hardware test, not committed):
+feature `rounded_corners` (default on, "Rounded Corners" in Settings >
+Display). `round_fill()` in `games_ui.c` draws a box whose corners are the
+four quarters of one 16x16 white disc (`corner.sprite`, I4, 128 bytes),
+tinted, with three plain boxes between them so see-through colors are not
+drawn twice. Used for the tabs, the clock, the title panel, the badges and
+the band behind the hints. Not rounded: the selection ring, the covers,
+Settings, the Folders list. Each rounded box is four small sprite draws;
+watch the frame time.
+
+Constraints found so far: rounded corners were first thought too costly on
+the N64 (square corners used) until the tinted-disc trick above; small label text from the mockups would not be readable on a
 composite CRT; there is one font size (15 px), so a big title needs a second
 font. Measured 2026-10-06 (same typeface, uncompressed size = RAM cost):
 

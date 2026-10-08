@@ -16,6 +16,8 @@ The icons are kept as small as the console allows:
 - logo_holo.png (32 x 32) and logo_stripes.png (16 x 64): the two patterns
   on the intro logo's pillars, in thousands of colors (2 KB each). They are
   only in memory while the intro plays.
+- corner.png: a 16 x 16 white disc in 16 shades (128 bytes). Its four
+  quarters are the rounded corners of the tabs, panels and badges.
 - heart.png: 16 x 14, white in 16 shades (112 bytes), tinted by the menu.
 - button.png: a 20 x 20 white disc in 16 shades (4 bits a pixel: 200 bytes).
   The menu tints it for each button and stretches it into the longer
@@ -137,3 +139,11 @@ for y in range(64):
         stripes.putpixel((x, y), color)
 stripes.save("logo_stripes.png")
 print("logo_stripes.png: 16 x 64")
+
+# The disc whose quarters round off the corners of tabs, panels and badges.
+CORNER = 16
+corner = Image.new("L", (CORNER * SCALE, CORNER * SCALE), 0)
+ImageDraw.Draw(corner).ellipse([0, 0, CORNER * SCALE - 1, CORNER * SCALE - 1], fill=255)
+corner = shrink(corner, CORNER, CORNER).point(lambda v: (v // 17) * 17)
+corner.save("corner.png")
+print(f"corner.png: {CORNER} x {CORNER}")

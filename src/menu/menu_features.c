@@ -39,6 +39,7 @@ static const feature_info_t feature_info[FEATURE_COUNT] = {
     [FEATURE_MEMORY_BADGE]        = { "memory_badge",        true,  false },
     [FEATURE_BUTTON_ICONS]        = { "button_icons",        true,  false },
     [FEATURE_FAVORITE_HEART]      = { "favorite_heart",      true,  false },
+    [FEATURE_ROUNDED_CORNERS]     = { "rounded_corners",     true,  false },
 };
 
 #define FEATURES_USER_PATH      "sd:/menu/features.ini"

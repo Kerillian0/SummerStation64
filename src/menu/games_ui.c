@@ -55,6 +55,45 @@ static void fill (int x0, int y0, int x1, int y1, color_t color) {
     rdpq_mode_pop();
 }
 
+/* A filled box with rounded corners (feature `rounded_corners`). The four
+   corners are the quarters of one small white disc (rom:/corner.sprite,
+   128 bytes), tinted to the box's color; the rest is three plain boxes laid
+   so that nothing is drawn twice, which matters for see-through colors.
+   Boxes too small to round, or with the feature off, are drawn square. */
+#define CORNER_RADIUS   (8)
+
+static void round_fill (int x0, int y0, int x1, int y1, color_t color) {
+    static sprite_t *disc = NULL;
+    int r = CORNER_RADIUS;
+
+    if (!features_enabled(FEATURE_ROUNDED_CORNERS) || (x1 - x0) < (2 * r) || (y1 - y0) < (2 * r)) {
+        fill(x0, y0, x1, y1, color);
+        return;
+    }
+    if (!disc) {
+        disc = sprite_load("rom:/corner.sprite");
+    }
+
+    rdpq_mode_push();
+        /* The disc's shades say how much of each pixel is covered, which
+           gives the corner a smooth edge; the color comes from here. */
+        rdpq_set_mode_standard();
+        rdpq_set_prim_color(color);
+        rdpq_mode_combiner(RDPQ_COMBINER1((0,0,0,PRIM), (TEX0,0,PRIM,0)));
+        rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+        rdpq_sprite_blit(disc, x0, y0, &(rdpq_blitparms_t) { .s0 = 0, .t0 = 0, .width = r, .height = r });
+        rdpq_sprite_blit(disc, x1 - r, y0, &(rdpq_blitparms_t) { .s0 = r, .t0 = 0, .width = r, .height = r });
+        rdpq_sprite_blit(disc, x0, y1 - r, &(rdpq_blitparms_t) { .s0 = 0, .t0 = r, .width = r, .height = r });
+        rdpq_sprite_blit(disc, x1 - r, y1 - r, &(rdpq_blitparms_t) { .s0 = r, .t0 = r, .width = r, .height = r });
+    rdpq_mode_pop();
+
+    fill(x0 + r, y0, x1 - r, y0 + r, color);    /* between the top corners */
+    if ((y1 - r) > (y0 + r)) {
+        fill(x0, y0 + r, x1, y1 - r, color);    /* the full-width middle */
+    }
+    fill(x0 + r, y1 - r, x1 - r, y1, color);    /* between the bottom corners */
+}
+
 static void text (int x, int y, int width, int height, rdpq_align_t align, menu_font_style_t style, const char *string) {
     rdpq_text_printf(&(rdpq_textparms_t) {
         .width = width,
@@ -76,11 +115,11 @@ static void pill (int x, int width, const char *label, bool active) {
            dark edge round every letter, which keeps white readable even on
            a yellow accent, while black letters inside that black edge ran
            together into a blob. */
-        fill(x - 2, TOPBAR_Y - 2, x + width + 2, TOPBAR_Y + TOPBAR_HEIGHT + 2, t->accent);
+        round_fill(x - 2, TOPBAR_Y - 2, x + width + 2, TOPBAR_Y + TOPBAR_HEIGHT + 2, t->accent);
         text(x, TOPBAR_Y, width, TOPBAR_HEIGHT, ALIGN_CENTER, STL_WHITE, label);
         return;
     }
-    fill(x, TOPBAR_Y, x + width, TOPBAR_Y + TOPBAR_HEIGHT, t->tab_inactive);
+    round_fill(x, TOPBAR_Y, x + width, TOPBAR_Y + TOPBAR_HEIGHT, t->tab_inactive);
     text(x, TOPBAR_Y, width, TOPBAR_HEIGHT, ALIGN_CENTER, STL_GRAY, label);
 }
 
@@ -174,7 +213,7 @@ int games_ui_badge (int x, int y, const char *label, menu_font_style_t style, bo
 
     int width = (int) (layout->bbox.x1 - layout->bbox.x0) + (BADGE_PADDING * 2);
     if (boxed) {
-        fill(x, y, x + width, y + BADGE_HEIGHT, theme_get()->tab_inactive);
+        round_fill(x, y, x + width, y + BADGE_HEIGHT, theme_get()->tab_inactive);
     }
     rdpq_paragraph_render(layout, x + BADGE_PADDING, y);
     rdpq_paragraph_free(layout);
@@ -208,7 +247,7 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const gam
     int x1 = GAMES_UI_CONTENT_X1;
     int line2_y = PANEL_Y + 2 + PANEL_TITLE;
 
-    fill(x0, PANEL_Y, x1, PANEL_Y + PANEL_HEIGHT, RGBA32(t->panel.r, t->panel.g, t->panel.b, 0xD8));
+    round_fill(x0, PANEL_Y, x1, PANEL_Y + PANEL_HEIGHT, RGBA32(t->panel.r, t->panel.g, t->panel.b, 0xD8));
 
     /* With the heart switched on, room for it is always kept after the
        name, so the name doesn't change size when the heart turns up. */
@@ -344,7 +383,7 @@ static void button_icon_draw (int x, int y, const char *button) {
 
 void games_ui_hints_backdrop_draw (void) {
     const theme_t *t = theme_get();
-    fill(GAMES_UI_CONTENT_X0 - 8, HINTS_Y - 5, GAMES_UI_CONTENT_X1 + 8, HINTS_Y + (2 * HINT_ROW_HEIGHT) + 1,
+    round_fill(GAMES_UI_CONTENT_X0 - 8, HINTS_Y - 5, GAMES_UI_CONTENT_X1 + 8, HINTS_Y + (2 * HINT_ROW_HEIGHT) + 1,
         RGBA32(t->panel.r, t->panel.g, t->panel.b, 0xD8));
 }
 
