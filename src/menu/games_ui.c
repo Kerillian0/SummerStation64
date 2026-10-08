@@ -80,12 +80,10 @@ static void pill (int x, int width, const char *label, bool active) {
     text(x, TOPBAR_Y, width, TOPBAR_HEIGHT, ALIGN_CENTER, active ? STL_DEFAULT : STL_GRAY, label);
 }
 
-/* Under the clock: a tiny drawing of what sits in the console's memory slot,
-   and how much memory that gives. The Expansion Pak has a red top; the
-   Jumper Pak that consoles shipped with is plain. */
-#define PAK_WIDTH       (22)
-#define PAK_HEIGHT      (16)
-#define PAK_TOP         (6)     /* height of the colored top */
+/* Under the clock: what sits in the console's memory slot, and how much
+   memory that gives: the Expansion Pak with its red lid, or the plain
+   Jumper Pak that consoles shipped with. */
+#define PAK_WIDTH       (24)
 #define MEMORY_Y        (GAMES_UI_TOPBAR_BOTTOM + 6)
 #define MEMORY_TEXT     (44)    /* room for "8MB" */
 
@@ -94,16 +92,19 @@ static void memory_badge_draw (void) {
     int x1 = VISIBLE_AREA_X1 - TOPBAR_INSET;
     int x0 = x1 - MEMORY_TEXT - PAK_WIDTH;
 
-    color_t top = expanded ? RGBA32(0xD0, 0x20, 0x28, 0xFF) : RGBA32(0x60, 0x60, 0x60, 0xFF);
-    color_t body = RGBA32(0x2C, 0x2C, 0x30, 0xFF);
-    color_t line = RGBA32(0x10, 0x10, 0x12, 0xFF);
-
-    fill(x0, MEMORY_Y, x0 + PAK_WIDTH, MEMORY_Y + PAK_TOP, top);
-    fill(x0 + 2, MEMORY_Y + PAK_TOP, x0 + PAK_WIDTH - 2, MEMORY_Y + PAK_HEIGHT, body);
-    /* Two grooves across the top, as on the real thing. */
-    fill(x0 + 5, MEMORY_Y + 2, x0 + PAK_WIDTH - 5, MEMORY_Y + 4, line);
-
-    text(x0 + PAK_WIDTH, MEMORY_Y - 2, MEMORY_TEXT, PAK_HEIGHT + 4, ALIGN_RIGHT, STL_GRAY, expanded ? "8MB" : "4MB");
+    /* A small picture of the pak (drawn by assets/images/make_icons.py).
+       Only the one this console has is ever loaded. */
+    static sprite_t *pak = NULL;
+    if (!pak) {
+        pak = sprite_load(expanded ? "rom:/expansion_pak.sprite" : "rom:/jumper_pak.sprite");
+    }
+    x0 = x1 - MEMORY_TEXT - pak->width;
+    rdpq_mode_push();
+        rdpq_set_mode_standard();
+        rdpq_mode_alphacompare(1);
+        rdpq_sprite_blit(pak, x0, MEMORY_Y, NULL);
+    rdpq_mode_pop();
+    text(x0 + pak->width, MEMORY_Y, MEMORY_TEXT, pak->height, ALIGN_RIGHT, STL_GRAY, expanded ? "8MB" : "4MB");
 }
 
 void games_ui_topbar_draw (menu_t *menu, games_tab_t selected) {
@@ -229,23 +230,83 @@ static menu_font_style_t button_style (const char *button) {
     return STL_DEFAULT;
 }
 
-int games_ui_hint_width (const char *button, const char *action) {
-    /* Laid out off-screen is not possible, so measure by building the two
-       paragraphs; they are small and freed straight away. */
-    int width = 0;
-    const char *parts[2] = { button, action };
-    for (int i = 0; i < 2; i++) {
-        int nbytes = strlen(parts[i]);
-        rdpq_paragraph_t *layout = rdpq_paragraph_build(&(rdpq_textparms_t) { .height = BADGE_HEIGHT }, FNT_DEFAULT, parts[i], &nbytes);
-        width += (int) (layout->bbox.x1 - layout->bbox.x0);
-        rdpq_paragraph_free(layout);
+/* Button icons (feature `button_icons`): each button in its own color, the
+   round ones as a disc and the rest as a longer rounded shape. All of them
+   are made from one tiny white disc (rom:/button.sprite, 200 bytes), tinted
+   and, for the long shapes, cut in half with a filled middle. */
+static color_t button_color (const char *button) {
+    if (strcmp(button, "A") == 0 || strcmp(button, "Hold") == 0) return RGBA32(0x1C, 0x54, 0xD8, 0xFF);
+    if (strcmp(button, "B") == 0) return RGBA32(0x14, 0x94, 0x34, 0xFF);
+    if (strcmp(button, "C") == 0) return RGBA32(0xD0, 0x9C, 0x08, 0xFF);
+    if (strcmp(button, "START") == 0) return RGBA32(0xCC, 0x20, 0x28, 0xFF);
+    return RGBA32(0x70, 0x70, 0x7A, 0xFF);   /* Z, L, R: grey */
+}
+
+static bool button_is_round (const char *button) {
+    return (strlen(button) == 1) && (strcmp(button, "Z") != 0);
+}
+
+static int text_width (const char *string) {
+    int nbytes = strlen(string);
+    rdpq_paragraph_t *layout = rdpq_paragraph_build(&(rdpq_textparms_t) { .height = BADGE_HEIGHT }, FNT_DEFAULT, string, &nbytes);
+    int width = (int) (layout->bbox.x1 - layout->bbox.x0);
+    rdpq_paragraph_free(layout);
+    return width;
+}
+
+/* How wide the button part of a hint is. */
+static int button_width (const char *button) {
+    if (features_enabled(FEATURE_BUTTON_ICONS) && button_is_round(button)) {
+        return BADGE_HEIGHT;
     }
-    return width + (BADGE_PADDING * 2) + BADGE_PADDING;
+    return text_width(button) + (BADGE_PADDING * 2);
+}
+
+static void button_icon_draw (int x, int y, const char *button) {
+    static sprite_t *disc = NULL;
+    if (!disc) {
+        disc = sprite_load("rom:/button.sprite");
+    }
+
+    int width = button_width(button);
+    int half = BADGE_HEIGHT / 2;
+    color_t color = button_color(button);
+
+    rdpq_mode_push();
+        /* The disc's shades say how much of each pixel is covered, which
+           gives it a smooth edge; the color comes from here. */
+        rdpq_set_mode_standard();
+        rdpq_mode_combiner(RDPQ_COMBINER1((0,0,0,PRIM), (0,0,0,TEX0)));
+        rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+        rdpq_set_prim_color(color);
+        if (width <= BADGE_HEIGHT) {
+            rdpq_sprite_blit(disc, x, y, NULL);
+        } else {
+            rdpq_sprite_blit(disc, x, y, &(rdpq_blitparms_t) { .s0 = 0, .width = half });
+            rdpq_sprite_blit(disc, x + width - half, y, &(rdpq_blitparms_t) { .s0 = half, .width = half });
+        }
+    rdpq_mode_pop();
+
+    if (width > BADGE_HEIGHT) {
+        fill(x + half, y, x + width - half, y + BADGE_HEIGHT, color);
+    }
+
+    text(x, y, width, BADGE_HEIGHT, ALIGN_CENTER, STL_WHITE, button);
+}
+
+int games_ui_hint_width (const char *button, const char *action) {
+    return button_width(button) + BADGE_PADDING + text_width(action);
 }
 
 int games_ui_hint_draw (int x, int row, const char *button, const char *action) {
     int y = HINTS_Y + (row * HINT_ROW_HEIGHT);
-    x = games_ui_badge(x, y, button, button_style(button), true) - BADGE_SPACING + BADGE_PADDING;
+
+    if (features_enabled(FEATURE_BUTTON_ICONS)) {
+        button_icon_draw(x, y, button);
+        x += button_width(button) + BADGE_PADDING;
+    } else {
+        x = games_ui_badge(x, y, button, button_style(button), true) - BADGE_SPACING + BADGE_PADDING;
+    }
 
     int nbytes = strlen(action);
     rdpq_paragraph_t *layout = rdpq_paragraph_build(&(rdpq_textparms_t) {

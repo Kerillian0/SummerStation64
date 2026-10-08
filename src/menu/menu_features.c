@@ -37,6 +37,7 @@ static const feature_info_t feature_info[FEATURE_COUNT] = {
     [FEATURE_REMEMBER_SETTINGS]   = { "remember_settings",   true,  false },
     [FEATURE_PLAY_STATS]          = { "play_stats",          true,  false },
     [FEATURE_MEMORY_BADGE]        = { "memory_badge",        true,  false },
+    [FEATURE_BUTTON_ICONS]        = { "button_icons",        true,  false },
 };
 
 #define FEATURES_USER_PATH      "sd:/menu/features.ini"

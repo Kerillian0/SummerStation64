@@ -9,6 +9,7 @@
 #include "../games_ui.h"
 #include "../cover_row.h"
 #include "../tabs.h"
+#include "../start_menu.h"
 
 
 typedef enum {
@@ -69,6 +70,9 @@ static void item_move_previous() {
 }
 
 static void process(menu_t *menu) {
+    if (start_menu_process(menu)) {
+        return; // the START menu is open
+    }
     if (tab_context == BOOKKEEPING_TAB_CONTEXT_HISTORY) {
         // Recent is a row of covers: left/right move along it, L/R switch tabs.
         controls_remap_tabs(menu, true);
@@ -104,6 +108,8 @@ static void process(menu_t *menu) {
         games_tab_t here = (tab_context == BOOKKEEPING_TAB_CONTEXT_FAVORITE) ? GAMES_TAB_FAVORITES : GAMES_TAB_RECENT;
         tabs_open(menu, tabs_step(here, menu->actions.go_right ? 1 : -1));
         sound_play_effect(SFX_CURSOR);
+    } else if (menu->actions.settings) {
+        start_menu_show();
     }else if(tab_context == BOOKKEEPING_TAB_CONTEXT_FAVORITE && menu->actions.options && selected_item != -1) {
         bookkeeping_favorite_remove(&menu->bookkeeping, selected_item);
         item_reset_selected(menu);
@@ -174,6 +180,8 @@ static void draw(menu_t *menu, surface_t *display) {
 
     if (tab_context == BOOKKEEPING_TAB_CONTEXT_HISTORY) {
         cover_row_draw(menu, "No games played yet");
+        games_ui_hint_right_draw(0, "START", "Settings");
+        start_menu_draw();
         rdpq_detach_show();
         return;
     }
@@ -202,15 +210,18 @@ static void draw(menu_t *menu, surface_t *display) {
     ui_components_actions_bar_text_draw(
         STL_DEFAULT,
         ALIGN_CENTER, VALIGN_TOP,
-        "\n" // the L and R badges on the tab bar say this now
+        "START: Settings\n"
         "\n"
     );    
+
+    start_menu_draw();
 
     rdpq_detach_show();   
 }
 
 void view_favorite_init (menu_t *menu) {
     tab_context = BOOKKEEPING_TAB_CONTEXT_FAVORITE;
+    start_menu_init();
     games_ui_set_origin(MENU_MODE_FAVORITE);
     item_list = menu->bookkeeping.favorite_items;
     item_max = FAVORITES_COUNT;
@@ -225,6 +236,7 @@ void view_favorite_display (menu_t *menu, surface_t *display) {
 
 void view_history_init (menu_t *menu) {
     tab_context = BOOKKEEPING_TAB_CONTEXT_HISTORY;
+    start_menu_init();
     games_ui_set_origin(MENU_MODE_HISTORY);
     item_list = menu->bookkeeping.history_items;
     item_max = HISTORY_COUNT;

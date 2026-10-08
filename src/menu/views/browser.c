@@ -653,6 +653,7 @@ static void process (menu_t *menu) {
         return;
     }
 
+    if (settings_context_menu.row_selected >= 0 && menu->actions.settings) menu->actions.back = true; // START again closes the START menu, like B
     if (ui_components_context_menu_process(menu, &settings_context_menu)) {
         return;
     }

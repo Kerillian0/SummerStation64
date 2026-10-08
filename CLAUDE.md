@@ -90,6 +90,9 @@ localdeploy.bat            stock: run a build from the cart's memory (no /dur)
 deploy-sd.bat              ours: put a build on the SD card
 assets/fonts/              Firple-Bold.ttf and the charset-*.txt lists the
                            fonts are built from
+assets/sounds/             the menu's sounds, with CREDITS.md
+assets/images/             icons (.png, built into sprites) and
+                           make_icons.py, which draws them
 docs/HANDOFF.md            current state and next steps
 docs/n64ever-notes.md      what the N64ever fork has, mapped to our roadmap
 docs/*.md (numbered)       upstream's user documentation, untouched
@@ -106,7 +109,8 @@ Ours (new files, free to change), all in `src/menu/`: `theme`,
 `debug_stats`, `controls`, `carousel_art`, `folder_memory`, `sort_order`,
 `display_name`, `font_choice`, `title_font`, `frame_rate`, `games_ui`,
 `game_facts`, `game_info_ui`, `play_stats`, `intro`, `menu_name.h`,
-`cover_list`, `cover_row`, `carousel.h`, `tabs`, `folders_ui`, and
+`cover_list`, `cover_row`, `carousel.h`, `tabs`, `folders_ui`,
+`start_menu`, and
 `views/settings_menu`
 (`views/features_menu` is ours too but no longer reachable).
 
@@ -731,8 +735,30 @@ Stages, one testable build each:
      user wants Recent to be something the player adds. Duplicates count
      once; all None falls back to the default. The menu opens on the first
      tab. L/R step through the list on every tabbed screen.
-   - Not done yet: Favorites as a cover row; picture icons for the button
-     hints (wanted by the user); the Games tab has no way to change folder
+   - Hardware test 2026-10-08 (photo): passed, tab switching "almost
+     seamless"; four tabs and the clock fit. Committed as `6b51e292`.
+   - Done and tested: START opens the stock START menu on Recent and
+     Favorites too (`start_menu.c`, a copy of the browser's list so the
+     stock code is left alone), and Settings goes back to the tab it was
+     opened from.
+   - **Icons (built 2026-10-08, awaiting hardware test, not committed).**
+     All drawn from scratch by `assets/images/make_icons.py` (needs
+     Pillow: `sudo apt-get install python3-pil`); the product photo the
+     user first supplied was tried for one test build and removed without
+     ever being committed. The Makefile's new `IMAGES` list builds them
+     into sprites in the smallest formats: `expansion_pak` and `jumper_pak`
+     (24x26, 16 colors, CI4, about 330 bytes; same shapes and angle, red
+     lid with air holes against plain grey; only the one matching the
+     console is loaded) and `button` (a 20x20 white disc, I4, 200 bytes).
+     Feature `button_icons` (default on, "Button Icons" in Settings >
+     Display): the hints show A blue, B green, C yellow as discs and START
+     red, Z grey, Hold blue as longer rounded shapes, all made from the one
+     disc (tinted with the prim color; long shapes are two half discs and
+     a filled middle). New text style `STL_WHITE` for the letters. Off
+     gives the old boxes.
+   - Same build: pressing START again closes the START menu (one line in
+     `browser.c`, and in `start_menu.c`).
+   - Not done yet: Favorites as a cover row; the Games tab has no way to change folder
      except through Folders.
 7. **Intro (done and tested):** `intro.c`. The name (`MENU_DISPLAY_NAME`,
    defined in `menu_name.h`) in the 26 px title font over the theme

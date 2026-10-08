@@ -82,6 +82,7 @@ SRCS = \
 	menu/cover_row.c \
 	menu/tabs.c \
 	menu/folders_ui.c \
+	menu/start_menu.c \
 	menu/theme.c \
 	menu/menu_features.c \
 	menu/zip_entry_count.c \
@@ -134,6 +135,15 @@ SOUNDS_WAV = \
 	settings.wav
 
 SOUNDS_XM ?=
+
+IMAGES = \
+	expansion_pak.png \
+	jumper_pak.png \
+	button.png
+
+# The smallest formats that hold them: 16 colors for the paks, 16 shades for the button disc.
+MKSPRITE_FLAGS ?= --format CI4
+$(FILESYSTEM_DIR)/button.sprite: MKSPRITE_FLAGS=--format I4
 
 OBJS = $(addprefix $(BUILD_DIR)/, $(addsuffix .o,$(basename $(SRCS))))
 MINIZ_OBJS = $(filter $(BUILD_DIR)/libs/miniz/%.o,$(OBJS))

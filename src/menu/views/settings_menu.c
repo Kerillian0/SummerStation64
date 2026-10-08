@@ -7,6 +7,7 @@
 #include "../font_choice.h"
 #include "../intro.h"
 #include "../tabs.h"
+#include "../games_ui.h"
 #include "../menu_features.h"
 #include "../menu_options.h"
 #include "../sort_order.h"
@@ -139,6 +140,7 @@ static const item_t display_items[] = {
     FEATURE("Previous/Next Covers", FEATURE_SIDE_COVERS, "Show smaller covers either side of the selected one."),
     FEATURE("See-through Side Covers", FEATURE_SEE_THROUGH_COVERS, "Let the background show through the previous and next covers. Off draws them solid."),
     FEATURE("Cover Slide", FEATURE_CAROUSEL_ANIMATION, "Covers slide into place when you move left or right."),
+    FEATURE("Button Icons", FEATURE_BUTTON_ICONS, "Show the buttons in the hints along the bottom in their own shapes and colors. Off shows them as plain boxes."),
     FEATURE("Memory Badge", FEATURE_MEMORY_BADGE, "Show a small Expansion Pak or Jumper Pak under the clock, with the console's memory (8MB or 4MB)."),
     FEATURE("Frame Borders", FEATURE_FRAME_BORDERS, "Draw the frame around the screen and the line above the button hints."),
     CHOICE("Video Output", force_progressive_scan, false, "480i", "240p", NULL,
@@ -295,7 +297,7 @@ static void process (menu_t *menu) {
             item = 0;
             sound_play_effect(SFX_ENTER);
         } else if (menu->actions.back) {
-            menu->next_mode = MENU_MODE_BROWSER;
+            menu->next_mode = games_ui_origin(); // back to the tab Settings was opened from
             sound_play_effect(SFX_EXIT);
         }
         return;

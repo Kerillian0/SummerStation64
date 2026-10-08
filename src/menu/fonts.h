@@ -33,6 +33,7 @@ typedef enum {
     STL_ORANGE,      /**< Orange font style */
     STL_RED,         /**< Red font style */
     STL_GRAY,        /**< Gray font style */
+    STL_WHITE,       /**< Always white, whatever the theme (text on the button icons) */
 } menu_font_style_t;
 
 /**
