@@ -300,7 +300,9 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const gam
         x = games_ui_badge(x, y, players, STL_GRAY, false);
     }
     if (facts->needs_expansion) {
-        x = games_ui_badge(x, y, "Needs Expansion Pak", STL_ORANGE, true);
+        x = is_memory_expanded()  /* a warning only when the console has none */
+            ? games_ui_badge(x, y, "Uses Expansion Pak", STL_GREEN, true)
+            : games_ui_badge(x, y, "Needs Expansion Pak", STL_ORANGE, true);
     } else if (facts->likes_expansion) {
         x = games_ui_badge(x, y, "Expansion Pak", STL_GREEN, true);
     }

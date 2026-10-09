@@ -7,6 +7,7 @@
 #include "fonts.h"
 #include "game_info_ui.h"
 #include "games_ui.h"
+#include "menu_features.h"
 #include "path.h"
 #include "play_stats.h"
 #include "theme.h"
@@ -28,6 +29,9 @@
 #define MAKER_Y         (44)
 #define TITLE_Y         (66)
 #define TITLE_HEIGHT    (72)    /* two lines of the big font */
+#define TITLE_MAIN_HEIGHT   (36)    /* a "Series - Subtitle" name: the series on one big line... */
+#define SUBTITLE_Y      (TITLE_Y + 34)
+#define SUBTITLE_HEIGHT (40)        /* ...and the subtitle smaller under it */
 #define BADGES_Y        (146)
 
 /* Three boxes of facts */
@@ -37,7 +41,8 @@
 
 /* Description */
 #define DESC_Y          (FACTS_Y + FACTS_HEIGHT + 8)
-#define DESC_HEIGHT     (112)
+#define DESC_HEIGHT     (140)   /* down to just above the button hints */
+#define DESC_SWITCHES   (26)    /* room kept at the bottom when one of the game's switches is on */
 
 #define PAD             (10)
 
@@ -211,6 +216,8 @@ static void draw_fact (int index, const char *caption, const char *value) {
     }, FNT_DEFAULT, x + PAD, FACTS_Y + (FACTS_HEIGHT / 2) - 2, "%s", value);
 }
 
+static const char *month_names[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+
 /* "Today", "Yesterday", "5 days ago", or the date once it is over a month. */
 static void format_last_played (char *out, size_t size, time_t last, time_t now, int count) {
     if (count <= 0) {
@@ -228,12 +235,83 @@ static void format_last_played (char *out, size_t size, time_t last, time_t now,
         } else {
             struct tm *when = localtime(&last);
             if (when) {
-                strftime(out, size, "%Y-%m-%d", when);
+                snprintf(out, size, "%s %d, %d", month_names[when->tm_mon % 12], when->tm_mday, when->tm_year + 1900);
             } else {
                 snprintf(out, size, "Unknown");
             }
         }
     }
+}
+
+/* "2000-10-26" as "Oct 26, 2000" (and "2000-10" as "Oct 2000"). Anything
+   written another way is shown as it is. */
+static void format_date (char *out, size_t size, const char *text) {
+    int year = 0, month = 0, day = 0;
+    int found = sscanf(text, "%4d-%2d-%2d", &year, &month, &day);
+    if (found >= 2 && year >= 1000 && month >= 1 && month <= 12) {
+        if (found == 3 && day >= 1 && day <= 31) {
+            snprintf(out, size, "%s %d, %d", month_names[month - 1], day, year);
+        } else {
+            snprintf(out, size, "%s %d", month_names[month - 1], year);
+        }
+    } else {
+        snprintf(out, size, "%s", text);
+    }
+}
+
+/* The description, laid out once per game instead of every frame. If it
+   is longer than its box, it is cut at a word and ends in "..." instead of
+   stopping in the middle of a sentence. */
+static rdpq_paragraph_t *desc_layout = NULL;
+static uint32_t desc_key = 0;
+
+static rdpq_paragraph_t *desc_build (const char *text, int length, int height) {
+    int nbytes = length;
+    rdpq_paragraph_t *layout = rdpq_paragraph_build(&(rdpq_textparms_t) {
+        .width = X1 - X0 - (PAD * 2),
+        .height = height,
+        .wrap = WRAP_WORD,
+    }, FNT_DEFAULT, text, &nbytes);
+
+    for (int attempt = 0; attempt < 4 && nbytes < (length - 2); attempt++) {
+        /* Not all of it fitted. Keep what did, less its last word or two to
+           make room, and end it with "...". */
+        static char cut[1024];
+        int keep = (nbytes < (int) sizeof(cut) - 4) ? nbytes : ((int) sizeof(cut) - 4);
+        for (int words = 0; words < (2 + attempt) && keep > 0; words++) {
+            while (keep > 0 && text[keep - 1] == ' ') keep--;
+            while (keep > 0 && text[keep - 1] != ' ') keep--;
+        }
+        while (keep > 0 && (text[keep - 1] == ' ' || text[keep - 1] == ',' || text[keep - 1] == '.' || text[keep - 1] == ';' || text[keep - 1] == ':')) keep--;
+        if (keep <= 0) {
+            break;
+        }
+        memcpy(cut, text, keep);
+        memcpy(cut + keep, "...", 4);
+
+        rdpq_paragraph_free(layout);
+        length = keep + 3;
+        nbytes = length;
+        layout = rdpq_paragraph_build(&(rdpq_textparms_t) {
+            .width = X1 - X0 - (PAD * 2),
+            .height = height,
+            .wrap = WRAP_WORD,
+        }, FNT_DEFAULT, cut, &nbytes);
+        text = cut;
+    }
+    return layout;
+}
+
+static void draw_description (const char *text, int height) {
+    uint32_t key = text_hash(text) ^ (uint32_t) height ^ ((uint32_t) (uintptr_t) theme_get()->text.r << 24);
+    if (!desc_layout || key != desc_key) {
+        if (desc_layout) {
+            rdpq_paragraph_free(desc_layout);
+        }
+        desc_layout = desc_build(text, (int) strlen(text), height);
+        desc_key = key;
+    }
+    rdpq_paragraph_render(desc_layout, X0 + PAD, DESC_Y + 20);
 }
 
 static bool known (const char *text) {
@@ -252,6 +330,10 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
 
     /* Who made it and when, above the title. */
     if (known(info->meta.author) || known(info->meta.release_date)) {
+        char released[32] = "";
+        if (known(info->meta.release_date)) {
+            format_date(released, sizeof(released), info->meta.release_date);
+        }
         rdpq_text_printf(&(rdpq_textparms_t) {
             .width = TITLE_WIDTH,
             .wrap = WRAP_ELLIPSES,
@@ -259,20 +341,50 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
         }, FNT_DEFAULT, X0, MAKER_Y + 14, "%s%s%s",
             known(info->meta.author) ? info->meta.author : "",
             (known(info->meta.author) && known(info->meta.release_date)) ? ", " : "",
-            known(info->meta.release_date) ? info->meta.release_date : "");
+            released);
     }
 
-    /* The name, as big as fits in two lines. */
-    rdpq_text_printf(&(rdpq_textparms_t) {
-        .width = TITLE_WIDTH,
-        .height = TITLE_HEIGHT,
-        .wrap = WRAP_WORD,
-    }, title_font_pick(view->name, (TITLE_WIDTH * 2) - 32), X0, TITLE_Y, "%s", view->name);
+    /* The name. "Series - Subtitle" is shown as the series in big letters
+       with the subtitle smaller underneath; any other name as big as fits
+       in two lines. */
+    const char *dash = strstr(view->name, " - ");
+    char series[96];
+    if (dash && dash > view->name && dash[3] != '\0' && (size_t) (dash - view->name) < sizeof(series)) {
+        memcpy(series, view->name, dash - view->name);
+        series[dash - view->name] = '\0';
+        const char *subtitle = dash + 3;
+
+        rdpq_text_printf(&(rdpq_textparms_t) {
+            .width = TITLE_WIDTH,
+            .height = TITLE_MAIN_HEIGHT,
+            .wrap = WRAP_ELLIPSES,
+        }, title_font_pick(series, TITLE_WIDTH - 16), X0, TITLE_Y, "%s", series);
+
+        int font = title_font_pick(subtitle, TITLE_WIDTH - 16);
+        if (font == FNT_TITLE) {
+            font = FNT_TITLE_MEDIUM; /* never as big as the series */
+        }
+        rdpq_text_printf(&(rdpq_textparms_t) {
+            .width = TITLE_WIDTH,
+            .height = SUBTITLE_HEIGHT,
+            .wrap = (font == FNT_DEFAULT) ? WRAP_WORD : WRAP_ELLIPSES,
+            .style_id = STL_GRAY,
+        }, font, X0, SUBTITLE_Y, "%s", subtitle);
+    } else {
+        rdpq_text_printf(&(rdpq_textparms_t) {
+            .width = TITLE_WIDTH,
+            .height = TITLE_HEIGHT,
+            .wrap = WRAP_WORD,
+        }, title_font_pick(view->name, (TITLE_WIDTH * 2) - 32), X0, TITLE_Y, "%s", view->name);
+    }
 
     /* What the game supports. */
     int x = X0 - 6;
     if (info->features.expansion_pak == EXPANSION_PAK_REQUIRED) {
-        x = games_ui_badge(x, BADGES_Y, "Needs Expansion Pak", STL_ORANGE, true);
+        /* A warning only when the console has none. */
+        x = is_memory_expanded()
+            ? games_ui_badge(x, BADGES_Y, "Uses Expansion Pak", STL_GREEN, true)
+            : games_ui_badge(x, BADGES_Y, "Needs Expansion Pak", STL_ORANGE, true);
     } else if (info->features.expansion_pak == EXPANSION_PAK_RECOMMENDED || info->features.expansion_pak == EXPANSION_PAK_SUGGESTED) {
         x = games_ui_badge(x, BADGES_Y, "Expansion Pak", STL_GREEN, true);
     }
@@ -312,21 +424,22 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
     draw_fact(1, "Last played", last_played);
     draw_fact(2, "Players", players);
 
-    /* Description, with this game's own switches on the last line. */
+    /* Description. This game's own switches are only mentioned when one
+       of them is on, as badges along the bottom of the box. */
+    bool switches = view->cheats || view->patches || view->clear_rdram;
     fill(X0, DESC_Y, X1, DESC_Y + DESC_HEIGHT, panel_color());
-    rdpq_text_printf(&(rdpq_textparms_t) {
-        .width = X1 - X0 - (PAD * 2),
-        .height = DESC_HEIGHT - 30,
-        .wrap = WRAP_WORD,
-    }, FNT_DEFAULT, X0 + PAD, DESC_Y + 20, "%s", view->description);
-    rdpq_text_printf(&(rdpq_textparms_t) {
-        .width = X1 - X0 - (PAD * 2),
-        .wrap = WRAP_ELLIPSES,
-        .style_id = STL_GRAY,
-    }, FNT_DEFAULT, X0 + PAD, DESC_Y + DESC_HEIGHT - 8, "Cheats: %s   Patches: %s   Clear memory: %s",
-        view->cheats ? "On" : "Off", view->patches ? "On" : "Off", view->clear_rdram ? "On" : "Off");
+    draw_description(view->description, DESC_HEIGHT - 30 - (switches ? DESC_SWITCHES : 0));
+    if (switches) {
+        int bx = X0 + PAD - 6;
+        int by = DESC_Y + DESC_HEIGHT - DESC_SWITCHES - 2;
+        if (view->cheats) bx = games_ui_badge(bx, by, "Cheats on", STL_ORANGE, true);
+        if (view->patches) bx = games_ui_badge(bx, by, "Patches on", STL_ORANGE, true);
+        if (view->clear_rdram) bx = games_ui_badge(bx, by, "Clears memory", STL_ORANGE, true);
+    }
 
-    /* Button hints, in the same two rows as the Games screen. */
+    /* Button hints, in the same two rows as the Games screen, on the same
+       dark band so they can be read over bright art. */
+    games_ui_hints_backdrop_draw();
     x = games_ui_hint_draw(GAMES_UI_HINTS_X, 0, "A", "Play");
     games_ui_hint_draw(x, 0, "B", "Back");
     x = games_ui_hint_draw(GAMES_UI_HINTS_X, 1, "R", "Options");

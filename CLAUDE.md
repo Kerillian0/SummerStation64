@@ -1124,8 +1124,26 @@ Stages, one testable build each:
      `cover_list.c` gives the entry a number of places from the selected
      one; a place is only filled by wrapping while twice its distance is
      less than the number of games, so no game shows on both sides.
-   - **Each tab remembers its game (built 2026-10-09, awaiting hardware
-     test, not committed).** The user found that switching tabs lost the
+   - **Game info page tidied (built 2026-10-09, awaiting hardware test,
+     not committed)**, from a list of suggestions the user brought from
+     another Claude conversation, all in `game_info_ui.c`:
+     the date reads "Oct 26, 2000"; a game that needs the Expansion Pak
+     shows a green "Uses Expansion Pak" when the console has one and the
+     orange "Needs Expansion Pak" only when it has none (also on the cover
+     rows' title panel, `games_ui.c`); a "Series - Subtitle" name is the
+     series on one big line with the subtitle smaller and dimmer under
+     it; the description box runs down to the button hints (five lines,
+     was three), is laid out once per game, and a description too long
+     for it is cut at a word and ends in "..." (`desc_build()`, which
+     relies on `rdpq_paragraph_build()` reporting how many bytes fitted:
+     not checkable on the PC, so look at the photo); the Cheats / Patches /
+     Clear memory line is gone, replaced by orange badges at the bottom
+     of the box only for the ones switched on; the button hints sit on
+     the same dark band as on the cover rows. From the same list, not
+     done: merging "More info" and "Technical" into one button, a more
+     even dimming of the backdrop, and tinting the ring from the art
+     (box art tinting is a v0.4 item).
+   - **Each tab remembers its game (done and tested 2026-10-09).** The user found that switching tabs lost the
      position. Causes: switching between Games and Folders reloads the
      list, and `folder_memory` only restores on arriving in a *different*
      folder, so with both tabs on the same folder nothing was restored;
