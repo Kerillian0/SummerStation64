@@ -30,8 +30,9 @@ project goes, so changes are explained in plain language.
 
 - Branch `carousel-ui`, 74 commits ahead of upstream `main` (about 10,700
   lines added across 114 files, most of them in new files).
-- **`fork/carousel-ui` is at `701e9e8d`.** Everything since (from `6b51e292` on) is local
-  only. **Not pushed; wait to be asked.**
+- **The fork was last pushed 2026-10-09** (row wrapping round and everything
+  before it). `git log fork/carousel-ui..carousel-ui` lists anything newer.
+  **Push only when asked.**
 - `output/sc64menu.n64` is 27.9 MB because the owner's box art is baked into
   it. Without baked art it is about 2.5 MB.
 - The owner's art is in `assets/boxart/source/` and the baked covers in
