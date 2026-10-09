@@ -1068,8 +1068,14 @@ Stages, one testable build each:
      user decided on 2026-10-08 to use it, knowing that, and will remove it
      if asked; do not raise it again.** The name and accent line moved
      down to make room (name at y=272).
-   - **Approved by the user, not built yet:** the cover row wrapping round
-     (last game shown left of the first); covers sliding sideways when
+   - **Row wrapping round (done and tested 2026-10-09):** with the stock "Wrap File List" setting on (Settings >
+     Controls, default off), the last game is drawn to the left of the
+     first and the other way round, its art loads, and Recent and
+     Favorites wrap too (they did not before). `cover_list_neighbor()` in
+     `cover_list.c` gives the entry a number of places from the selected
+     one; a place is only filled by wrapping while twice its distance is
+     less than the number of games, so no game shows on both sides.
+   - **Approved by the user, not built yet:** covers sliding sideways when
      switching tabs.
    - Not done yet: the Games tab has no way to change folder
      except through Folders.

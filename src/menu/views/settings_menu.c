@@ -167,7 +167,7 @@ static const item_t control_items[] = {
     FEATURE("Quick Launch", FEATURE_QUICK_LAUNCH, "Tap A to start a game. Hold A to see its info instead."),
     FEATURE("Hold A To Launch", FEATURE_HOLD_LAUNCH, "Tap A to see a game's info. Hold A to start it."),
     FEATURE("Up/Down Also Scroll", FEATURE_UPDOWN_SCROLL, "Up and down move through the covers too. When this is off, up and down turn the game box over to show its back."),
-    SWITCH("Wrap File List", wrap_file_list_scrolling, false, NULL, "Going past the last item jumps back to the first."),
+    SWITCH("Wrap File List", wrap_file_list_scrolling, false, NULL, "Going past the last item jumps back to the first. On the cover rows the last game then sits to the left of the first."),
 };
 
 static const item_t sound_items[] = {

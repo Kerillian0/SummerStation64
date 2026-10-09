@@ -27,4 +27,14 @@ void cover_list_use (const cover_list_t *list);
 /** The list the covers come from right now. */
 const cover_list_t *cover_list_current (menu_t *menu);
 
+/**
+ * Which entry sits `offset` places from the selected one (-1 is the cover
+ * to its left, +1 to its right), or -1 if nothing is shown there.
+ *
+ * With "Wrap File List" on the row is a ring: left of the first game is the
+ * last one. A place is only filled that way while the list is long enough
+ * that the same game cannot show on both sides at once.
+ */
+int cover_list_neighbor (menu_t *menu, int offset);
+
 #endif /* COVER_LIST_H__ */

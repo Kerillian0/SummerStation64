@@ -78,7 +78,6 @@ the frames it lands on.
    - baked art on the Game info screen (it still reads the PNG);
    - remembering that a game has no baked back cover (flipping one looks on
      the card every time, about 17 ms);
-   - the row wrapping round, so the last game shows left of the first;
    - covers sliding sideways when switching tabs.
 3. **Push the fork when asked.** `git log fork/carousel-ui..carousel-ui` lists what is waiting.
 4. When the owner says the Jumper Pak is ready, give them the "4MB test

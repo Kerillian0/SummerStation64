@@ -855,7 +855,7 @@ static float carousel_slide (menu_t *menu) {
         bool rapid = (now - slide_last_move_ms) < CAROUSEL_RAPID_MS;
         if (features_enabled(FEATURE_CAROUSEL_ANIMATION) && !rapid) {
             // Wrapping from the last item to the first still counts as "next".
-            if (menu->settings.wrap_file_list_scrolling && (delta == covers->entries - 1 || delta == 1 - covers->entries)) {
+            if (menu->settings.wrap_file_list_scrolling && covers->entries > 2 && (delta == covers->entries - 1 || delta == 1 - covers->entries)) {
                 delta = -delta;
             }
             slide_dir = (delta > 0) ? 1 : -1;
@@ -911,8 +911,8 @@ void carousel_draw (menu_t *menu) {
                 continue; // center is drawn once
             }
             int offset = dist * sign;
-            int i = covers->selected + offset;
-            if (i < 0 || i >= covers->entries) {
+            int i = cover_list_neighbor(menu, offset); // with Wrap File List on, the last game sits left of the first
+            if (i < 0) {
                 continue;
             }
 

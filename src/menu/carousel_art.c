@@ -327,8 +327,8 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
     int wanted[SLOT_COUNT];
     int wanted_count = 0;
     for (int i = 0; i < (side_covers ? SLOT_COUNT : 1); i++) {
-        int index = selected + order[i];
-        if (index >= 0 && index < cover_list_current(menu)->entries) {
+        int index = cover_list_neighbor(menu, order[i]);
+        if (index >= 0) {
             wanted[wanted_count++] = index;
         }
     }

@@ -87,11 +87,12 @@ int cover_row_process (menu_t *menu) {
     }
 
     /* controls_remap_tabs() has turned left/right into "up" and "down". */
-    if (menu->actions.go_up && row.selected > 0) {
-        row.selected--;
+    bool wrap = menu->settings.wrap_file_list_scrolling && row.entries > 1;
+    if (menu->actions.go_up && (row.selected > 0 || wrap)) {
+        row.selected = (row.selected > 0) ? (row.selected - 1) : (row.entries - 1);
         sound_play_effect(SFX_CURSOR);
-    } else if (menu->actions.go_down && row.selected < (row.entries - 1)) {
-        row.selected++;
+    } else if (menu->actions.go_down && (row.selected < (row.entries - 1) || wrap)) {
+        row.selected = (row.selected < (row.entries - 1)) ? (row.selected + 1) : 0;
         sound_play_effect(SFX_CURSOR);
     }
 

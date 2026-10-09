@@ -27,3 +27,16 @@ const cover_list_t *cover_list_current (menu_t *menu) {
     folder.path = folder_path;
     return &folder;
 }
+
+int cover_list_neighbor (menu_t *menu, int offset) {
+    const cover_list_t *covers = cover_list_current(menu);
+    int index = covers->selected + offset;
+    if (index >= 0 && index < covers->entries) {
+        return index;
+    }
+    int away = (offset < 0) ? -offset : offset;
+    if (!menu->settings.wrap_file_list_scrolling || covers->selected < 0 || (away * 2) >= covers->entries) {
+        return -1;
+    }
+    return ((index % covers->entries) + covers->entries) % covers->entries;
+}
