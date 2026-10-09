@@ -368,8 +368,14 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
   the row now averages 35-38 ms with worst frames of 55-70 ms (before:
   40-53 ms and 90-126 ms). A game without a baked cover (NGFE) fell back
   to the card correctly. What is left of the slow frame is reading each
-  game's header from the card and the badge lookup. Not yet reported by
-  the user: how much longer the 27.9 MB menu takes to start. If baking does not work out, the
+  game's header from the card and the badge lookup. With the
+  27.9 MB menu file the user measures **3 seconds from power-on to the
+  intro** (2026-10-09), about a second of which is the Ocean background
+  being built; scrolling at a natural pace gives 35-38 ms averages and
+  worst frames of 55-75 ms. Open: Ocean's build time has crept up with no
+  change to its code (621, 749, 930, 944 ms across builds); unexplained,
+  possibly its 9 KB lookup square no longer sitting well in the 8 KB data
+  cache. If baking does not work out, the
   agreed fallback is one cover file on the SD card with an index.
 - `src/menu/menu_features.c/.h` — Expansion Pak detection
   (`is_memory_expanded()`) and feature toggles. Named `menu_features` to avoid
