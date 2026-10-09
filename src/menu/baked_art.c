@@ -113,3 +113,17 @@ bool baked_art_free (component_boxart_t *art) {
     }
     return false;
 }
+
+component_boxart_t *baked_art_open (const char *storage_prefix, const char *game_code, const char *title, file_image_type_t which) {
+    component_boxart_t *art = baked_art_load(game_code, which);
+    if (!art) {
+        art = ui_components_boxart_init(storage_prefix, game_code, title, which);
+    }
+    return art;
+}
+
+void baked_art_release (component_boxart_t *art) {
+    if (art && !baked_art_free(art)) {
+        ui_components_boxart_free(art);
+    }
+}

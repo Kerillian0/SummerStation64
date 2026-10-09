@@ -28,4 +28,13 @@ component_boxart_t *baked_art_load (const char *game_code, file_image_type_t whi
  */
 bool baked_art_free (component_boxart_t *art);
 
+/**
+ * A game's picture from wherever it can be had: baked art first, then the
+ * SD card (ui_components_boxart_init). Free it with baked_art_release().
+ */
+component_boxart_t *baked_art_open (const char *storage_prefix, const char *game_code, const char *title, file_image_type_t which);
+
+/** Free a picture from baked_art_open(), whichever kind it is. NULL is fine. */
+void baked_art_release (component_boxart_t *art);
+
 #endif /* BAKED_ART_H__ */

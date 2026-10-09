@@ -198,6 +198,17 @@ static component_boxart_t *art_load (menu_t *menu, int index, file_image_type_t 
         baked_lately = true;
         return art;
     }
+    /* A game whose front cover is baked had all its art baked with it, so
+       no baked back means it has none: show the front again without
+       searching the card (about 17 ms each time the box was turned). */
+    if (*which != IMAGE_BOXART_FRONT) {
+        art = baked_art_load(code, IMAGE_BOXART_FRONT);
+        if (art) {
+            *which = IMAGE_BOXART_FRONT;
+            baked_lately = true;
+            return art;
+        }
+    }
     if (!card) {
         if (card_pending) {
             *card_pending = true;

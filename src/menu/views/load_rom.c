@@ -11,6 +11,7 @@
 #include "../display_name.h"
 #include "../game_info_ui.h"
 #include "../play_stats.h"
+#include "../baked_art.h" // the cover comes from art baked into the menu when there is some
 #include <string.h>
 
 static bool show_extra_info_message = false;
@@ -363,12 +364,12 @@ static void iterate_metadata_image(menu_t *menu, int direction) {
         if (metadata_image_available[new_metadata_image_index]) {
             if (low_memory_mode && boxart != NULL) {
                 // On Jumper Pak, avoid holding old and new boxart textures at once.
-                ui_components_boxart_free(boxart);
+                baked_art_release(boxart);
                 boxart = NULL;
             }
 
             // ui_components_boxart_init returns NULL if PNG decoder is busy
-            component_boxart_t *new_boxart = ui_components_boxart_init(
+            component_boxart_t *new_boxart = baked_art_open(
                 menu->storage_prefix,
                 menu->load.rom_info.game_code,
                 menu->load.rom_info.title,
@@ -378,7 +379,7 @@ static void iterate_metadata_image(menu_t *menu, int direction) {
             if (new_boxart != NULL) {
                 // Only free old boxart after successful new allocation
                 if (!low_memory_mode) {
-                    ui_components_boxart_free(boxart);
+                    baked_art_release(boxart);
                 }
                 boxart = new_boxart;
                 current_metadata_image_index = new_metadata_image_index;
@@ -387,7 +388,7 @@ static void iterate_metadata_image(menu_t *menu, int direction) {
             } else if (low_memory_mode) {
                 // Best effort restore of previous image after a failed low-memory swap.
                 if (metadata_image_available[previous_metadata_image_index]) {
-                    boxart = ui_components_boxart_init(
+                    boxart = baked_art_open(
                         menu->storage_prefix,
                         menu->load.rom_info.game_code,
                         menu->load.rom_info.title,
@@ -862,7 +863,7 @@ static void load (menu_t *menu) {
 }
 
 static void deinit (void) {
-    ui_components_boxart_free(boxart);
+    baked_art_release(boxart);
     boxart = NULL;
     current_metadata_image_index = 0;
     metadata_images_scanned = false;
@@ -930,7 +931,7 @@ void view_load_rom_init (menu_t *menu) {
     if (!menu->settings.rom_autoload_enabled) {
 #endif
         current_metadata_image_index = 0;
-        boxart = ui_components_boxart_init(menu->storage_prefix, menu->load.rom_info.game_code, menu->load.rom_info.title, IMAGE_BOXART_FRONT);
+        boxart = baked_art_open(menu->storage_prefix, menu->load.rom_info.game_code, menu->load.rom_info.title, IMAGE_BOXART_FRONT);
         ui_components_context_menu_init(&options_context_menu);
 #ifdef FEATURE_AUTOLOAD_ROM_ENABLED
     }
