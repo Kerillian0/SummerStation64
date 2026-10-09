@@ -16,7 +16,7 @@ typedef struct {
     theme_dir_t direction;
     color_t top, bottom, middle;    /* middle is used when has_middle is set */
     bool has_middle;
-    bool ocean;                     /* the ocean background: top = water, bottom = foam, middle = sky */
+    bool ocean;                     /* the ocean background: top = water, bottom = foam */
     theme_pattern_t pattern;
     color_t pattern_color;
     int pattern_size;
@@ -54,7 +54,7 @@ static const look_t looks[BUILTIN_THEME_COUNT] = {
         .name = "Ocean",
         .text = RGB(0xFFFFFF), .text_dim = RGB(0xD4F0F8), .accent = RGB(0xFFD84A), .panel = RGB(0x062448),
         .highlight = RGB(0x1870A8), .tab_active = RGB(0x1870A8), .tab_inactive = RGB(0x0A3C68),
-        .ocean = true,      /* water, foam and sky in place of top, bottom and middle */
+        .ocean = true,      /* water and foam in place of top and bottom */
         .top = RGB(0x0C78BE), .bottom = RGB(0xA8E4EE), .middle = RGB(0x8CE6EE),
         .pattern = THEME_PATTERN_NONE, .pattern_color = RGB(0xFFFFFF), .pattern_size = 16, .pattern_opacity = 0,
     },

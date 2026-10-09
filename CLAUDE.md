@@ -110,7 +110,8 @@ Ours (new files, free to change), all in `src/menu/`: `theme`,
 `display_name`, `font_choice`, `title_font`, `frame_rate`, `games_ui`,
 `game_facts`, `game_info_ui`, `play_stats`, `intro`, `menu_name.h`,
 `cover_list`, `cover_row`, `carousel.h`, `tabs`, `folders_ui`,
-`start_menu`, `intro_logo`, `builtin_themes`, `baked_art`, and
+`start_menu`, `intro_logo`, `builtin_themes`, `baked_art`, `game_index`,
+and
 `views/settings_menu`
 (`views/features_menu` is ours too but no longer reachable).
 
@@ -129,6 +130,7 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
 | `options.ini` | `sort_order`, `font`, `frame_rate_experiment`, `intro`, `fade`, `intro_logo`, `theme`, `tab1`..`tab4` | `menu_options.c` |
 | `folders.ini` | selected entry per folder | `folder_memory.c` |
 | `playstats.txt` | play count and last played | `play_stats.c` |
+| `gameindex.txt` | which file is which game, and its badge facts; safe to delete | `game_index.c` |
 | `metadata/` | box art and `metadata.ini` per game; read only | the user's metadata pack |
 
 ## Conventions for new code
@@ -377,6 +379,24 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
   possibly its 9 KB lookup square no longer sitting well in the 8 KB data
   cache. If baking does not work out, the
   agreed fallback is one cover file on the SD card with an index.
+- `src/menu/game_index.c/.h` — a remembered list of which file is which
+  game (built 2026-10-09, awaiting hardware test): the game's code and its
+  badge facts, noted the first time a game is seen and saved to
+  `sd:/menu/gameindex.txt` (a header line, then one line per game: path
+  hash, file size, code, players, flags; temp file + `safe_file_replace`).
+  Up to 768 games, 12 KB of static memory. A file is recognised by its
+  full path and, when known, its size. `carousel_art.c` asks it before
+  reading a ROM's header, `game_facts.c` before looking a game up; both
+  note what they learn. Saved when the covers are left
+  (`carousel_art_reset()`) and after the selection has rested 3 s, only
+  if something was added. Homebrew (found by title) is not noted. The
+  save-file check and the favorite check are still done live. This is the
+  small first form of the v0.2 "metadata index". The log prints
+  `game index: N games remembered` and `game index: saved N games`.
+  Same build: the Ocean background is drawn flat (seen from above, 160 px
+  cells, no horizon or sky) at the user's request, with its lookup square
+  cut to 64x64 (4 KB) so it fits the console's 8 KB data cache; checked
+  as a PC preview.
 - `src/menu/menu_features.c/.h` — Expansion Pak detection
   (`is_memory_expanded()`) and feature toggles. Named `menu_features` to avoid
   clashing with the system `features.h`.

@@ -5,6 +5,7 @@
 
 #include "carousel_art.h"
 #include "baked_art.h"
+#include "game_index.h"
 #include "cover_list.h"
 #include "menu_features.h"
 #include "path.h"
@@ -16,6 +17,7 @@
    (finding and opening the files on the card), so while the player is
    stepping through the row only the selected cover's art is fetched. */
 #define SIDE_SETTLE_TIME_MS (700)
+#define INDEX_SAVE_REST_MS  (3000)
 
 /* The selected cover plus two either side. */
 #define SLOT_COUNT          (5)
@@ -135,27 +137,43 @@ static void fix_header_byte_order (uint8_t *h) {
 
 /* Start decoding the art for an entry. Returns NULL if it has none. */
 static component_boxart_t *art_load (menu_t *menu, int index, file_image_type_t *which) {
-    uint8_t header[ROM_HEADER_SIZE];
+    char code[5] = "";
+    char title[ROM_TITLE_LENGTH + 1] = "";
 
-    path_t *path = cover_list_current(menu)->path(menu, index);
-    FILE *f = fopen(path_get(path), "rb");
+    const cover_list_t *covers = cover_list_current(menu);
+    path_t *path = covers->path(menu, index);
+    int64_t size = covers->list[index].size;
+
+    /* A game seen before needs no look at its file: the list knows its code. */
+    const game_index_entry_t *known = game_index_find(path_get(path), size);
+    if (known) {
+        memcpy(code, known->code, 4);
+    } else {
+        uint8_t header[ROM_HEADER_SIZE];
+
+        FILE *f = fopen(path_get(path), "rb");
+        if (!f) {
+            path_free(path);
+            return NULL;
+        }
+        size_t read = fread(header, 1, sizeof(header), f);
+        fclose(f);
+        if (read != sizeof(header)) {
+            path_free(path);
+            return NULL;
+        }
+
+        fix_header_byte_order(header);
+        memcpy(title, &header[ROM_TITLE_OFFSET], ROM_TITLE_LENGTH);
+        memcpy(code, &header[ROM_CODE_OFFSET], 4);
+
+        /* Homebrew is found by its title instead of a code, so it is not noted. */
+        if (!(code[1] == 'E' && code[2] == 'D')) {
+            game_index_set_code(path_get(path), size, code);
+        }
+    }
     path_free(path);
-    if (!f) {
-        return NULL;
-    }
-    size_t read = fread(header, 1, sizeof(header), f);
-    fclose(f);
-    if (read != sizeof(header)) {
-        return NULL;
-    }
 
-    fix_header_byte_order(header);
-
-    char title[ROM_TITLE_LENGTH + 1];
-    memcpy(title, &header[ROM_TITLE_OFFSET], ROM_TITLE_LENGTH);
-    title[ROM_TITLE_LENGTH] = '\0';
-
-    const char *code = (const char *) &header[ROM_CODE_OFFSET];
     /* Art baked into the menu comes first: it needs no search of the card
        and no unpacking. */
     component_boxart_t *art = baked_art_load(code, *which);
@@ -262,6 +280,7 @@ void carousel_art_reset (void) {
     center_hash = 0;
     side = IMAGE_BOXART_FRONT;
     flip = FLIP_NONE;
+    game_index_flush();     /* leaving the covers: save what was learned about the games */
 }
 
 void carousel_art_update (menu_t *menu, bool side_covers) {
@@ -354,6 +373,12 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
     }
 
     flip_update(menu);
+
+    /* Also saved once the selection has rested a while, in case the console
+       is switched off without leaving this screen. */
+    if ((now - changed_at) >= INDEX_SAVE_REST_MS) {
+        game_index_flush();
+    }
 }
 
 bool carousel_art_draw (menu_t *menu, int index, int x0, int y0, int w, int h, int alpha, bool center) {

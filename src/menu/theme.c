@@ -256,16 +256,16 @@ static bool pattern_hit (const theme_t *t, int x, int y) {
 
 /* ---------- the ocean background ---------- */
 
-/* Water seen from just above it, running away to a horizon near the top of
-   the screen, with a net of pale foam lines across it. The lines are the
-   borders between scattered points' territories (which gives the rounded,
-   uneven cells of light on water), bent a little so they aren't straight.
-   Tried out on a PC first with the same sums. */
-#define OCEAN_HORIZON   (0.10f)     /* how far down the screen the horizon is */
-#define OCEAN_ACROSS    (2.2f)      /* how many cells fit across at the very bottom, roughly halved */
+/* Water seen from straight above: a net of pale foam lines over blue, the
+   same size all over the screen. The lines are the borders between
+   scattered points' territories (which gives the rounded, uneven cells of
+   light on water), bent a little so they aren't straight. Tried out on a PC
+   first with the same sums. It began as water running away to a horizon
+   under a strip of sky; the user asked for it flat (2026-10-09), which is
+   also less work and has no speckled distance. */
+#define OCEAN_CELL      (160.0f)    /* screen pixels across one cell: four cells span the screen, so the repeat doesn't show */
 #define OCEAN_LINE      (0.06f)     /* foam is solid nearer a border than this... */
 #define OCEAN_LINE_SOFT (0.11f)     /* ...and gone beyond this */
-#define OCEAN_HAZE      (0.30f)     /* the far part of the water, this much of it, fades into the sky */
 
 /* Working the foam out for every pixel of the screen took about 1.4 s (a
    plain gradient takes 0.3 s). So it is worked out once for a small square
@@ -274,7 +274,7 @@ static bool pattern_hit (const theme_t *t, int x, int y) {
    from a border" rather than a picture of the lines, and four neighboring
    values are blended for each pixel, so the lines stay crisp however much
    the square is stretched near the bottom of the screen. */
-#define OCEAN_TILE      (96)        /* the square's size in values each way */
+#define OCEAN_TILE      (64)        /* the square's size in values each way: 4 KB, small enough to stay in the console's fast memory */
 #define OCEAN_PERIOD    (4)         /* cells across it before it repeats */
 #define OCEAN_STORE     (1020.0f)   /* a border distance of 0.25 fills the byte */
 static uint8_t *ocean_tile = NULL;
@@ -373,27 +373,16 @@ static float ocean_lookup (float side, float away) {
     return (upper + ((lower - upper) * fz)) * (1.0f / OCEAN_STORE);
 }
 
-static rgbf_t ocean_color (int x, int y, int w, int h, rgbf_t water, rgbf_t foam, rgbf_t sky) {
-    float horizon = OCEAN_HORIZON * h;
-    rgbf_t white = { 1.0f, 1.0f, 1.0f };
-    rgbf_t haze = lerp(sky, white, 0.45f);
-
-    if (y < horizon) {
-        return lerp(sky, haze, y / horizon);
-    }
-
-    /* Each row of the screen is a line across the water; rows nearer the
-       horizon are further away, so the same cells look smaller there. */
-    float down = (y - horizon) + 1.0f;
-    float away = (OCEAN_ACROSS * 1.1f * h) / down;
-    float side = ((x - (w / 2)) * OCEAN_ACROSS) / down;
+static rgbf_t ocean_color (int x, int y, rgbf_t water, rgbf_t foam) {
+    float side = x * (1.0f / OCEAN_CELL);
+    float away = y * (1.0f / OCEAN_CELL);
 
     float border = ocean_lookup(side + (0.22f * ocean_wave((away * 2.3f) + (side * 1.1f))), away + (0.22f * ocean_wave((side * 1.9f) - (away * 0.7f))));
-    float line = (border > OCEAN_LINE_SOFT) ? 0.0f : ((border < OCEAN_LINE) ? 1.0f : ((OCEAN_LINE_SOFT - border) / (OCEAN_LINE_SOFT - OCEAN_LINE)));
-
-    float near = down / (h - horizon);
-    float fog = 1.0f - (near / OCEAN_HAZE);
-    return lerp(lerp(water, foam, line), haze, (fog > 0.0f) ? fog : 0.0f);
+    if (border > OCEAN_LINE_SOFT) {
+        return water;
+    }
+    float line = (border < OCEAN_LINE) ? 1.0f : ((OCEAN_LINE_SOFT - border) / (OCEAN_LINE_SOFT - OCEAN_LINE));
+    return lerp(water, foam, line);
 }
 
 static uint32_t to_byte (float v) {
@@ -445,7 +434,7 @@ static void theme_build_background (const theme_t *t) {
                     c = lerp(c1, c2, p);
                 }
             } else if (type == THEME_BG_OCEAN) {
-                c = ocean_color(x, y, w, h, c1, c2, c3);
+                c = ocean_color(x, y, c1, c2);
             } else {
                 c = c1;
             }

@@ -4,6 +4,7 @@
 
 #include "cart_load.h"
 #include "cover_list.h"
+#include "game_index.h"
 #include "game_facts.h"
 #include "ini_parser.h"
 #include "path.h"
@@ -102,6 +103,19 @@ static void lookup (menu_t *menu, int index) {
         }
     }
 
+    int64_t size = cover_list_current(menu)->list[index].size;
+    const game_index_entry_t *noted = found ? NULL : game_index_find(path_get(path), size);
+    if (noted && noted->has_facts) {
+        /* Seen in an earlier session: the saved list has the answers. */
+        found = &remembered[remembered_next];
+        remembered_next = (remembered_next + 1) % REMEMBERED;
+        found->key = key;
+        found->players = noted->players;
+        found->needs_expansion = noted->needs_expansion;
+        found->likes_expansion = noted->likes_expansion;
+        found->saves = noted->saves;
+    }
+
     if (!found) {
         /* Header and built-in database only: one small read from the card,
            plus the metadata pack entry for the player count. */
@@ -115,6 +129,8 @@ static void lookup (menu_t *menu, int index) {
             found->likes_expansion = (info.features.expansion_pak == EXPANSION_PAK_RECOMMENDED) ||
                 (info.features.expansion_pak == EXPANSION_PAK_SUGGESTED);
             found->saves = (rom_info_get_save_type(&info) != SAVE_TYPE_NONE);
+            game_index_set_facts(path_get(path), size, info.game_code, found->players,
+                found->needs_expansion, found->likes_expansion, found->saves);
         }
         rom_info_free_meta(&info);
     }

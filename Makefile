@@ -79,6 +79,7 @@ SRCS = \
 	menu/sound.c \
 	menu/intro.c \
 	menu/baked_art.c \
+	menu/game_index.c \
 	menu/builtin_themes.c \
 	menu/intro_logo.c \
 	menu/cover_list.c \

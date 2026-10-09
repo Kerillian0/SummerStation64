@@ -22,7 +22,7 @@ typedef enum {
     THEME_BG_SOLID,
     THEME_BG_GRADIENT,
     THEME_BG_IMAGE,
-    THEME_BG_OCEAN,     /* water running to a horizon: color1 water, color2 foam, color3 sky */
+    THEME_BG_OCEAN,     /* water seen from above with a net of foam lines: color1 water, color2 foam */
 } theme_bg_type_t;
 
 typedef enum {
