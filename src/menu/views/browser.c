@@ -898,7 +898,6 @@ void carousel_draw (menu_t *menu) {
     const bool side_covers = features_enabled(FEATURE_SIDE_COVERS);
     const bool see_through = features_enabled(FEATURE_SEE_THROUGH_COVERS);
 
-    carousel_art_update(menu, side_covers);
 
     const float slide = carousel_slide(menu);
     const int first = CAROUSEL_CENTER_W / 2 + CAROUSEL_GAP + CAROUSEL_SIDE_W / 2;
@@ -1199,6 +1198,9 @@ void view_browser_display (menu_t *menu, surface_t *display) {
     folder_memory_update(menu); // put the selection back where it was left in this folder
 
     draw(menu, display);
+
+    // Cover art is fetched here, after the picture has been handed to the graphics chip, so the chip draws while the art loads
+    if (!folders_tab && menu->next_mode == MENU_MODE_BROWSER) carousel_art_update(menu, features_enabled(FEATURE_SIDE_COVERS));
 
     if (menu->next_mode != MENU_MODE_BROWSER) carousel_art_reset(); // free the cover before another screen loads its own
     if (menu->next_mode != MENU_MODE_BROWSER) folder_memory_flush();

@@ -34,6 +34,12 @@ int cover_row_process (menu_t *menu);
  */
 void cover_row_draw (menu_t *menu, const char *empty_message, const char *z_action);
 
+/**
+ * Call after the frame has been drawn and handed to the graphics chip:
+ * fetches cover art then, so the chip draws while the art loads.
+ */
+void cover_row_after_draw (menu_t *menu);
+
 /** Stop showing the list and free its box art. */
 void cover_row_close (void);
 

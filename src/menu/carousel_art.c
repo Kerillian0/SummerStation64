@@ -13,6 +13,11 @@
 
 /* How long the selection must rest before any art is loaded. */
 #define SETTLE_TIME_MS      (250)
+/* Art baked into the menu loads in a few milliseconds, so it need not wait
+   as long as art read from the card. These apply while the covers being
+   shown are coming from baked art. */
+#define BAKED_SETTLE_TIME_MS        (100)
+#define BAKED_SIDE_SETTLE_TIME_MS   (250)
 /* The covers either side wait longer. Starting a load costs one slow frame
    (finding and opening the files on the card), so while the player is
    stepping through the row only the selected cover's art is fetched. */
@@ -136,6 +141,8 @@ static void fix_header_byte_order (uint8_t *h) {
 }
 
 /* Start decoding the art for an entry. Returns NULL if it has none. */
+static bool baked_lately = false;    /* the last cover came from art baked into the menu */
+
 static component_boxart_t *art_load (menu_t *menu, int index, file_image_type_t *which) {
     char code[5] = "";
     char title[ROM_TITLE_LENGTH + 1] = "";
@@ -178,8 +185,10 @@ static component_boxart_t *art_load (menu_t *menu, int index, file_image_type_t 
        and no unpacking. */
     component_boxart_t *art = baked_art_load(code, *which);
     if (art) {
+        baked_lately = true;
         return art;
     }
+    baked_lately = false;
 
     art = ui_components_boxart_init(menu->storage_prefix, code, title, *which);
 
@@ -343,13 +352,15 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
     }
 
     /* Start at most one new decode, once the selection has settled. */
-    if (flip == FLIP_NONE && !any_loading() && (now - changed_at) >= SETTLE_TIME_MS) {
+    int settle = baked_lately ? BAKED_SETTLE_TIME_MS : SETTLE_TIME_MS;
+    int side_settle = baked_lately ? BAKED_SIDE_SETTLE_TIME_MS : SIDE_SETTLE_TIME_MS;
+    if (flip == FLIP_NONE && !any_loading() && (now - changed_at) >= settle) {
         for (int j = 0; j < wanted_count; j++) {
             int index = wanted[j];
             if (slot_find(menu, index)) {
                 continue; /* already loaded, or already known to have no art */
             }
-            if (index != selected && (now - changed_at) < SIDE_SETTLE_TIME_MS) {
+            if (index != selected && (now - changed_at) < side_settle) {
                 break; /* the side covers wait until the selection has really come to rest */
             }
             slot_t *slot = slot_free();

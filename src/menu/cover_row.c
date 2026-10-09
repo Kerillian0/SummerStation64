@@ -12,6 +12,7 @@
 #include "cover_row.h"
 #include "fonts.h"
 #include "game_facts.h"
+#include "menu_features.h"
 #include "games_ui.h"
 #include "sound.h"
 #include "ui_components/constants.h"
@@ -124,6 +125,12 @@ void cover_row_draw (menu_t *menu, const char *empty_message, const char *z_acti
     }
     if (z_action) {
         games_ui_hint_draw(GAMES_UI_HINTS_X, 1, "Z", z_action);
+    }
+}
+
+void cover_row_after_draw (menu_t *menu) {
+    if (row.entries > 0) {
+        carousel_art_update(menu, features_enabled(FEATURE_SIDE_COVERS));
     }
 }
 

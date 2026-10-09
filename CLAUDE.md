@@ -407,7 +407,21 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
   names, read again after the covers are left), and the Games screen does
   less every frame so a cover start fits in the budget: hint word widths
   are remembered and the title's layout is kept until the selection
-  changes (`games_ui.c`). The log prints
+  changes (`games_ui.c`). **Tested 2026-10-09:** the badge lookup is now
+  0-1 ms (one `saves folder read` of 20 ms per visit), stepping through
+  the row averages 36-37 ms, and frames with no cover starting hold 33.4
+  ms; but every cover start (6-9 ms) still doubles its frame (58-60 ms).
+  Next (awaiting test): cover art is fetched after the frame has been
+  handed to the graphics chip (`carousel_art_update()` moved from inside
+  `carousel_draw()` to after `draw()` in `view_browser_display()`, and
+  `cover_row_after_draw()` for Recent and Favorites), so the chip draws
+  while the CPU loads instead of waiting for the rest of its commands.
+  The user's next message pasted the previous log again (identical line
+  for line), so **this change has not been measured yet**. Same build,
+  approved by the user: while covers are coming from baked art the waits
+  before loading are 100 ms for the selected cover and 250 ms for the
+  sides (`BAKED_SETTLE_TIME_MS`, `BAKED_SIDE_SETTLE_TIME_MS`); art read
+  from the card keeps 250 and 700 ms. The log prints
   `game index: N games remembered` and `game index: saved N games`.
   Same build: the Ocean background is drawn flat (seen from above, 160 px
   cells, no horizon or sky) at the user's request, with its lookup square

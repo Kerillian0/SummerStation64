@@ -265,6 +265,7 @@ void view_favorite_init (menu_t *menu) {
 void view_favorite_display (menu_t *menu, surface_t *display) {
     process(menu);
     draw(menu, display); 
+    if (COVER_ROWS && menu->next_mode == MENU_MODE_FAVORITE) cover_row_after_draw(menu);
     if (menu->next_mode != MENU_MODE_FAVORITE) cover_row_close(); // free the covers before another screen loads its own
 }
 
@@ -282,5 +283,6 @@ void view_history_init (menu_t *menu) {
 void view_history_display (menu_t *menu, surface_t *display) {
     process(menu);
     draw(menu, display); 
+    if (COVER_ROWS && menu->next_mode == MENU_MODE_HISTORY) cover_row_after_draw(menu);
     if (menu->next_mode != MENU_MODE_HISTORY) cover_row_close(); // free the covers before another screen loads its own
 }
