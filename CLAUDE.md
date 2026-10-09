@@ -832,11 +832,34 @@ was done and the frame still missed its refresh, so the graphics chip is
 what runs late, mostly while covers are sliding. The 2026-10-07 finding
 that a cheaper background "made no difference" was measured when the
 processor was the slower of the two, so it says nothing about the chip.
-Next build (awaiting test): the log also times the chip (`chip avg /
-worst`: from the start of a frame's work until the chip has finished
-drawing it; over 33 ms means a missed refresh). `MEASURE_CHIP` in
-`debug_stats.c`; it waits for the chip every frame, so it is for measuring
-and should be switched off again afterwards.
+That reading was wrong, and the measuring build showed it (2026-10-09):
+with the log waiting for the chip on every frame (`rspq_wait()`), the slow
+frames vanished: stepping through the row gave worst frames of 42-44 ms
+(a cover load's extra work, on time) and the chip finished 1.5-3 ms after
+the work, 23-24 ms into the frame. **Real cause:** `rdpq_detach_show()`
+puts the finished frame on screen through a "deferred call", and libdragon
+only runs those when some code next talks to the chip. Between frames the
+menu idles, so that was whenever the sound code needed the chip, sometimes
+after the refresh. **Fix (tested 2026-10-09: stepping through the row gives
+no slow frames, worst 41-44 ms; committed):**
+`frame_rate_end_frame()` in `frame_rate.c`, one hook in the `menu.c` loop,
+waits for the chip after every frame. The `stats:` line keeps `work` and
+`chip` (start of work until the chip is done; over 33 ms is a missed
+refresh). Measured at rest: Settings work 14 / chip 16 ms; Games 16.3 /
+18.3 with one cover, 21.5 / 23.2 with five. Still slow and genuinely the
+chip: the fade-in (the full-screen see-through black costs it about 11 ms:
+work 21, chip 34, so the fade runs at 15 frames a second), and one frame
+of 60-80 ms whenever a settings file is saved.
+Also measured: the Folders tab's work is 29 ms a frame (the Games tab's
+is 21-24), the highest of any screen, so it has the least room.
+**Covers after a game without baked art (built 2026-10-09, awaiting test,
+not committed):** the user saw the cover after such a game arrive late.
+Two causes in `carousel_art.c`: one cover from the card put the following
+covers back on the long waits (250/700 ms), and a PNG still decoding held
+up every other cover, though baked art does not use the decoder. Now the
+short waits stay once any baked cover has loaded, and baked covers load
+while a card picture decodes (`card_pending` marks a cover whose card
+picture waits for the decoder).
 
 Fixed (built, awaiting hardware test): safe mode no longer loads the custom
 background picture at all (`load_from_cache()` in `background.c`), so it

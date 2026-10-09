@@ -14,7 +14,7 @@
 /** Call when work on a frame starts (a screen buffer has been handed out). */
 void debug_stats_begin (void);
 
-/** Call once per drawn frame, when its work is done. Prints a line every two seconds. */
+/** Call once per drawn frame, after frame_rate_end_frame(). Prints a line every two seconds. */
 void debug_stats_frame (menu_t *menu);
 
 #endif /* DEBUG_STATS_H__ */

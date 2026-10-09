@@ -276,6 +276,7 @@ void menu_run (boot_params_t *boot_params) {
             }
 
             time(&menu->current_time);
+            frame_rate_end_frame(); // show the frame as soon as the graphics chip has drawn it
             debug_stats_frame(menu);
             intro_poll();
         }
