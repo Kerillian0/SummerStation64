@@ -81,18 +81,69 @@ Claude builds in the container and the user deploys from Windows.
 stands, what is next, and what is still open. Read it first in a new session,
 then come back here for the detail. Update it whenever a step is finished.
 
+## Key context
+How the menu is put together now (2026-10-09):
+- **Tabs.** Up to four, in an order the player chooses (Settings > Tabs;
+  default Games, Favorites, Folders; Recent can be added). L/R step
+  through them. The menu opens on the first.
+- **Games** shows only games, as a row of covers, from one folder: the
+  start folder. **Folders** is the plain file browser, where everything
+  else is opened and the start folder is chosen. The two are the same
+  screen and mode (`MENU_MODE_BROWSER`) showing two lists, so every stock
+  "back to the browser" lands on whichever was showing.
+- **Recent** and **Favorites** are cover rows too. All four share the tab
+  bar, title panel, badges and button hints from `games_ui.c`.
+- **Where a cover comes from:** art baked into the menu file if the user
+  baked theirs (4-7 ms), else the PNG on the SD card (80-120 ms). The
+  game's code and badge facts come from a saved list (`gameindex.txt`)
+  after the first visit.
+- **Start-up:** an intro (spinning logo, title picture, tune) at power-on,
+  then the first tab fades in. Both have settings.
+- **Themes:** the player's `theme.ini`, or one of four built-in summer
+  themes; Sunset is the stock look.
+- **Three kinds of setting:** features (on/off, a theme may set them,
+  `features.ini`), options (choices, the player's alone, `options.ini`),
+  and the stock menu's own settings (`config.ini`).
+
+The owner and how they work:
+- Tests every build on a real N64 (Expansion Pak fitted, 240p output, small
+  Latin font) with a small composite CRT, and reports with photos, short
+  recordings and the debug log. Asks for one thing at a time and often
+  adds ideas while testing; build what was asked, then offer the rest.
+- Is learning as the project goes: explain in plain words what changed,
+  why, and what to check.
+- Prefers saving memory over a small gain in picture quality, and fewer SD
+  card writes over saving at once. Dislikes clutter on screen.
+- Decides art and trademark questions themselves once told the facts. Two
+  standing decisions: the intro uses the N64 logo's shape (do not raise it
+  again), and box art is baked from the owner's own pack, never committed.
+- A 4MB Jumper Pak is on the way; until then every 4MB figure is worked
+  out, not measured.
+
 ## Where things are
 ```
 CLAUDE.md                  this file: the full project record
-Makefile                   source list (add new .c files beside menu/sound.c)
-                           and the font rules (Latin, Title, Title20)
+Makefile                   source list (add new .c files beside menu/sound.c),
+                           the extra font rules (Latin, Title, Title20,
+                           Small) and the IMAGES list with each picture's
+                           format
 localdeploy.bat            stock: run a build from the cart's memory (no /dur)
 deploy-sd.bat              ours: put a build on the SD card
 assets/fonts/              Firple-Bold.ttf and the charset-*.txt lists the
                            fonts are built from
-assets/sounds/             the menu's sounds, with CREDITS.md
-assets/images/             icons (.png, built into sprites) and
-                           make_icons.py, which draws them
+assets/sounds/             the menu's sounds, with CREDITS.md and
+                           make_intro.py (the first, generated intro tune)
+assets/images/             icons and patterns (.png, built into sprites),
+                           make_icons.py and make_wordmark.py, which draw
+                           them, CREDITS.md, and wordmark/ (two fonts with
+                           their licences, used only by make_wordmark.py)
+assets/boxart/             README.md and make_baked_art.py: bake the user's
+                           own box art into the menu file
+assets/boxart/source/      the user's art (their SD card's menu/metadata
+                           folder); ignored by git, never commit it
+filesystem/                what gets packed into the ROM; generated files
+                           here are ignored by git
+filesystem/art/            baked covers made by make_baked_art.py; ignored
 docs/HANDOFF.md            current state and next steps
 docs/n64ever-notes.md      what the N64ever fork has, mapped to our roadmap
 docs/*.md (numbered)       upstream's user documentation, untouched
@@ -104,16 +155,19 @@ src/menu/                  menu code; our new files sit beside the stock ones
 src/menu/views/            one file per screen
 src/menu/ui_components/    stock shared drawing code (small hooks only)
 ```
-Ours (new files, free to change), all in `src/menu/`: `theme`,
-`menu_features`, `menu_options`, `safe_file`, `safe_mode`, `crash_screen`,
-`debug_stats`, `controls`, `carousel_art`, `folder_memory`, `sort_order`,
-`display_name`, `font_choice`, `title_font`, `frame_rate`, `games_ui`,
-`game_facts`, `game_info_ui`, `play_stats`, `intro`, `menu_name.h`,
-`cover_list`, `cover_row`, `carousel.h`, `tabs`, `folders_ui`,
-`start_menu`, `intro_logo`, `builtin_themes`, `baked_art`, `game_index`,
-and
-`views/settings_menu`
-(`views/features_menu` is ours too but no longer reachable).
+Our files in `src/menu/`, by what they are for:
+| Area | Files |
+|---|---|
+| Themes and look | `theme`, `builtin_themes`, `title_font`, `font_choice` |
+| Settings and switches | `menu_features` (on/off, themes may set), `menu_options` (choices, player only), `views/settings_menu` |
+| Tabs and the cover screens | `tabs`, `games_ui` (tab bar, title panel, hints, rounded boxes, icons), `carousel.h` + the carousel in `views/browser.c`, `cover_list`, `cover_row`, `folders_ui`, `start_menu`, `controls` |
+| Covers and game data | `carousel_art`, `baked_art`, `game_index`, `game_facts`, `display_name`, `sort_order`, `folder_memory`, `play_stats` |
+| Game info screen | `game_info_ui` |
+| Start-up | `intro`, `intro_logo`, `menu_name.h`, `safe_mode` |
+| Safety and tools | `safe_file`, `crash_screen`, `debug_stats`, `frame_rate` (hidden) |
+
+All of these are ours and free to change. `views/features_menu` is ours too
+but no longer reachable.
 
 Stock files we have edited (keep these edits small): `menu.c`, `actions.c`,
 `fonts.c/.h`, `rom_info.c/.h`, `ui_components/background.c`, `common.c`,
@@ -161,6 +215,41 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
   read on hardware.
 - Commit messages: one plain sentence saying what changed for the player.
 
+Lessons that cost a hardware round each (do not repeat them):
+- **Text boxes:** `rdpq` drops text whose box is lower than one line of its
+  font. Give every text box at least the font's line height.
+- **Never draw black text with the menu font.** It has a dark outline, so
+  black letters run into a blob. Use `STL_WHITE` on colored fills.
+- **Small text:** 12 px (`FNT_SMALL`) smears on composite. Use it sparingly.
+- **Measure before fixing speed.** Three guesses about what made scrolling
+  slow were wrong or half right. Put a `debugf` timing round the suspect and
+  read the log first.
+- **The frame budget is tight.** The Games screen with five covers uses
+  most of its 33 ms; a few extra milliseconds doubles the frame to 66 ms.
+  Do slow work (loading art) after `rdpq_detach_show()`, so the graphics
+  chip draws meanwhile, and keep per-frame text layout down (remember
+  widths, keep laid-out paragraphs).
+- **Reading the SD card is slow** (15-20 ms for one file check, 80+ ms to
+  find and open a picture). Read a folder once and remember, or keep a
+  saved list (`game_index`), instead of asking per game.
+- **The data cache is 8 KB.** A lookup table bigger than that makes a
+  per-pixel loop slow and its speed erratic.
+- **`sprite_load` halts the menu** if the file is missing or memory runs
+  out. Check the file exists and memory is free first (`baked_art.c`).
+- **The build only repacks the ROM's files when a listed one changes.**
+  After adding or removing files under `filesystem/` by script, delete
+  `build/N64FlashcartMenu.dfs`.
+- **Check the maths on the PC first** for anything drawn by sums (the logo,
+  the ocean): a Python copy rendered with Pillow catches most mistakes
+  before a hardware round. Pillow is installed in the dev container
+  (`sudo apt-get install python3-pil` if it is ever missing).
+- **A log or a GIF the user pastes can be a repeat.** Compare it with the
+  last one before drawing conclusions. GIFs can be split into frames with
+  Pillow to look at.
+- **Pictures and sounds from outside:** find the source and licence before
+  committing, and record them in the folder's `CREDITS.md`. Photos and
+  other people's artwork are redrawn from scratch instead.
+
 ## What we've changed so far
 - `src/menu/views/browser.c` — carousel prototype (`BROWSER_CAROUSEL` switch,
   `carousel_draw()`), uses theme colors. Slide animation (`carousel_slide()`):
@@ -204,10 +293,9 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
   decides. Rows are table-driven: add a `SWITCH`/`FEATURE`/`ACTION`/`INFO`
   line to a category. Eight rows fit above the description; longer categories
   scroll, with a thin scroll bar at the right edge (track in the theme's
-  `tab_inactive`, thumb in `accent`). Since the font row moved to System no
-  page is long enough to scroll, so the bar is currently never shown. The screen reopens where it was left
+  `tab_inactive`, thumb in `accent`); Display has twelve rows and scrolls. The screen reopens where it was left
   (feature `remember_settings`, default on, this power-on only). Categories:
-  Display, Controls, Sound, Library, Files, System. Changes are held in memory and written once, when
+  Display, Controls, Sound, Tabs, Library, Files, System. Changes are held in memory and written once, when
   leaving the screen or after 5 s without a change (the user asked for fewer
   SD card writes); `features_user_change()`/`_flush()` and
   `options_change()`/`_flush()` exist for that.
@@ -215,7 +303,8 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
   two seconds (heap size, used, free, average and worst frame time), restarted
   on each screen change. One-line hook in the `menu.c` main loop. Screen
   numbers are `menu_mode_t` values: 2 Files, 9 Settings, 15 game info,
-  21 Favorites, 22 History. Read it with `localdeploy.bat /dur`.
+  21 Favorites, 22 History; the Games and Folders tabs are both 2. Read
+  it with `localdeploy.bat /d` or `deploy-sd.bat /d` (never `/dur`).
 - `src/menu/folder_memory.c/.h` — remembers the selected entry per folder
   (16 most recent folders, by entry name). Restores it when a folder is
   entered with the selection still on the first entry, so the stock "select
@@ -231,8 +320,9 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
   swaps the stock `qsort` for `sort_order_apply()`; archive listings keep the
   stock order. No dates are available without a slow per-file lookup, so
   "newest first" waits for the metadata index.
-- `src/menu/menu_options.c/.h` — the player's non-switch preferences (so far
-  only `sort_order`), saved to `sd:/menu/options.ini` (temp file + rename).
+- `src/menu/menu_options.c/.h` — the player's non-switch preferences
+  (`sort_order`, `font`, `intro`, `fade`, `intro_logo`, `theme`,
+  `tab1`..`tab4`, and the hidden `frame_rate_experiment`), saved to `sd:/menu/options.ini` (temp file + rename).
   Themes cannot set these. The settings screen shows them with the `CHOICES`
   row type (A cycles through the values).
 - `src/menu/safe_file.c/.h` — `safe_file_replace(temp, final)` swaps a freshly
@@ -274,8 +364,9 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
   after a restart. One
   line changed in `fonts.c`. A custom font on the SD card still wins.
 - `src/menu/games_ui.c/.h` — shared pieces of the redesigned Games screens
-  (see "Menu redesign"): tab bar with L/R badges and a clock, title panel,
-  position bar. Colors come from existing theme keys (`tab_active`,
+  (see "Menu redesign"): tab bar with the clock and memory badge, title
+  panel with badges and the favorite heart, position bar, button hints
+  with icons, and the rounded boxes all of these are drawn with. Colors come from existing theme keys (`tab_active`,
   `tab_inactive`, `accent`, `panel`). Used by the carousel in `browser.c` and
   by `history_favorites.c` in place of the stock tabs and frame.
 - `src/menu/frame_rate.c/.h` — option `frame_rate_experiment` in
@@ -315,8 +406,7 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
 - `src/menu/fonts.c` — `STL_DEFAULT` uses theme `text`, `STL_GRAY` uses
   `text_dim`; other styles keep fixed meanings.
 - `src/menu/builtin_themes.c/.h` — four summer themes that come with the
-  menu (built 2026-10-08, awaiting hardware test): Sunset, Night Drive,
-  Beach, Pool. Option `theme` in `options.ini`, "Theme" at the top of
+  menu (done and tested): Sunset, Night Drive, Beach, Ocean. Option `theme` in `options.ini`, "Theme" at the top of
   Settings > Display: From SD Card (the default: the player's `theme.ini`,
   or Sunset when there is none), then the four. **Sunset is now the stock
   look**; the old "Midnight Gradient" defaults in `theme.c` only supply the
@@ -347,7 +437,7 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
   summer sounds.
 - `src/menu/baked_art.c/.h` and `assets/boxart/` — box art baked into the
   menu file (built 2026-10-08 at the user's request, to cure the slow frame
-  when a cover starts loading; **not yet tried with real art**). The user
+  when a cover starts loading; done and tested with the user's art). The user
   copies their SD card's `menu/metadata` folder to `assets/boxart/source/`
   (ignored by git); `python3 assets/boxart/make_baked_art.py` shrinks each
   `boxart_front.png` / `boxart_back.png` to fit 158x158 and writes
@@ -380,7 +470,7 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
   cache. If baking does not work out, the
   agreed fallback is one cover file on the SD card with an index.
 - `src/menu/game_index.c/.h` — a remembered list of which file is which
-  game (built 2026-10-09, awaiting hardware test): the game's code and its
+  game (done and tested 2026-10-09): the game's code and its
   badge facts, noted the first time a game is seen and saved to
   `sd:/menu/gameindex.txt` (a header line, then one line per game: path
   hash, file size, code, players, flags; temp file + `safe_file_replace`).
@@ -421,7 +511,17 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
   approved by the user: while covers are coming from baked art the waits
   before loading are 100 ms for the selected cover and 250 ms for the
   sides (`BAKED_SETTLE_TIME_MS`, `BAKED_SIDE_SETTLE_TIME_MS`); art read
-  from the card keeps 250 and 700 ms. The log prints
+  from the card keeps 250 and 700 ms. **Tested 2026-10-09 (a fresh log
+  this time):** the user finds it responsive ("could hardly keep up with
+  the loading") and saw no downside from the short waits. With many more
+  covers loading per second, stepping through the row averages 33.4-36
+  ms; some windows with loads now have worst frames of only 41-43 ms, so
+  moving the load helped, but most loads still double their frame
+  (62-66 ms). Committed. Also seen: flipping a game with no baked back
+  looks on the card for one each time (`Boxart: Using path` then the
+  baked front again, about 17 ms). Next (awaiting test): badges for a
+  game the list already knows appear after 100 ms instead of 350
+  (`KNOWN_SETTLE_TIME_MS` in `game_facts.c`), at the user's request. The log prints
   `game index: N games remembered` and `game index: saved N games`.
   Same build: the Ocean background is drawn flat (seen from above, 160 px
   cells, no horizon or sky) at the user's request, with its lookup square
@@ -562,6 +662,13 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
 - Done and tested on hardware: menu redesign stage 5 (play counts).
 - Done and tested on hardware: menu redesign stage 7 (intro), including
   the power-on check by a mark in the cart's memory.
+- Done and tested on hardware since then (2026-10-08/09), detailed under
+  "What we've changed so far" and "Menu redesign": the tab redesign
+  (Games shows games only, Folders tab, player-chosen tab order, Recent and
+  Favorites as cover rows), button icons, memory badge, favorite heart,
+  rounded corners, the intro's spinning logo and title picture, built-in
+  summer themes with the Ocean background, baked box art, the game list
+  and the scrolling speed work.
 - **v0.1 user-facing features are complete.** Two dev-tooling items were
   added to v0.1 afterwards and are not started: the debug overlay and the
   PC-side tests. Before publishing, the user still wants to test Japanese
@@ -586,7 +693,8 @@ tab_active_border = FFFFFF
 tab_inactive_border = 5F5F5F
 
 [background]
-type = gradient        ; solid | gradient | image
+type = gradient        ; solid | gradient | image | ocean (color1 water,
+                       ; color2 foam; seen from above)
 color1 = 1B2A4A
 color2 = 0B0E14
 color3 = none          ; optional middle stop
@@ -605,7 +713,9 @@ quick_launch = 1       ; any key from menu_features.c: quick_launch,
                        ; hold_launch, side_covers, frame_borders,
                        ; updown_scroll, cover_art, carousel_animation,
                        ; see_through_covers, remember_selection,
-                       ; hide_extensions, tidy_titles, hide_tags
+                       ; hide_extensions, tidy_titles, hide_tags,
+                       ; play_stats, memory_badge, button_icons,
+                       ; favorite_heart, rounded_corners
                        ; (0 or 1; leave out = default)
 ```
 
@@ -1097,6 +1207,13 @@ Everything else, once each
 16. Launch a game, reset: the menu returns (USB cable unplugged).
 17. The music player and the text viewer open and close.
 18. The intro plays at power-on (USB cable unplugged) and not after RESET.
+    The log should say whether the title is the picture or text: the
+    picture needs 220 KB and is skipped below 700 KB free.
+18a. Each built-in theme, Ocean above all (its background takes about
+    0.4 s to build on 8MB).
+18b. With baked art: covers load, and none is loaded when less than 160 KB
+    is free. Note the start-up time with the larger menu file.
+18c. The game list: `game index: N games remembered` after a restart.
 19. The friendly crash screen has not been seen on 4MB; if anything crashes,
     note what the screen shows.
 

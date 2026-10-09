@@ -1,6 +1,6 @@
 # SummerStation64 handoff
 
-Written 2026-10-07. This is the short version: where the project stands, what
+Written 2026-10-09. This is the short version: where the project stands, what
 comes next, and what is still open. The full record, with every measurement
 and the reasons behind each choice, is `CLAUDE.md` in the top folder. Update
 this file whenever a step is finished.
@@ -28,124 +28,131 @@ project goes, so changes are explained in plain language.
 
 ## Where it stands
 
-- Branch `carousel-ui`, working tree clean before this handoff was written.
-- `fork/carousel-ui` is at `e9479850`. Two later commits are local only:
-  `309a010c` (play counts) and `e124e965` (N64ever notes correction), plus
-  the commit that adds this file. **Not pushed; wait to be asked.**
-- The branch is 54 commits ahead of upstream `main`: about 4,700 lines added
-  across 57 files, most of them in new files.
-- The last build, `output/sc64menu.n64`, is 1.9 MB and matches stage 5.
+- Branch `carousel-ui`, 74 commits ahead of upstream `main` (about 10,700
+  lines added across 114 files, most of them in new files).
+- **`fork/carousel-ui` is at `701e9e8d`.** Everything since (13 commits,
+  from `6b51e292` on, the last being the one that adds this file) is local
+  only. **Not pushed; wait to be asked.**
+- **One change is built but not tested or committed:** badges for a game the
+  menu already knows appear after 0.1 s instead of 0.35 s
+  (`src/menu/game_facts.c`).
+- `output/sc64menu.n64` is 27.9 MB because the owner's box art is baked into
+  it. Without baked art it is about 2.5 MB.
+- The owner's art is in `assets/boxart/source/` and the baked covers in
+  `filesystem/art/`. Both are ignored by git. **Never commit them.**
 
-### Finished and tested on hardware
+### What the menu does now
 
-| Area | What works |
+| Area | What works (tested on hardware) |
 |---|---|
-| Themes | `theme.ini` loader, text and frame colors, gradient and pattern backgrounds, feature switches a theme can set |
-| Games screen | Cover carousel with slide animation, box art, box flip to the back cover, optional previous/next covers, tab bar with clock, title panel with badges, position bar, button hints |
-| Game info screen | Blurred cover backdrop, large title, badges, Played / Last played / Players boxes, description |
-| Controls | Left/right browse, L/R switch tabs, Z for options, quick launch and hold-A-to-launch |
-| Settings | Game-style screen with six categories, every feature as Default / On / Off, saved once on leaving |
-| Library | Sort orders, remembered position per folder, tidied game names, play counts |
+| Tabs | Games, Favorites and Folders by default, Recent optional; the player sets the order in Settings > Tabs; L/R switch |
+| Games tab | Games only, from the start folder, as a row of covers with slide animation, box flip, optional side covers, title panel, badges, favorite heart, position bar |
+| Folders tab | Plain file browser: everything by real name with sizes; opens pictures, music, text, zips; sets the start folder |
+| Recent, Favorites | Cover rows like Games; Z removes a favorite after asking |
+| Game info | Blurred cover backdrop, large title, badges, Played / Last played / Players, description |
+| Look | Rounded corners, button icons, memory badge (drawn Expansion Pak or Jumper Pak), all switchable |
+| Themes | The player's `theme.ini`, or four built-in summer themes (Sunset, Night Drive, Beach, Ocean); Sunset is the stock look |
+| Start-up | Intro with a spinning 3D logo (vaporwave or classic), an 80s-style title picture and a tune; fade-in of picture and music; both have settings |
+| Covers | From art baked into the menu file (4-7 ms each) or PNGs on the card; a saved list remembers which file is which game |
+| Controls | Left/right browse, up/down flip, Z options, START menu on every tab, quick launch and hold-A-to-launch |
+| Settings | Game-style screen, seven categories, saved once on leaving |
+| Library | Sort orders, remembered position per folder, tidied names, play counts |
 | Safety | Safe mode (hold Z at boot), friendly crash screen, safe file saving |
-| Memory | Half-size background (300 KB saved), small Latin font (about 700 KB saved), measured budget table |
-| Tools | Web Theme Maker with share codes (version 7), SD deploy script, `stats:` debug line |
+| Sounds | The owner's choice of music, intro tune and settings sound, with credits |
 
-The v0.1 features a player sees are complete.
+### Scrolling speed (the last piece of work)
 
-### The menu redesign
+| | When first reported | Now |
+|---|---:|---:|
+| Average frame while stepping through covers | 40-53 ms | 33-36 ms |
+| Worst frames | 90-126 ms | about 64 ms |
+| Wait before a cover appears | 0.25 s plus the load | 0.1 s |
 
-Fast-tracked from two mockups the owner supplied. Stages 1 to 5 and 7 are
-done and tested:
-
-1. Games screen layout
-2. Badges on the title panel
-3. Button hints
-4. Game info screen
-5. Play counts and last played
-
-Remaining:
-
-6. **Recent and Favorites as cover rows** instead of lists. Large. Proposed
-   as two builds, Recent first.
-7. **Intro:** done and tested 2026-10-07 (`src/menu/intro.c`). Plays at
-   power-on only; details in `CLAUDE.md` under "Menu redesign".
-
-Stage 6 is the only stage left.
-
-## In progress (2026-10-08)
-
-Stage 6 grew into a redesign of the tabs, all on `carousel-ui`, most of it
-tested and committed but not pushed since `701e9e8d`: the Games tab shows
-games only (from the start folder); a new Folders tab is the plain file
-browser; the tab order is the player's (Settings > Tabs; default Games,
-Favorites, Folders; Recent can be added); Recent and Favorites are cover
-rows; button icons, a drawn Expansion/Jumper Pak badge and a favorite
-heart. The last build (Favorites row, "Detected" line, heart) is waiting
-for the owner's test and is not committed. Details in `CLAUDE.md` under
-"Menu redesign", stage 6.
+What got it there, in order: side covers wait longer, baked art, the saved
+game list, reading the saves folder once, less text layout per frame, cover
+loading moved to after the frame is drawn, shorter waits. The owner finds it
+responsive. What is left: copying a cover in (6-9 ms) still doubles most of
+the frames it lands on.
 
 ## Next steps
 
-1. **Ask the owner whether to start stage 6** (Recent tab first) or the
-   asset prep tool (see the open question below).
-2. If stage 6: reuse the carousel from `views/browser.c` and the cover cache
-   in `carousel_art.c` for the Recent tab in `views/history_favorites.c`.
-   That screen still uses its text hints; move it to the button-badge hints
-   from `games_ui.c` at the same time.
-3. When the owner says the Jumper Pak is ready, give them the "4MB test
-   checklist" from `CLAUDE.md` (18 steps), updated with anything added since.
-   Every 4MB figure so far is worked out from 8MB runs, not measured.
-4. Before publishing v0.1: the owner wants to test Japanese (tall) and
-   64DD-shaped cover art.
-5. Still in v0.1 and not started: the debug overlay and the PC-side tests for
-   the theme parser and share code decoder.
+1. **Get the badge timing tested** (the uncommitted change above), then
+   commit it.
+2. **Ask the owner what comes next.** They paused the work to ask for this
+   handoff. On offer when they did:
+   - baked art on the Game info screen (it still reads the PNG);
+   - remembering that a game has no baked back cover (flipping one looks on
+     the card every time, about 17 ms);
+   - the row wrapping round, so the last game shows left of the first;
+   - covers sliding sideways when switching tabs.
+3. **Push the fork when asked.** Thirteen commits are waiting.
+4. When the owner says the Jumper Pak is ready, give them the "4MB test
+   checklist" from `CLAUDE.md`, updated with anything added since. Every 4MB
+   figure so far is worked out from 8MB runs, not measured.
+5. Before publishing v0.1: the owner wants to test Japanese (tall) and
+   64DD-shaped cover art. Still in v0.1 and not started: the debug overlay
+   and the PC-side tests for the theme parser and share code decoder.
 
 ## Open questions
 
-- **Art baked into the ROM.** The owner asked what it would gain. The answer
-  given: it removes the PNG decode (the 70-85 ms hitch per cover) and needs
-  no setup, but the project would be distributing publishers' artwork, the
-  ROM would grow from 1.9 MB to tens of megabytes (slower every boot), and
-  only listed games would have art. Recommended instead: the asset prep tool
-  already planned for v0.2, which converts the user's own art on a PC to the
-  console's format on the SD card. The guess of 15-25 ms per cover is not
-  measured. **The owner has not replied.**
-- Truncated descriptions: text from the metadata pack arrives cut off.
-  Adding "..." was offered; no answer.
-- 64DD disk launches are not counted in play stats. Offered; no answer.
+- **"Detected" under the memory amount** is in a 12 px font that looked
+  smeared in a photo. Asked twice whether to enlarge it, remove it or leave
+  it; no answer yet.
+- **The intro's title picture:** the owner said it looks good and to leave
+  it "on the backburner". It was left in the build as it is.
+- **More summer ideas, none chosen yet:** a banded sun in the intro, a
+  "horizon grid" background pattern, palm silhouettes, a time-of-day look,
+  summer sounds.
+- **The remaining slow frames when a cover loads.** Fixing them means
+  spreading the copy over two frames. Suggested stopping here unless it
+  still bothers the owner.
+- **The Theme Maker is behind the menu.** It does not know the `ocean`
+  background, the built-in themes, or the features added since version 7.
+- Older, still unanswered: adding "..." to descriptions that arrive cut off;
+  counting 64DD launches in play stats.
 
 ## Known problems, not being worked on
 
-- **60 frames a second is out of reach for now.** Each screen needs 17-23 ms
-  of work against the 16.7 ms that 60 allows. The cost follows the amount of
-  text on screen, which is laid out again every frame. Fixing it means laying
-  text out once and reusing it: a project of its own. `frame_rate.c` stays as
-  a hidden option at the owner's request.
+- **60 frames a second is out of reach for now.** Each screen needs most of
+  a 33 ms frame; the cost follows the amount of text and covers on screen.
 - **`/dur` empties `sc64menu.n64` on the card.** The stock USB file transfer
   fails; why is unknown. Worked around with `deploy-sd.bat`.
-- One frame of about 50 ms roughly every 6 seconds on the Games and Game
-  info screens. Cause unknown.
+- One frame of about 50 ms roughly every 6 seconds on the cover screens.
+  Cause unknown.
 - A theme with `dither = 0` has never been checked with the half-size
   background.
-- Storage paths are not profile-aware yet (`folders.ini`, `playstats.txt`).
-  Profiles are planned for v0.4.
+- Storage paths are not profile-aware yet (`folders.ini`, `playstats.txt`,
+  `gameindex.txt`). Profiles are planned for v0.4.
+- The Games tab can only change folder through the Folders tab. It is meant
+  to show every game on the card once the full metadata index exists.
 
 ## Things that are easy to get wrong
 
 - The cart is powered through the USB cable, so it keeps the uploaded menu in
   memory when the console is switched off. "It survived a power cycle" only
   counts with the cable unplugged, or for something stored in a settings
-  file.
+  file. For the same reason the intro shows only on the first start after an
+  upload while the cable is in.
 - The C library's `rename()` always fails on `sd:/`. Use
   `safe_file_replace()`.
 - The dev container cannot see USB devices and has no JavaScript runtime, so
   nothing can be deployed from it and the Theme Maker cannot be run in it.
 - New `.c` files must be added to the Makefile list or they are not built.
-- `tools/` is ignored by git; that is why the Theme Maker is in
-  `theme-maker/`.
-- The owner dislikes side covers and frame borders on their CRT. Both stay
-  as options; side covers are off by default.
+- After adding or removing files under `filesystem/` by script, delete
+  `build/N64FlashcartMenu.dfs`, or the build keeps the old set.
+- Text is dropped if its box is lower than one line of its font. Black text
+  turns into a blob (the font has a dark outline). 12 px text smears.
+- Measure before fixing speed: put a timing in the log first. Three guesses
+  were wrong during the scrolling work.
+- A log the owner pastes can be the same one as last time. Compare before
+  concluding anything.
+- The owner dislikes side covers and frame borders on their CRT (though they
+  have had side covers on lately). Both stay as options.
 - The owner prefers saving memory over a small gain in picture quality, and
   fewer SD card writes over saving at once.
-- Do not copy N64ever's box art or game descriptions. Any of its code reused
-  keeps its notices and is credited.
+- Outside pictures and sounds need a source and a licence, recorded in the
+  folder's `CREDITS.md`, before they are committed. Do not copy N64ever's
+  box art or game descriptions.
+- Two things the owner has decided and does not want raised again: the
+  intro's logo is the N64 logo's shape, and box art is baked from their own
+  pack.
