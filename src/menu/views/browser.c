@@ -643,6 +643,7 @@ static void browser_step_tab (menu_t *menu, int direction) {
     }
     sound_play_effect(SFX_CURSOR);
     tabs_open(menu, next);
+    tabs_slide_begin(menu, direction); // the new tab's covers slide in from that side
     if (menu->next_mode == MENU_MODE_BROWSER) {
         view_browser_init(menu); // Games <-> Folders: the same screen with the other list
     }
@@ -830,6 +831,7 @@ static float carousel_lerp (float a, float b, float t) {
 }
 
 #define CAROUSEL_SLIDE_MS   160     // how long a slide takes
+#define CAROUSEL_TAB_SLIDE_PX   200 // how far to the side a newly opened tab's covers start
 #define CAROUSEL_RAPID_MS   120     // moves closer together than this snap instead of sliding
 
 static int slide_selected = -1;
@@ -900,6 +902,7 @@ void carousel_draw (menu_t *menu) {
 
 
     const float slide = carousel_slide(menu);
+    const int tab_shift = (int) (tabs_slide() * CAROUSEL_TAB_SLIDE_PX); // just switched tab: the whole row comes in from the side
     const int first = CAROUSEL_CENTER_W / 2 + CAROUSEL_GAP + CAROUSEL_SIDE_W / 2;
     const int step = CAROUSEL_SIDE_W + CAROUSEL_GAP;
 
@@ -945,8 +948,11 @@ void carousel_draw (menu_t *menu) {
 
             // Horizontal center of this cover.
             float mid = (away < 1.0f) ? (pos * first) : ((pos < 0.0f ? -1.0f : 1.0f) * (first + (away - 1.0f) * step));
-            int x0 = cx + (int) mid - w / 2;
+            int x0 = cx + tab_shift + (int) mid - w / 2;
             int y0 = CAROUSEL_CENTER_Y - h / 2;
+            if (x0 < 0 || (x0 + w) > screen_w) {
+                continue; // still off the edge of the screen
+            }
 
             if (alpha >= 255.0f) {
                 // While the box turns over, the cover is squashed sideways.

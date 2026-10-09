@@ -1124,8 +1124,24 @@ Stages, one testable build each:
      `cover_list.c` gives the entry a number of places from the selected
      one; a place is only filled by wrapping while twice its distance is
      less than the number of games, so no game shows on both sides.
-   - **Approved by the user, not built yet:** covers sliding sideways when
-     switching tabs.
+   - **Three items the user asked for together (built 2026-10-09, awaiting
+     hardware test, not committed):**
+     - Covers slide in when a tab is switched to: from the right after R,
+       from the left after L, 200 px over 200 ms, easing into place
+       (`tabs_slide_begin()` / `tabs_slide()` in `tabs.c`, one hook line at
+       each of the two places a tab is switched, and a shift applied in
+       `carousel_draw()`). Follows the Cover Slide setting. Covers that
+       would be partly off the screen are left out until they are on it.
+       The ring, title panel and Folders list do not move.
+     - The Game info screen takes its cover from baked art when there is
+       some (`baked_art_open()` / `baked_art_release()` in `baked_art.c`;
+       `load_rom.c` calls them in place of the stock load and free). Other
+       pictures (sides, top) and games without baked art still come from
+       the card. The 64DD disk info screen is unchanged.
+     - Turning over a box with a baked front and no baked back no longer
+       searches the card (17 ms each time): a baked front is taken to mean
+       all of that game's art was baked. A back picture added to the card
+       later is not seen until the art is baked again.
    - Not done yet: the Games tab has no way to change folder
      except through Folders.
 7. **Intro (done and tested):** `intro.c`. The name (`MENU_DISPLAY_NAME`,

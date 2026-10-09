@@ -3,6 +3,8 @@
  * @brief Which tabs are on the tab bar, and in what order.
  */
 
+#include <libdragon.h>
+#include "menu_features.h"
 #include "menu_options.h"
 #include "tabs.h"
 
@@ -64,6 +66,51 @@ games_tab_t tabs_step (games_tab_t from, int direction) {
         }
     }
     return tabs[0];     /* the screen we are on is not on the bar: go to the first tab */
+}
+
+#define TAB_SLIDE_MS    (200)
+
+static int slide_direction = 0;
+static bool slide_started = false;
+static uint64_t slide_began_ms = 0;
+static uint64_t slide_asked_ms = 0;
+
+static menu_mode_t slide_screen;     /* the screen the slide is for */
+
+void tabs_slide_begin (menu_t *menu, int direction) {
+    slide_direction = features_enabled(FEATURE_CAROUSEL_ANIMATION) ? direction : 0;
+    if (menu->next_mode == MENU_MODE_BROWSER && folders_wanted) {
+        slide_direction = 0;    /* Folders is a list: nothing slides */
+    }
+    slide_screen = menu->next_mode;
+    slide_started = false;
+    slide_asked_ms = get_ticks_ms();
+}
+
+float tabs_slide (void) {
+    /* The tab being left draws one more frame after L or R is pressed; its
+       covers stay where they are. */
+    if (slide_direction == 0 || games_ui_origin() != slide_screen) {
+        return 0.0f;
+    }
+    uint64_t now = get_ticks_ms();
+    if (!slide_started) {
+        /* Asked for a while ago and never drawn (the tab was Folders, which
+           has no covers): too late to play it now. */
+        if ((now - slide_asked_ms) > 500) {
+            slide_direction = 0;
+            return 0.0f;
+        }
+        slide_started = true;
+        slide_began_ms = now;
+    }
+    float progress = (float) (now - slide_began_ms) / TAB_SLIDE_MS;
+    if (progress >= 1.0f) {
+        slide_direction = 0;
+        return 0.0f;
+    }
+    float left = (1.0f - progress) * (1.0f - progress); /* fast at first, easing into place */
+    return slide_direction * left;
 }
 
 void tabs_open (menu_t *menu, games_tab_t tab) {

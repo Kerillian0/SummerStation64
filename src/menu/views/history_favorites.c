@@ -127,6 +127,7 @@ static void process(menu_t *menu) {
         // L and R: the tab before or after this one, in the player's order.
         games_tab_t here = (tab_context == BOOKKEEPING_TAB_CONTEXT_FAVORITE) ? GAMES_TAB_FAVORITES : GAMES_TAB_RECENT;
         tabs_open(menu, tabs_step(here, menu->actions.go_right ? 1 : -1));
+        tabs_slide_begin(menu, menu->actions.go_right ? 1 : -1); // the new tab's covers slide in from that side
         sound_play_effect(SFX_CURSOR);
     } else if (menu->actions.settings) {
         start_menu_show();
