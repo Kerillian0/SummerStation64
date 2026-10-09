@@ -811,6 +811,33 @@ screen. One frame of about 50 ms roughly every 6 s on the Files and game info
 screens (cause unknown). Loading a cover costs one hitch of 70-75 ms. Opening
 the first folder took 1.4 s.
 
+**The 50 ms frame every 6 s: cause found and fixed 2026-10-09 (the user's
+log confirms it: resting worst frames are 35-38 ms on every line).** The cap was `display_set_fps_limit(30)`,
+but an NTSC console refreshes 59.83 times a second, so every second refresh
+is 29.91. libdragon's limiter keeps a running sum to hit 30, and every 5.7 s
+it accepts two refreshes in a row and from then on uses the other half of
+them; the frame in progress cannot be ready 16.7 ms early, so it waits three
+refreshes (50 ms). `frame_rate.c` now asks for exactly half the refresh rate
+(on PAL a steady 25 instead of an uneven 30). Same build, for finding why a
+6-9 ms cover load doubles its frame: the `stats:` line also gives `work avg /
+worst` (processor time per frame, from getting a buffer to the end of the
+screen's drawing and loading; hook `debug_stats_begin()` in `menu.c`), and
+any frame over 45 ms prints `slow frame: N ms (work N ms, the frame before
+N ms)`.
+What that showed (2026-10-09): at rest the Games screen's work is 23 ms a
+frame. A cover load adds 8-9 ms of work and no longer doubles the frame
+(worst 41-44 ms as measured, which is the same frame arriving on time).
+The slow frames left (58-67 ms) have ordinary work, 22-25 ms: the processor
+was done and the frame still missed its refresh, so the graphics chip is
+what runs late, mostly while covers are sliding. The 2026-10-07 finding
+that a cheaper background "made no difference" was measured when the
+processor was the slower of the two, so it says nothing about the chip.
+Next build (awaiting test): the log also times the chip (`chip avg /
+worst`: from the start of a frame's work until the chip has finished
+drawing it; over 33 ms means a missed refresh). `MEASURE_CHIP` in
+`debug_stats.c`; it waits for the chip every frame, so it is for measuring
+and should be switched off again afterwards.
+
 Fixed (built, awaiting hardware test): safe mode no longer loads the custom
 background picture at all (`load_from_cache()` in `background.c`), so it
 can't sit in RAM next to the theme background.

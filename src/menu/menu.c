@@ -250,6 +250,7 @@ void menu_run (boot_params_t *boot_params) {
         surface_t *display = display_try_get();
 
         if (display != NULL) {
+            debug_stats_begin();
             actions_update(menu);
 
             view_t *view = menu_get_view(menu->mode);
