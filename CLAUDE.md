@@ -852,8 +852,7 @@ work 21, chip 34, so the fade runs at 15 frames a second), and one frame
 of 60-80 ms whenever a settings file is saved.
 Also measured: the Folders tab's work is 29 ms a frame (the Games tab's
 is 21-24), the highest of any screen, so it has the least room.
-**Covers after a game without baked art (built 2026-10-09, awaiting test,
-not committed):** the user saw the cover after such a game arrive late.
+**Covers after a game without baked art (done and tested 2026-10-09):** the user saw the cover after such a game arrive late.
 Two causes in `carousel_art.c`: one cover from the card put the following
 covers back on the long waits (250/700 ms), and a PNG still decoding held
 up every other cover, though baked art does not use the decoder. Now the

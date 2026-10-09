@@ -61,15 +61,24 @@ project goes, so changes are explained in plain language.
 
 | | When first reported | Now |
 |---|---:|---:|
-| Average frame while stepping through covers | 40-53 ms | 33-36 ms |
-| Worst frames | 90-126 ms | about 64 ms |
+| Average frame while stepping through covers | 40-53 ms | 33.4 ms |
+| Worst frames | 90-126 ms | 41-44 ms |
 | Wait before a cover appears | 0.25 s plus the load | 0.1 s |
 
 What got it there, in order: side covers wait longer, baked art, the saved
 game list, reading the saves folder once, less text layout per frame, cover
-loading moved to after the frame is drawn, shorter waits. The owner finds it
-responsive. What is left: copying a cover in (6-9 ms) still doubles most of
-the frames it lands on.
+loading moved to after the frame is drawn, shorter waits, and two fixes to
+how frames are shown (2026-10-09): the cap is exactly every second refresh
+(it was "30", which cost a 50 ms frame every six seconds on every screen),
+and the menu waits for the graphics chip at the end of each frame so a
+finished frame is shown at once (`frame_rate.c`). The log's `stats:` line
+now gives `work` and `chip` times, and prints `slow frame:` lines.
+
+What is still slow: the fade-in runs at about 15 frames a second (the
+see-through black over the whole screen costs the chip about 11 ms); a
+cover read from the card costs one 50 ms frame; saving a settings file
+costs one frame of 70-80 ms. The Folders tab has the least room (29 ms of
+work a frame).
 
 ## Next steps
 
@@ -95,9 +104,6 @@ the frames it lands on.
 - **More summer ideas** (a banded sun in the intro, a "horizon grid"
   pattern, palm silhouettes, a time-of-day look, summer sounds): the owner
   put these off to v0.4 with the rest of the theme work.
-- **The remaining slow frames when a cover loads.** Fixing them means
-  spreading the copy over two frames. Suggested stopping here unless it
-  still bothers the owner.
 - **The Theme Maker is behind the menu.** It does not know the `ocean`
   background, the built-in themes, or the features added since version 7.
 - Older, still unanswered: adding "..." to descriptions that arrive cut off;
@@ -109,8 +115,6 @@ the frames it lands on.
   a 33 ms frame; the cost follows the amount of text and covers on screen.
 - **`/dur` empties `sc64menu.n64` on the card.** The stock USB file transfer
   fails; why is unknown. Worked around with `deploy-sd.bat`.
-- One frame of about 50 ms roughly every 6 seconds on the cover screens.
-  Cause unknown.
 - A theme with `dither = 0` has never been checked with the half-size
   background.
 - Storage paths are not profile-aware yet (`folders.ini`, `playstats.txt`,

@@ -45,6 +45,7 @@ typedef struct {
     entry_t *entry;             /* with the name hash: is it still the same file? */
     uint32_t hash;
     component_boxart_t *art;    /* NULL: this entry has no art, or it wasn't loaded */
+    bool card_pending;          /* no baked art; its picture on the card is still to be tried, once the decoder is free */
 } slot_t;
 
 typedef enum {
@@ -140,10 +141,19 @@ static void fix_header_byte_order (uint8_t *h) {
     }
 }
 
-/* Start decoding the art for an entry. Returns NULL if it has none. */
-static bool baked_lately = false;    /* the last cover came from art baked into the menu */
+/* This menu carries baked art (one cover has come from it), so covers use
+   the short waits. It stays set when a game without baked art goes by: one
+   such game used to put the covers after it back on the long waits. */
+static bool baked_lately = false;
 
-static component_boxart_t *art_load (menu_t *menu, int index, file_image_type_t *which) {
+/* Start decoding the art for an entry. Returns NULL if it has none.
+   With `card` false only baked art is tried (the PNG decoder is busy with
+   another cover), and `*card_pending` says whether the card is worth trying
+   later. */
+static component_boxart_t *art_load (menu_t *menu, int index, file_image_type_t *which, bool card, bool *card_pending) {
+    if (card_pending) {
+        *card_pending = false;
+    }
     char code[5] = "";
     char title[ROM_TITLE_LENGTH + 1] = "";
 
@@ -188,7 +198,12 @@ static component_boxart_t *art_load (menu_t *menu, int index, file_image_type_t 
         baked_lately = true;
         return art;
     }
-    baked_lately = false;
+    if (!card) {
+        if (card_pending) {
+            *card_pending = true;
+        }
+        return NULL;
+    }
 
     art = ui_components_boxart_init(menu->storage_prefix, code, title, *which);
 
@@ -247,7 +262,7 @@ static void flip_update (menu_t *menu) {
             if (!baked_art_free(center->art)) ui_components_boxart_free(center->art);
         }
         side = (side == IMAGE_BOXART_FRONT) ? IMAGE_BOXART_BACK : IMAGE_BOXART_FRONT;
-        center->art = art_load(menu, center->index, &side);
+        center->art = art_load(menu, center->index, &side, true, NULL);
         flip = FLIP_LOADING;
     }
 
@@ -354,29 +369,38 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
     /* Start at most one new decode, once the selection has settled. */
     int settle = baked_lately ? BAKED_SETTLE_TIME_MS : SETTLE_TIME_MS;
     int side_settle = baked_lately ? BAKED_SIDE_SETTLE_TIME_MS : SIDE_SETTLE_TIME_MS;
-    if (flip == FLIP_NONE && !any_loading() && (now - changed_at) >= settle) {
+    /* The PNG decoder handles one picture at a time, but baked art does not
+       need it: while a picture from the card is still decoding, covers with
+       baked art load all the same, and the others take their turn after. */
+    bool decoder_free = !any_loading();
+    if (flip == FLIP_NONE && (now - changed_at) >= settle) {
         for (int j = 0; j < wanted_count; j++) {
             int index = wanted[j];
-            if (slot_find(menu, index)) {
-                continue; /* already loaded, or already known to have no art */
-            }
             if (index != selected && (now - changed_at) < side_settle) {
                 break; /* the side covers wait until the selection has really come to rest */
             }
-            slot_t *slot = slot_free();
-            if (!slot) {
-                break;
+            slot_t *slot = slot_find(menu, index);
+            if (slot) {
+                if (!slot->card_pending || !decoder_free) {
+                    continue; /* already loaded, known to have no art, or still waiting for the decoder */
+                }
+            } else {
+                slot = slot_free();
+                if (!slot) {
+                    break;
+                }
+                entry_t *e = &cover_list_current(menu)->list[index];
+                slot->used = true;
+                slot->index = index;
+                slot->entry = e;
+                slot->hash = name_hash(e->name);
+                slot->art = NULL;
             }
-            entry_t *e = &cover_list_current(menu)->list[index];
-            slot->used = true;
-            slot->index = index;
-            slot->entry = e;
-            slot->hash = name_hash(e->name);
-            slot->art = NULL;
-            if (e->type == ENTRY_TYPE_ROM && (index == selected || memory_for_side_art())) {
+            slot->card_pending = false;
+            if (slot->entry->type == ENTRY_TYPE_ROM && (index == selected || memory_for_side_art())) {
                 file_image_type_t which = IMAGE_BOXART_FRONT;
                 uint64_t began = get_ticks_ms();
-                slot->art = art_load(menu, index, &which);
+                slot->art = art_load(menu, index, &which, decoder_free, &slot->card_pending);
                 debugf("cover: starting one took %d ms\n", (int) (get_ticks_ms() - began));
             }
             if (slot->art) {
