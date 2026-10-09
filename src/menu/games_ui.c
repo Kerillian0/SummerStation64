@@ -255,16 +255,32 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const gam
     int title_width = x1 - x0 - 24 - (heart ? (HEART_WIDTH + HEART_GAP) : 0);
 
     /* The big title font when the name fits on one line in it, the body font otherwise. */
-    int title_bytes = strlen(title);
-    rdpq_paragraph_t *title_layout = rdpq_paragraph_build(&(rdpq_textparms_t) {
-        .width = title_width,
-        .height = PANEL_TITLE,
-        .valign = VALIGN_CENTER,
-        .wrap = WRAP_ELLIPSES,
-    }, title_font_pick(title, title_width), title, &title_bytes);
+    /* The name is laid out once and kept until another game is selected:
+       choosing the font and laying the text out every frame was a good part
+       of this screen's work. */
+    static rdpq_paragraph_t *title_layout = NULL;
+    static uint32_t title_key = 0;
+    static int title_layout_width = 0;
+    uint32_t key = 2166136261u;
+    for (const unsigned char *c = (const unsigned char *) title; *c; c++) {
+        key = (key ^ *c) * 16777619u;
+    }
+    if (!title_layout || key != title_key || title_width != title_layout_width) {
+        if (title_layout) {
+            rdpq_paragraph_free(title_layout);
+        }
+        int title_bytes = strlen(title);
+        title_layout = rdpq_paragraph_build(&(rdpq_textparms_t) {
+            .width = title_width,
+            .height = PANEL_TITLE,
+            .valign = VALIGN_CENTER,
+            .wrap = WRAP_ELLIPSES,
+        }, title_font_pick(title, title_width), title, &title_bytes);
+        title_key = key;
+        title_layout_width = title_width;
+    }
     rdpq_paragraph_render(title_layout, x0 + 12, PANEL_Y + 2);
     int title_end = x0 + 12 + (int) title_layout->bbox.x1;
-    rdpq_paragraph_free(title_layout);
 
     if (heart && facts && facts->favorite) {
         heart_draw(title_end + HEART_GAP, PANEL_Y + 2 + ((PANEL_TITLE - HEART_HEIGHT) / 2));
@@ -333,11 +349,33 @@ static bool button_is_round (const char *button) {
     return (strlen(button) == 1) && (strcmp(button, "Z") != 0);
 }
 
+/* Measuring a word means laying it out, which is slow, and the hints are
+   the same few words every frame. So each word's width is remembered. */
+#define WIDTHS_REMEMBERED   (32)
+
 static int text_width (const char *string) {
+    static struct { uint32_t key; int width; } remembered[WIDTHS_REMEMBERED];
+    static int next = 0;
+
+    uint32_t key = 2166136261u;
+    for (const unsigned char *c = (const unsigned char *) string; *c; c++) {
+        key = (key ^ *c) * 16777619u;
+    }
+    if (key == 0) key = 1;
+    for (int i = 0; i < WIDTHS_REMEMBERED; i++) {
+        if (remembered[i].key == key) {
+            return remembered[i].width;
+        }
+    }
+
     int nbytes = strlen(string);
     rdpq_paragraph_t *layout = rdpq_paragraph_build(&(rdpq_textparms_t) { .height = BADGE_HEIGHT }, FNT_DEFAULT, string, &nbytes);
     int width = (int) (layout->bbox.x1 - layout->bbox.x0);
     rdpq_paragraph_free(layout);
+
+    remembered[next].key = key;
+    remembered[next].width = width;
+    next = (next + 1) % WIDTHS_REMEMBERED;
     return width;
 }
 

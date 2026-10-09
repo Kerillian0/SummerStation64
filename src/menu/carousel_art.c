@@ -364,7 +364,9 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
             slot->art = NULL;
             if (e->type == ENTRY_TYPE_ROM && (index == selected || memory_for_side_art())) {
                 file_image_type_t which = IMAGE_BOXART_FRONT;
+                uint64_t began = get_ticks_ms();
                 slot->art = art_load(menu, index, &which);
+                debugf("cover: starting one took %d ms\n", (int) (get_ticks_ms() - began));
             }
             if (slot->art) {
                 break;

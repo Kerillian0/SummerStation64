@@ -263,7 +263,8 @@ static bool pattern_hit (const theme_t *t, int x, int y) {
    first with the same sums. It began as water running away to a horizon
    under a strip of sky; the user asked for it flat (2026-10-09), which is
    also less work and has no speckled distance. */
-#define OCEAN_CELL      (160.0f)    /* screen pixels across one cell: four cells span the screen, so the repeat doesn't show */
+#define OCEAN_CELL      (160.0f)    /* screen pixels across one cell: four cells span the screen, so the repeat doesn't show.
+                                       Smaller cells (128) were tried: the background is built at half size, and finer lines only looked blocky. */
 #define OCEAN_LINE      (0.06f)     /* foam is solid nearer a border than this... */
 #define OCEAN_LINE_SOFT (0.11f)     /* ...and gone beyond this */
 
@@ -317,7 +318,7 @@ static float ocean_border (float x, float z) {
 /* The bend in the lines needs two sines for every pixel, and working a sine
    out properly is slow on this console, so they are looked up in a small
    table instead. The bend is gentle; the table's steps don't show. */
-#define OCEAN_WAVE_STEPS    (256)
+#define OCEAN_WAVE_STEPS    (64)
 static float ocean_wave_table[OCEAN_WAVE_STEPS];
 
 static float ocean_wave (float angle) {

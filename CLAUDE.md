@@ -391,12 +391,30 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
   (`carousel_art_reset()`) and after the selection has rested 3 s, only
   if something was added. Homebrew (found by title) is not noted. The
   save-file check and the favorite check are still done live. This is the
-  small first form of the v0.2 "metadata index". The log prints
+  small first form of the v0.2 "metadata index". **Tested on hardware
+  2026-10-09: works** (78 games saved, then remembered after a restart;
+  badges correct), but it helped less than hoped: stepping through the
+  row gave 38-44 ms averages and 65-77 ms worst frames on the learning
+  pass, 36-40 ms and 59-67 ms on the remembered pass. A worst frame of
+  about 66 ms is exactly two frames: some frame's work runs just over the
+  33 ms budget and waits for the next refresh. So the header read was not
+  the main cost left. Timings were added to find it (`cover: starting one
+  took N ms`, `badges: lookup took N ms`); measured 2026-10-09: starting a
+  baked cover costs 6-9 ms and the badge lookup 13-18 ms for a game that
+  saves (0 ms for one that does not), so the save-file check was the
+  larger part. Next build (awaiting test): the saves folder is read once
+  and its file names noted (`save_exists()` in `game_facts.c`, up to 512
+  names, read again after the covers are left), and the Games screen does
+  less every frame so a cover start fits in the budget: hint word widths
+  are remembered and the title's layout is kept until the selection
+  changes (`games_ui.c`). The log prints
   `game index: N games remembered` and `game index: saved N games`.
   Same build: the Ocean background is drawn flat (seen from above, 160 px
   cells, no horizon or sky) at the user's request, with its lookup square
-  cut to 64x64 (4 KB) so it fits the console's 8 KB data cache; checked
-  as a PC preview.
+  cut to 64x64 (4 KB) so it fits the console's 8 KB data cache. Tested:
+  **427 ms** (the horizon version had crept to 944). The user asked for
+  it finer; 128 px cells were tried and only looked more pixelated (the
+  background is built at half size), so it is back to 160 px cells.
 - `src/menu/menu_features.c/.h` — Expansion Pak detection
   (`is_memory_expanded()`) and feature toggles. Named `menu_features` to avoid
   clashing with the system `features.h`.
