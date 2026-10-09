@@ -48,6 +48,7 @@ static const char *rom_meta_extensions[] = { "meta", "metadata", NULL };
 // covers) and Folders (everything, as a plain list). Each has its own place.
 static bool folders_tab = false;
 static path_t *folders_directory = NULL;    // where the Folders tab was left
+static char left_on[2][256] = { "", "" };   // the entry the Games tab [0] and the Folders tab [1] were left on, to go back to it (while the console is on)
 
 static bool archive_entry_limit_exceeded = false;
 static bool archive_entry_precheck_failed = false;
@@ -617,6 +618,8 @@ static void browser_show_tab (menu_t *menu, bool folders) {
         }
         folders_directory = path_clone(menu->browser.directory);
     }
+    // Remember the entry this tab was on.
+    snprintf(left_on[folders_tab ? 1 : 0], sizeof(left_on[0]), "%s", (menu->browser.entry && !menu->browser.archive) ? menu->browser.entry->name : "");
 
     folders_tab = folders;
 
@@ -1168,6 +1171,17 @@ void view_browser_init (menu_t *menu) {
             );
         } else {
             menu->browser.valid = true;
+            const char *left = left_on[folders_tab ? 1 : 0];
+            if (left[0]) {
+                // Back on this tab: the entry it was left on.
+                for (int i = 0; i < menu->browser.entries; i++) {
+                    if (strcmp(menu->browser.list[i].name, left) == 0) {
+                        menu->browser.selected = i;
+                        menu->browser.entry = &menu->browser.list[i];
+                        break;
+                    }
+                }
+            }
         }
     }
 

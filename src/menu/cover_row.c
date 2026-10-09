@@ -24,10 +24,16 @@ static entry_t row_entries[ROW_MAX];
 static int row_places[ROW_MAX];     /* each entry's place in the saved list */
 static cover_list_t row;
 
-/* Where the row was left, so coming back from a game's info screen returns
-   to the same cover. */
-static bookkeeping_item_t *last_items = NULL;
-static int last_place = -1;
+/* Where each list's row was left (Recent and Favorites each have their
+   own), so coming back from a game's info screen or from another tab returns
+   to the same cover. Kept while the console is on. */
+#define LISTS_REMEMBERED    (2)
+static struct {
+    bookkeeping_item_t *items;  /* which list; NULL = not used yet */
+    int selected;               /* the cover it was on */
+    int place;                  /* that game's place in the saved list */
+} left[LISTS_REMEMBERED];
+static int current = 0;         /* which of those the open row is */
 
 static path_t *row_path (menu_t *menu, int index) {
     (void) menu;
@@ -37,7 +43,20 @@ static path_t *row_path (menu_t *menu, int index) {
 void cover_row_open (menu_t *menu, bookkeeping_item_t *items, int count) {
     (void) menu;
 
-    int before = (items == last_items) ? row.selected : 0;
+    bool seen = false;
+    current = 0;
+    for (int i = 0; i < LISTS_REMEMBERED; i++) {
+        if (left[i].items == items) {
+            current = i;
+            seen = true;
+            break;
+        }
+        if (!left[i].items) {
+            current = i;    /* a free place, unless this list turns up further on */
+        }
+    }
+    int before = seen ? left[current].selected : 0;
+    int last_place = seen ? left[current].place : -1;
 
     row_items = items;
     row.list = row_entries;
@@ -59,8 +78,8 @@ void cover_row_open (menu_t *menu, bookkeeping_item_t *items, int count) {
         row.entries++;
     }
 
-    if (items == last_items) {
-        /* Same list as last time: back to the same game, or (after one was
+    if (seen) {
+        /* A list shown before: back to the same game, or (after one was
            removed) to the one that took its place. */
         row.selected = (before < row.entries) ? before : (row.entries - 1);
         if (row.selected < 0) {
@@ -72,7 +91,9 @@ void cover_row_open (menu_t *menu, bookkeeping_item_t *items, int count) {
             }
         }
     }
-    last_items = items;
+    left[current].items = items;
+    left[current].selected = row.selected;
+    left[current].place = (row.entries > 0) ? row_places[row.selected] : -1;
 
     cover_list_use(&row);
 }
@@ -96,8 +117,9 @@ int cover_row_process (menu_t *menu) {
         sound_play_effect(SFX_CURSOR);
     }
 
-    last_place = row_places[row.selected];
-    return last_place;
+    left[current].selected = row.selected;
+    left[current].place = row_places[row.selected];
+    return left[current].place;
 }
 
 void cover_row_draw (menu_t *menu, const char *empty_message, const char *z_action) {

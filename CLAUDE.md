@@ -1124,8 +1124,20 @@ Stages, one testable build each:
      `cover_list.c` gives the entry a number of places from the selected
      one; a place is only filled by wrapping while twice its distance is
      less than the number of games, so no game shows on both sides.
-   - **Three items the user asked for together (built 2026-10-09, awaiting
-     hardware test, not committed):**
+   - **Each tab remembers its game (built 2026-10-09, awaiting hardware
+     test, not committed).** The user found that switching tabs lost the
+     position. Causes: switching between Games and Folders reloads the
+     list, and `folder_memory` only restores on arriving in a *different*
+     folder, so with both tabs on the same folder nothing was restored;
+     and `cover_row.c` remembered one list only, so Recent and Favorites
+     overwrote each other. Now `browser.c` keeps the name of the entry
+     each of its two tabs was left on (`left_on`) and selects it after the
+     reload, and `cover_row.c` keeps a place for each of the two lists.
+     All of it lasts while the console is on; `folders.ini` still covers
+     the Games tab across a power cycle.
+   - **Three items the user asked for together (done and tested
+     2026-10-09; the tab slide plays nothing when going to Folders and
+     never moves the tab being left):**
      - Covers slide in when a tab is switched to: from the right after R,
        from the left after L, 200 px over 200 ms, easing into place
        (`tabs_slide_begin()` / `tabs_slide()` in `tabs.c`, one hook line at
