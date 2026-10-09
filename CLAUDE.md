@@ -220,7 +220,9 @@ Lessons that cost a hardware round each (do not repeat them):
   font. Give every text box at least the font's line height.
 - **Never draw black text with the menu font.** It has a dark outline, so
   black letters run into a blob. Use `STL_WHITE` on colored fills.
-- **Small text:** 12 px (`FNT_SMALL`) smears on composite. Use it sparingly.
+- **Small text:** 12 px (`FNT_SMALL`) is at the limit for composite; use it
+  sparingly. ("Detected" looked smeared in a photo, but the user says that
+  was the photo: it reads fine on the CRT and stays as it is.)
 - **Measure before fixing speed.** Three guesses about what made scrolling
   slow were wrong or half right. Put a `debugf` timing round the suspect and
   read the log first.
@@ -432,7 +434,7 @@ Lessons that cost a hardware round each (do not repeat them):
   threshold, which keeps the lines crisp when stretched. Tested on hardware
   2026-10-08: **621 ms** (was 1358), water looks the same. The log prints `theme: background "..." built in N ms`. The
   Theme
-  Maker does not know this type yet. Ideas the user has not picked yet: a banded sun in the
+  Maker does not know this type yet. Ideas put off to v0.4 by the user (2026-10-09), with the other theme work: a banded sun in the
   intro, a "horizon grid" pattern, palm silhouettes, a time-of-day look,
   summer sounds.
 - `src/menu/baked_art.c/.h` and `assets/boxart/` — box art baked into the
@@ -519,9 +521,10 @@ Lessons that cost a hardware round each (do not repeat them):
   moving the load helped, but most loads still double their frame
   (62-66 ms). Committed. Also seen: flipping a game with no baked back
   looks on the card for one each time (`Boxart: Using path` then the
-  baked front again, about 17 ms). Next (awaiting test): badges for a
+  baked front again, about 17 ms). Badges for a
   game the list already knows appear after 100 ms instead of 350
-  (`KNOWN_SETTLE_TIME_MS` in `game_facts.c`), at the user's request. The log prints
+  (`KNOWN_SETTLE_TIME_MS` in `game_facts.c`), at the user's request
+  (tested 2026-10-09: passed; lookups 0-1 ms, row averages 33.4-37 ms). The log prints
   `game index: N games remembered` and `game index: saved N games`.
   Same build: the Ocean background is drawn flat (seen from above, 160 px
   cells, no horizon or sky) at the user's request, with its lookup square

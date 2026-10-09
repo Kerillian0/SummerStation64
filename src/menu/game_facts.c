@@ -14,6 +14,9 @@
 /* How long the selection must rest before the game is looked up. A little
    longer than the cover art's wait, so the two don't land on the same frame. */
 #define SETTLE_TIME_MS  (350)
+/* A game the remembered list already knows costs nothing to look up, so its
+   badges need not wait as long. */
+#define KNOWN_SETTLE_TIME_MS    (100)
 
 static entry_t *watched_entry = NULL;
 static int watched_index = -1;
@@ -31,6 +34,7 @@ static uint32_t name_hash (const char *name) {
     return hash;
 }
 
+static int settle_ms = SETTLE_TIME_MS;   /* how long the selection must rest before the lookup */
 static uint32_t saves_folder = 0;   /* which folder's saves are noted (made from its path); 0 = none. See save_exists(). */
 
 void game_facts_reset (void) {
@@ -234,9 +238,19 @@ const game_facts_t *game_facts_update (menu_t *menu) {
         changed_at = now;
         known = false;
         pending = (entry->type == ENTRY_TYPE_ROM);
+
+        settle_ms = SETTLE_TIME_MS;
+        if (pending) {
+            path_t *path = covers->path(menu, covers->selected);
+            const game_index_entry_t *noted = game_index_find(path_get(path), entry->size);
+            if (noted && noted->has_facts) {
+                settle_ms = KNOWN_SETTLE_TIME_MS;
+            }
+            path_free(path);
+        }
     }
 
-    if (pending && (now - changed_at) >= SETTLE_TIME_MS) {
+    if (pending && (now - changed_at) >= settle_ms) {
         pending = false;
         uint64_t began = get_ticks_ms();
         lookup(menu, covers->selected);

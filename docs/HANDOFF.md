@@ -30,12 +30,8 @@ project goes, so changes are explained in plain language.
 
 - Branch `carousel-ui`, 74 commits ahead of upstream `main` (about 10,700
   lines added across 114 files, most of them in new files).
-- **`fork/carousel-ui` is at `701e9e8d`.** Everything since (13 commits,
-  from `6b51e292` on, the last being the one that adds this file) is local
+- **`fork/carousel-ui` is at `701e9e8d`.** Everything since (from `6b51e292` on) is local
   only. **Not pushed; wait to be asked.**
-- **One change is built but not tested or committed:** badges for a game the
-  menu already knows appear after 0.1 s instead of 0.35 s
-  (`src/menu/game_facts.c`).
 - `output/sc64menu.n64` is 27.9 MB because the owner's box art is baked into
   it. Without baked art it is about 2.5 MB.
 - The owner's art is in `assets/boxart/source/` and the baked covers in
@@ -76,16 +72,15 @@ the frames it lands on.
 
 ## Next steps
 
-1. **Get the badge timing tested** (the uncommitted change above), then
-   commit it.
-2. **Ask the owner what comes next.** They paused the work to ask for this
-   handoff. On offer when they did:
+1. Badge timing (0.1 s for games the menu already knows): tested and
+   committed 2026-10-09.
+2. **Ask the owner what comes next.** On offer:
    - baked art on the Game info screen (it still reads the PNG);
    - remembering that a game has no baked back cover (flipping one looks on
      the card every time, about 17 ms);
    - the row wrapping round, so the last game shows left of the first;
    - covers sliding sideways when switching tabs.
-3. **Push the fork when asked.** Thirteen commits are waiting.
+3. **Push the fork when asked.** `git log fork/carousel-ui..carousel-ui` lists what is waiting.
 4. When the owner says the Jumper Pak is ready, give them the "4MB test
    checklist" from `CLAUDE.md`, updated with anything added since. Every 4MB
    figure so far is worked out from 8MB runs, not measured.
@@ -95,14 +90,11 @@ the frames it lands on.
 
 ## Open questions
 
-- **"Detected" under the memory amount** is in a 12 px font that looked
-  smeared in a photo. Asked twice whether to enlarge it, remove it or leave
-  it; no answer yet.
 - **The intro's title picture:** the owner said it looks good and to leave
   it "on the backburner". It was left in the build as it is.
-- **More summer ideas, none chosen yet:** a banded sun in the intro, a
-  "horizon grid" background pattern, palm silhouettes, a time-of-day look,
-  summer sounds.
+- **More summer ideas** (a banded sun in the intro, a "horizon grid"
+  pattern, palm silhouettes, a time-of-day look, summer sounds): the owner
+  put these off to v0.4 with the rest of the theme work.
 - **The remaining slow frames when a cover loads.** Fixing them means
   spreading the copy over two frames. Suggested stopping here unless it
   still bothers the owner.
@@ -141,7 +133,9 @@ the frames it lands on.
 - After adding or removing files under `filesystem/` by script, delete
   `build/N64FlashcartMenu.dfs`, or the build keeps the old set.
 - Text is dropped if its box is lower than one line of its font. Black text
-  turns into a blob (the font has a dark outline). 12 px text smears.
+  turns into a blob (the font has a dark outline). 12 px text is the
+  smallest that reads on the CRT ("Detected" is fine; a photo made it look
+  smeared).
 - Measure before fixing speed: put a timing in the log first. Three guesses
   were wrong during the scrolling work.
 - A log the owner pastes can be the same one as last time. Compare before
