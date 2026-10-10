@@ -92,6 +92,23 @@ const theme_t *theme_get (void);
 /** True if theme.ini was found and read from the SD card. */
 bool theme_loaded_from_sd (void);
 
+/**
+ * Draw the background darkened the next time it is drawn (once): `dark` is
+ * 0 for as usual up to 255 for black. Used by the fade-in.
+ * theme_background_dimmed() then says whether that happened; it does not
+ * when the player's own background picture is shown instead.
+ */
+void theme_background_dim (int dark);
+bool theme_background_dimmed (void);
+
+/**
+ * Draw one part of the background again at its usual brightness, over a
+ * darkened one. For parts of the screen where things sit straight on the
+ * background and will be darkened as a whole afterwards (the fade-in):
+ * otherwise the background there would be darkened twice.
+ */
+void theme_background_draw_part (int x0, int y0, int x1, int y1);
+
 /** Draw the pre-built background. Call right after rdpq_attach(). */
 void theme_background_draw (void);
 

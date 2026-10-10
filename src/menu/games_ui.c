@@ -488,3 +488,20 @@ void games_ui_position_draw (const char *title, int selected, int count, const c
     snprintf(position, sizeof(position), "%d of %d", selected + 1, count);
     text(TRACK_X1 + 8, POSITION_Y, POSITION_X1 - TRACK_X1 - 8, POSITION_HEIGHT, ALIGN_RIGHT, STL_GRAY, position);
 }
+
+void games_ui_fade_rects (void (*rect) (int, int, int, int), bool bare_only) {
+    /* Drawn straight on the background: the tab bar with the clock, the
+       memory badge under it, the position bar. */
+    rect(VISIBLE_AREA_X0 + TOPBAR_INSET - 2, TOPBAR_Y - 2, VISIBLE_AREA_X1 - TOPBAR_INSET + 2, GAMES_UI_TOPBAR_BOTTOM + 2);
+    if (features_enabled(FEATURE_MEMORY_BADGE)) {
+        int x1 = VISIBLE_AREA_X1 - TOPBAR_INSET;
+        rect(x1 - MEMORY_TEXT - PAK_WIDTH - 4, GAMES_UI_TOPBAR_BOTTOM + 2, x1 + 2, GAMES_UI_MEMORY_BOTTOM);
+    }
+    rect(POSITION_X0, POSITION_Y, POSITION_X1, POSITION_Y + POSITION_HEIGHT);
+    if (bare_only) {
+        return;
+    }
+    /* With their own backing: the title panel and the band behind the hints. */
+    rect(GAMES_UI_CONTENT_X0, PANEL_Y, GAMES_UI_CONTENT_X1, PANEL_Y + PANEL_HEIGHT);
+    rect(GAMES_UI_CONTENT_X0 - 8, HINTS_Y - 5, GAMES_UI_CONTENT_X1 + 8, HINTS_Y + (2 * HINT_ROW_HEIGHT) + 1);
+}

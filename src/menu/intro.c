@@ -195,9 +195,9 @@ void intro_poll (void) {
     }
 }
 
-void intro_fade_draw (void) {
+int intro_fade_dark (void) {
     if (!fading) {
-        return;
+        return 0;
     }
     if (!fade_running) {
         fade_running = true;
@@ -207,7 +207,16 @@ void intro_fade_draw (void) {
        menu can be read long before the fade is over. */
     float left = 1.0f - fade_progress();
     int dark = (int) (left * left * 255.0f);
-    if (dark <= 0) {
+    return (dark < 0) ? 0 : ((dark > 255) ? 255 : dark);
+}
+
+void intro_fade_rect (int x0, int y0, int x1, int y1) {
+    int dark = intro_fade_dark();
+    if (x0 < 0) x0 = 0;
+    if (y0 < 0) y0 = 0;
+    if (x1 > DISPLAY_WIDTH) x1 = DISPLAY_WIDTH;
+    if (y1 > DISPLAY_HEIGHT) y1 = DISPLAY_HEIGHT;
+    if (dark <= 0 || x1 <= x0 || y1 <= y0) {
         return;
     }
     rdpq_mode_push();
@@ -219,8 +228,12 @@ void intro_fade_draw (void) {
             rdpq_mode_combiner(RDPQ_COMBINER_FLAT);
             rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
         }
-        rdpq_fill_rectangle(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+        rdpq_fill_rectangle(x0, y0, x1, y1);
     rdpq_mode_pop();
+}
+
+void intro_fade_draw (void) {
+    intro_fade_rect(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
 }
 
 bool intro_display (menu_t *menu, surface_t *display) {

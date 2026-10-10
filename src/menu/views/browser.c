@@ -923,6 +923,37 @@ static float carousel_lerp (float a, float b, float t) {
     return a + (b - a) * t;
 }
 
+// Where the covers and the ring were drawn this frame, for the fade-in, which
+// darkens only the parts of the screen that have something on them.
+typedef struct { int x0, y0, x1, y1; } carousel_box_t;
+static carousel_box_t drawn_covers[8];
+static int drawn_count = 0;
+static carousel_box_t drawn_center;     // the ring and the cover inside it
+static bool drawn_moving = false;       // covers are sliding: their places overlap the ring's
+
+static void carousel_box_add (carousel_box_t *box, int x0, int y0, int x1, int y1) {
+    if (x0 < box->x0) box->x0 = x0;
+    if (y0 < box->y0) box->y0 = y0;
+    if (x1 > box->x1) box->x1 = x1;
+    if (y1 > box->y1) box->y1 = y1;
+}
+
+// Hand the fade the parts the covers take up; none overlap.
+static void carousel_fade_rects (void (*rect) (int, int, int, int)) {
+    if (drawn_moving) {
+        carousel_box_t all = drawn_center;
+        for (int i = 0; i < drawn_count; i++) {
+            carousel_box_add(&all, drawn_covers[i].x0, drawn_covers[i].y0, drawn_covers[i].x1, drawn_covers[i].y1);
+        }
+        rect(all.x0, all.y0, all.x1, all.y1);
+        return;
+    }
+    rect(drawn_center.x0, drawn_center.y0, drawn_center.x1, drawn_center.y1);
+    for (int i = 0; i < drawn_count; i++) {
+        rect(drawn_covers[i].x0, drawn_covers[i].y0, drawn_covers[i].x1, drawn_covers[i].y1);
+    }
+}
+
 #define RING_SHAPE_MS   (180)   // how long the ring takes to change shape
 
 // Shrink a cover's box to the shape of its art, keeping its middle.
@@ -1058,6 +1089,9 @@ void carousel_draw (menu_t *menu) {
     const bool see_through = features_enabled(FEATURE_SEE_THROUGH_COVERS);
 
 
+    drawn_count = 0;
+    drawn_center = (carousel_box_t) { 10000, 10000, -10000, -10000 };
+
     const float slide = carousel_slide(menu);
     const int tab_shift = (int) (tabs_slide() * CAROUSEL_TAB_SLIDE_PX); // just switched tab: the whole row comes in from the side
     const int first = CAROUSEL_CENTER_W / 2 + CAROUSEL_GAP + CAROUSEL_SIDE_W / 2;
@@ -1111,6 +1145,11 @@ void carousel_draw (menu_t *menu) {
             if (x0 < 0 || (x0 + w) > screen_w) {
                 continue; // still off the edge of the screen
             }
+            if (offset == 0) {
+                carousel_box_add(&drawn_center, x0, y0, x0 + w, y0 + h);
+            } else if (drawn_count < 8) {
+                drawn_covers[drawn_count++] = (carousel_box_t) { x0, y0, x0 + w, y0 + h };
+            }
 
             if (alpha >= 255.0f) {
                 // While the box turns over, the cover is squashed sideways.
@@ -1163,6 +1202,8 @@ void carousel_draw (menu_t *menu) {
         cx + ring_w / 2 + 5, CAROUSEL_CENTER_Y + ring_h / 2 + 5,
         3, carousel_ring_color(menu, covers->selected, t->accent)
     );
+    carousel_box_add(&drawn_center, cx - ring_w / 2 - 5, CAROUSEL_CENTER_Y - ring_h / 2 - 5, cx + ring_w / 2 + 5, CAROUSEL_CENTER_Y + ring_h / 2 + 5);
+    drawn_moving = (slide != 0.0f) || (tab_shift != 0);
 
     // Safe mode reminder, centered between the tabs and the cover.
     if (safe_mode_active()) {
@@ -1228,7 +1269,27 @@ static void carousel_hints_draw (menu_t *menu) {
 static void draw (menu_t *menu, surface_t *d) {
     rdpq_attach(d, NULL);
 
+    // The fade-in. Darkening the whole screen with see-through black made the
+    // fade run at half speed, so on the Games tab the background is drawn
+    // already darkened and only the parts with something on them are
+    // darkened afterwards. Anything that pops up over the screen, or any
+    // other case, falls back to darkening everything.
+    int fade_dark = intro_fade_dark();
+    bool fade_parts = fade_dark > 0 && fade_dark < 255 && !folders_tab && menu->browser.entries > 0
+        && !safe_mode_active() && get_ticks_ms() >= note_until_ms
+        && entry_context_menu.row_selected < 0 && archive_context_menu.row_selected < 0 && settings_context_menu.row_selected < 0;
+    if (fade_parts) {
+        theme_background_dim(fade_dark);
+    }
+
     ui_components_background_draw();
+    if (fade_parts && !theme_background_dimmed()) {
+        theme_background_dim(0); // the player's own picture was drawn instead: don't leave the request waiting
+        fade_parts = false;
+    }
+    if (fade_parts) {
+        games_ui_fade_rects(theme_background_draw_part, true); // not darkened twice where things sit straight on it
+    }
 
 #if BROWSER_CAROUSEL
     if (folders_tab) {
@@ -1306,7 +1367,12 @@ static void draw (menu_t *menu, surface_t *d) {
     ui_components_context_menu_draw(&settings_context_menu);
 
     note_draw(); // "Added..." after a folder is added to Games
-    intro_fade_draw(); // the fade-in after the menu starts
+    if (fade_parts) {
+        carousel_fade_rects(intro_fade_rect);
+        games_ui_fade_rects(intro_fade_rect, false);
+    } else {
+        intro_fade_draw(); // the fade-in after the menu starts, over the whole screen
+    }
     debug_stats_overlay_draw(); // Performance Overlay, if it is on
 
     rdpq_detach_show();

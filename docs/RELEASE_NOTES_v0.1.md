@@ -168,8 +168,6 @@ yet (the Ocean background, built-in themes).
   - Without an Expansion Pak (4MB) the menu is designed to fit, but this
     hasn't been tried on real hardware yet.
   - PAL consoles haven't been tried.
-- The fade-in at start-up runs at a lower frame rate than the rest of the
-  menu.
 - Saving settings can cause one short pause.
 - The swipe animation for the Folders tab is not in this release.
 - Other flashcarts (64drive, ED64) are not supported by this fork.

@@ -74,8 +74,7 @@ and the menu waits for the graphics chip at the end of each frame so a
 finished frame is shown at once (`frame_rate.c`). The log's `stats:` line
 now gives `work` and `chip` times, and prints `slow frame:` lines.
 
-What is still slow: the fade-in runs at about 15 frames a second (the
-see-through black over the whole screen costs the chip about 11 ms); a
+What is still slow: a
 cover read from the card costs one 50 ms frame; saving a settings file
 costs one frame of 70-80 ms. The Folders tab has the least room (29 ms of
 work a frame).

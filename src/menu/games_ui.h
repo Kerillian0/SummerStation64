@@ -59,6 +59,19 @@ void games_ui_position_draw (const char *title, int selected, int count, const c
 #define GAMES_UI_CONTENT_X1 (VISIBLE_AREA_X1 - 48)
 
 /** Left edge of the button hints along the bottom. They sit in two rows. */
+/** The lowest the memory badge under the clock reaches. */
+#define GAMES_UI_MEMORY_BOTTOM  (GAMES_UI_TOPBAR_BOTTOM + 36)
+
+/**
+ * The parts of the screen the pieces above cover, handed one by one to
+ * `rect` (x0, y0, x1, y1); none overlap. For the fade-in, which darkens
+ * only what is drawn on top of the background. With `bare_only`, just the
+ * parts that sit straight on the background with nothing behind them (tab
+ * bar, memory badge, position bar): there the background is first put
+ * back at full brightness, so it is not darkened twice.
+ */
+void games_ui_fade_rects (void (*rect) (int, int, int, int), bool bare_only);
+
 #define GAMES_UI_HINTS_X    (GAMES_UI_CONTENT_X0)
 
 /**

@@ -42,6 +42,18 @@ void intro_poll (void);
  */
 void intro_fade_draw (void);
 
+/**
+ * How dark the fade-in is right now: 255 black, 0 over (or switched off).
+ * Darkening the whole screen with see-through black is costly for the
+ * graphics chip (it made the fade run at half speed), so a screen can
+ * instead draw its background already darkened (theme_background_dim())
+ * and darken only the parts it draws on top with intro_fade_rect().
+ */
+int intro_fade_dark (void);
+
+/** Darken one part of the screen by the fade's current amount. The parts must not overlap. */
+void intro_fade_rect (int x0, int y0, int x1, int y1);
+
 /** When the intro plays (option `intro` in options.ini). */
 typedef enum {
     INTRO_OFF,      /**< never */

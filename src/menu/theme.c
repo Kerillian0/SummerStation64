@@ -377,6 +377,50 @@ void theme_background_resume (void) {
     suspended = false;
 }
 
+/* Asked for by theme_background_dim() for the next draw only. */
+static int dim_dark = 0;
+static bool dim_applied = false;
+
+void theme_background_dim (int dark) {
+    dim_dark = (dark < 0) ? 0 : ((dark > 255) ? 255 : dark);
+    dim_applied = false;
+}
+
+bool theme_background_dimmed (void) {
+    return dim_applied;
+}
+
+void theme_background_draw_part (int x0, int y0, int x1, int y1) {
+    /* Whole background pixels only (it is stored at 1/BG_SCALE size). */
+    x0 = (x0 < 0) ? 0 : (x0 / BG_SCALE) * BG_SCALE;
+    y0 = (y0 < 0) ? 0 : (y0 / BG_SCALE) * BG_SCALE;
+    x1 = ((x1 + BG_SCALE - 1) / BG_SCALE) * BG_SCALE;
+    y1 = ((y1 + BG_SCALE - 1) / BG_SCALE) * BG_SCALE;
+    if (x1 > (int) display_get_width()) x1 = display_get_width();
+    if (y1 > (int) display_get_height()) y1 = display_get_height();
+    if (x1 <= x0 || y1 <= y0) {
+        return;
+    }
+    rdpq_mode_push();
+    if (background.buffer) {
+        rdpq_set_mode_standard();
+        rdpq_mode_combiner(RDPQ_COMBINER_TEX);
+        rdpq_mode_dithering(theme.dither ? DITHER_BAYER_NONE : DITHER_NONE_NONE);
+        rdpq_tex_blit(&background, x0, y0, &(rdpq_blitparms_t) {
+            .s0 = x0 / BG_SCALE,
+            .t0 = y0 / BG_SCALE,
+            .width = (x1 - x0) / BG_SCALE,
+            .height = (y1 - y0) / BG_SCALE,
+            .scale_x = BG_SCALE,
+            .scale_y = BG_SCALE,
+        });
+    } else {
+        rdpq_set_mode_fill(theme.color1);
+        rdpq_fill_rectangle(x0, y0, x1, y1);
+    }
+    rdpq_mode_pop();
+}
+
 void theme_background_draw (void) {
     if (!suspended) {
         theme_ensure_background();
@@ -385,15 +429,25 @@ void theme_background_draw (void) {
     if (background.buffer) {
         /* Stretching needs the standard mode; the fast copy mode can't scale. */
         rdpq_set_mode_standard();
-        rdpq_mode_combiner(RDPQ_COMBINER_TEX);
+        if (dim_dark > 0) {
+            /* Darkened as it is drawn, which costs the chip nothing extra. */
+            int bright = 255 - dim_dark;
+            rdpq_set_prim_color(RGBA32(bright, bright, bright, 0xFF));
+            rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);
+        } else {
+            rdpq_mode_combiner(RDPQ_COMBINER_TEX);
+        }
         rdpq_mode_dithering(theme.dither ? DITHER_BAYER_NONE : DITHER_NONE_NONE);
         rdpq_tex_blit(&background, 0, 0, &(rdpq_blitparms_t) {
             .scale_x = BG_SCALE,
             .scale_y = BG_SCALE,
         });
     } else {
-        rdpq_set_mode_fill(theme.color1);
+        int bright = 255 - dim_dark;
+        rdpq_set_mode_fill(RGBA32(theme.color1.r * bright / 255, theme.color1.g * bright / 255, theme.color1.b * bright / 255, 0xFF));
         rdpq_fill_rectangle(0, 0, display_get_width(), display_get_height());
     }
     rdpq_mode_pop();
+    dim_applied = (dim_dark > 0);
+    dim_dark = 0;
 }

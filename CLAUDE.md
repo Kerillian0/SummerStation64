@@ -717,6 +717,27 @@ Lessons that cost a hardware round each (do not repeat them):
     it, `game_learn_busy()`); the log prints `game learn: N games read in
     N ms`. The header reading moved from `carousel_art.c` into
     `game_index_read_header()` so both use it.
+  - **Fade-in at full speed (done and tested 2026-10-10; the user saw
+    no difference in how it looks).** The fade darkened the whole screen with see-through
+    black, about 11 ms for the graphics chip (chip 34 ms against a 33.4 ms
+    frame, so the fade ran at 15 frames a second). Now, on the Games tab:
+    the background is drawn already darkened (`theme_background_dim()`,
+    a multiply as it is drawn, no extra cost), put back at full
+    brightness under the parts that sit straight on it (tab bar, memory
+    badge, position bar: `theme_background_draw_part()`), and only the
+    parts with something on them are darkened afterwards
+    (`intro_fade_rect()`; the parts come from `games_ui_fade_rects()` and
+    `carousel_fade_rects()`, which records where the covers and ring were
+    drawn that frame; one box round them all while they slide). About
+    40-55% of the screen is blended instead of all of it; worked out to
+    bring the chip to roughly 28-30 ms, not measured. Falls back to the
+    whole-screen fade on the Folders tab, with an empty list, in safe
+    mode, with the player's own background picture, and whenever a menu
+    or note is up. Known small differences: the background seen through
+    see-through side covers and through the 2 px gap inside the ring is
+    darkened twice during the fade; and the darkened background is
+    dithered once where the rest is dithered twice, which could show as
+    faint edges round the parts (look for it).
   - **Games filter (done and tested 2026-10-10):** the user's choice from earlier. `games_filter.c/.h`:
     C-up / C-down on the Games tab step through All, USA, Japan, Europe
     and 64DD, skipping any with no games; the name shows in orange at the
