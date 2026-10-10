@@ -106,8 +106,9 @@ START) and the ring tinted from the cover (option `ring_tint`).
    "Publishing v0.1", for the clean build).
 5. Done 2026-10-10: the Games filter (C-up / C-down: All / USA / Japan /
    Europe / 64DD). Waiting: a swipe for the Folders tab, put off until it
-   fits the memory budget; optionally reading unknown games' headers so
-   untagged file names get a region before they are visited.
+   fits the memory budget. Also done: the idle game reader (`game_learn.c`), the
+   first piece of the v0.2 game index; next for the index are the extra
+   details (year, genre, publisher) and showing every game on the card.
 
 ## Open questions
 

@@ -33,6 +33,12 @@ void games_filter_after_load (menu_t *menu, int (*compare) (const void *, const 
  */
 bool games_filter_step (menu_t *menu, int direction);
 
+/**
+ * A game's code was just learned: place it in its region, if its file name
+ * gave none. It shows under that filter the next time the filter is chosen.
+ */
+void games_filter_note_code (const entry_t *e, const char *code);
+
 /** How many entries the list really holds, the hidden ones included (for freeing it). */
 int games_filter_all_entries (int shown);
 

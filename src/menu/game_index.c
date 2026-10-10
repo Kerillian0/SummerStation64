@@ -173,6 +173,42 @@ void game_index_set_facts (const char *path, int64_t size, const char *code, int
     dirty = true;
 }
 
+#define ROM_HEADER_SIZE     (0x40)
+#define ROM_TITLE_OFFSET    (0x20)
+#define ROM_CODE_OFFSET     (0x3B)
+
+/* ROM dumps come in three byte orders; put the header back in the native one. */
+static void fix_header_byte_order (uint8_t *h) {
+    if (h[0] == 0x37 && h[1] == 0x80) {         /* byte swapped (.v64) */
+        for (int i = 0; i < ROM_HEADER_SIZE; i += 2) {
+            uint8_t t = h[i]; h[i] = h[i + 1]; h[i + 1] = t;
+        }
+    } else if (h[0] == 0x40 && h[1] == 0x12) {  /* little endian (.n64) */
+        for (int i = 0; i < ROM_HEADER_SIZE; i += 4) {
+            uint8_t t = h[i]; h[i] = h[i + 3]; h[i + 3] = t;
+            t = h[i + 1]; h[i + 1] = h[i + 2]; h[i + 2] = t;
+        }
+    }
+}
+
+bool game_index_read_header (const char *path, char *code, char *title) {
+    uint8_t header[ROM_HEADER_SIZE];
+    FILE *f = fopen(path, "rb");
+    if (!f) {
+        return false;
+    }
+    size_t read = fread(header, 1, sizeof(header), f);
+    fclose(f);
+    if (read != sizeof(header)) {
+        return false;
+    }
+    fix_header_byte_order(header);
+    memcpy(title, &header[ROM_TITLE_OFFSET], GAME_INDEX_TITLE_LENGTH);
+    title[GAME_INDEX_TITLE_LENGTH] = '\0';
+    memcpy(code, &header[ROM_CODE_OFFSET], 4);
+    return true;
+}
+
 /* Written to a temporary file first, so a power cut can't leave half a file. */
 void game_index_flush (void) {
     if (!dirty) {

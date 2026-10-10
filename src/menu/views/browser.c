@@ -22,6 +22,7 @@
 #include "../art_tint.h"
 #include "../games_folders.h"
 #include "../games_filter.h"
+#include "../game_learn.h"
 #include "../sort_order.h"
 #include "../display_name.h"
 #include "../games_ui.h"
@@ -1388,6 +1389,7 @@ void view_browser_display (menu_t *menu, surface_t *display) {
 
     // Cover art is fetched here, after the picture has been handed to the graphics chip, so the chip draws while the art loads
     if (!folders_tab && menu->next_mode == MENU_MODE_BROWSER) carousel_art_update(menu, features_enabled(FEATURE_SIDE_COVERS));
+    if (!folders_tab && menu->next_mode == MENU_MODE_BROWSER) game_learn_update(menu); // while idle, read the headers of games not known yet
 
     if (menu->next_mode != MENU_MODE_BROWSER) carousel_art_reset(); // free the cover before another screen loads its own
     if (menu->next_mode != MENU_MODE_BROWSER) folder_memory_flush();

@@ -699,6 +699,24 @@ Lessons that cost a hardware round each (do not repeat them):
     sliders.
   Left before publishing: the user's test of Japanese (tall) and
   64DD-shaped cover art.
+  - **Publishing v0.1:** release notes and player instructions are drafted
+    in `docs/RELEASE_NOTES_v0.1.md` (not published). The user will publish
+    only after testing fully on the 4MB Jumper Pak, the most common setup
+    (decided 2026-10-10). The release file must be a clean build without
+    baked art (move `filesystem/art/` aside, delete
+    `build/N64FlashcartMenu.dfs`, `make sc64 MENU_VERSION="SummerStation64
+    v0.1"`), then rebuild the user's own copy with the art.
+  - **Idle game reader, first piece of the v0.2 game index (done and
+    tested 2026-10-10):** `game_learn.c/.h`.
+    While the Games tab's selection has rested 1.5 s, it reads one unknown
+    game's header per frame (15-20 ms each, so idle frames are slower
+    while it works; any move pauses it), notes the code in the game list
+    and tells the region filter (`games_filter_note_code()`), so untagged
+    games get a region and an art lookup before they are visited. Saves
+    the list once when it has finished (the covers' idle save waits for
+    it, `game_learn_busy()`); the log prints `game learn: N games read in
+    N ms`. The header reading moved from `carousel_art.c` into
+    `game_index_read_header()` so both use it.
   - **Games filter (done and tested 2026-10-10):** the user's choice from earlier. `games_filter.c/.h`:
     C-up / C-down on the Games tab step through All, USA, Japan, Europe
     and 64DD, skipping any with no games; the name shows in orange at the

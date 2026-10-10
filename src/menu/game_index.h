@@ -36,6 +36,16 @@ typedef struct {
  */
 const game_index_entry_t *game_index_find (const char *path, int64_t size);
 
+#define GAME_INDEX_TITLE_LENGTH (20)
+
+/**
+ * Read a ROM file's header from the card (15-20 ms) for its four-letter
+ * code and its title (`title` has room for GAME_INDEX_TITLE_LENGTH + 1).
+ * Nothing is noted: call game_index_set_code() for that.
+ * @return false if the file could not be read.
+ */
+bool game_index_read_header (const char *path, char *code, char *title);
+
 /** Note a file's game code. */
 void game_index_set_code (const char *path, int64_t size, const char *code);
 

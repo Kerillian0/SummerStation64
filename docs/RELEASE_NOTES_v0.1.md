@@ -102,10 +102,11 @@ game (in `sd:/menu/gameindex.txt`), so covers and badges come up faster
 on later visits.
 
 ### Region filter
-A game's region is read from its game code once the menu has seen it, or
-from tags in the file name such as `(U)`, `(J)`, `(E)`, `(USA)` or
-`(Japan)`. A game the menu hasn't seen yet, with no tag in its name,
-shows only under "All" until its cover has been shown once.
+A game's region is read from its game code, or from tags in the file name
+such as `(U)`, `(J)`, `(E)`, `(USA)` or `(Japan)`. The menu learns the
+codes by itself: the first time you leave the Games tab still for a few
+seconds, it reads each game it doesn't know yet. Until then, a game with
+no tag in its name shows only under "All".
 
 ## Controls
 

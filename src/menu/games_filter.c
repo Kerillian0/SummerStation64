@@ -194,6 +194,16 @@ bool games_filter_step (menu_t *menu, int direction) {
     return true;
 }
 
+void games_filter_note_code (const entry_t *e, const char *code) {
+    if (e->index < 0 || e->index >= marks_count) {
+        return;
+    }
+    uint8_t region_bits = (uint8_t) ~((1 << FILTER_ALL) | (1 << FILTER_64DD));
+    if (!(marks[e->index] & region_bits)) {
+        marks[e->index] |= from_code_letter(code[3]);
+    }
+}
+
 int games_filter_all_entries (int shown) {
     return (total > shown) ? total : shown;
 }

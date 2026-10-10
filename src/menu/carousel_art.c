@@ -5,6 +5,7 @@
 
 #include "carousel_art.h"
 #include "art_tint.h"
+#include "game_learn.h"
 #include "baked_art.h"
 #include "game_index.h"
 #include "cover_list.h"
@@ -35,10 +36,7 @@
 /* Half of a flip: the time to squash the box flat, and again to open it. */
 #define FLIP_HALF_MS        (110)
 
-#define ROM_HEADER_SIZE     (0x40)
-#define ROM_TITLE_OFFSET    (0x20)
-#define ROM_TITLE_LENGTH    (20)
-#define ROM_CODE_OFFSET     (0x3B)
+#define ROM_TITLE_LENGTH    (GAME_INDEX_TITLE_LENGTH)
 
 typedef struct {
     bool used;
@@ -130,20 +128,6 @@ static bool memory_for_side_art (void) {
     return (heap.total - heap.used) >= SIDE_ART_MIN_FREE;
 }
 
-/* ROM dumps come in three byte orders; put the header back in the native one. */
-static void fix_header_byte_order (uint8_t *h) {
-    if (h[0] == 0x37 && h[1] == 0x80) {         /* byte swapped (.v64) */
-        for (int i = 0; i < ROM_HEADER_SIZE; i += 2) {
-            uint8_t t = h[i]; h[i] = h[i + 1]; h[i + 1] = t;
-        }
-    } else if (h[0] == 0x40 && h[1] == 0x12) {  /* little endian (.n64) */
-        for (int i = 0; i < ROM_HEADER_SIZE; i += 4) {
-            uint8_t t = h[i]; h[i] = h[i + 3]; h[i + 3] = t;
-            t = h[i + 1]; h[i + 1] = h[i + 2]; h[i + 2] = t;
-        }
-    }
-}
-
 /* This menu carries baked art (one cover has come from it), so covers use
    the short waits. It stays set when a game without baked art goes by: one
    such game used to put the covers after it back on the long waits. */
@@ -169,23 +153,10 @@ static component_boxart_t *art_load (menu_t *menu, int index, file_image_type_t 
     if (known) {
         memcpy(code, known->code, 4);
     } else {
-        uint8_t header[ROM_HEADER_SIZE];
-
-        FILE *f = fopen(path_get(path), "rb");
-        if (!f) {
+        if (!game_index_read_header(path_get(path), code, title)) {
             path_free(path);
             return NULL;
         }
-        size_t read = fread(header, 1, sizeof(header), f);
-        fclose(f);
-        if (read != sizeof(header)) {
-            path_free(path);
-            return NULL;
-        }
-
-        fix_header_byte_order(header);
-        memcpy(title, &header[ROM_TITLE_OFFSET], ROM_TITLE_LENGTH);
-        memcpy(code, &header[ROM_CODE_OFFSET], 4);
 
         /* Homebrew is found by its title instead of a code, so it is not noted. */
         if (!(code[1] == 'E' && code[2] == 'D')) {
@@ -427,7 +398,7 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
 
     /* Also saved once the selection has rested a while, in case the console
        is switched off without leaving this screen. */
-    if ((now - changed_at) >= INDEX_SAVE_REST_MS) {
+    if ((now - changed_at) >= INDEX_SAVE_REST_MS && !game_learn_busy()) { // the reader saves once it has finished
         game_index_flush();
     }
 }
