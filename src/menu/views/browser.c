@@ -18,6 +18,7 @@
 #include "../carousel_art.h"
 #include "../safe_mode.h"
 #include "../folder_memory.h"
+#include "../art_tint.h"
 #include "../sort_order.h"
 #include "../display_name.h"
 #include "../games_ui.h"
@@ -833,6 +834,33 @@ static float carousel_lerp (float a, float b, float t) {
     return a + (b - a) * t;
 }
 
+#define RING_FADE_MS    (250)   // how long the ring takes to change to a new cover's color
+
+// The ring's color: the selected cover's own color when Tint Ring From Art is
+// Everywhere, else the accent color; it fades from one to the next instead
+// of jumping.
+static color_t carousel_ring_color (menu_t *menu, int selected, color_t accent) {
+    static float r = -1.0f, g, b;
+    static uint64_t last_ms = 0;
+    uint64_t now = get_ticks_ms();
+
+    color_t target = accent;
+    if (art_tint_on_covers()) {
+        carousel_art_tint(menu, selected, &target);
+    }
+    if (r < 0.0f || (now - last_ms) > 500) {
+        r = target.r; g = target.g; b = target.b; // first frame on this screen: no fade
+    } else {
+        float step = (float) (now - last_ms) / RING_FADE_MS;
+        if (step > 1.0f) step = 1.0f;
+        r = carousel_lerp(r, target.r, step);
+        g = carousel_lerp(g, target.g, step);
+        b = carousel_lerp(b, target.b, step);
+    }
+    last_ms = now;
+    return RGBA32((int) r, (int) g, (int) b, 0xFF);
+}
+
 #define CAROUSEL_SLIDE_MS   160     // how long a slide takes
 #define CAROUSEL_TAB_SLIDE_PX   200 // how far to the side a newly opened tab's covers start
 #define CAROUSEL_RAPID_MS   120     // moves closer together than this snap instead of sliding
@@ -1002,7 +1030,7 @@ void carousel_draw (menu_t *menu) {
     carousel_ring(
         cx - CAROUSEL_CENTER_W / 2 - 5, CAROUSEL_CENTER_Y - CAROUSEL_CENTER_H / 2 - 5,
         cx + CAROUSEL_CENTER_W / 2 + 5, CAROUSEL_CENTER_Y + CAROUSEL_CENTER_H / 2 + 5,
-        3, t->accent
+        3, carousel_ring_color(menu, covers->selected, t->accent)
     );
 
     // Safe mode reminder, centered between the tabs and the cover.

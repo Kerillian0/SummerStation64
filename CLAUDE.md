@@ -162,7 +162,7 @@ Our files in `src/menu/`, by what they are for:
 | Settings and switches | `menu_features` (on/off, themes may set), `menu_options` (choices, player only), `views/settings_menu` |
 | Tabs and the cover screens | `tabs`, `games_ui` (tab bar, title panel, hints, rounded boxes, icons), `carousel.h` + the carousel in `views/browser.c`, `cover_list`, `cover_row`, `folders_ui`, `start_menu`, `controls` |
 | Covers and game data | `carousel_art`, `baked_art`, `game_index`, `game_facts`, `display_name`, `sort_order`, `folder_memory`, `play_stats` |
-| Game info screen | `game_info_ui` |
+| Game info screen | `game_info_ui`, `art_tint` (ring color from the cover, also used by the cover rows) |
 | Start-up | `intro`, `intro_logo`, `menu_name.h`, `safe_mode` |
 | Safety and tools | `safe_file`, `crash_screen`, `debug_stats`, `frame_rate` (hidden) |
 
@@ -181,7 +181,7 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
 |---|---|---|
 | `theme/theme.ini` (or `theme.txt`) | the theme; read only | the user / Theme Maker |
 | `features.ini` | the player's On/Off choices | `menu_features.c` |
-| `options.ini` | `sort_order`, `font`, `frame_rate_experiment`, `intro`, `fade`, `intro_logo`, `theme`, `tab1`..`tab4` | `menu_options.c` |
+| `options.ini` | `sort_order`, `font`, `frame_rate_experiment`, `intro`, `fade`, `intro_logo`, `theme`, `tab1`..`tab4`, `ring_tint` | `menu_options.c` |
 | `folders.ini` | selected entry per folder | `folder_memory.c` |
 | `playstats.txt` | play count and last played | `play_stats.c` |
 | `gameindex.txt` | which file is which game, and its badge facts; safe to delete | `game_index.c` |
@@ -718,7 +718,7 @@ quick_launch = 1       ; any key from menu_features.c: quick_launch,
                        ; see_through_covers, remember_selection,
                        ; hide_extensions, tidy_titles, hide_tags,
                        ; play_stats, memory_badge, button_icons,
-                       ; favorite_heart, rounded_corners, ring_tint
+                       ; favorite_heart, rounded_corners
                        ; (0 or 1; leave out = default)
 ```
 
@@ -1124,6 +1124,24 @@ Stages, one testable build each:
      `cover_list.c` gives the entry a number of places from the selected
      one; a place is only filled by wrapping while twice its distance is
      less than the number of games, so no game shows on both sides.
+   - **Ring tint, second version (done and tested 2026-10-10).** The user's photos showed blue covers
+     (Perfect Dark, Pilotwings, The New Tetris) getting a red ring or the
+     accent: the average of a varied picture is a muddy near-grey (so the
+     accent was used), and the red N64 strip on the right of US boxes
+     pulled dark covers to red. New method in `art_tint.c`
+     (`art_tint_from()`): every second pixel, leaving out the right 22%
+     of the box, greys and near-blacks skipped; hues sorted into 12
+     slices weighted by how colorful each pixel is; the strongest slice
+     (with half its neighbours) wins, and its average color is made
+     vivid. Checked first on 16 of the user's covers with a Python copy
+     (PD, Pilotwings and Tetris come out blue; Zelda OoT gold, Majora
+     orange). The switch became option `ring_tint` ("Tint Ring From Art",
+     Settings > Display): Off / Game Info (default) / Everywhere, the
+     user's "sub-option": Everywhere also tints the cover rows' ring with
+     the selected cover's color (`carousel_art_tint()`, worked out once
+     per loaded cover; `carousel_ring_color()` in `browser.c` fades to
+     it over 250 ms). The `ring_tint` feature key from the first version
+     is gone (no longer in theme.ini's list).
    - **Game info: one details pop-up, and the ring tinted from the art
      (done and tested 2026-10-09).** START
      opens "Game details", the stock "extra" (L) and "advanced" (START)

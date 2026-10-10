@@ -82,18 +82,21 @@ work a frame).
 
 ## Next steps
 
-1. Badge timing (0.1 s for games the menu already knows): tested and
-   committed 2026-10-09.
-2. **Ask the owner what comes next.** On offer:
-   - baked art on the Game info screen (it still reads the PNG);
-   - remembering that a game has no baked back cover (flipping one looks on
-     the card every time, about 17 ms);
-   - covers sliding sideways when switching tabs.
-3. **Push the fork when asked.** `git log fork/carousel-ui..carousel-ui` lists what is waiting.
-4. When the owner says the Jumper Pak is ready, give them the "4MB test
+Done since the handoff was written (2026-10-09/10, all tested): row wrapping
+round, the frame-timing fixes, covers sliding in on a tab switch, baked art
+on Game info, each tab remembering its game, the Game info tidy-up (date,
+Expansion Pak badge, series/subtitle, longer description, Details on
+START) and the ring tinted from the cover (option `ring_tint`).
+
+1. **Ask the owner what comes next.** Loose ends on offer: a cheaper
+   fade-in (it runs at 15 frames a second), the Folders tab's frame cost
+   (29 ms of 33), bringing the Theme Maker up to date.
+2. **Push the fork when asked.** `git log fork/carousel-ui..carousel-ui`
+   lists what is waiting.
+3. When the owner says the Jumper Pak is ready, give them the "4MB test
    checklist" from `CLAUDE.md`, updated with anything added since. Every 4MB
    figure so far is worked out from 8MB runs, not measured.
-5. Before publishing v0.1: the owner wants to test Japanese (tall) and
+4. Before publishing v0.1: the owner wants to test Japanese (tall) and
    64DD-shaped cover art. Still in v0.1 and not started: the debug overlay
    and the PC-side tests for the theme parser and share code decoder.
 

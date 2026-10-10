@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "carousel_art.h"
+#include "art_tint.h"
 #include "baked_art.h"
 #include "game_index.h"
 #include "cover_list.h"
@@ -46,6 +47,8 @@ typedef struct {
     uint32_t hash;
     component_boxart_t *art;    /* NULL: this entry has no art, or it wasn't loaded */
     bool card_pending;          /* no baked art; its picture on the card is still to be tried, once the decoder is free */
+    uint8_t tint_state;         /* ring color: 0 not worked out yet, 1 the cover has none, 2 in `tint` */
+    color_t tint;
 } slot_t;
 
 typedef enum {
@@ -427,6 +430,21 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
     if ((now - changed_at) >= INDEX_SAVE_REST_MS) {
         game_index_flush();
     }
+}
+
+bool carousel_art_tint (menu_t *menu, int index, color_t *out) {
+    slot_t *slot = slot_find(menu, index);
+    if (!slot || !slot->art || slot->art->loading || !slot->art->image) {
+        return false;
+    }
+    if (slot->tint_state == 0) {
+        slot->tint_state = art_tint_from(slot->art->image, &slot->tint) ? 2 : 1;
+    }
+    if (slot->tint_state != 2) {
+        return false;
+    }
+    *out = slot->tint;
+    return true;
 }
 
 bool carousel_art_draw (menu_t *menu, int index, int x0, int y0, int w, int h, int alpha, bool center) {

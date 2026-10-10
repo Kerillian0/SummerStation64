@@ -6,6 +6,7 @@
 
 #include "fonts.h"
 #include "game_info_ui.h"
+#include "art_tint.h"
 #include "games_ui.h"
 #include "menu_features.h"
 #include "path.h"
@@ -77,31 +78,10 @@ static bool art_ready (component_boxart_t *art) {
 static surface_t backdrop;
 static uint32_t backdrop_key = 0;
 
-/* The cover's own color, for the ring round it (feature `ring_tint`):
-   worked out from the backdrop when that is made. */
+/* The cover's own color, for the ring round it (option `ring_tint`):
+   worked out once per game, when the backdrop is made. */
 static color_t ring_tint;
 static bool ring_tint_ready = false;
-
-/* The average color of the cover, made brighter and stronger so it reads
-   as a ring against the dark backdrop. A cover that is nearly grey gives
-   no tint (the accent color is used). */
-static void ring_tint_make (int r, int g, int b) {
-    int high = (r > g) ? ((r > b) ? r : b) : ((g > b) ? g : b);
-    int low = (r < g) ? ((r < b) ? r : b) : ((g < b) ? g : b);
-    ring_tint_ready = false;
-    if (high <= 0 || (high - low) * 8 < high) {
-        return;
-    }
-    /* Stretch the three so the strongest is full and the weakest drops to
-       a third of where it stood: the same hue, more vivid. */
-    int floor = low / 3;
-    int out[3] = { r, g, b };
-    for (int i = 0; i < 3; i++) {
-        out[i] = floor + ((out[i] - low) * (255 - floor)) / (high - low);
-    }
-    ring_tint = RGBA32(out[0], out[1], out[2], 0xFF);
-    ring_tint_ready = true;
-}
 
 static uint32_t text_hash (const char *text) {
     uint32_t hash = 2166136261u;
@@ -127,8 +107,6 @@ static void backdrop_make (surface_t *image) {
         return;
     }
 
-    long total_r = 0, total_g = 0, total_b = 0;
-
     /* Each small pixel is the average of a 4x4 block of the cover. */
     for (int y = 0; y < h; y++) {
         uint16_t *out = (uint16_t *) ((uint8_t *) backdrop.buffer + y * backdrop.stride);
@@ -145,14 +123,10 @@ static void backdrop_make (surface_t *image) {
             }
             int n = BACKDROP_SHRINK * BACKDROP_SHRINK;
             out[x] = (uint16_t) (((r / n) << 11) | ((g / n) << 6) | ((b / n) << 1) | 1);
-            total_r += r / n;
-            total_g += g / n;
-            total_b += b / n;
         }
     }
 
-    /* Five-bit color (0-31) to eight-bit. */
-    ring_tint_make((int) (total_r * 8 / (w * h)), (int) (total_g * 8 / (w * h)), (int) (total_b * 8 / (w * h)));
+    ring_tint_ready = art_tint_from(image, &ring_tint);
 }
 
 /* Keep the backdrop in step with the game being shown. */
@@ -205,7 +179,7 @@ static void draw_cover (surface_t *image) {
 
     /* Ring in the cover's own color, or the accent color as on the Games
        screen. */
-    color_t ring = (ring_tint_ready && features_enabled(FEATURE_RING_TINT)) ? ring_tint : t->accent;
+    color_t ring = (ring_tint_ready && art_tint_on_game_info()) ? ring_tint : t->accent;
     fill(COVER_X - 3, COVER_Y - 3, COVER_X + COVER_WIDTH + 3, COVER_Y + COVER_HEIGHT + 3, ring);
     fill(COVER_X, COVER_Y, COVER_X + COVER_WIDTH, COVER_Y + COVER_HEIGHT, t->panel);
 

@@ -8,6 +8,7 @@
 #include "../intro.h"
 #include "../builtin_themes.h"
 #include "../intro_logo.h"
+#include "../art_tint.h"
 #include "../tabs.h"
 #include "../games_ui.h"
 #include "../menu_features.h"
@@ -152,7 +153,8 @@ static const item_t display_items[] = {
     FEATURE("See-through Side Covers", FEATURE_SEE_THROUGH_COVERS, "Let the background show through the previous and next covers. Off draws them solid."),
     FEATURE("Cover Slide", FEATURE_CAROUSEL_ANIMATION, "Covers slide into place when you move left or right."),
     FEATURE("Rounded Corners", FEATURE_ROUNDED_CORNERS, "Round off the corners of the tabs, the clock, the title panel, the badges and the band behind the button hints. Off draws them square."),
-    FEATURE("Tint Ring From Art", FEATURE_RING_TINT, "On a game's info screen, color the ring round the cover to match the cover. Off uses the theme's accent color."),
+    CHOICES("Tint Ring From Art", OPTION_RING_TINT, RING_TINT_COUNT, art_tint_name, NULL,
+        "Color the ring round the cover to match the cover. Game Info does it on a game's info screen; Everywhere also on the rows of covers. Off uses the theme's accent color."),
     FEATURE("Favorite Heart", FEATURE_FAVORITE_HEART, "Mark a favorite game with a heart beside its name. Off shows the word Favorite under the name."),
     FEATURE("Button Icons", FEATURE_BUTTON_ICONS, "Show the buttons in the hints along the bottom in their own shapes and colors. Off shows them as plain boxes."),
     FEATURE("Memory Badge", FEATURE_MEMORY_BADGE, "Show a small Expansion Pak or Jumper Pak under the clock, with the console's memory (8MB or 4MB)."),

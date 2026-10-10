@@ -77,6 +77,7 @@ SRCS = \
 	menu/rom_info.c \
 	menu/settings.c \
 	menu/sound.c \
+	menu/art_tint.c \
 	menu/intro.c \
 	menu/baked_art.c \
 	menu/game_index.c \

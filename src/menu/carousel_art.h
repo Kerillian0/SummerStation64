@@ -35,6 +35,13 @@ void carousel_art_update (menu_t *menu, bool side_covers);
  * @param center True for the selected cover (it can be mid-flip).
  * @return False if there is no art (yet), so the caller draws its placeholder.
  */
+/**
+ * The ring color for list entry `index`, taken from its cover (see
+ * art_tint.h), once its art has arrived.
+ * @return false if there is none (yet): use the accent color.
+ */
+bool carousel_art_tint (menu_t *menu, int index, color_t *out);
+
 bool carousel_art_draw (menu_t *menu, int index, int x0, int y0, int w, int h, int alpha, bool center);
 
 /**

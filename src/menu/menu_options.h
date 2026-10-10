@@ -21,6 +21,7 @@ typedef enum {
     OPTION_TAB2,
     OPTION_TAB3,
     OPTION_TAB4,
+    OPTION_RING_TINT,   /**< a ring_tint_t value (see art_tint.h) */
     OPTION_COUNT
 } option_t;
 
