@@ -574,6 +574,12 @@ static void process (menu_t *menu) {
         return;
     }
 
+    if (show_extra_info_message && menu->actions.back) { // B closes the details pop-up instead of leaving the screen
+        show_extra_info_message = false;
+        sound_play_effect(SFX_EXIT);
+        return;
+    }
+
     if (menu->actions.enter) {
         if (rom_requires_missing_expansion_pak(menu)) {
             show_expansion_pak_warning = true;
@@ -587,19 +593,8 @@ static void process (menu_t *menu) {
     } else if (menu->actions.options) {
         ui_components_context_menu_show(&options_context_menu);
         sound_play_effect(SFX_SETTING);
-    } else if (menu->actions.lz_context) {
-        if (show_extra_info_message) {
-            show_extra_info_message = false;
-        } else {
-            show_extra_info_message = true;
-        }
-        sound_play_effect(SFX_SETTING);
-    } else if (menu->actions.settings) { // TODO: change to go_right/go_left when those are implemented
-        if (show_advanced_info_message) {
-            show_advanced_info_message = false;
-        } else {
-            show_advanced_info_message = true;
-        }
+    } else if (menu->actions.settings) { // START: details. One pop-up now; it was two, on L and on START.
+        show_extra_info_message = !show_extra_info_message;
         sound_play_effect(SFX_SETTING);
     } else if (menu->actions.go_right) {
         iterate_metadata_image(menu, 1);
@@ -704,48 +699,36 @@ static void draw (menu_t *menu, surface_t *d) {
         }
 #endif
 
+        // One details pop-up: the stock "extra" and "advanced" ones together,
+        // less what the page already shows (players, release date, author).
         if (show_extra_info_message) {
             ui_components_messagebox_draw(
-                "EXTRA ROM INFO\n"
+                "GAME DETAILS\n"
                 "\n"
                 "Title: %.20s\n"
                 "Age Rating: %s\n"
-                "Players: %u\n"
-                "Release Date: %s\n"
-                "Author: %s\n"
                 "Website: %s\n"
                 "License: %s\n"
                 "Game code: %c%c%c%c\n"
                 "Media type: %s\n"
                 "Variant: %s\n"
                 "Version: %hhu\n"
-                "CIC: %s\n\n\n"
-                "Press L|Z to return.\n",
+                "CIC: %s\n"
+                "Boot address: 0x%08lX\n"
+                "SDK version: %.1f%c\n"
+                "Clock Rate: %.2fMHz\n"
+                "Check code: 0x%016llX\n"
+                "Endianness: %s\n\n"
+                "START or B: Close\n",
                 menu->load.rom_info.title,
                 format_age_rating(menu->load.rom_info.meta.age_rating),
-                menu->load.rom_info.meta.num_players,
-                menu->load.rom_info.meta.release_date,
-                menu->load.rom_info.meta.author,
                 menu->load.rom_info.meta.website,
                 menu->load.rom_info.meta.osi_license,
                 menu->load.rom_info.game_code[0], menu->load.rom_info.game_code[1], menu->load.rom_info.game_code[2], menu->load.rom_info.game_code[3],
                 format_rom_media_type(menu->load.rom_info.category_code),
                 format_rom_destination_market(menu->load.rom_info.destination_code),
                 menu->load.rom_info.version,
-                format_cic_type(rom_info_get_cic_type(&menu->load.rom_info))
-            );
-        }
-
-        if (show_advanced_info_message) {
-            ui_components_messagebox_draw(
-                "ADVANCED ROM INFO\n"
-                "\n"
-                "Boot address: 0x%08lX\n"
-                "SDK version: %.1f%c\n"
-                "Clock Rate: %.2fMHz\n"
-                "Check code: 0x%016llX\n"
-                "Endianness: %s\n\n\n"
-                "Press START to return.\n",
+                format_cic_type(rom_info_get_cic_type(&menu->load.rom_info)),
                 menu->load.rom_info.boot_address,
                 (menu->load.rom_info.libultra.version / 10.0f), menu->load.rom_info.libultra.revision,
                 menu->load.rom_info.clock_rate,

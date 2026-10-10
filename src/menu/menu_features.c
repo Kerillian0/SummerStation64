@@ -40,6 +40,7 @@ static const feature_info_t feature_info[FEATURE_COUNT] = {
     [FEATURE_BUTTON_ICONS]        = { "button_icons",        true,  false },
     [FEATURE_FAVORITE_HEART]      = { "favorite_heart",      true,  false },
     [FEATURE_ROUNDED_CORNERS]     = { "rounded_corners",     true,  false },
+    [FEATURE_RING_TINT]           = { "ring_tint",           true,  false },
 };
 
 #define FEATURES_USER_PATH      "sd:/menu/features.ini"

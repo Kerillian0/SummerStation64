@@ -718,7 +718,7 @@ quick_launch = 1       ; any key from menu_features.c: quick_launch,
                        ; see_through_covers, remember_selection,
                        ; hide_extensions, tidy_titles, hide_tags,
                        ; play_stats, memory_badge, button_icons,
-                       ; favorite_heart, rounded_corners
+                       ; favorite_heart, rounded_corners, ring_tint
                        ; (0 or 1; leave out = default)
 ```
 
@@ -1124,8 +1124,19 @@ Stages, one testable build each:
      `cover_list.c` gives the entry a number of places from the selected
      one; a place is only filled by wrapping while twice its distance is
      less than the number of games, so no game shows on both sides.
-   - **Game info page tidied (built 2026-10-09, awaiting hardware test,
-     not committed)**, from a list of suggestions the user brought from
+   - **Game info: one details pop-up, and the ring tinted from the art
+     (done and tested 2026-10-09).** START
+     opens "Game details", the stock "extra" (L) and "advanced" (START)
+     pop-ups in one, less what the page already shows (players, release
+     date, author); START or B closes it; L does nothing on this screen
+     now. The stock pop-up code in `load_rom.c` was replaced in place.
+     Feature `ring_tint` (default on, "Tint Ring From Art" in Settings >
+     Display): the ring round the Game info cover takes the cover's
+     average color, stretched to be vivid (`ring_tint_make()` in
+     `game_info_ui.c`, worked out when the backdrop is made, no extra
+     memory); a nearly grey cover keeps the accent color. Only the Game
+     info ring; the cover rows' ring is still the accent color.
+   - **Game info page tidied (done and tested 2026-10-09)**, from a list of suggestions the user brought from
      another Claude conversation, all in `game_info_ui.c`:
      the date reads "Oct 26, 2000"; a game that needs the Expansion Pak
      shows a green "Uses Expansion Pak" when the console has one and the
