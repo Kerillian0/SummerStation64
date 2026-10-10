@@ -101,7 +101,9 @@ START) and the ring tinted from the cover (option `ring_tint`).
    64DD cover check, the performance overlay (Settings > System) and the
    PC tests (`sh tests/run.sh`). Since then: the Games tab reads several
    folders (Folders tab, Z, "Add this folder to Games") and covers take
-   their own shape. Next is publishing v0.1, when the owner wants to.
+   their own shape. The owner will publish v0.1 after testing it fully on the 4MB Jumper Pak
+   (the draft notes are `docs/RELEASE_NOTES_v0.1.md`; see `CLAUDE.md`,
+   "Publishing v0.1", for the clean build).
 5. Done 2026-10-10: the Games filter (C-up / C-down: All / USA / Japan /
    Europe / 64DD). Waiting: a swipe for the Folders tab, put off until it
    fits the memory budget; optionally reading unknown games' headers so
