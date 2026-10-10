@@ -102,9 +102,10 @@ START) and the ring tinted from the cover (option `ring_tint`).
    PC tests (`sh tests/run.sh`). Since then: the Games tab reads several
    folders (Folders tab, Z, "Add this folder to Games") and covers take
    their own shape. Next is publishing v0.1, when the owner wants to.
-5. Waiting: a filter button on the Games tab (All / USA / Japan / Europe
-   / 64DD), chosen by the owner; and a swipe for the Folders tab, put off
-   until it fits the memory budget.
+5. Done 2026-10-10: the Games filter (C-up / C-down: All / USA / Japan /
+   Europe / 64DD). Waiting: a swipe for the Folders tab, put off until it
+   fits the memory budget; optionally reading unknown games' headers so
+   untagged file names get a region before they are visited.
 
 ## Open questions
 

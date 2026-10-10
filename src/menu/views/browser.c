@@ -21,6 +21,7 @@
 #include "../folder_memory.h"
 #include "../art_tint.h"
 #include "../games_folders.h"
+#include "../games_filter.h"
 #include "../sort_order.h"
 #include "../display_name.h"
 #include "../games_ui.h"
@@ -201,9 +202,10 @@ static void browser_list_free (menu_t *menu) {
     }
     menu->browser.archive = false;
 
-    for (int i = menu->browser.entries - 1; i >= 0; i--) {
+    for (int i = games_filter_all_entries(menu->browser.entries) - 1; i >= 0; i--) { // the Games filter's hidden games too
         free(menu->browser.list[i].name);
     }
+    games_filter_forget();
 
     free(menu->browser.list);
 
@@ -459,6 +461,8 @@ static bool load_directory (menu_t *menu) {
         browser_list_free(menu);
         return true;
     }
+
+    if (!folders_tab) games_filter_after_load(menu, compare_entry); // Games: hide what the region filter leaves out
 
     if (menu->browser.entries > 0) {
         menu->browser.selected = 0;
@@ -747,6 +751,8 @@ static void process (menu_t *menu) {
 
     controls_remap_tabs(menu, !folders_tab); // Games: left/right scroll the covers. Folders: up/down move down the list. L/R tabs, Z options
     if (!folders_tab && controls_consume_flip_request() && carousel_art_flip()) sound_play_effect(SFX_CURSOR); // up/down: turn the box over
+    int filter_step = controls_consume_filter_step();
+    if (!folders_tab && filter_step && games_filter_step(menu, filter_step)) sound_play_effect(SFX_CURSOR); // C-up/C-down: All, USA, Japan, Europe, 64DD
 
     int scroll_speed = menu->actions.go_fast ? 10 : 1;
 
@@ -1173,7 +1179,7 @@ void carousel_draw (menu_t *menu) {
     // Title panel and position bar under the covers.
     const char *title = display_name(selected_entry);
     games_ui_title_panel_draw(title, carousel_kind_label(selected_entry->type), game_facts_update(menu));
-    games_ui_position_draw(entry_file_name(selected_entry->name), covers->selected, covers->entries); // the file name: that is what the list is sorted by
+    games_ui_position_draw(entry_file_name(selected_entry->name), covers->selected, covers->entries, (covers->list == menu->browser.list) ? games_filter_label() : NULL); // the file name: that is what the list is sorted by
 }
 #endif
 
@@ -1214,7 +1220,7 @@ static void carousel_hints_draw (menu_t *menu) {
     }
 
     games_ui_hint_right_draw(0, "START", "Settings");
-    games_ui_hint_right_draw(1, "C", "Fast scroll");
+    games_ui_hint_right_draw(1, "C", "Scroll ◀▶ Filter ▲▼");
 }
 #endif
 

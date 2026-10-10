@@ -34,6 +34,9 @@ void controls_remap_tabs (menu_t *menu, bool horizontal);
  */
 bool controls_consume_flip_request (void);
 
+/** C-up (+1) or C-down (-1) was pressed on a tabbed screen: step the Games filter. 0 otherwise. */
+int controls_consume_filter_step (void);
+
 /** Hint bar text for A on a game, matching the launch mode in use. */
 const char *controls_rom_hint (void);
 

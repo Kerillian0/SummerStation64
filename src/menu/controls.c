@@ -66,6 +66,25 @@ const char *controls_rom_hint (void) {
 static bool flip_request = false;
 static bool was_vertical = false;
 
+static int filter_request = 0;
+
+int controls_consume_filter_step (void) {
+    int request = filter_request;
+    filter_request = 0;
+    return request;
+}
+
+/* C-up or C-down held: they step the Games filter, so they must not also scroll. */
+static bool c_vertical_is_held (void) {
+    JOYPAD_PORT_FOREACH (i) {
+        joypad_8way_t dir = joypad_get_direction(i, JOYPAD_2D_C);
+        if (dir == JOYPAD_8WAY_UP || dir == JOYPAD_8WAY_DOWN) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool controls_consume_flip_request (void) {
     bool request = flip_request;
     flip_request = false;
@@ -112,8 +131,10 @@ void controls_remap_tabs (menu_t *menu, bool horizontal) {
         }
     }
 
+    filter_request = pressed.c_up ? 1 : (pressed.c_down ? -1 : 0);
+
     if (horizontal) {
-        bool updown = features_enabled(FEATURE_UPDOWN_SCROLL);
+        bool updown = features_enabled(FEATURE_UPDOWN_SCROLL) && !c_vertical_is_held();
         bool previous = menu->actions.go_left || (updown && menu->actions.go_up);
         bool next = menu->actions.go_right || (updown && menu->actions.go_down);
         menu->actions.go_up = previous;

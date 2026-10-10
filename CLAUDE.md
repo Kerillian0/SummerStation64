@@ -162,7 +162,7 @@ Our files in `src/menu/`, by what they are for:
 | Themes and look | `theme`, `theme_parse` (reads theme.ini; tested on the PC), `builtin_themes`, `title_font`, `font_choice` |
 | Settings and switches | `menu_features` (on/off, themes may set), `menu_options` (choices, player only), `views/settings_menu` |
 | Tabs and the cover screens | `tabs`, `games_ui` (tab bar, title panel, hints, rounded boxes, icons), `carousel.h` + the carousel in `views/browser.c`, `cover_list`, `cover_row`, `folders_ui`, `start_menu`, `controls` |
-| Covers and game data | `games_folders` (which folders the Games tab reads), `carousel_art`, `baked_art`, `game_index`, `game_facts`, `display_name`, `sort_order`, `folder_memory`, `play_stats` |
+| Covers and game data | `games_folders` (which folders the Games tab reads), `games_filter` (region / 64DD filter), `carousel_art`, `baked_art`, `game_index`, `game_facts`, `display_name`, `sort_order`, `folder_memory`, `play_stats` |
 | Game info screen | `game_info_ui`, `art_tint` (ring color from the cover, also used by the cover rows) |
 | Start-up | `intro`, `intro_logo`, `menu_name.h`, `safe_mode` |
 | Safety and tools | `safe_file`, `crash_screen`, `debug_stats` (log lines and the performance overlay), `frame_rate` |
@@ -699,6 +699,23 @@ Lessons that cost a hardware round each (do not repeat them):
     sliders.
   Left before publishing: the user's test of Japanese (tall) and
   64DD-shaped cover art.
+  - **Games filter (done and tested 2026-10-10):** the user's choice from earlier. `games_filter.c/.h`:
+    C-up / C-down on the Games tab step through All, USA, Japan, Europe
+    and 64DD, skipping any with no games; the name shows in orange at the
+    start of the position bar (`games_ui_position_draw()` gained a label
+    argument); the C hint reads "Scroll ◀▶ Filter ▲▼". Region: the
+    game code's last letter from the remembered game list (E/N USA, J
+    Japan, PAL letters Europe, A all three), else tags in the file name
+    ((U), (J), (E), (JU), (USA), (Japan), (Europe), (PAL), ...); 64DD =
+    disk images. A game with neither shows under All only, so a game
+    never visited and named without tags is missing from the region
+    filters until its cover has been loaded once and the list is read
+    again. Hidden games stay at the end of `menu->browser.list` past
+    `entries` (no card reads to change the filter); `browser_list_free()`
+    frees them via `games_filter_all_entries()`; each entry's `index`
+    holds its read order for the region marks. C-up/C-down no longer
+    scroll on the Games tab even with Up/Down Also Scroll on. Lasts
+    while the console is on.
   - **Covers in their own shape (done and tested 2026-10-10).** The user's photo of a Japanese (tall) cover
     showed black bars either side. Each cover's box now takes its art's
     shape (`carousel_art_aspect()`, `carousel_fit_to_art()` in

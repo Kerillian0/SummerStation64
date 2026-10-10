@@ -49,7 +49,7 @@ int games_ui_badge (int x, int y, const char *label, menu_font_style_t style, bo
  * @param name The name the list is sorted by (the file name), so the letter
  *             matches the order: "Legend of Zelda, The" is under L, not T.
  */
-void games_ui_position_draw (const char *title, int selected, int count);
+void games_ui_position_draw (const char *title, int selected, int count, const char *label);
 
 /**
  * The title panel and the button hints share these edges: a little wider

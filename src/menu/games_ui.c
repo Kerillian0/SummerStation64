@@ -457,7 +457,7 @@ void games_ui_hint_right_draw (int row, const char *button, const char *action) 
     games_ui_hint_draw(GAMES_UI_CONTENT_X1 - games_ui_hint_width(button, action), row, button, action);
 }
 
-void games_ui_position_draw (const char *title, int selected, int count) {
+void games_ui_position_draw (const char *title, int selected, int count, const char *label) {
     const theme_t *t = theme_get();
 
     if (count <= 0) {
@@ -468,11 +468,19 @@ void games_ui_position_draw (const char *title, int selected, int count) {
     char letter[2] = { (title && title[0]) ? (char) toupper((unsigned char) title[0]) : ' ', '\0' };
     text(POSITION_X0, POSITION_Y, 20, POSITION_HEIGHT, ALIGN_LEFT, STL_DEFAULT, letter);
 
-    int track_y = POSITION_Y + (POSITION_HEIGHT / 2) - 2;
-    fill(TRACK_X0, track_y, TRACK_X1, track_y + 4, t->tab_inactive);
+    /* A filter in use (USA, Japan, ...) is named at the start of the track. */
+    int track_x0 = TRACK_X0;
+    if (label) {
+        int width = text_width(label) + 8;
+        text(TRACK_X0, POSITION_Y, width, POSITION_HEIGHT, ALIGN_LEFT, STL_ORANGE, label);
+        track_x0 += width + 8;
+    }
 
-    int travel = TRACK_X1 - TRACK_X0 - MARKER_SIZE;
-    int marker_x = TRACK_X0 + ((count > 1) ? (travel * selected) / (count - 1) : 0);
+    int track_y = POSITION_Y + (POSITION_HEIGHT / 2) - 2;
+    fill(track_x0, track_y, TRACK_X1, track_y + 4, t->tab_inactive);
+
+    int travel = TRACK_X1 - track_x0 - MARKER_SIZE;
+    int marker_x = track_x0 + ((count > 1) ? (travel * selected) / (count - 1) : 0);
     int marker_y = POSITION_Y + (POSITION_HEIGHT - MARKER_SIZE) / 2;
     fill(marker_x, marker_y, marker_x + MARKER_SIZE, marker_y + MARKER_SIZE, t->accent);
 
