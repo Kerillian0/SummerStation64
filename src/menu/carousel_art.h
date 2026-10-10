@@ -42,6 +42,14 @@ void carousel_art_update (menu_t *menu, bool side_covers);
  */
 bool carousel_art_tint (menu_t *menu, int index, color_t *out);
 
+/**
+ * The shape of entry `index`'s art (width divided by height), once it has
+ * arrived: Japanese boxes are tall, US and European ones wide. The cover is
+ * drawn in that shape, so there are no bars at its sides.
+ * @return false if there is no art (yet): use the usual shape.
+ */
+bool carousel_art_aspect (menu_t *menu, int index, float *aspect);
+
 bool carousel_art_draw (menu_t *menu, int index, int x0, int y0, int w, int h, int alpha, bool center);
 
 /**

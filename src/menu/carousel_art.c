@@ -432,6 +432,15 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
     }
 }
 
+bool carousel_art_aspect (menu_t *menu, int index, float *aspect) {
+    slot_t *slot = slot_find(menu, index);
+    if (!slot || !art_ready(slot->art) || slot->art->image->height <= 0) {
+        return false;
+    }
+    *aspect = (float) slot->art->image->width / slot->art->image->height;
+    return true;
+}
+
 bool carousel_art_tint (menu_t *menu, int index, color_t *out) {
     slot_t *slot = slot_find(menu, index);
     if (!slot || !slot->art || slot->art->loading || !slot->art->image) {

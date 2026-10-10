@@ -96,10 +96,15 @@ START) and the ring tinted from the cover (option `ring_tint`).
 3. When the owner says the Jumper Pak is ready, give them the "4MB test
    checklist" from `CLAUDE.md`, updated with anything added since. Every 4MB
    figure so far is worked out from 8MB runs, not measured.
-4. Finishing v0.1 (started 2026-10-10): the PC-side tests are done
-   (`sh tests/run.sh`); the performance overlay is built and awaiting the
-   owner's test; left after that is the owner's test of Japanese (tall)
-   and 64DD-shaped cover art, then v0.1 can be published.
+4. **v0.1 is complete (2026-10-10).** Everything on the v0.1 list is
+   done and tested on hardware, including the owner's Japanese (tall) and
+   64DD cover check, the performance overlay (Settings > System) and the
+   PC tests (`sh tests/run.sh`). Since then: the Games tab reads several
+   folders (Folders tab, Z, "Add this folder to Games") and covers take
+   their own shape. Next is publishing v0.1, when the owner wants to.
+5. Waiting: a filter button on the Games tab (All / USA / Japan / Europe
+   / 64DD), chosen by the owner; and a swipe for the Folders tab, put off
+   until it fits the memory budget.
 
 ## Open questions
 

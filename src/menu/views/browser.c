@@ -916,6 +916,43 @@ static float carousel_lerp (float a, float b, float t) {
     return a + (b - a) * t;
 }
 
+#define RING_SHAPE_MS   (180)   // how long the ring takes to change shape
+
+// Shrink a cover's box to the shape of its art, keeping its middle.
+static void carousel_fit_to_art (menu_t *menu, int index, int *w, int *h) {
+    float aspect;
+    if (!carousel_art_aspect(menu, index, &aspect) || aspect <= 0.0f) {
+        return;
+    }
+    if ((float) *w / *h > aspect) {
+        *w = (int) (*h * aspect);
+    } else {
+        *h = (int) (*w / aspect);
+    }
+}
+
+// The ring's size: the selected cover's shape, eased so it changes smoothly.
+static void carousel_ring_size (menu_t *menu, int selected, int *w, int *h) {
+    static float ring_w = -1.0f, ring_h;
+    static uint64_t last_ms = 0;
+    uint64_t now = get_ticks_ms();
+
+    int target_w = CAROUSEL_CENTER_W, target_h = CAROUSEL_CENTER_H;
+    carousel_fit_to_art(menu, selected, &target_w, &target_h);
+
+    if (ring_w < 0.0f || (now - last_ms) > 500) {
+        ring_w = target_w; ring_h = target_h;   // first frame on this screen: no easing
+    } else {
+        float step = (float) (now - last_ms) / RING_SHAPE_MS;
+        if (step > 1.0f) step = 1.0f;
+        ring_w = carousel_lerp(ring_w, target_w, step);
+        ring_h = carousel_lerp(ring_h, target_h, step);
+    }
+    last_ms = now;
+    *w = (int) (ring_w + 0.5f);
+    *h = (int) (ring_h + 0.5f);
+}
+
 #define RING_FADE_MS    (250)   // how long the ring takes to change to a new cover's color
 
 // The ring's color: the selected cover's own color when Tint Ring From Art is
@@ -1058,6 +1095,7 @@ void carousel_draw (menu_t *menu) {
             float grow = (away < 1.0f) ? (1.0f - away) : 0.0f;
             int w = (int) carousel_lerp(CAROUSEL_SIDE_W, CAROUSEL_CENTER_W, grow);
             int h = (int) carousel_lerp(CAROUSEL_SIDE_H, CAROUSEL_CENTER_H, grow);
+            carousel_fit_to_art(menu, i, &w, &h); // a tall Japanese box is drawn tall, without bars at its sides
 
             // Horizontal center of this cover.
             float mid = (away < 1.0f) ? (pos * first) : ((pos < 0.0f ? -1.0f : 1.0f) * (first + (away - 1.0f) * step));
@@ -1109,9 +1147,13 @@ void carousel_draw (menu_t *menu) {
     }
 
     // The selection ring stays put in the center; covers slide through it.
+    // It takes the selected cover's shape, changing smoothly between a wide
+    // box and a tall one.
+    int ring_w, ring_h;
+    carousel_ring_size(menu, covers->selected, &ring_w, &ring_h);
     carousel_ring(
-        cx - CAROUSEL_CENTER_W / 2 - 5, CAROUSEL_CENTER_Y - CAROUSEL_CENTER_H / 2 - 5,
-        cx + CAROUSEL_CENTER_W / 2 + 5, CAROUSEL_CENTER_Y + CAROUSEL_CENTER_H / 2 + 5,
+        cx - ring_w / 2 - 5, CAROUSEL_CENTER_Y - ring_h / 2 - 5,
+        cx + ring_w / 2 + 5, CAROUSEL_CENTER_Y + ring_h / 2 + 5,
         3, carousel_ring_color(menu, covers->selected, t->accent)
     );
 

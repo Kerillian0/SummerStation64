@@ -176,28 +176,36 @@ static void draw_backdrop (surface_t *image) {
 
 static void draw_cover (surface_t *image) {
     const theme_t *t = theme_get();
+    color_t ring = (ring_tint_ready && art_tint_on_game_info()) ? ring_tint : t->accent;
+
+    /* The box takes the art's own shape (a tall Japanese box stays tall,
+       with no bars at its sides), kept in the middle of the cover's place. */
+    int w = COVER_WIDTH, h = COVER_HEIGHT;
+    float scale = 1.0f;
+    if (image) {
+        float scale_x = (float) COVER_WIDTH / image->width;
+        float scale_y = (float) COVER_HEIGHT / image->height;
+        scale = (scale_x < scale_y) ? scale_x : scale_y;
+        w = (int) (image->width * scale);
+        h = (int) (image->height * scale);
+    }
+    int x = COVER_X + (COVER_WIDTH - w) / 2;
+    int y = COVER_Y + (COVER_HEIGHT - h) / 2;
 
     /* Ring in the cover's own color, or the accent color as on the Games
        screen. */
-    color_t ring = (ring_tint_ready && art_tint_on_game_info()) ? ring_tint : t->accent;
-    fill(COVER_X - 3, COVER_Y - 3, COVER_X + COVER_WIDTH + 3, COVER_Y + COVER_HEIGHT + 3, ring);
-    fill(COVER_X, COVER_Y, COVER_X + COVER_WIDTH, COVER_Y + COVER_HEIGHT, t->panel);
+    fill(x - 3, y - 3, x + w + 3, y + h + 3, ring);
+    fill(x, y, x + w, y + h, t->panel);
 
     if (!image) {
         return;
     }
 
-    float scale_x = (float) COVER_WIDTH / image->width;
-    float scale_y = (float) COVER_HEIGHT / image->height;
-    float scale = (scale_x < scale_y) ? scale_x : scale_y;
-    int w = (int) (image->width * scale);
-    int h = (int) (image->height * scale);
-
     rdpq_mode_push();
         rdpq_set_mode_standard();
         rdpq_mode_filter(FILTER_BILINEAR);
         rdpq_mode_combiner(RDPQ_COMBINER_TEX);
-        rdpq_tex_blit(image, COVER_X + (COVER_WIDTH - w) / 2, COVER_Y + (COVER_HEIGHT - h) / 2, &(rdpq_blitparms_t) {
+        rdpq_tex_blit(image, x, y, &(rdpq_blitparms_t) {
             .scale_x = scale,
             .scale_y = scale,
         });

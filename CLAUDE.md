@@ -699,6 +699,18 @@ Lessons that cost a hardware round each (do not repeat them):
     sliders.
   Left before publishing: the user's test of Japanese (tall) and
   64DD-shaped cover art.
+  - **Covers in their own shape (done and tested 2026-10-10).** The user's photo of a Japanese (tall) cover
+    showed black bars either side. Each cover's box now takes its art's
+    shape (`carousel_art_aspect()`, `carousel_fit_to_art()` in
+    `browser.c`), and the ring follows the selected cover's shape,
+    easing between wide and tall over 180 ms (`carousel_ring_size()`).
+    Before a cover's art arrives it keeps the usual wide shape. The Game
+    info cover and its ring are fitted the same way (`draw_cover()` in
+    `game_info_ui.c`). Also asked for: a whole-screen swipe when
+    moving to and from the Folders tab. Put off by the user (2026-10-10)
+    until it fits the memory budget: sliding the background too needs a
+    second full-screen copy (about 600 KB), too much for 4MB; sliding
+    only what is below the tab bar would need no extra memory.
   - **Games from several folders (done and tested 2026-10-10).** The user's Japanese game and 64DD disks did
     not show on the Games tab, which read the start folder only. The
     user chose (from offered options) a folder list over scanning the
