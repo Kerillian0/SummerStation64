@@ -1,3 +1,4 @@
+#include "../debug_stats.h"
 #include "../bookkeeping.h"
 #include "../cart_load.h"
 #include "../datel_codes.h"
@@ -750,6 +751,8 @@ static void draw (menu_t *menu, surface_t *d) {
 #ifdef FEATURE_AUTOLOAD_ROM_ENABLED
     }
 #endif
+
+    debug_stats_overlay_draw(); // Performance Overlay, if it is on
 
     rdpq_detach_show();
 }

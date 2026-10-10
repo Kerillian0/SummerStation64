@@ -101,6 +101,12 @@ static void remember (const char *path, const char *name) {
     dirty = true;
 }
 
+static const char *key_override = NULL;
+
+void folder_memory_use_key (const char *key) {
+    key_override = key;
+}
+
 void folder_memory_update (menu_t *menu) {
     if (!features_enabled(FEATURE_REMEMBER_SELECTION) || !menu->browser.directory) {
         return;
@@ -108,7 +114,7 @@ void folder_memory_update (menu_t *menu) {
 
     load();
 
-    const char *path = path_get(menu->browser.directory);
+    const char *path = key_override ? key_override : path_get(menu->browser.directory);
 
     if (strcmp(path, current_path) != 0 || reselect) {
         /* Just arrived in another folder. Only move the selection if nothing

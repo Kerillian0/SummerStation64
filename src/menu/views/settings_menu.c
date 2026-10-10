@@ -9,6 +9,8 @@
 #include "../builtin_themes.h"
 #include "../intro_logo.h"
 #include "../art_tint.h"
+#include "../games_folders.h"
+#include "../debug_stats.h"
 #include "../tabs.h"
 #include "../games_ui.h"
 #include "../menu_features.h"
@@ -178,7 +180,24 @@ static const item_t sound_items[] = {
     SWITCH("Background Music", bgm_enabled, false, apply_bgm, "Play music in the menu."),
 };
 
+static char games_folders_text[16];
+
+static const char *games_folders_info (menu_t *menu) {
+    (void) menu;
+    int n = games_folders_count();
+    snprintf(games_folders_text, sizeof(games_folders_text), n == 0 ? "Start folder" : "Start + %d", n);
+    return games_folders_text;
+}
+
+static void forget_games_folders (menu_t *menu) {
+    games_folders_clear();
+    menu->browser.valid = false; /* the Games tab reads its list again */
+    sound_play_effect(SFX_SETTING);
+}
+
 static const item_t library_items[] = {
+    INFO("Game Folders", games_folders_info, "Where the Games tab finds games: the start folder, plus folders added from the Folders tab (Z, \"Add this folder to Games\")."),
+    ACTION("Forget Added Folders", forget_games_folders, "The Games tab goes back to showing the start folder only. No files are touched."),
     CHOICES("Sort By", OPTION_SORT_ORDER, SORT_COUNT, sort_order_name, resort_browser,
         "Type: folders, then each kind of file. Name: folders, then everything by name. Recently Played: games you played from this folder come first."),
     FEATURE("Hide Game Extensions", FEATURE_HIDE_EXTENSIONS, "Show games without the ending of the file name, such as .z64. Other files keep theirs."),
@@ -222,6 +241,8 @@ static const item_t system_items[] = {
         "The look of the spinning logo in the intro. Vaporwave has patterned sides. Classic is the console's own green, blue, red and yellow."),
     CHOICES("Fade In", OPTION_FADE, FADE_COUNT, intro_fade_name, NULL,
         "When the menu starts, the picture comes up from black and the background music rises, over one or two seconds. Off shows the menu at once."),
+    CHOICES("Performance Overlay", OPTION_PERF_OVERLAY, 2, debug_stats_overlay_name, NULL,
+        "For testing: a strip at the bottom of the screen shows the frame time (33.4 ms is on time), how long the graphics chip took, and free memory."),
     FEATURE("Remember Settings Page", FEATURE_REMEMBER_SETTINGS, "Reopen Settings on the page and row you last used, until the console is switched off."),
     ACTION("Reset Settings", ask_reset, "Put the stock settings back to how they were on a fresh install."),
 };
@@ -534,6 +555,8 @@ static void draw (menu_t *menu, surface_t *d) {
             "A: Yes, B: Back"
         );
     }
+
+    debug_stats_overlay_draw(); // Performance Overlay, if it is on
 
     rdpq_detach_show();
 }

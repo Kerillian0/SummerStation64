@@ -148,6 +148,7 @@ docs/HANDOFF.md            current state and next steps
 docs/n64ever-notes.md      what the N64ever fork has, mapped to our roadmap
 docs/*.md (numbered)       upstream's user documentation, untouched
 theme-maker/               web Theme Maker source (one HTML file) + README
+tests/                     PC-side tests: sh tests/run.sh (gcc + Node.js)
 tools/sc64/                sc64deployer.exe, not committed (tools/ is ignored)
 output/sc64menu.n64        the build
 libdragon/                 the SDK, a submodule; do not edit
@@ -158,13 +159,13 @@ src/menu/ui_components/    stock shared drawing code (small hooks only)
 Our files in `src/menu/`, by what they are for:
 | Area | Files |
 |---|---|
-| Themes and look | `theme`, `builtin_themes`, `title_font`, `font_choice` |
+| Themes and look | `theme`, `theme_parse` (reads theme.ini; tested on the PC), `builtin_themes`, `title_font`, `font_choice` |
 | Settings and switches | `menu_features` (on/off, themes may set), `menu_options` (choices, player only), `views/settings_menu` |
 | Tabs and the cover screens | `tabs`, `games_ui` (tab bar, title panel, hints, rounded boxes, icons), `carousel.h` + the carousel in `views/browser.c`, `cover_list`, `cover_row`, `folders_ui`, `start_menu`, `controls` |
-| Covers and game data | `carousel_art`, `baked_art`, `game_index`, `game_facts`, `display_name`, `sort_order`, `folder_memory`, `play_stats` |
+| Covers and game data | `games_folders` (which folders the Games tab reads), `carousel_art`, `baked_art`, `game_index`, `game_facts`, `display_name`, `sort_order`, `folder_memory`, `play_stats` |
 | Game info screen | `game_info_ui`, `art_tint` (ring color from the cover, also used by the cover rows) |
 | Start-up | `intro`, `intro_logo`, `menu_name.h`, `safe_mode` |
-| Safety and tools | `safe_file`, `crash_screen`, `debug_stats`, `frame_rate` (hidden) |
+| Safety and tools | `safe_file`, `crash_screen`, `debug_stats` (log lines and the performance overlay), `frame_rate` |
 
 All of these are ours and free to change. `views/features_menu` is ours too
 but no longer reachable.
@@ -181,10 +182,11 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
 |---|---|---|
 | `theme/theme.ini` (or `theme.txt`) | the theme; read only | the user / Theme Maker |
 | `features.ini` | the player's On/Off choices | `menu_features.c` |
-| `options.ini` | `sort_order`, `font`, `frame_rate_experiment`, `intro`, `fade`, `intro_logo`, `theme`, `tab1`..`tab4`, `ring_tint` | `menu_options.c` |
+| `options.ini` | `sort_order`, `font`, `frame_rate_experiment`, `intro`, `fade`, `intro_logo`, `theme`, `tab1`..`tab4`, `ring_tint`, `perf_overlay` | `menu_options.c` |
 | `folders.ini` | selected entry per folder | `folder_memory.c` |
 | `playstats.txt` | play count and last played | `play_stats.c` |
 | `gameindex.txt` | which file is which game, and its badge facts; safe to delete | `game_index.c` |
+| `gamefolders.txt` | folders added to the Games tab, one per line | `games_folders.c` |
 | `metadata/` | box art and `metadata.ini` per game; read only | the user's metadata pack |
 
 ## Conventions for new code
@@ -672,10 +674,55 @@ Lessons that cost a hardware round each (do not repeat them):
   rounded corners, the intro's spinning logo and title picture, built-in
   summer themes with the Ocean background, baked box art, the game list
   and the scrolling speed work.
-- **v0.1 user-facing features are complete.** Two dev-tooling items were
-  added to v0.1 afterwards and are not started: the debug overlay and the
-  PC-side tests. Before publishing, the user still wants to test Japanese
-  (tall) and 64DD-shaped cover art.
+- **v0.1 user-facing features are complete.** The user asked to finish
+  v0.1 on 2026-10-10. Its two dev-tooling items (built that day):
+  - **Performance overlay** (done and tested 2026-10-10): option `perf_overlay` ("Performance Overlay", Settings >
+    System, Off by default): a dark strip at the bottom of the screen
+    (y 434-456, below the button hints) with the frame time and worst
+    frame, the graphics chip's time and worst, and free memory, over the
+    last half second (`debug_stats_overlay_draw()` in `debug_stats.c`).
+    Drawn on Games/Folders, Recent/Favorites, Game info and Settings (one
+    hook line before each `rdpq_detach_show()`); other screens do not
+    show it. The roadmap said "hidden"; it is a normal Settings row so it
+    can be switched on without editing files on the card.
+  - **PC-side tests** (done, run in the dev container): `tests/`, run with
+    `sh tests/run.sh`. The theme reader moved out of `theme.c` into
+    `theme_parse.c/.h` (no change in behaviour) so the PC can build it
+    with a stand-in `tests/stubs/libdragon.h`; 50 checks. The share code
+    test takes the code straight out of `theme-maker.html` and runs it in
+    Node.js (installed in the dev container: `sudo apt-get install -y
+    nodejs`); 183 checks, including every single-character typo. Both were
+    checked by breaking the code on purpose in a scratch copy. Noticed:
+    the Theme Maker's decoder holds pattern size to 4-64 and strength to
+    0-60 (its sliders' ranges), while the encoder and the console accept
+    2-128 and 0-100; harmless, since the Maker only writes values from its
+    sliders.
+  Left before publishing: the user's test of Japanese (tall) and
+  64DD-shaped cover art.
+  - **Games from several folders (done and tested 2026-10-10).** The user's Japanese game and 64DD disks did
+    not show on the Games tab, which read the start folder only. The
+    user chose (from offered options) a folder list over scanning the
+    whole card, and a filter button over separate tabs; the filter is the
+    next build. `games_folders.c/.h`: the start folder plus up to 8 added
+    folders, kept in `sd:/menu/gamefolders.txt` (one path per line, temp
+    file + `safe_file_replace`), added and removed from the Folders tab's
+    Z menu ("Add this folder to Games" / "Remove this folder from
+    Games", with a two-second note), counted and cleared in Settings >
+    Library ("Game Folders", "Forget Added Folders"). **How it works:**
+    the Games tab now lists from the top of the card (`sd:/`), and each
+    entry's name carries its folder ("N64(JP)/Game.z64"), so every stock
+    path built as directory + name still works (launching, history,
+    favorites, the game index keys are the same full paths as before).
+    `load_directory()` in `browser.c` was split: `scan_folder()` reads one
+    folder with a name prefix; the Games tab calls it per folder (a
+    missing folder is skipped). `entry_file_name()` gives the part after
+    the folder; used by sorting (stock `compare_entry` and
+    `sort_order.c`), the position letter and `display_name_file()`.
+    Recently Played matches history paths against the list's own names.
+    `folder_memory_use_key("games:")` gives the Games tab its own saved
+    place (so it no longer shares the root's entry with the Folders tab;
+    the old place is lost once). "Set current directory as default" now
+    only works on the Folders tab (on Games the directory is the root).
 
 ## theme.ini format
 ```ini

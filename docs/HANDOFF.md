@@ -96,9 +96,10 @@ START) and the ring tinted from the cover (option `ring_tint`).
 3. When the owner says the Jumper Pak is ready, give them the "4MB test
    checklist" from `CLAUDE.md`, updated with anything added since. Every 4MB
    figure so far is worked out from 8MB runs, not measured.
-4. Before publishing v0.1: the owner wants to test Japanese (tall) and
-   64DD-shaped cover art. Still in v0.1 and not started: the debug overlay
-   and the PC-side tests for the theme parser and share code decoder.
+4. Finishing v0.1 (started 2026-10-10): the PC-side tests are done
+   (`sh tests/run.sh`); the performance overlay is built and awaiting the
+   owner's test; left after that is the owner's test of Japanese (tall)
+   and 64DD-shaped cover art, then v0.1 can be published.
 
 ## Open questions
 

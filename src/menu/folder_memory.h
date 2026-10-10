@@ -12,6 +12,13 @@
 
 #include "menu_state.h"
 
+/**
+ * Remember positions under `key` instead of the open folder's path; NULL
+ * goes back to the path. The Games tab lists several folders from the top
+ * of the card, so it keeps its own place ("games:").
+ */
+void folder_memory_use_key (const char *key);
+
 /** Call once per frame on the Files screen, after input was handled. */
 void folder_memory_update (menu_t *menu);
 

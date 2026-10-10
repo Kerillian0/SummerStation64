@@ -28,6 +28,7 @@ static const option_info_t option_info[OPTION_COUNT] = {
     [OPTION_TAB3] = { "tab3", 3 },      /* Folders */
     [OPTION_TAB4] = { "tab4", 0 },      /* nothing; Recent is the player's to add */
     [OPTION_RING_TINT] = { "ring_tint", 1 },    /* on the Game info screen */
+    [OPTION_PERF_OVERLAY] = { "perf_overlay", 0 },
 };
 
 static int values[OPTION_COUNT];

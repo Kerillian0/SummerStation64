@@ -1,7 +1,9 @@
 #include <libdragon.h>
 
 #include "debug_stats.h"
+#include "fonts.h"
 #include "frame_rate.h"
+#include "menu_options.h"
 
 #define REPORT_EVERY_US     (2000000)
 
@@ -28,6 +30,71 @@ static uint64_t chip_worst_us = 0;
 
 /* A frame longer than this missed its turn (one frame is 33.4 ms). */
 #define SLOW_FRAME_US       (45000)
+
+/* The on-screen overlay (option `perf_overlay`): the same figures over the
+   last half second, so they can be read on the TV without the debug log. */
+#define OVERLAY_EVERY_US    (500000)
+static uint64_t ov_began_us = 0;
+static uint64_t ov_frame_total = 0, ov_frame_worst = 0, ov_chip_total = 0, ov_chip_worst = 0;
+static int ov_frames = 0;
+static char ov_text[96] = "";
+
+static const char *overlay_names[2] = { "Off", "On" };
+
+const char *debug_stats_overlay_name (int choice) {
+    return (choice >= 0 && choice < 2) ? overlay_names[choice] : "";
+}
+
+static void overlay_count (uint64_t now, uint64_t frame_us, uint64_t chip_us) {
+    if (!options_get(OPTION_PERF_OVERLAY)) {
+        return;
+    }
+    ov_frame_total += frame_us;
+    ov_chip_total += chip_us;
+    if (frame_us > ov_frame_worst) ov_frame_worst = frame_us;
+    if (chip_us > ov_chip_worst) ov_chip_worst = chip_us;
+    ov_frames++;
+    if (ov_began_us == 0) {
+        ov_began_us = now;
+    }
+    if ((now - ov_began_us) < OVERLAY_EVERY_US || ov_frames == 0) {
+        return;
+    }
+    heap_stats_t heap;
+    sys_get_heap_stats(&heap);
+    int frame_avg = (int) (ov_frame_total / ov_frames);
+    int chip_avg = (int) (ov_chip_total / ov_frames);
+    snprintf(ov_text, sizeof(ov_text), "%d.%d ms (worst %d)  chip %d.%d (worst %d)  free %d KB",
+        frame_avg / 1000, (frame_avg % 1000) / 100, (int) (ov_frame_worst / 1000),
+        chip_avg / 1000, (chip_avg % 1000) / 100, (int) (ov_chip_worst / 1000),
+        (heap.total - heap.used) / 1024);
+    ov_began_us = now;
+    ov_frame_total = ov_frame_worst = ov_chip_total = ov_chip_worst = 0;
+    ov_frames = 0;
+}
+
+void debug_stats_overlay_draw (void) {
+    if (!options_get(OPTION_PERF_OVERLAY) || ov_text[0] == '\0') {
+        return;
+    }
+    /* A dark strip at the very bottom, below the button hints. */
+    const int x0 = 64, x1 = 576, y0 = 434, y1 = 456;
+    rdpq_mode_push();
+        rdpq_set_mode_standard();
+        rdpq_set_prim_color(RGBA32(0x00, 0x00, 0x00, 0xC0));
+        rdpq_mode_combiner(RDPQ_COMBINER_FLAT);
+        rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+        rdpq_fill_rectangle(x0, y0, x1, y1);
+    rdpq_mode_pop();
+    rdpq_text_printf(&(rdpq_textparms_t) {
+        .width = x1 - x0,
+        .height = y1 - y0,
+        .align = ALIGN_CENTER,
+        .valign = VALIGN_CENTER,
+        .wrap = WRAP_ELLIPSES,
+        .style_id = STL_WHITE,
+    }, FNT_DEFAULT, x0, y0, "%s", ov_text);
+}
 
 void debug_stats_begin (void) {
     work_began_us = get_ticks_us();
@@ -71,6 +138,8 @@ void debug_stats_frame (menu_t *menu) {
     if (chip_us > chip_worst_us) {
         chip_worst_us = chip_us;
     }
+
+    overlay_count(now, frame_us, chip_us);
 
     if (frame_us > SLOW_FRAME_US || chip_us > 33000) {
         debugf("slow frame: %d ms (work %d ms, chip %d ms, the frame before %d ms)\n",

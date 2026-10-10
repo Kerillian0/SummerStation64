@@ -22,6 +22,7 @@ typedef enum {
     OPTION_TAB3,
     OPTION_TAB4,
     OPTION_RING_TINT,   /**< a ring_tint_t value (see art_tint.h) */
+    OPTION_PERF_OVERLAY, /**< 1: show frame time and free memory on screen (see debug_stats.h) */
     OPTION_COUNT
 } option_t;
 

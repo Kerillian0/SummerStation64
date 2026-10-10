@@ -2,6 +2,7 @@
 #include <strings.h>
 
 #include "display_name.h"
+#include "games_folders.h"
 #include "menu_features.h"
 
 #define NAME_LENGTH (256)
@@ -126,6 +127,7 @@ const char *display_name_file (const char *filename) {
     if (!filename) {
         return "";
     }
+    filename = entry_file_name(filename); // the Games tab's names carry their folder in front
 
     bool hide_extension = features_enabled(FEATURE_HIDE_EXTENSIONS);
     bool tidy = features_enabled(FEATURE_TIDY_TITLES);

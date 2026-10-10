@@ -5,6 +5,7 @@
 #include "menu_options.h"
 #include "path.h"
 #include "sort_order.h"
+#include "games_folders.h"
 
 #define NAME_LENGTH (256)
 
@@ -32,14 +33,14 @@ static int compare_name_az (const void *pa, const void *pb) {
     const entry_t *a = pa;
     const entry_t *b = pb;
     int order = folders_first(a, b);
-    return order ? order : strcasecmp(a->name, b->name);
+    return order ? order : strcasecmp(entry_file_name(a->name), entry_file_name(b->name));
 }
 
 static int compare_name_za (const void *pa, const void *pb) {
     const entry_t *a = pa;
     const entry_t *b = pb;
     int order = folders_first(a, b);
-    return order ? order : strcasecmp(b->name, a->name);
+    return order ? order : strcasecmp(entry_file_name(b->name), entry_file_name(a->name));
 }
 
 /* 0 for the most recently played game, counting up; recent_count for everything else. */
@@ -67,14 +68,17 @@ static void find_recent (menu_t *menu) {
             continue;
         }
 
-        /* Is this game in the folder being shown? */
-        path_t *folder = path_clone(item->primary_path);
-        path_pop(folder);
-        bool here = (strcmp(path_get(folder), path_get(menu->browser.directory)) == 0);
-        path_free(folder);
-
-        if (here) {
-            strncpy(recent[recent_count], path_last_get(item->primary_path), NAME_LENGTH - 1);
+        /* Is this game in the list being shown? Its name in the list is its
+           path from the open folder (on the Games tab that is the top of the
+           card, so the name carries its folder). */
+        const char *full = path_get(item->primary_path);
+        const char *dir = path_get(menu->browser.directory);
+        size_t dir_length = strlen(dir);
+        while (dir_length > 0 && dir[dir_length - 1] == '/') dir_length--;
+        bool here = (strncmp(full, dir, dir_length) == 0) && (full[dir_length] == '/');
+        const char *name = here ? full + dir_length + 1 : NULL;
+        if (here && (path_is_root(menu->browser.directory) || !strchr(name, '/'))) { /* not from a folder further down */
+            strncpy(recent[recent_count], name, NAME_LENGTH - 1);
             recent[recent_count][NAME_LENGTH - 1] = '\0';
             recent_count++;
         }

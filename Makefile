@@ -78,6 +78,8 @@ SRCS = \
 	menu/settings.c \
 	menu/sound.c \
 	menu/art_tint.c \
+	menu/theme_parse.c \
+	menu/games_folders.c \
 	menu/intro.c \
 	menu/baked_art.c \
 	menu/game_index.c \

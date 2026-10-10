@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <time.h>
 
+#include "../debug_stats.h"
 #include "../cart_load.h"
 #include "../fonts.h"
 #include "../zip_entry_count.h"
@@ -19,6 +20,7 @@
 #include "../safe_mode.h"
 #include "../folder_memory.h"
 #include "../art_tint.h"
+#include "../games_folders.h"
 #include "../sort_order.h"
 #include "../display_name.h"
 #include "../games_ui.h"
@@ -190,7 +192,7 @@ static int compare_entry (const void *pa, const void *pb) {
         }
     }
 
-    return strcasecmp((const char *) (a->name), (const char *) (b->name));
+    return strcasecmp(entry_file_name(a->name), entry_file_name(b->name)); // by the file's name, not the Games tab's folder in front of it
 }
 
 static void browser_list_free (menu_t *menu) {
@@ -304,14 +306,24 @@ static bool load_archive (menu_t *menu) {
     return false;
 }
 
-static bool load_directory (menu_t *menu) {
+// "N64(JP)" + "Game.z64" -> "N64(JP)/Game.z64". The Games tab lists games from
+// several folders, so each name carries its folder (see games_folders.h).
+static char *name_with_prefix (const char *prefix, const char *name) {
+    if (!prefix || !prefix[0]) {
+        return strdup(name);
+    }
+    char *joined = malloc(strlen(prefix) + strlen(name) + 2);
+    if (joined) {
+        sprintf(joined, "%s/%s", prefix, name);
+    }
+    return joined;
+}
+
+// Add the entries of one folder to the list. Returns dir_findnext's last
+// result (below -1 is a read error), or -2 if the list could not grow.
+static int scan_folder (menu_t *menu, path_t *path, const char *prefix) {
     int result;
     dir_t info;
-
-    browser_list_free(menu);
-    directory_entry_limit_exceeded = false;
-
-    path_t *path = path_clone(menu->browser.directory);
 
     result = dir_findfirst(path_get(path), &info);
 
@@ -353,25 +365,19 @@ static bool load_directory (menu_t *menu) {
 
         if (!hide) {
             if (!is_memory_expanded() && menu->browser.entries >= DIRECTORY_MAX_ENTRIES_JUMPER_PAK) {
-                path_free(path);
-                browser_list_free(menu);
                 directory_entry_limit_exceeded = true;
-                return true;
+                return -2;
             }
 
             if (browser_list_reserve(menu, menu->browser.entries + 1)) {
-                path_free(path);
-                browser_list_free(menu);
-                return true;
+                return -2;
             }
 
             entry_t *entry = &menu->browser.list[menu->browser.entries];
 
-            entry->name = strdup(info.d_name);
+            entry->name = name_with_prefix(prefix, info.d_name);
             if (!entry->name) {
-                path_free(path);
-                browser_list_free(menu);
-                return true;
+                return -2;
             }
 
             if (info.d_type == DT_DIR) {
@@ -418,7 +424,36 @@ static bool load_directory (menu_t *menu) {
         result = dir_findnext(path_get(path), &info);
     }
 
-    path_free(path);
+    return result;
+}
+
+static bool load_directory (menu_t *menu) {
+    int result;
+
+    browser_list_free(menu);
+    directory_entry_limit_exceeded = false;
+
+    if (folders_tab) {
+        path_t *path = path_clone(menu->browser.directory);
+        result = scan_folder(menu, path, "");
+        path_free(path);
+    } else {
+        // The Games tab: the start folder and every folder added to it
+        // (games_folders.c), all listed from the top of the card.
+        const char *folders[GAMES_FOLDERS_MAX + 1];
+        int count = games_folders_list(menu, folders);
+        result = -1;
+        for (int i = 0; i < count; i++) {
+            path_t *path = path_init(menu->storage_prefix, (char *) folders[i]);
+            int r = scan_folder(menu, path, folders[i] + 1); // without the leading '/'
+            path_free(path);
+            if (r == -2) {
+                result = r;
+                break;
+            }
+            // A folder that has gone missing is left out, not an error.
+        }
+    }
 
     if (result < -1) {
         browser_list_free(menu);
@@ -556,10 +591,53 @@ static void extract_entry (menu_t *menu, void *arg) {
     menu->next_mode = MENU_MODE_EXTRACT_FILE;
 }
 
+static void note_show (const char *text);
+
 static void set_default_directory (menu_t *menu, void *arg) {
+    if (!folders_tab) {
+        note_show("Go to the folder in the Folders tab first.");
+        return;
+    }
     free(menu->settings.default_directory);
     menu->settings.default_directory = strdup(strip_fs_prefix(path_get(menu->browser.directory)));
     settings_save(&menu->settings);
+}
+
+// A short note over the screen after a folder is added or removed.
+static char note_text[96] = "";
+static uint64_t note_until_ms = 0;
+
+static void note_show (const char *text) {
+    snprintf(note_text, sizeof(note_text), "%s", text);
+    note_until_ms = get_ticks_ms() + 2000;
+}
+
+static void note_draw (void) {
+    if (note_text[0] && get_ticks_ms() < note_until_ms) {
+        ui_components_messagebox_draw("%s", note_text);
+    }
+}
+
+static void add_games_folder (menu_t *menu, void *arg) {
+    if (!folders_tab) {
+        note_show("Go to the folder in the Folders tab first.");
+    } else if (games_folders_add(path_get(menu->browser.directory))) {
+        note_show("Added. Its games now show in the Games tab.");
+    } else if (games_folders_count() >= GAMES_FOLDERS_MAX) {
+        note_show("The Games tab already shows the most folders it can.");
+    } else {
+        note_show("This folder is already in the Games tab.");
+    }
+}
+
+static void remove_games_folder (menu_t *menu, void *arg) {
+    if (!folders_tab) {
+        note_show("Go to the folder in the Folders tab first.");
+    } else if (games_folders_remove(path_get(menu->browser.directory))) {
+        note_show("Removed from the Games tab.");
+    } else {
+        note_show("This folder was not added to the Games tab.\n(The start folder is always shown.)");
+    }
 }
 
 static component_context_menu_t entry_context_menu = {
@@ -568,6 +646,8 @@ static component_context_menu_t entry_context_menu = {
         { .text = "Show entry properties", .action = show_properties },
         { .text = "Delete selected entry", .action = delete_entry },
         { .text = "Set current directory as default", .action = set_default_directory },
+        { .text = "Add this folder to Games", .action = add_games_folder },
+        { .text = "Remove this folder from Games", .action = remove_games_folder },
         COMPONENT_CONTEXT_MENU_LIST_END,
     }
 };
@@ -627,8 +707,10 @@ static void browser_show_tab (menu_t *menu, bool folders) {
     path_free(menu->browser.directory);
     if (folders && folders_directory) {
         menu->browser.directory = path_clone(folders_directory);
-    } else {
+    } else if (folders) {
         menu->browser.directory = path_init(menu->storage_prefix, menu->settings.default_directory);
+    } else {
+        menu->browser.directory = path_init(menu->storage_prefix, "/"); // the Games tab lists its folders from the top of the card
     }
     if (!directory_exists(path_get(menu->browser.directory))) {
         path_free(menu->browser.directory);
@@ -1049,7 +1131,7 @@ void carousel_draw (menu_t *menu) {
     // Title panel and position bar under the covers.
     const char *title = display_name(selected_entry);
     games_ui_title_panel_draw(title, carousel_kind_label(selected_entry->type), game_facts_update(menu));
-    games_ui_position_draw(selected_entry->name, covers->selected, covers->entries); // the file name: that is what the list is sorted by
+    games_ui_position_draw(entry_file_name(selected_entry->name), covers->selected, covers->entries); // the file name: that is what the list is sorted by
 }
 #endif
 
@@ -1115,9 +1197,9 @@ static void draw (menu_t *menu, surface_t *d) {
                 .wrap = WRAP_WORD,
                 .style_id = STL_GRAY,
             }, FNT_DEFAULT, GAMES_UI_CONTENT_X0, 100,
-                "No games in the start folder.\n\n"
-                "Open the Folders tab, go to the folder with your games, "
-                "press Z and choose \"Set current directory as default\".");
+                "No games found.\n\n"
+                "Open the Folders tab, go to a folder with games, press Z "
+                "and choose \"Add this folder to Games\".");
         }
     }
 #else
@@ -1174,7 +1256,9 @@ static void draw (menu_t *menu, surface_t *d) {
 
     ui_components_context_menu_draw(&settings_context_menu);
 
+    note_draw(); // "Added..." after a folder is added to Games
     intro_fade_draw(); // the fade-in after the menu starts
+    debug_stats_overlay_draw(); // Performance Overlay, if it is on
 
     rdpq_detach_show();
 }
@@ -1184,6 +1268,12 @@ void view_browser_init (menu_t *menu) {
     games_ui_set_origin(MENU_MODE_BROWSER); // where B on a game's info screen comes back to
     if (menu->browser.select_file) tabs_browser_show_folders(true); // being sent to a particular file: that is the Folders tab's job
     browser_show_tab(menu, tabs_browser_shows_folders());
+    if (!folders_tab && !path_is_root(menu->browser.directory)) {
+        // The Games tab reads its folders from the top of the card (games_folders.h).
+        path_free(menu->browser.directory);
+        menu->browser.directory = path_init(menu->storage_prefix, "/");
+        menu->browser.valid = false;
+    }
     if (!menu->browser.valid) {
         ui_components_context_menu_init(&entry_context_menu);
         ui_components_context_menu_init(&archive_context_menu);
@@ -1243,6 +1333,7 @@ void view_browser_init (menu_t *menu) {
 
 void view_browser_display (menu_t *menu, surface_t *display) {
     process(menu);
+    folder_memory_use_key(folders_tab ? NULL : "games:"); // the Games tab keeps its own place
     folder_memory_update(menu); // put the selection back where it was left in this folder
 
     draw(menu, display);

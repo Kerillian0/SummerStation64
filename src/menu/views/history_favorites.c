@@ -1,4 +1,5 @@
 #include <stdarg.h>
+#include "../debug_stats.h"
 #include "../bookkeeping.h"
 #include "../fonts.h"
 #include "../ui_components/constants.h"
@@ -247,6 +248,7 @@ static void draw(menu_t *menu, surface_t *display) {
     );    
 
     start_menu_draw();
+    debug_stats_overlay_draw(); // Performance Overlay, if it is on
 
     rdpq_detach_show();   
 }
