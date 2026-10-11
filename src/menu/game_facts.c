@@ -35,7 +35,7 @@ static uint32_t name_hash (const char *name) {
 }
 
 static int settle_ms = SETTLE_TIME_MS;   /* how long the selection must rest before the lookup */
-static uint32_t saves_folder = 0;   /* which folder's saves are noted (made from its path); 0 = none. See save_exists(). */
+static void saves_forget (void);    /* see save_exists() */
 
 void game_facts_reset (void) {
     watched_entry = NULL;
@@ -43,7 +43,7 @@ void game_facts_reset (void) {
     watched_hash = 0;
     pending = false;
     known = false;
-    saves_folder = 0;   /* saves may be made or deleted while away: read the folder again */
+    saves_forget();     /* saves may be made or deleted while away: read the folders again */
 }
 
 /* Facts that never change for a file are remembered, so coming back to a
@@ -96,9 +96,19 @@ static bool is_favorite (menu_t *menu, path_t *rom_path) {
    and the question is answered from those notes. Read again after the
    covers have been left, since saves can be made or deleted meanwhile. */
 #define SAVES_NOTED     (512)
-static uint32_t saves_names[SAVES_NOTED];
+#define SAVES_FOLDERS   (10)    /* the Games tab can show games from several folders, each with its own saves */
+static uint32_t saves_names[SAVES_NOTED];   /* every save file noted, as its folder and name hashed together */
 static int saves_count = 0;
-static bool saves_too_many = false;
+static struct {
+    uint32_t key;       /* which folder (made from its path) */
+    bool too_many;      /* it held more files than there was room to note */
+} saves_folders[SAVES_FOLDERS];
+static int saves_folders_count = 0;
+
+static void saves_forget (void) {
+    saves_count = 0;
+    saves_folders_count = 0;
+}
 
 static uint32_t lower_hash (const char *text) {
     uint32_t h = 2166136261u;
@@ -109,36 +119,50 @@ static uint32_t lower_hash (const char *text) {
     return h ? h : 1;
 }
 
+static uint32_t save_key (uint32_t folder, const char *name) {
+    uint32_t h = lower_hash(name) ^ (folder * 0x9E3779B1u);
+    return h ? h : 1;
+}
+
 static bool save_exists (path_t *save_path) {
     path_t *folder = path_clone(save_path);
     path_pop(folder);
     uint32_t key = lower_hash(path_get(folder));
 
-    if (key != saves_folder) {
-        saves_folder = key;
-        saves_count = 0;
-        saves_too_many = false;
+    int known = -1;
+    for (int i = 0; i < saves_folders_count; i++) {
+        if (saves_folders[i].key == key) {
+            known = i;
+            break;
+        }
+    }
+    if (known < 0 && saves_folders_count < SAVES_FOLDERS) {
+        /* A saves folder not read yet: note its files beside the others'. */
+        known = saves_folders_count++;
+        saves_folders[known].key = key;
+        saves_folders[known].too_many = false;
 
+        int before = saves_count;
         dir_t info;
         int result = dir_findfirst(path_get(folder), &info);
         while (result == 0) {
             if (info.d_type != DT_DIR) {
                 if (saves_count < SAVES_NOTED) {
-                    saves_names[saves_count++] = lower_hash(info.d_name);
+                    saves_names[saves_count++] = save_key(key, info.d_name);
                 } else {
-                    saves_too_many = true;
+                    saves_folders[known].too_many = true;
                 }
             }
             result = dir_findnext(path_get(folder), &info);
         }
-        debugf("badges: saves folder read, %d files\n", saves_count);
+        debugf("badges: saves folder read, %d files\n", saves_count - before);
     }
     path_free(folder);
 
-    if (saves_too_many) {
+    if (known < 0 || saves_folders[known].too_many) {
         return file_exists(path_get(save_path));    /* more than we noted: ask the card */
     }
-    uint32_t name = lower_hash(path_last_get(save_path));
+    uint32_t name = save_key(key, path_last_get(save_path));
     for (int i = 0; i < saves_count; i++) {
         if (saves_names[i] == name) {
             return true;
