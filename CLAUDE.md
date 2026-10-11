@@ -738,6 +738,15 @@ Lessons that cost a hardware round each (do not repeat them):
     darkened twice during the fade; and the darkened background is
     dithered once where the rest is dithered twice, which could show as
     faint edges round the parts (look for it).
+  - **Folders tab: text laid out once (done and tested 2026-10-11; the
+    user's pasted log was cut short before any Folders figures, so the
+    saving is still not measured).** The Folders tab's work was 29 ms a
+    frame, the highest of any screen: it laid out up to 31 pieces of text
+    every frame. `folders_ui.c` now keeps each row's laid-out name and
+    size (and the path line) for as long as that file stays on screen,
+    keyed by name, size and kind; a scroll step lays out one new row.
+    Freed when the tab is left (`folders_ui_forget()`). Expected well
+    under 29 ms at rest; not measured yet.
   - **Games filter (done and tested 2026-10-10):** the user's choice from earlier. `games_filter.c/.h`:
     C-up / C-down on the Games tab step through All, USA, Japan, Europe
     and 64DD, skipping any with no games; the name shows in orange at the

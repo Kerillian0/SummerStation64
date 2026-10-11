@@ -60,6 +60,88 @@ static const char *size_text (const entry_t *entry) {
     return buffer;
 }
 
+/* Laying text out is the costly part of drawing it, and this screen has up
+   to 31 pieces of it. So each row's name and size are laid out once and
+   kept for as long as that file stays on screen; moving the selection or
+   scrolling one step lays out one new row at most. */
+typedef struct {
+    uint32_t key;               /* which file this is; 0 = free */
+    bool used;                  /* drawn this frame */
+    rdpq_paragraph_t *name;
+    rdpq_paragraph_t *size;
+} row_text_t;
+
+static row_text_t rows_kept[ROWS];
+static rdpq_paragraph_t *path_kept = NULL;
+static uint32_t path_key = 0;
+
+static uint32_t text_hash (uint32_t hash, const char *string) {
+    while (*string) {
+        hash = (hash ^ (uint8_t) *string++) * 16777619u;
+    }
+    return hash;
+}
+
+static rdpq_paragraph_t *layout (int width, rdpq_align_t align, menu_font_style_t style, const char *string) {
+    int nbytes = strlen(string);
+    return rdpq_paragraph_build(&(rdpq_textparms_t) {
+        .width = width,
+        .height = ROW_HEIGHT,
+        .align = align,
+        .valign = VALIGN_CENTER,
+        .wrap = WRAP_ELLIPSES,
+        .style_id = style,
+    }, FNT_DEFAULT, string, &nbytes);
+}
+
+static void row_free (row_text_t *row) {
+    if (row->name) rdpq_paragraph_free(row->name);
+    if (row->size) rdpq_paragraph_free(row->size);
+    memset(row, 0, sizeof(*row));
+}
+
+void folders_ui_forget (void) {
+    for (int i = 0; i < ROWS; i++) {
+        row_free(&rows_kept[i]);
+    }
+    if (path_kept) {
+        rdpq_paragraph_free(path_kept);
+        path_kept = NULL;
+    }
+    path_key = 0;
+}
+
+static uint32_t row_key (const entry_t *entry) {
+    uint32_t key = text_hash(2166136261u ^ (uint32_t) entry->type ^ ((uint32_t) entry->size * 31u), entry->name);
+    return key ? key : 1;
+}
+
+/* The kept text for a file, laid out now if it is new on screen. Rows
+   still on screen were marked `used` beforehand, so only the place of a
+   file that has scrolled away is taken. */
+static row_text_t *row_text (const entry_t *entry, int name_width) {
+    uint32_t key = row_key(entry);
+    row_text_t *spare = NULL;
+    for (int i = 0; i < ROWS; i++) {
+        if (rows_kept[i].key == key) {
+            return &rows_kept[i];
+        }
+        if (!rows_kept[i].used && (!spare || rows_kept[i].key == 0)) {
+            spare = &rows_kept[i];
+        }
+    }
+    if (!spare) {
+        return NULL;
+    }
+    row_free(spare);
+    bool folder = (entry->type == ENTRY_TYPE_DIR);
+    spare->key = key;
+    spare->used = true;
+    spare->name = layout(name_width, ALIGN_LEFT, folder ? STL_YELLOW : STL_DEFAULT, entry->name);
+    spare->size = layout(SIZE_WIDTH - TEXT_INSET, ALIGN_RIGHT, STL_GRAY, size_text(entry));
+    return spare;
+}
+
 void folders_ui_draw (menu_t *menu) {
     const theme_t *t = theme_get();
     int entries = menu->browser.entries;
@@ -69,7 +151,16 @@ void folders_ui_draw (menu_t *menu) {
     /* Where we are. The "sd:/" at the front tells the player nothing. */
     const char *where = path_get(menu->browser.directory);
     const char *slash = strchr(where, '/');
-    text(LIST_X0 + TEXT_INSET, PATH_Y, LIST_X1 - LIST_X0 - TEXT_INSET, ALIGN_LEFT, STL_GRAY, (slash && slash[1]) ? slash : "/");
+    const char *shown = (slash && slash[1]) ? slash : "/";
+    uint32_t key = text_hash(2166136261u, shown);
+    if (!path_kept || key != path_key) {
+        if (path_kept) {
+            rdpq_paragraph_free(path_kept);
+        }
+        path_kept = layout(LIST_X1 - LIST_X0 - TEXT_INSET, ALIGN_LEFT, STL_GRAY, shown);
+        path_key = key;
+    }
+    rdpq_paragraph_render(path_kept, LIST_X0 + TEXT_INSET, PATH_Y);
 
     if (entries <= 0) {
         text(LIST_X0, ROWS_Y + ROW_HEIGHT, LIST_X1 - LIST_X0, ALIGN_CENTER, STL_GRAY, "This folder is empty");
@@ -84,6 +175,21 @@ void folders_ui_draw (menu_t *menu) {
         if (first > entries - ROWS) first = entries - ROWS;
     }
 
+    /* Mark the kept rows that are still on screen, so their places are not
+       given away to new ones. */
+    for (int i = 0; i < ROWS; i++) {
+        rows_kept[i].used = false;
+    }
+    for (int row = 0; row < ROWS && (first + row) < entries; row++) {
+        uint32_t key = row_key(&menu->browser.list[first + row]);
+        for (int i = 0; i < ROWS; i++) {
+            if (rows_kept[i].key == key) {
+                rows_kept[i].used = true;
+                break;
+            }
+        }
+    }
+
     for (int row = 0; row < ROWS && (first + row) < entries; row++) {
         const entry_t *entry = &menu->browser.list[first + row];
         int y = ROWS_Y + (row * ROW_HEIGHT);
@@ -93,9 +199,16 @@ void folders_ui_draw (menu_t *menu) {
             fill(LIST_X0, y + ROW_HEIGHT - 2, LIST_X1 - BAR_WIDTH - 2, y + ROW_HEIGHT, t->accent);
         }
 
-        bool folder = (entry->type == ENTRY_TYPE_DIR);
-        text(LIST_X0 + TEXT_INSET, y, name_width, ALIGN_LEFT, folder ? STL_YELLOW : STL_DEFAULT, entry->name);
-        text(LIST_X1 - BAR_WIDTH - TEXT_INSET - SIZE_WIDTH, y, SIZE_WIDTH - TEXT_INSET, ALIGN_RIGHT, STL_GRAY, size_text(entry));
+        row_text_t *kept = row_text(entry, name_width);
+        if (kept) {
+            rdpq_paragraph_render(kept->name, LIST_X0 + TEXT_INSET, y);
+            rdpq_paragraph_render(kept->size, LIST_X1 - BAR_WIDTH - TEXT_INSET - SIZE_WIDTH, y);
+        } else {
+            /* Two files that look alike to the key: draw this one the plain way. */
+            bool folder = (entry->type == ENTRY_TYPE_DIR);
+            text(LIST_X0 + TEXT_INSET, y, name_width, ALIGN_LEFT, folder ? STL_YELLOW : STL_DEFAULT, entry->name);
+            text(LIST_X1 - BAR_WIDTH - TEXT_INSET - SIZE_WIDTH, y, SIZE_WIDTH - TEXT_INSET, ALIGN_RIGHT, STL_GRAY, size_text(entry));
+        }
     }
 
     if (entries > ROWS) {

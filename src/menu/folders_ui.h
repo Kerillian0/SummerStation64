@@ -15,4 +15,7 @@
 /** Draw the current folder's path and its list, under the tab bar. */
 void folders_ui_draw (menu_t *menu);
 
+/** Let go of the laid-out text kept for the rows (when leaving the Folders tab). */
+void folders_ui_forget (void);
+
 #endif /* FOLDERS_UI_H__ */

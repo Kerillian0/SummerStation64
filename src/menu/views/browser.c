@@ -692,6 +692,7 @@ static void browser_show_tab (menu_t *menu, bool folders) {
     carousel_art_reset();
     game_facts_reset();
     folder_memory_flush();
+    folders_ui_forget(); // the Folders list's kept text
 
     if (folders_tab) {
         // Leaving Folders: remember where it was (a zip counts as its folder).
