@@ -82,21 +82,33 @@ stands, what is next, and what is still open. Read it first in a new session,
 then come back here for the detail. Update it whenever a step is finished.
 
 ## Key context
-How the menu is put together now (2026-10-09):
+How the menu is put together now (2026-10-12):
 - **Tabs.** Up to four, in an order the player chooses (Settings > Tabs;
   default Games, Favorites, Folders; Recent can be added). L/R step
-  through them. The menu opens on the first.
-- **Games** shows only games, as a row of covers, from one folder: the
-  start folder. **Folders** is the plain file browser, where everything
-  else is opened and the start folder is chosen. The two are the same
-  screen and mode (`MENU_MODE_BROWSER`) showing two lists, so every stock
-  "back to the browser" lands on whichever was showing.
+  through them; the new tab's covers slide in from that side. The menu
+  opens on the first. Each tab goes back to the game it was left on.
+- **Games** shows only games, as a row of covers, gathered from the start
+  folder plus any folders the player adds (Folders tab, Z, "Add this
+  folder to Games"; `gamefolders.txt`). It lists from the top of the card,
+  so each entry's name carries its folder ("N64(JP)/Game.z64");
+  `entry_file_name()` gives the part after it. C-up / C-down filter the
+  row: All, USA, Japan, Europe, 64DD.
+- **Folders** is the plain file browser, where everything else is opened
+  and folders are added to Games. Games and Folders are the same screen
+  and mode (`MENU_MODE_BROWSER`) showing two lists, so every stock "back
+  to the browser" lands on whichever was showing.
 - **Recent** and **Favorites** are cover rows too. All four share the tab
   bar, title panel, badges and button hints from `games_ui.c`.
 - **Where a cover comes from:** art baked into the menu file if the user
-  baked theirs (4-7 ms), else the PNG on the SD card (80-120 ms). The
-  game's code and badge facts come from a saved list (`gameindex.txt`)
-  after the first visit.
+  baked theirs (4-7 ms), else the PNG on the SD card (80-120 ms). A cover
+  is drawn in its art's own shape (tall Japanese boxes stay tall) and the
+  ring follows that shape and, optionally, the cover's color.
+- **What the menu knows about a game** comes from a saved list
+  (`gameindex.txt`): its code and badge facts. Games are learned when
+  first shown, and the rest are read in the background while the Games
+  tab sits idle (`game_learn.c`).
+- **Game info:** cover over a blurred copy of itself, series and subtitle,
+  badges, play counts, description, one Details pop-up on START.
 - **Start-up:** an intro (spinning logo, title picture, tune) at power-on,
   then the first tab fades in. Both have settings.
 - **Themes:** the player's `theme.ini`, or one of four built-in summer
@@ -104,12 +116,18 @@ How the menu is put together now (2026-10-09):
 - **Three kinds of setting:** features (on/off, a theme may set them,
   `features.ini`), options (choices, the player's alone, `options.ini`),
   and the stock menu's own settings (`config.ini`).
+- **How a frame is shown:** capped at exactly every second refresh
+  (33.4 ms on NTSC), and `frame_rate_end_frame()` waits for the graphics
+  chip after each frame so a finished frame goes up at once. The log's
+  `stats:` line gives frame, `work` (processor) and `chip` times; the
+  Performance Overlay (Settings > System) shows them on screen.
 
 The owner and how they work:
 - Tests every build on a real N64 (Expansion Pak fitted, 240p output, small
   Latin font) with a small composite CRT, and reports with photos, short
   recordings and the debug log. Asks for one thing at a time and often
   adds ideas while testing; build what was asked, then offer the rest.
+  "All testing passed" is the signal to commit.
 - Is learning as the project goes: explain in plain words what changed,
   why, and what to check.
 - Prefers saving memory over a small gain in picture quality, and fewer SD
@@ -117,8 +135,12 @@ The owner and how they work:
 - Decides art and trademark questions themselves once told the facts. Two
   standing decisions: the intro uses the N64 logo's shape (do not raise it
   again), and box art is baked from the owner's own pack, never committed.
-- A 4MB Jumper Pak is on the way; until then every 4MB figure is worked
-  out, not measured.
+- Their games: `sd:/N64(US)/` (the start folder), a 64DD folder and a
+  Japanese game or two; about 95 games; many file names carry no region
+  tag ("0222 - F-Zero X").
+- **v0.1 is finished but not published:** the owner will publish only
+  after testing fully on the 4MB Jumper Pak, which had not arrived on
+  2026-10-12. Until then every 4MB figure is worked out, not measured.
 
 ## Where things are
 ```
@@ -145,6 +167,8 @@ filesystem/                what gets packed into the ROM; generated files
                            here are ignored by git
 filesystem/art/            baked covers made by make_baked_art.py; ignored
 docs/HANDOFF.md            current state and next steps
+docs/RELEASE_NOTES_v0.1.md draft release notes and player instructions
+                           (not published)
 docs/n64ever-notes.md      what the N64ever fork has, mapped to our roadmap
 docs/*.md (numbered)       upstream's user documentation, untouched
 theme-maker/               web Theme Maker source (one HTML file) + README
@@ -161,11 +185,11 @@ Our files in `src/menu/`, by what they are for:
 |---|---|
 | Themes and look | `theme`, `theme_parse` (reads theme.ini; tested on the PC), `builtin_themes`, `title_font`, `font_choice` |
 | Settings and switches | `menu_features` (on/off, themes may set), `menu_options` (choices, player only), `views/settings_menu` |
-| Tabs and the cover screens | `tabs`, `games_ui` (tab bar, title panel, hints, rounded boxes, icons), `carousel.h` + the carousel in `views/browser.c`, `cover_list`, `cover_row`, `folders_ui`, `start_menu`, `controls` |
-| Covers and game data | `games_folders` (which folders the Games tab reads), `games_filter` (region / 64DD filter), `carousel_art`, `baked_art`, `game_index`, `game_facts`, `display_name`, `sort_order`, `folder_memory`, `play_stats` |
+| Tabs and the cover screens | `tabs` (order, and the slide when switching), `games_ui` (tab bar, title panel, hints, rounded boxes, icons, the fade's parts), `carousel.h` + the carousel in `views/browser.c`, `cover_list`, `cover_row`, `folders_ui`, `start_menu`, `controls` |
+| Covers and game data | `games_folders` (which folders the Games tab reads), `games_filter` (region / 64DD filter), `carousel_art`, `baked_art`, `game_index`, `game_learn` (reads unknown games while idle), `game_facts`, `display_name`, `sort_order`, `folder_memory`, `play_stats` |
 | Game info screen | `game_info_ui`, `art_tint` (ring color from the cover, also used by the cover rows) |
 | Start-up | `intro`, `intro_logo`, `menu_name.h`, `safe_mode` |
-| Safety and tools | `safe_file`, `crash_screen`, `debug_stats` (log lines and the performance overlay), `frame_rate` |
+| Safety and tools | `safe_file`, `crash_screen`, `debug_stats` (log lines and the performance overlay), `frame_rate` (the frame cap, and showing each frame as soon as it is drawn) |
 
 All of these are ours and free to change. `views/features_menu` is ours too
 but no longer reachable.
@@ -250,6 +274,34 @@ Lessons that cost a hardware round each (do not repeat them):
 - **A log or a GIF the user pastes can be a repeat.** Compare it with the
   last one before drawing conclusions. GIFs can be split into frames with
   Pillow to look at.
+- **A finished frame is not shown until someone asks.**
+  `rdpq_detach_show()` puts the frame up through a deferred call that
+  libdragon only runs when code next talks to the graphics chip. Every
+  frame must end with `frame_rate_end_frame()` (it is in the `menu.c`
+  loop); without it frames that were ready on time were shown 33 ms late.
+- **Ask for exactly half the refresh rate, not "30".** NTSC refreshes
+  59.83 times a second; asking for 30 cost a 50 ms frame every six
+  seconds.
+- **The chip's real limit is about 30 ms, not 33.4.** A few milliseconds
+  between frames (sound, USB) are not in the `chip` figure.
+- **See-through fills over large areas are costly** for the chip (the
+  whole screen: about 11 ms). To darken or tint something, multiply its
+  color as it is drawn (free) and blend only what cannot be drawn that
+  way (text). Never blend the same pixels twice by accident: overlapping
+  dark boxes show.
+- **Know which of the two is slow before fixing.** `work` high: the
+  processor (text layout, card reads). `chip` high: the graphics chip
+  (blending, big pictures). A change tested while the other was the
+  bottleneck tells nothing.
+- **A fact remembered for one folder breaks when a list spans several.**
+  The save-file notes were per folder and re-read the card at every
+  crossing once the Games tab showed several folders. Check anything
+  keyed on "the current folder".
+- **Editing with a script:** when cutting a block out of a file by its
+  start and end markers, check what else sits between them. One such cut
+  took the cover slide code with it (the build caught it).
+- **A pasted log is cut at 50,000 characters.** Ask for a short one aimed
+  at the screen in question, and say so when figures did not arrive.
 - **Pictures and sounds from outside:** find the source and licence before
   committing, and record them in the folder's `CREDITS.md`. Photos and
   other people's artwork are redrawn from scratch instead.
@@ -697,8 +749,8 @@ Lessons that cost a hardware round each (do not repeat them):
     0-60 (its sliders' ranges), while the encoder and the console accept
     2-128 and 0-100; harmless, since the Maker only writes values from its
     sliders.
-  Left before publishing: the user's test of Japanese (tall) and
-  64DD-shaped cover art.
+  The user's test of Japanese (tall) and 64DD-shaped cover art passed on
+  2026-10-10. Everything below was added after that.
   - **Publishing v0.1:** release notes and player instructions are drafted
     in `docs/RELEASE_NOTES_v0.1.md` (not published). The user will publish
     only after testing fully on the 4MB Jumper Pak, the most common setup
@@ -747,6 +799,43 @@ Lessons that cost a hardware round each (do not repeat them):
     keyed by name, size and kind; a scroll step lays out one new row.
     Freed when the tab is left (`folders_ui_forget()`). Expected well
     under 29 ms at rest; not measured yet.
+  - **Save check with several game folders (done and tested 2026-10-11:
+    each saves folder is read once per visit).** The user's log showed `badges: saves
+    folder read` over and over while stepping between games from
+    different folders (each has its own `saves` folder), with lookups of
+    10-41 ms and frames of 50-72 ms: `save_exists()` in `game_facts.c`
+    kept one folder's saves and read again at every change of folder. It
+    now keeps up to 10 folders' saves in the one 512-name table (each
+    file noted as folder and name hashed together), so each saves folder
+    is read once per visit to the covers. Same log, fade-in: the start-up
+    window averages 36 ms a frame (was 55); the frames still slow there
+    are the first covers loading.
+  - **Ring waits for the cover's color (built 2026-10-12, awaiting
+    hardware test, not committed; the tested fade pass below is
+    in the same uncommitted files, so commit both once this passes).** With Tint Ring From Art on
+    Everywhere the user saw the ring in the accent color first, then
+    change to the cover's, visible during the fade-in. The ring aimed at
+    the accent whenever the selected cover's art had not arrived, so it
+    also dipped toward the accent between two covers. Now
+    `carousel_art_tint_state()` tells "no color" from "art still on its
+    way"; while it is on its way the ring keeps the color it has, and when
+    the screen has only just appeared it is not drawn for up to 400 ms
+    (`RING_WAIT_MS`), then takes its first color at once.
+  - **Fade-in, second pass (tested 2026-10-12: the log shows one slow
+    frame after start-up where there were six or more).** The 2026-10-11 log showed the fade still doubling
+    some frames with the chip at 30-33 ms (24.5 at rest): the time between
+    frames (sound, USB polling) is not in `chip`, so the real limit is
+    nearer 30 than 33.4. Now a cover that has its art is drawn already
+    darkened (`carousel_art_brightness()`, a multiply as it is drawn, no
+    extra cost; its box fill and the ring are darkened by color) and is
+    left out of the parts handed to the fade; only covers still without
+    art, the tab bar, memory badge, position bar, title panel and hints
+    are blended. Roughly 27% of the screen instead of 40-55%; worked out
+    to save about 3 ms more, not measured. While covers slide, the whole
+    row is still darkened at once. Other things read from that log:
+    saving `gameindex.txt` and `folders.ini` in the same idle frame costs
+    one frame of about 140 ms; a cover read from the card (NGUE) still
+    doubles three frames while its PNG is unpacked.
   - **Games filter (done and tested 2026-10-10):** the user's choice from earlier. `games_filter.c/.h`:
     C-up / C-down on the Games tab step through All, USA, Japan, Europe
     and 64DD, skipping any with no games; the name shows in orange at the
@@ -1474,11 +1563,27 @@ Everything else, once each
 19. The friendly crash screen has not been seen on 4MB; if anything crashes,
     note what the screen shows.
 
-Also still untested on any console: a theme with `dither = 0`, and Japanese
-(tall) and 64DD-shaped cover art.
+20. Games from several folders: add a folder, check the row, the region
+    filter (C-up / C-down) and that each `saves folder read` appears once.
+21. The idle game reader: leave the Games tab still; `game learn: N games
+    read` and no trouble while it works.
+22. The fade-in with the log open: `chip` during the fade, and whether it
+    still looks even (the 4MB console draws the same picture).
+23. The Performance Overlay on each screen; note the free memory it shows.
+24. Covers of all three shapes (US, Japanese, 64DD) and the ring round
+    them, with Tint Ring From Art on Everywhere.
+
+Also still untested on any console: a theme with `dither = 0`, and a PAL
+console (the frame cap comes out as 25 a second there).
 
 ## Release plan
-- **v0.1 usable carousel:** theme loader ✓, text colors ✓, feature toggles +
+Where it stands (2026-10-12): v0.1 is complete and waits for the 4MB test
+before it is published. Done early from later versions: v0.2's cover
+cache, slide animation, boot animation, sort options, remember-per-folder,
+Expansion Pak warnings and a first game index; v0.3's launch stats, clock
+and Recent row; v0.4's box art tinting, blurred art background, music and
+built-in themes; v0.5's wraparound scrolling.
+- **v0.1 usable carousel (all done):** theme loader ✓, text colors ✓, feature toggles +
   Expansion Pak check, safe mode + friendly crash screen, left/right browsing,
   quick launch (skip the ROM info screen), box art on covers.
   - Dev tooling: debug overlay, a hidden toggle showing frame time and free
