@@ -206,7 +206,7 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
 |---|---|---|
 | `theme/theme.ini` (or `theme.txt`) | the theme; read only | the user / Theme Maker |
 | `features.ini` | the player's On/Off choices | `menu_features.c` |
-| `options.ini` | `sort_order`, `font`, `frame_rate_experiment`, `intro`, `fade`, `intro_logo`, `theme`, `tab1`..`tab4`, `ring_tint`, `perf_overlay` | `menu_options.c` |
+| `options.ini` | `sort_order` (Type, Name A-Z, Name Z-A, Recently Played, Release Date), `font`, `frame_rate_experiment`, `intro`, `fade`, `intro_logo`, `theme`, `tab1`..`tab4`, `ring_tint`, `perf_overlay` | `menu_options.c` |
 | `folders.ini` | selected entry per folder | `folder_memory.c` |
 | `playstats.txt` | play count and last played | `play_stats.c` |
 | `gameindex.txt` | which file is which game, and its badge facts; safe to delete | `game_index.c` |
@@ -810,6 +810,28 @@ Lessons that cost a hardware round each (do not repeat them):
     is read once per visit to the covers. Same log, fade-in: the start-up
     window averages 36 ms a frame (was 55); the frames still slow there
     are the first covers loading.
+  - **Release dates in the game list, and Sort By Release Date (done and
+    tested 2026-10-12).** First piece of "game details in the index". The
+    owner's metadata pack (302 entries checked) has a release date and age
+    rating for every game, developer and publisher for 216 as "Developer |
+    Publisher" (the rest one name), and **no genre** (that would need the
+    PC prep tool or a built-in table). `game_index` keeps a 16-bit date
+    per game (`GAME_INDEX_DATE`; fits the 2 spare bytes of each note, so
+    no extra memory) and a "details looked for" flag; `gameindex.txt`
+    lines gained a sixth field and old files still load. The idle reader
+    (`game_learn.c`) reads the header for the code, then on the next frame
+    the pack's `metadata.ini` for the date (`game_index_read_date()`, one
+    line wanted, file not parsed in full; about 8 ms a game: 81 games in
+    679 ms). `SORT_RELEASE_DATE` in `sort_order.c`: oldest first, undated
+    (64DD disks, games not in the pack) last by name. The row is sorted
+    when the list loads, so dates learned afterwards apply at the next
+    load. A hack carries the original's code, so it takes the original's
+    date and sorts beside it; **the owner wants a special treatment of
+    ROM hacks later and has not decided what** (leave as is until then;
+    it belongs with v0.3's "game variants"). Not built: developer and
+    publisher (they cost memory: bring the sums first). Seen once: a
+    game list save alone took 132 ms of work (others 78-85); cause
+    unknown.
   - **Idle saves take turns (done and tested 2026-10-12).** The game
     list and the folder position both saved once the selection had rested
     3 s, often in the same frame (about 140 ms). Each idle save now asks

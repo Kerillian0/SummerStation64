@@ -199,7 +199,7 @@ static const item_t library_items[] = {
     INFO("Game Folders", games_folders_info, "Where the Games tab finds games: the start folder, plus folders added from the Folders tab (Z, \"Add this folder to Games\")."),
     ACTION("Forget Added Folders", forget_games_folders, "The Games tab goes back to showing the start folder only. No files are touched."),
     CHOICES("Sort By", OPTION_SORT_ORDER, SORT_COUNT, sort_order_name, resort_browser,
-        "Type: folders, then each kind of file. Name: folders, then everything by name. Recently Played: games you played from this folder come first."),
+        "Type: folders, then each kind of file. Name: folders, then everything by name. Recently Played: games you played from this folder come first. Release Date: oldest game first, once the menu has looked the dates up."),
     FEATURE("Hide Game Extensions", FEATURE_HIDE_EXTENSIONS, "Show games without the ending of the file name, such as .z64. Other files keep theirs."),
     FEATURE("Tidy Game Titles", FEATURE_TIDY_TITLES, "Show names like \"Legend of Zelda, The\" as \"The Legend of Zelda\", and underscores as spaces. The files are not renamed."),
     FEATURE("Hide Region Tags", FEATURE_HIDE_TAGS, "Hide the region and version tags in brackets, such as (U) (V1.2) [!]. Two versions of one game then look the same in the list."),

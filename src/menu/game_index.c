@@ -20,6 +20,7 @@
 #define FLAG_NEEDS      (1 << 1)
 #define FLAG_LIKES      (1 << 2)
 #define FLAG_SAVES      (1 << 3)
+#define FLAG_DETAILS    (1 << 4)    /* the metadata pack was asked about this game */
 
 typedef struct {
     uint32_t key;       /* made from the file's full path; 0 = empty */
@@ -27,6 +28,7 @@ typedef struct {
     char code[4];
     int8_t players;
     uint8_t flags;
+    uint16_t date;      /* release date (see GAME_INDEX_DATE), 0 if not known */
 } note_t;
 
 static note_t notes[MAX_GAMES];
@@ -74,13 +76,15 @@ static void load (void) {
             unsigned long key, size;
             char code[8];
             int players, flags;
-            if (sscanf(line, "%lx %lu %4s %d %d", &key, &size, code, &players, &flags) == 5 && key != 0 && strlen(code) == 4 && code_ok(code)) {
+            unsigned int date = 0;      /* lines saved before dates were noted have none */
+            if (sscanf(line, "%lx %lu %4s %d %d %u", &key, &size, code, &players, &flags, &date) >= 5 && key != 0 && strlen(code) == 4 && code_ok(code)) {
                 note_t *n = &notes[count++];
                 n->key = (uint32_t) key;
                 n->size = (uint32_t) size;
                 memcpy(n->code, code, 4);
                 n->players = (int8_t) players;
                 n->flags = (uint8_t) flags;
+                n->date = (uint16_t) date;
             }
         }
     }
@@ -141,6 +145,8 @@ const game_index_entry_t *game_index_find (const char *path, int64_t size) {
     answer.needs_expansion = (n->flags & FLAG_NEEDS) != 0;
     answer.likes_expansion = (n->flags & FLAG_LIKES) != 0;
     answer.saves = (n->flags & FLAG_SAVES) != 0;
+    answer.has_details = (n->flags & FLAG_DETAILS) != 0;
+    answer.date = n->date;
     return &answer;
 }
 
@@ -169,8 +175,42 @@ void game_index_set_facts (const char *path, int64_t size, const char *code, int
         n->size = (uint32_t) size;
     }
     n->players = (int8_t) players;
-    n->flags = FLAG_FACTS | (needs_expansion ? FLAG_NEEDS : 0) | (likes_expansion ? FLAG_LIKES : 0) | (saves ? FLAG_SAVES : 0);
+    n->flags = (n->flags & FLAG_DETAILS) | FLAG_FACTS | (needs_expansion ? FLAG_NEEDS : 0) | (likes_expansion ? FLAG_LIKES : 0) | (saves ? FLAG_SAVES : 0);
     dirty = true;
+}
+
+void game_index_set_details (const char *path, int64_t size, uint16_t date) {
+    note_t *n = note_for(path, size);
+    if ((n->flags & FLAG_DETAILS) && n->date == date) {
+        return;     /* nothing new */
+    }
+    n->flags |= FLAG_DETAILS;
+    n->date = date;
+    dirty = true;
+}
+
+uint16_t game_index_read_date (const char *metadata_ini) {
+    FILE *f = fopen(metadata_ini, "r");
+    if (!f) {
+        return 0;
+    }
+    /* Only one line is wanted, so the file is not parsed in full. */
+    uint16_t date = 0;
+    char line[160];
+    while (fgets(line, sizeof(line), f)) {
+        int year, month, day;
+        if (sscanf(line, " release-date = %d-%d-%d", &year, &month, &day) == 3) {
+            if (year >= 1981 && year <= 2107 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+                date = GAME_INDEX_DATE(year, month, day);
+            }
+            break;
+        }
+        if (line[0] == '[' && strncmp(line, "[meta]", 6) != 0) {
+            break;      /* past the section it lives in */
+        }
+    }
+    fclose(f);
+    return date;
 }
 
 #define ROM_HEADER_SIZE     (0x40)
@@ -231,8 +271,8 @@ void game_index_flush (void) {
         if (n->key == 0 || !code_ok(n->code)) {
             continue;
         }
-        fprintf(f, "%08lx %lu %c%c%c%c %d %d\n", (unsigned long) n->key, (unsigned long) n->size,
-            n->code[0], n->code[1], n->code[2], n->code[3], (int) n->players, (int) n->flags);
+        fprintf(f, "%08lx %lu %c%c%c%c %d %d %u\n", (unsigned long) n->key, (unsigned long) n->size,
+            n->code[0], n->code[1], n->code[2], n->code[3], (int) n->players, (int) n->flags, (unsigned int) n->date);
     }
     fclose(f);
 

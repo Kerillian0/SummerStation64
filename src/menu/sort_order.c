@@ -6,6 +6,7 @@
 #include "path.h"
 #include "sort_order.h"
 #include "games_folders.h"
+#include "game_index.h"
 
 #define NAME_LENGTH (256)
 
@@ -19,6 +20,7 @@ const char *sort_order_name (int order) {
         case SORT_NAME_AZ: return "Name A-Z";
         case SORT_NAME_ZA: return "Name Z-A";
         case SORT_RECENT_FIRST: return "Recently Played";
+        case SORT_RELEASE_DATE: return "Release Date";
         default: return "Type";
     }
 }
@@ -57,6 +59,32 @@ static int compare_recent (const void *pa, const void *pb) {
     int a = recent_rank(pa);
     int b = recent_rank(pb);
     return (a != b) ? (a - b) : compare_name_az(pa, pb);
+}
+
+/* Release dates come from the remembered game list, which is filled in
+   while the Games tab sits idle. A game not looked up yet counts as
+   unknown and goes after the dated ones. */
+static menu_t *dated_menu = NULL;
+
+static unsigned int release_date (const entry_t *e) {
+    if (e->type != ENTRY_TYPE_ROM || !dated_menu) {
+        return 0xFFFF;
+    }
+    path_t *path = path_clone_push(dated_menu->browser.directory, (char *) e->name);
+    const game_index_entry_t *known = game_index_find(path_get(path), e->size);
+    unsigned int date = (known && known->date) ? known->date : 0xFFFF;
+    path_free(path);
+    return date;
+}
+
+static int compare_release (const void *pa, const void *pb) {
+    int order = folders_first(pa, pb);
+    if (order) {
+        return order;
+    }
+    unsigned int a = release_date(pa);
+    unsigned int b = release_date(pb);
+    return (a != b) ? ((a < b) ? -1 : 1) : compare_name_az(pa, pb);
 }
 
 static void find_recent (menu_t *menu) {
@@ -98,6 +126,10 @@ void sort_order_apply (menu_t *menu, int (*stock_compare) (const void *, const v
         case SORT_RECENT_FIRST:
             find_recent(menu);
             compare = compare_recent;
+            break;
+        case SORT_RELEASE_DATE:
+            dated_menu = menu;
+            compare = compare_release;
             break;
         default:
             break;

@@ -87,8 +87,11 @@ of in one 140 ms frame). The idle game reader's frames climb from 33 to
 ## Next steps
 
 1. **Ask the owner what comes next.** They said "keep developing". On offer:
-   - game details in the index (year, genre, publisher), the next piece of
-     v0.2, which opens sorting and filtering by them and "recently added";
+   - more game details in the index: release dates are in (with Sort By
+     Release Date); developer and publisher next, after showing the owner
+     the memory cost; the metadata pack has no genre;
+   - a special treatment of ROM hacks, which the owner wants but has not
+     decided on (today a hack sorts beside its original);
    - a random game button (v0.3);
    - save backups (v0.2);
    - a swipe for the Folders tab, put off by the owner until it fits the

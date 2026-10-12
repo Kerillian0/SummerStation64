@@ -13,6 +13,7 @@ typedef enum {
     SORT_NAME_AZ,       /**< folders first, then everything by name */
     SORT_NAME_ZA,       /**< folders first, then everything by name, reversed */
     SORT_RECENT_FIRST,  /**< recently played games first, then as SORT_NAME_AZ */
+    SORT_RELEASE_DATE,  /**< games by release date, oldest first; unknown dates last, then as SORT_NAME_AZ */
     SORT_COUNT
 } sort_order_t;
 
