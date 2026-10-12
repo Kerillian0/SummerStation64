@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
@@ -21,6 +22,7 @@ const char *sort_order_name (int order) {
         case SORT_NAME_ZA: return "Name Z-A";
         case SORT_RECENT_FIRST: return "Recently Played";
         case SORT_RELEASE_DATE: return "Release Date";
+        case SORT_DEVELOPER: return "Developer";
         default: return "Type";
     }
 }
@@ -64,17 +66,23 @@ static int compare_recent (const void *pa, const void *pb) {
 /* Release dates come from the remembered game list, which is filled in
    while the Games tab sits idle. A game not looked up yet counts as
    unknown and goes after the dated ones. */
-static menu_t *dated_menu = NULL;
+static path_t *detail_directory = NULL;
+
+/* What the game list knows about an entry. The developer's name stays
+   valid afterwards; the rest only until the next question. */
+static const game_index_entry_t *known_game (path_t *directory, const entry_t *e) {
+    if (e->type != ENTRY_TYPE_ROM || !directory) {
+        return NULL;
+    }
+    path_t *path = path_clone_push(directory, (char *) e->name);
+    const game_index_entry_t *known = game_index_find(path_get(path), e->size);
+    path_free(path);
+    return known;
+}
 
 static unsigned int release_date (const entry_t *e) {
-    if (e->type != ENTRY_TYPE_ROM || !dated_menu) {
-        return 0xFFFF;
-    }
-    path_t *path = path_clone_push(dated_menu->browser.directory, (char *) e->name);
-    const game_index_entry_t *known = game_index_find(path_get(path), e->size);
-    unsigned int date = (known && known->date) ? known->date : 0xFFFF;
-    path_free(path);
-    return date;
+    const game_index_entry_t *known = known_game(detail_directory, e);
+    return (known && known->date) ? known->date : 0xFFFF;
 }
 
 static int compare_release (const void *pa, const void *pb) {
@@ -85,6 +93,48 @@ static int compare_release (const void *pa, const void *pb) {
     unsigned int a = release_date(pa);
     unsigned int b = release_date(pb);
     return (a != b) ? ((a < b) ? -1 : 1) : compare_name_az(pa, pb);
+}
+
+static const char *developer (const entry_t *e) {
+    const game_index_entry_t *known = known_game(detail_directory, e);
+    return known ? known->developer : NULL;
+}
+
+static int compare_developer (const void *pa, const void *pb) {
+    int order = folders_first(pa, pb);
+    if (order) {
+        return order;
+    }
+    const char *a = developer(pa);
+    const char *b = developer(pb);
+    if (!a || !b) {
+        if (a || b) {
+            return a ? -1 : 1;      /* games with no known developer go last */
+        }
+        return compare_name_az(pa, pb);
+    }
+    order = strcasecmp(a, b);
+    return order ? order : compare_release(pa, pb);
+}
+
+const char *sort_order_detail (path_t *directory, const entry_t *entry) {
+    static char text[20];
+    int order = options_get(OPTION_SORT_ORDER);
+    if (order != SORT_RELEASE_DATE && order != SORT_DEVELOPER) {
+        return NULL;
+    }
+    const game_index_entry_t *known = known_game(directory, entry);
+    if (!known) {
+        return NULL;
+    }
+    if (order == SORT_DEVELOPER) {
+        return known->developer;
+    }
+    if (!known->date) {
+        return NULL;
+    }
+    snprintf(text, sizeof(text), "Released %d", (int) GAME_INDEX_DATE_YEAR(known->date));
+    return text;
 }
 
 static void find_recent (menu_t *menu) {
@@ -128,8 +178,12 @@ void sort_order_apply (menu_t *menu, int (*stock_compare) (const void *, const v
             compare = compare_recent;
             break;
         case SORT_RELEASE_DATE:
-            dated_menu = menu;
+            detail_directory = menu->browser.directory;
             compare = compare_release;
+            break;
+        case SORT_DEVELOPER:
+            detail_directory = menu->browser.directory;
+            compare = compare_developer;
             break;
         default:
             break;

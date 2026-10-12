@@ -26,14 +26,16 @@ static int learned = 0;
 static int detailed = 0;          /* games whose details were looked up */
 static uint64_t time_spent_ms = 0;
 
-/* The release date from the metadata pack entry for this game code. */
-static uint16_t read_date (menu_t *menu, const char *code) {
+/* Note the details in the metadata pack entry for this game code. */
+static void learn_details (menu_t *menu, const char *file, int64_t size, const char *code) {
     char sub[48];
     snprintf(sub, sizeof(sub), "menu/metadata/%c/%c/%c/%c/metadata.ini", code[0], code[1], code[2], code[3]);
     path_t *path = path_init(menu->storage_prefix, sub);
-    uint16_t date = game_index_read_date(path_get(path));
+    uint16_t date;
+    char developer[GAME_INDEX_DEVELOPER_LENGTH];
+    game_index_read_details(path_get(path), &date, developer);
     path_free(path);
-    return date;
+    game_index_set_details(file, size, date, developer);
 }
 
 bool game_learn_busy (void) {
@@ -93,7 +95,7 @@ void game_learn_update (menu_t *menu) {
         } else {
             char code[4];
             memcpy(code, known->code, 4);
-            game_index_set_details(path_get(path), e->size, read_date(menu, code));
+            learn_details(menu, path_get(path), e->size, code);
             detailed++;
             next++;
         }

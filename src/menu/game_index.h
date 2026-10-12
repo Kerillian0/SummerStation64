@@ -29,7 +29,10 @@ typedef struct {
     bool saves;
     bool has_details;       /**< the game's details were looked for (the date may still be unknown) */
     uint16_t date;          /**< release date, 0 if not known; a later date is a larger number */
+    const char *developer;  /**< who made the game, NULL if not known; stays valid while the menu runs */
 } game_index_entry_t;
+
+#define GAME_INDEX_DEVELOPER_LENGTH (40)
 
 /** Year, month and day of a release date from the list (0 if the date is not known). */
 #define GAME_INDEX_DATE(year, month, day)   ((uint16_t) ((((year) - 1980) << 9) | ((month) << 5) | (day)))
@@ -61,15 +64,18 @@ void game_index_set_code (const char *path, int64_t size, const char *code);
 void game_index_set_facts (const char *path, int64_t size, const char *code, int players, bool needs_expansion, bool likes_expansion, bool saves);
 
 /**
- * Read a game's release date from its metadata pack entry on the card
- * (one small file, 20 ms or so). Nothing is noted.
+ * Read a game's details from its metadata pack entry on the card (one
+ * small file, 10 ms or so). Nothing is noted.
  * @param metadata_ini Full path of the entry's metadata.ini.
- * @return The date, or 0 if the file is missing or gives none.
+ * @param date Receives the release date, 0 if the file is missing or gives none.
+ * @param developer Receives who made the game ("" if not given); room for
+ *                  GAME_INDEX_DEVELOPER_LENGTH. The pack writes "Developer |
+ *                  Publisher"; the publisher is left out.
  */
-uint16_t game_index_read_date (const char *metadata_ini);
+void game_index_read_details (const char *metadata_ini, uint16_t *date, char *developer);
 
-/** Note a game's details. A date of 0 means "looked, none found". */
-void game_index_set_details (const char *path, int64_t size, uint16_t date);
+/** Note a game's details. A date of 0 or an empty developer means "looked, none found". */
+void game_index_set_details (const char *path, int64_t size, uint16_t date, const char *developer);
 
 /** Save the list to the card if anything was added since the last save. */
 void game_index_flush (void);

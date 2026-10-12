@@ -24,6 +24,7 @@
 #include "../games_filter.h"
 #include "../game_learn.h"
 #include "../sort_order.h"
+#include "../menu_options.h"
 #include "../display_name.h"
 #include "../games_ui.h"
 #include "../cover_list.h"
@@ -1281,8 +1282,11 @@ void carousel_draw (menu_t *menu) {
 
     // Title panel and position bar under the covers.
     const char *title = display_name(selected_entry);
-    games_ui_title_panel_draw(title, carousel_kind_label(selected_entry->type), game_facts_update(menu));
-    games_ui_position_draw(entry_file_name(selected_entry->name), covers->selected, covers->entries, (covers->list == menu->browser.list) ? games_filter_label() : NULL); // the file name: that is what the list is sorted by
+    // Sorted by developer or date: the line under the name starts with which, ahead of the badges.
+    const char *detail = (covers->list == menu->browser.list) ? sort_order_detail(menu->browser.directory, selected_entry) : NULL;
+    games_ui_title_panel_draw(title, carousel_kind_label(selected_entry->type), detail, game_facts_update(menu));
+    const char *letter_from = !detail ? entry_file_name(selected_entry->name) : (options_get(OPTION_SORT_ORDER) == SORT_DEVELOPER) ? detail : " "; // the letter of what the list is sorted by; none for dates
+    games_ui_position_draw(letter_from, covers->selected, covers->entries, (covers->list == menu->browser.list) ? games_filter_label() : NULL); // the file name: that is what the list is sorted by
 }
 #endif
 

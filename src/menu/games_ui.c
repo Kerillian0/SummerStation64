@@ -241,7 +241,9 @@ static void heart_draw (int x, int y) {
     rdpq_mode_pop();
 }
 
-void games_ui_title_panel_draw (const char *title, const char *detail, const game_facts_t *facts) {
+static int text_width (const char *string);    /* further down, with the hints */
+
+void games_ui_title_panel_draw (const char *title, const char *detail, const char *lead, const game_facts_t *facts) {
     const theme_t *t = theme_get();
     int x0 = GAMES_UI_CONTENT_X0;
     int x1 = GAMES_UI_CONTENT_X1;
@@ -287,31 +289,45 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const gam
     }
 
     if (!facts) {
-        text(x0 + 12, line2_y, x1 - x0 - 24, PANEL_LINE, ALIGN_LEFT, STL_GRAY, detail);
+        text(x0 + 12, line2_y, x1 - x0 - 24, PANEL_LINE, ALIGN_LEFT, STL_GRAY, lead ? lead : detail);
         return;
     }
 
     int x = x0 + 12 - BADGE_PADDING;
     int y = line2_y + (PANEL_LINE - BADGE_HEIGHT) / 2;
+    int limit = x1 - 12 + BADGE_PADDING;
 
+    /* What the row is sorted by (developer, year) comes first and always
+       shows; a badge that would run past the panel's edge is left out. */
+    #define PANEL_BADGE(label, style, boxed) \
+        if (x + text_width(label) + (BADGE_PADDING * 2) <= limit) { \
+            x = games_ui_badge(x, y, label, style, boxed); \
+        }
+
+    if (lead) {
+        x = games_ui_badge(x, y, lead, STL_DEFAULT, false);
+    }
     if (facts->players > 0) {
         char players[24];
         snprintf(players, sizeof(players), (facts->players == 1) ? "1 player" : "%d players", facts->players);
-        x = games_ui_badge(x, y, players, STL_GRAY, false);
+        PANEL_BADGE(players, STL_GRAY, false);
     }
     if (facts->needs_expansion) {
-        x = is_memory_expanded()  /* a warning only when the console has none */
-            ? games_ui_badge(x, y, "Uses Expansion Pak", STL_GREEN, true)
-            : games_ui_badge(x, y, "Needs Expansion Pak", STL_ORANGE, true);
+        if (is_memory_expanded()) {     /* a warning only when the console has none */
+            PANEL_BADGE("Uses Expansion Pak", STL_GREEN, true);
+        } else {
+            PANEL_BADGE("Needs Expansion Pak", STL_ORANGE, true);
+        }
     } else if (facts->likes_expansion) {
-        x = games_ui_badge(x, y, "Expansion Pak", STL_GREEN, true);
+        PANEL_BADGE("Expansion Pak", STL_GREEN, true);
     }
     if (facts->save_found) {
-        x = games_ui_badge(x, y, "Save found", STL_GREEN, true);
+        PANEL_BADGE("Save found", STL_GREEN, true);
     }
     if (facts->favorite && !heart) {
-        x = games_ui_badge(x, y, "Favorite", STL_YELLOW, true);
+        PANEL_BADGE("Favorite", STL_YELLOW, true);
     }
+    #undef PANEL_BADGE
 
     /* A game with nothing to flag still says what it is. */
     if (x == x0 + 12 - BADGE_PADDING) {

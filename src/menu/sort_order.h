@@ -14,6 +14,7 @@ typedef enum {
     SORT_NAME_ZA,       /**< folders first, then everything by name, reversed */
     SORT_RECENT_FIRST,  /**< recently played games first, then as SORT_NAME_AZ */
     SORT_RELEASE_DATE,  /**< games by release date, oldest first; unknown dates last, then as SORT_NAME_AZ */
+    SORT_DEVELOPER,     /**< games by who made them, each developer's by date; unknown last */
     SORT_COUNT
 } sort_order_t;
 
@@ -25,5 +26,13 @@ const char *sort_order_name (int order);
  * @param stock_compare The browser's own comparison, used for SORT_BY_TYPE.
  */
 void sort_order_apply (menu_t *menu, int (*stock_compare) (const void *, const void *));
+
+/**
+ * What the chosen order goes by for this entry, to show beside it: the
+ * developer's name, or "Released 1998". NULL when the order is by name or
+ * type, or nothing is known about the entry.
+ * @param directory The folder the entry's name is relative to.
+ */
+const char *sort_order_detail (path_t *directory, const entry_t *entry);
 
 #endif /* SORT_ORDER_H__ */

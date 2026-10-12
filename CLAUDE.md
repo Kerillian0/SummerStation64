@@ -206,7 +206,7 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
 |---|---|---|
 | `theme/theme.ini` (or `theme.txt`) | the theme; read only | the user / Theme Maker |
 | `features.ini` | the player's On/Off choices | `menu_features.c` |
-| `options.ini` | `sort_order` (Type, Name A-Z, Name Z-A, Recently Played, Release Date), `font`, `frame_rate_experiment`, `intro`, `fade`, `intro_logo`, `theme`, `tab1`..`tab4`, `ring_tint`, `perf_overlay` | `menu_options.c` |
+| `options.ini` | `sort_order` (Type, Name A-Z, Name Z-A, Recently Played, Release Date, Developer), `font`, `frame_rate_experiment`, `intro`, `fade`, `intro_logo`, `theme`, `tab1`..`tab4`, `ring_tint`, `perf_overlay` | `menu_options.c` |
 | `folders.ini` | selected entry per folder | `folder_memory.c` |
 | `playstats.txt` | play count and last played | `play_stats.c` |
 | `gameindex.txt` | which file is which game, and its badge facts; safe to delete | `game_index.c` |
@@ -530,7 +530,7 @@ Lessons that cost a hardware round each (do not repeat them):
   badge facts, noted the first time a game is seen and saved to
   `sd:/menu/gameindex.txt` (a header line, then one line per game: path
   hash, file size, code, players, flags; temp file + `safe_file_replace`).
-  Up to 768 games, 12 KB of static memory. A file is recognised by its
+  Up to 768 games, 12 KB of static memory (15 KB plus 3.5 KB of developers' names since 2026-10-12). A file is recognised by its
   full path and, when known, its size. `carousel_art.c` asks it before
   reading a ROM's header, `game_facts.c` before looking a game up; both
   note what they learn. Saved when the covers are left
@@ -810,6 +810,24 @@ Lessons that cost a hardware round each (do not repeat them):
     is read once per visit to the covers. Same log, fade-in: the start-up
     window averages 36 ms a frame (was 55); the frames still slow there
     are the first covers loading.
+  - **Developers in the game list, and Sort By Developer (done and
+    tested 2026-10-12, photo).** The owner chose developer only
+    ("people follow the devs"); publishers are not kept. Each name is kept
+    once (`maker_text`, up to 224 names in 3 KB) and a game's note holds
+    its number; notes grew from 16 to 20 bytes (15 KB for 768 games), so
+    about 6.5 KB more in all. `gameindex.txt` lines end with the
+    developer's name; `FLAG_MAKER` marks "developer looked for", and
+    `has_details` needs both flags, so a list from before is read through
+    once more. `game_index_read_details()` reads date and developer in
+    one pass (the part before `|` in the pack's `author`; no-break spaces
+    turned into spaces). `SORT_DEVELOPER`: developer A-Z, each one's
+    games oldest first, unknown last. `sort_order_detail()` gives what
+    the row is sorted by (the developer, or "Released 1998"), which
+    `games_ui_title_panel_draw()` (new `lead` argument) puts first on the
+    badge line; a badge that would pass the panel's edge is left out. The
+    position bar's letter is the developer's initial, or blank for dates.
+    First try put the detail in place of the kind-of-file text, which
+    only shows when a game has no badges, so badges hid it.
   - **Release dates in the game list, and Sort By Release Date (done and
     tested 2026-10-12).** First piece of "game details in the index". The
     owner's metadata pack (302 entries checked) has a release date and age

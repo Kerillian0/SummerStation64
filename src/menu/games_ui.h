@@ -36,7 +36,7 @@ void games_ui_topbar_draw (menu_t *menu, games_tab_t selected);
  * Dark panel with the selected entry's name. Under it: badges for a game
  * whose facts are known, otherwise the plain line of detail.
  */
-void games_ui_title_panel_draw (const char *title, const char *detail, const game_facts_t *facts);
+void games_ui_title_panel_draw (const char *title, const char *detail, const char *lead, const game_facts_t *facts);
 
 /**
  * A word in a small box, as wide as its text (`boxed` false draws the word

@@ -6,6 +6,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 #include <libdragon.h>
 
 #include "game_index.h"
@@ -14,13 +15,19 @@
 #define INDEX_PATH      "sd:/menu/gameindex.txt"
 #define INDEX_TMP_PATH  "sd:/menu/gameindex.tmp"
 #define INDEX_HEADER    "gameindex 1"
-#define MAX_GAMES       (768)       /* 12 KB of memory; the oldest notes are written over after that */
+#define MAX_GAMES       (768)       /* 15 KB of memory, plus 3.5 KB for developers' names; the oldest notes are written over after that */
 
 #define FLAG_FACTS      (1 << 0)
 #define FLAG_NEEDS      (1 << 1)
 #define FLAG_LIKES      (1 << 2)
 #define FLAG_SAVES      (1 << 3)
-#define FLAG_DETAILS    (1 << 4)    /* the metadata pack was asked about this game */
+#define FLAG_DETAILS    (1 << 4)    /* the metadata pack was asked for this game's date */
+#define FLAG_MAKER      (1 << 5)    /* ... and for its developer */
+
+/* Developers' names are kept once each; a game's note holds the number of
+   its developer. About 120 different ones in a full metadata pack. */
+#define MAX_MAKERS      (224)
+#define MAKER_TEXT      (3072)
 
 typedef struct {
     uint32_t key;       /* made from the file's full path; 0 = empty */
@@ -29,7 +36,46 @@ typedef struct {
     int8_t players;
     uint8_t flags;
     uint16_t date;      /* release date (see GAME_INDEX_DATE), 0 if not known */
+    uint8_t maker;      /* which developer (1 = the first name kept), 0 if not known */
 } note_t;
+
+static char maker_text[MAKER_TEXT];
+static uint16_t maker_at[MAX_MAKERS];
+static int maker_count = 0;
+static int maker_text_used = 0;
+
+/* The number for this developer's name, keeping the name if it is new.
+   0 if there is no name or no room left. */
+static uint8_t maker_number (const char *name) {
+    if (!name || !name[0]) {
+        return 0;
+    }
+    for (int i = 0; i < maker_count; i++) {
+        if (strcasecmp(&maker_text[maker_at[i]], name) == 0) {
+            return (uint8_t) (i + 1);
+        }
+    }
+    int length = (int) strlen(name) + 1;
+    if (maker_count >= MAX_MAKERS || maker_text_used + length > MAKER_TEXT) {
+        return 0;
+    }
+    maker_at[maker_count] = (uint16_t) maker_text_used;
+    memcpy(&maker_text[maker_text_used], name, length);
+    maker_text_used += length;
+    return (uint8_t) (++maker_count);
+}
+
+/* Spaces and line ends off both ends, in place. */
+static char *trimmed (char *text) {
+    while (*text == ' ' || *text == '\t') {
+        text++;
+    }
+    int length = (int) strlen(text);
+    while (length > 0 && (text[length - 1] == ' ' || text[length - 1] == '\t' || text[length - 1] == '\r' || text[length - 1] == '\n')) {
+        text[--length] = '\0';
+    }
+    return text;
+}
 
 static note_t notes[MAX_GAMES];
 static int count = 0;
@@ -70,14 +116,15 @@ static void load (void) {
         return;
     }
 
-    char line[64];
+    char line[128];
     if (fgets(line, sizeof(line), f) && strncmp(line, INDEX_HEADER, strlen(INDEX_HEADER)) == 0) {
         while (count < MAX_GAMES && fgets(line, sizeof(line), f)) {
             unsigned long key, size;
             char code[8];
             int players, flags;
             unsigned int date = 0;      /* lines saved before dates were noted have none */
-            if (sscanf(line, "%lx %lu %4s %d %d %u", &key, &size, code, &players, &flags, &date) >= 5 && key != 0 && strlen(code) == 4 && code_ok(code)) {
+            int used = 0;               /* the developer's name, if any, is the rest of the line */
+            if (sscanf(line, "%lx %lu %4s %d %d %u%n", &key, &size, code, &players, &flags, &date, &used) >= 5 && key != 0 && strlen(code) == 4 && code_ok(code)) {
                 note_t *n = &notes[count++];
                 n->key = (uint32_t) key;
                 n->size = (uint32_t) size;
@@ -85,6 +132,7 @@ static void load (void) {
                 n->players = (int8_t) players;
                 n->flags = (uint8_t) flags;
                 n->date = (uint16_t) date;
+                n->maker = (used > 0) ? maker_number(trimmed(line + used)) : 0;
             }
         }
     }
@@ -145,8 +193,9 @@ const game_index_entry_t *game_index_find (const char *path, int64_t size) {
     answer.needs_expansion = (n->flags & FLAG_NEEDS) != 0;
     answer.likes_expansion = (n->flags & FLAG_LIKES) != 0;
     answer.saves = (n->flags & FLAG_SAVES) != 0;
-    answer.has_details = (n->flags & FLAG_DETAILS) != 0;
+    answer.has_details = (n->flags & FLAG_DETAILS) && (n->flags & FLAG_MAKER);
     answer.date = n->date;
+    answer.developer = (n->maker > 0 && n->maker <= maker_count) ? &maker_text[maker_at[n->maker - 1]] : NULL;
     return &answer;
 }
 
@@ -175,42 +224,84 @@ void game_index_set_facts (const char *path, int64_t size, const char *code, int
         n->size = (uint32_t) size;
     }
     n->players = (int8_t) players;
-    n->flags = (n->flags & FLAG_DETAILS) | FLAG_FACTS | (needs_expansion ? FLAG_NEEDS : 0) | (likes_expansion ? FLAG_LIKES : 0) | (saves ? FLAG_SAVES : 0);
+    n->flags = (n->flags & (FLAG_DETAILS | FLAG_MAKER)) | FLAG_FACTS | (needs_expansion ? FLAG_NEEDS : 0) | (likes_expansion ? FLAG_LIKES : 0) | (saves ? FLAG_SAVES : 0);
     dirty = true;
 }
 
-void game_index_set_details (const char *path, int64_t size, uint16_t date) {
+void game_index_set_details (const char *path, int64_t size, uint16_t date, const char *developer) {
     note_t *n = note_for(path, size);
-    if ((n->flags & FLAG_DETAILS) && n->date == date) {
+    uint8_t maker = maker_number(developer);
+    uint8_t looked = FLAG_DETAILS | FLAG_MAKER;
+    if ((n->flags & looked) == looked && n->date == date && n->maker == maker) {
         return;     /* nothing new */
     }
-    n->flags |= FLAG_DETAILS;
+    n->flags |= looked;
     n->date = date;
+    n->maker = maker;
     dirty = true;
 }
 
-uint16_t game_index_read_date (const char *metadata_ini) {
+/* If the line is "key = value", the value with the spaces round it removed. */
+static char *line_value (char *line, const char *key) {
+    while (*line == ' ' || *line == '\t') {
+        line++;
+    }
+    size_t length = strlen(key);
+    if (strncmp(line, key, length) != 0) {
+        return NULL;
+    }
+    line += length;
+    while (*line == ' ' || *line == '\t') {
+        line++;
+    }
+    return (*line == '=') ? trimmed(line + 1) : NULL;
+}
+
+void game_index_read_details (const char *metadata_ini, uint16_t *date, char *developer) {
+    *date = 0;
+    developer[0] = '\0';
+
     FILE *f = fopen(metadata_ini, "r");
     if (!f) {
-        return 0;
+        return;
     }
-    /* Only one line is wanted, so the file is not parsed in full. */
-    uint16_t date = 0;
+    /* Only two lines are wanted, so the file is not parsed in full. */
+    bool have_date = false;
+    bool have_developer = false;
     char line[160];
-    while (fgets(line, sizeof(line), f)) {
-        int year, month, day;
-        if (sscanf(line, " release-date = %d-%d-%d", &year, &month, &day) == 3) {
-            if (year >= 1981 && year <= 2107 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-                date = GAME_INDEX_DATE(year, month, day);
+    while (!(have_date && have_developer) && fgets(line, sizeof(line), f)) {
+        char *value;
+        if ((value = line_value(line, "release-date"))) {
+            int year, month, day;
+            if (sscanf(value, "%d-%d-%d", &year, &month, &day) == 3 &&
+                year >= 1981 && year <= 2107 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+                *date = GAME_INDEX_DATE(year, month, day);
             }
-            break;
-        }
-        if (line[0] == '[' && strncmp(line, "[meta]", 6) != 0) {
-            break;      /* past the section it lives in */
+            have_date = true;
+        } else if ((value = line_value(line, "author"))) {
+            /* "Developer | Publisher": keep the developer. */
+            char *bar = strchr(value, '|');
+            if (bar) {
+                *bar = '\0';
+            }
+            int length = 0;
+            for (unsigned char *ch = (unsigned char *) value; *ch && length < GAME_INDEX_DEVELOPER_LENGTH - 1; ch++) {
+                if (ch[0] == 0xC2 && ch[1] == 0xA0) {   /* a no-break space, which some entries use */
+                    developer[length++] = ' ';
+                    ch++;
+                } else {
+                    developer[length++] = (char) *ch;
+                }
+            }
+            developer[length] = '\0';
+            char *tidy = trimmed(developer);
+            memmove(developer, tidy, strlen(tidy) + 1);
+            have_developer = true;
+        } else if (line[0] == '[' && strncmp(line, "[meta]", 6) != 0) {
+            break;      /* past the section they live in */
         }
     }
     fclose(f);
-    return date;
 }
 
 #define ROM_HEADER_SIZE     (0x40)
@@ -271,8 +362,12 @@ void game_index_flush (void) {
         if (n->key == 0 || !code_ok(n->code)) {
             continue;
         }
-        fprintf(f, "%08lx %lu %c%c%c%c %d %d %u\n", (unsigned long) n->key, (unsigned long) n->size,
+        fprintf(f, "%08lx %lu %c%c%c%c %d %d %u", (unsigned long) n->key, (unsigned long) n->size,
             n->code[0], n->code[1], n->code[2], n->code[3], (int) n->players, (int) n->flags, (unsigned int) n->date);
+        if (n->maker > 0 && n->maker <= maker_count) {
+            fprintf(f, " %s", &maker_text[maker_at[n->maker - 1]]);
+        }
+        fprintf(f, "\n");
     }
     fclose(f);
 
