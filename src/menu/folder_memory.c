@@ -141,7 +141,7 @@ void folder_memory_update (menu_t *menu) {
         moved_at = get_ticks_ms();
     }
 
-    if (dirty && (get_ticks_ms() - moved_at) >= IDLE_SAVE_MS) {
+    if (dirty && (get_ticks_ms() - moved_at) >= IDLE_SAVE_MS && safe_file_idle_turn()) {  // one idle save at a time
         folder_memory_flush();
     }
 }

@@ -810,6 +810,18 @@ Lessons that cost a hardware round each (do not repeat them):
     is read once per visit to the covers. Same log, fade-in: the start-up
     window averages 36 ms a frame (was 55); the frames still slow there
     are the first covers loading.
+  - **Idle saves take turns (done and tested 2026-10-12).** The game
+    list and the folder position both saved once the selection had rested
+    3 s, often in the same frame (about 140 ms). Each idle save now asks
+    `safe_file_idle_turn()` (`safe_file.c`) first: one gets the turn and
+    the next waits a second. The idle reader no longer saves the list
+    itself; the covers' idle save does (`game_index_changed()`). Saves on
+    leaving a screen do not ask. Measured: `folders.ini` 72-73 ms of work,
+    then `gameindex.txt` 78-80 ms a second later, three times running.
+    Also seen, not looked into: while the idle reader works, each frame's
+    work climbs from 33 to 39 ms (it already remembers its place in the
+    list, so that is not the cause); time it before changing anything.
+    64DD disks get no badge lookup and so add nothing to the list.
   - **Ring waits for the cover's color (done and tested 2026-10-12).** With Tint Ring From Art on
     Everywhere the user saw the ring in the accent color first, then
     change to the cover's, visible during the fade-in. The ring aimed at

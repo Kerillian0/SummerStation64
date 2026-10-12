@@ -75,6 +75,7 @@ void game_learn_update (menu_t *menu) {
     busy = false;
     if (learned > 0) {
         debugf("game learn: %d games read in %d ms\n", learned, (int) time_spent_ms);
-        game_index_flush();
+        /* Saved by the covers' idle save (carousel_art.c), which takes
+           turns with the other idle saves. */
     }
 }

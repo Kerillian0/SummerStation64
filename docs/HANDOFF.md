@@ -80,8 +80,9 @@ saving has **not been measured** (the owner's log was cut short).
 
 What is still slow, all one frame each: a cover read from the card (about
 50 ms, then three while its PNG unpacks); saving a settings file (70-80
-ms); saving the game list and the folder position in the same idle frame
-(about 140 ms).
+ms; the game list and the folder position now save a second apart instead
+of in one 140 ms frame). The idle game reader's frames climb from 33 to
+39 ms of work as it goes; cause not found.
 
 ## Next steps
 
@@ -90,7 +91,6 @@ ms); saving the game list and the folder position in the same idle frame
      v0.2, which opens sorting and filtering by them and "recently added";
    - a random game button (v0.3);
    - save backups (v0.2);
-   - staggering the two idle saves (the 140 ms frame);
    - a swipe for the Folders tab, put off by the owner until it fits the
      memory budget (sliding only what is below the tab bar needs none);
    - bringing the Theme Maker up to date.

@@ -209,6 +209,10 @@ bool game_index_read_header (const char *path, char *code, char *title) {
     return true;
 }
 
+bool game_index_changed (void) {
+    return dirty;
+}
+
 /* Written to a temporary file first, so a power cut can't leave half a file. */
 void game_index_flush (void) {
     if (!dirty) {

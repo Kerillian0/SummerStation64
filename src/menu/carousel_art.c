@@ -11,6 +11,7 @@
 #include "cover_list.h"
 #include "menu_features.h"
 #include "path.h"
+#include "safe_file.h"
 #include "ui_components.h"
 
 /* How long the selection must rest before any art is loaded. */
@@ -398,7 +399,8 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
 
     /* Also saved once the selection has rested a while, in case the console
        is switched off without leaving this screen. */
-    if ((now - changed_at) >= INDEX_SAVE_REST_MS && !game_learn_busy()) { // the reader saves once it has finished
+    if ((now - changed_at) >= INDEX_SAVE_REST_MS && !game_learn_busy()    // the reader's games are saved with the rest, once it has finished
+        && game_index_changed() && safe_file_idle_turn()) {                // one idle save at a time
         game_index_flush();
     }
 }

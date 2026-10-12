@@ -55,4 +55,7 @@ void game_index_set_facts (const char *path, int64_t size, const char *code, int
 /** Save the list to the card if anything was added since the last save. */
 void game_index_flush (void);
 
+/** True if something was added since the last save. */
+bool game_index_changed (void);
+
 #endif /* GAME_INDEX_H__ */
