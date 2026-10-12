@@ -95,10 +95,10 @@ ms); saving the game list and the folder position in the same idle frame
      memory budget (sliding only what is below the tab bar needs none);
    - bringing the Theme Maker up to date.
 2. **Push the fork when asked.**
-4. **When the Jumper Pak arrives:** give the owner the "4MB test checklist"
+3. **When the Jumper Pak arrives:** give the owner the "4MB test checklist"
    from `CLAUDE.md` (24 steps). Every 4MB figure so far is worked out from
    8MB runs.
-5. **Publishing v0.1, after that test and only when the owner says:** make
+4. **Publishing v0.1, after that test and only when the owner says:** make
    a clean build without baked art (move `filesystem/art/` aside, delete
    `build/N64FlashcartMenu.dfs`, `make sc64 MENU_VERSION="SummerStation64
    v0.1"`), then rebuild the owner's own copy with the art. The owner
