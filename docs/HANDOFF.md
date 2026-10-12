@@ -31,16 +31,12 @@ the Theme Maker's share codes). Run them after touching either.
 
 ## Where it stands
 
-- Branch `carousel-ui`, 96 commits ahead of upstream `main` (about 13,600
-  lines added across 130 files, most of them in new files).
-- **The fork was last pushed 2026-10-10** (`3f59669a`, the region filter).
-  **Six commits are local only**, from the draft release notes
-  (`196ec325`) to the one that adds this file; `git log
-  fork/carousel-ui..carousel-ui` lists them. Push only when asked.
-- **Uncommitted, in `browser.c` and `carousel_art.c/.h`:**
-  - the fade-in's second pass: tested, the log shows it working;
-  - the ring waiting for a cover's color: built, **not tested yet**.
-  They share files, so commit both once the owner passes the ring.
+- Branch `carousel-ui`, about 97 commits ahead of upstream `main` (about
+  13,600 lines added across 130 files, most of them in new files).
+- **The fork was last pushed 2026-10-12**, with everything up to the ring
+  waiting for a cover's color. Nothing is uncommitted. `git log
+  fork/carousel-ui..carousel-ui` lists anything added since. Push only
+  when asked.
 - **v0.1 is complete but not published.** The owner will publish only after
   a full test on the 4MB Jumper Pak, the most common setup; it had not
   arrived on 2026-10-12. The draft notes for players are
@@ -89,10 +85,7 @@ ms); saving the game list and the folder position in the same idle frame
 
 ## Next steps
 
-1. **Get the ring change tested**, then commit it together with the fade's
-   second pass. Checks: no flash of the theme color at start-up or between
-   covers; the cover slide and tab slide unchanged.
-2. **Ask the owner what comes next.** They said "keep developing". On offer:
+1. **Ask the owner what comes next.** They said "keep developing". On offer:
    - game details in the index (year, genre, publisher), the next piece of
      v0.2, which opens sorting and filtering by them and "recently added";
    - a random game button (v0.3);
@@ -101,7 +94,7 @@ ms); saving the game list and the folder position in the same idle frame
    - a swipe for the Folders tab, put off by the owner until it fits the
      memory budget (sliding only what is below the tab bar needs none);
    - bringing the Theme Maker up to date.
-3. **Push the fork when asked.**
+2. **Push the fork when asked.**
 4. **When the Jumper Pak arrives:** give the owner the "4MB test checklist"
    from `CLAUDE.md` (24 steps). Every 4MB figure so far is worked out from
    8MB runs.

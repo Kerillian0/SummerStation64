@@ -932,6 +932,16 @@ static int drawn_count = 0;
 static carousel_box_t drawn_center;     // the ring and the cover inside it
 static bool drawn_moving = false;       // covers are sliding: their places overlap the ring's
 
+// The fade-in's darkness for the next carousel_draw() only (0 = none). Covers
+// that have their art are then drawn darkened, which is free, and left out of
+// the places handed to the fade; only covers still without art, and their
+// text, are darkened the costly way.
+static int carousel_dark = 0;
+
+static color_t carousel_dimmed (color_t c, int bright) {
+    return RGBA32(c.r * bright / 255, c.g * bright / 255, c.b * bright / 255, c.a);
+}
+
 static void carousel_box_add (carousel_box_t *box, int x0, int y0, int x1, int y1) {
     if (x0 < box->x0) box->x0 = x0;
     if (y0 < box->y0) box->y0 = y0;
@@ -994,26 +1004,53 @@ static void carousel_ring_size (menu_t *menu, int selected, int *w, int *h) {
 
 #define RING_FADE_MS    (250)   // how long the ring takes to change to a new cover's color
 
+#define RING_WAIT_MS    (400)   // how long the ring waits for a cover's color before settling for the accent
+
 // The ring's color: the selected cover's own color when Tint Ring From Art is
 // Everywhere, else the accent color; it fades from one to the next instead
-// of jumping.
-static color_t carousel_ring_color (menu_t *menu, int selected, color_t accent) {
+// of jumping. While a cover's art is still on its way the ring keeps the
+// color it has (so it does not flash the accent color between two covers),
+// and when the screen has only just appeared it is not drawn at all for a
+// moment (`*hide`), so it does not show the accent first and then change.
+static color_t carousel_ring_color (menu_t *menu, int selected, color_t accent, bool *hide) {
     static float r = -1.0f, g, b;
     static uint64_t last_ms = 0;
+    static uint64_t appeared_ms = 0;
+    static bool settled = false;    // the ring has had a real color since the screen appeared
     uint64_t now = get_ticks_ms();
+    *hide = false;
+
+    if (r < 0.0f || (now - last_ms) > 500) {
+        appeared_ms = now;          // first frame on this screen
+        settled = false;
+    }
 
     color_t target = accent;
-    if (art_tint_on_covers()) {
-        carousel_art_tint(menu, selected, &target);
+    art_tint_state_t state = art_tint_on_covers() ? carousel_art_tint_state(menu, selected, &target) : ART_TINT_NONE;
+    if (state == ART_TINT_PENDING && (now - appeared_ms) < RING_WAIT_MS * (settled ? 4 : 1)) {
+        last_ms = now;
+        if (!settled) {
+            *hide = true;           // nothing to show yet
+            return accent;
+        }
+        return RGBA32((int) r, (int) g, (int) b, 0xFF);    // keep the color it has
     }
-    if (r < 0.0f || (now - last_ms) > 500) {
-        r = target.r; g = target.g; b = target.b; // first frame on this screen: no fade
+    if (state == ART_TINT_PENDING) {
+        target = accent;            // waited long enough
+    }
+
+    if (!settled) {
+        r = target.r; g = target.g; b = target.b;   // its first color: no fade
+        settled = true;
     } else {
         float step = (float) (now - last_ms) / RING_FADE_MS;
         if (step > 1.0f) step = 1.0f;
         r = carousel_lerp(r, target.r, step);
         g = carousel_lerp(g, target.g, step);
         b = carousel_lerp(b, target.b, step);
+    }
+    if (state != ART_TINT_PENDING) {
+        appeared_ms = now;          // the wait for the next cover's color starts from the last one known
     }
     last_ms = now;
     return RGBA32((int) r, (int) g, (int) b, 0xFF);
@@ -1095,6 +1132,10 @@ void carousel_draw (menu_t *menu) {
 
     const float slide = carousel_slide(menu);
     const int tab_shift = (int) (tabs_slide() * CAROUSEL_TAB_SLIDE_PX); // just switched tab: the whole row comes in from the side
+    drawn_moving = (slide != 0.0f) || (tab_shift != 0);
+    const int bright = drawn_moving ? 255 : (255 - carousel_dark); // while covers slide, the fade darkens the whole row at once
+    carousel_dark = 0;
+    bool center_dimmed = false;
     const int first = CAROUSEL_CENTER_W / 2 + CAROUSEL_GAP + CAROUSEL_SIDE_W / 2;
     const int step = CAROUSEL_SIDE_W + CAROUSEL_GAP;
 
@@ -1146,31 +1187,45 @@ void carousel_draw (menu_t *menu) {
             if (x0 < 0 || (x0 + w) > screen_w) {
                 continue; // still off the edge of the screen
             }
-            if (offset == 0) {
+            // During the fade-in a cover with its art is drawn already
+            // darkened; one without (text on a plain box) is handed to the
+            // fade to darken afterwards.
+            float has_art_shape;
+            bool dim_here = (bright < 255) && carousel_art_aspect(menu, i, &has_art_shape)
+                && !(resting_center && carousel_art_flip_width() < 1.0f);
+            int cover_bright = dim_here ? bright : 255;
+            color_t panel = carousel_dimmed(t->panel, cover_bright);
+            if (dim_here) {
+                if (offset == 0) center_dimmed = true;
+            } else if (offset == 0) {
                 carousel_box_add(&drawn_center, x0, y0, x0 + w, y0 + h);
             } else if (drawn_count < 8) {
                 drawn_covers[drawn_count++] = (carousel_box_t) { x0, y0, x0 + w, y0 + h };
             }
+            carousel_art_brightness(cover_bright);
 
             if (alpha >= 255.0f) {
                 // While the box turns over, the cover is squashed sideways.
                 int fw = resting_center ? (int) (w * carousel_art_flip_width()) : w;
                 int fx0 = x0 + (w - fw) / 2;
-                rdpq_set_mode_fill(t->panel);
+                rdpq_set_mode_fill(panel);
                 rdpq_fill_rectangle(fx0, y0, fx0 + fw, y0 + h);
                 if (carousel_art_draw(menu, i, fx0, y0, fw, h, 255, resting_center)) {
+                    carousel_art_brightness(255);
                     continue; // box art replaces the placeholder text
                 }
             } else {
                 rdpq_set_mode_standard();
-                rdpq_set_prim_color(RGBA32(t->panel.r, t->panel.g, t->panel.b, (int) alpha));
+                rdpq_set_prim_color(RGBA32(panel.r, panel.g, panel.b, (int) alpha));
                 rdpq_mode_combiner(RDPQ_COMBINER_FLAT);
                 rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
                 rdpq_fill_rectangle(x0, y0, x0 + w, y0 + h);
                 if (carousel_art_draw(menu, i, x0, y0, w, h, (int) alpha, false)) {
+                    carousel_art_brightness(255);
                     continue; // box art replaces the placeholder text
                 }
             }
+            carousel_art_brightness(255);
 
             // Text can't fade, so a cover that is fading out loses its text early.
             if (!side_covers && away >= 0.5f) {
@@ -1198,13 +1253,18 @@ void carousel_draw (menu_t *menu) {
     // box and a tall one.
     int ring_w, ring_h;
     carousel_ring_size(menu, covers->selected, &ring_w, &ring_h);
-    carousel_ring(
-        cx - ring_w / 2 - 5, CAROUSEL_CENTER_Y - ring_h / 2 - 5,
-        cx + ring_w / 2 + 5, CAROUSEL_CENTER_Y + ring_h / 2 + 5,
-        3, carousel_ring_color(menu, covers->selected, t->accent)
-    );
-    carousel_box_add(&drawn_center, cx - ring_w / 2 - 5, CAROUSEL_CENTER_Y - ring_h / 2 - 5, cx + ring_w / 2 + 5, CAROUSEL_CENTER_Y + ring_h / 2 + 5);
-    drawn_moving = (slide != 0.0f) || (tab_shift != 0);
+    bool ring_hidden;
+    color_t ring_color = carousel_ring_color(menu, covers->selected, t->accent, &ring_hidden);
+    if (!ring_hidden) {
+        carousel_ring(
+            cx - ring_w / 2 - 5, CAROUSEL_CENTER_Y - ring_h / 2 - 5,
+            cx + ring_w / 2 + 5, CAROUSEL_CENTER_Y + ring_h / 2 + 5,
+            3, carousel_dimmed(ring_color, center_dimmed ? bright : 255)
+        );
+    }
+    if (!center_dimmed) {
+        carousel_box_add(&drawn_center, cx - ring_w / 2 - 5, CAROUSEL_CENTER_Y - ring_h / 2 - 5, cx + ring_w / 2 + 5, CAROUSEL_CENTER_Y + ring_h / 2 + 5);
+    }
 
     // Safe mode reminder, centered between the tabs and the cover.
     if (safe_mode_active()) {
@@ -1290,6 +1350,7 @@ static void draw (menu_t *menu, surface_t *d) {
     }
     if (fade_parts) {
         games_ui_fade_rects(theme_background_draw_part, true); // not darkened twice where things sit straight on it
+        carousel_dark = fade_dark; // covers with art are drawn darkened instead
     }
 
 #if BROWSER_CAROUSEL

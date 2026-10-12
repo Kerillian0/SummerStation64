@@ -42,6 +42,14 @@ void carousel_art_update (menu_t *menu, bool side_covers);
  */
 bool carousel_art_tint (menu_t *menu, int index, color_t *out);
 
+/** The same, telling "no color in this cover" from "its art is still on the way". */
+typedef enum {
+    ART_TINT_PENDING,   /**< the art has not arrived yet: the color is not known */
+    ART_TINT_NONE,      /**< no art, or no strong color in it: use the accent color */
+    ART_TINT_KNOWN,     /**< `out` holds the color */
+} art_tint_state_t;
+art_tint_state_t carousel_art_tint_state (menu_t *menu, int index, color_t *out);
+
 /**
  * The shape of entry `index`'s art (width divided by height), once it has
  * arrived: Japanese boxes are tall, US and European ones wide. The cover is
@@ -49,6 +57,13 @@ bool carousel_art_tint (menu_t *menu, int index, color_t *out);
  * @return false if there is no art (yet): use the usual shape.
  */
 bool carousel_art_aspect (menu_t *menu, int index, float *aspect);
+
+/**
+ * How bright the art is drawn from now on: 255 as it is, lower is darker.
+ * For the fade-in, which darkens covers this way instead of laying
+ * see-through black over them. Set it back to 255 afterwards.
+ */
+void carousel_art_brightness (int bright);
 
 bool carousel_art_draw (menu_t *menu, int index, int x0, int y0, int w, int h, int alpha, bool center);
 

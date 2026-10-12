@@ -810,9 +810,7 @@ Lessons that cost a hardware round each (do not repeat them):
     is read once per visit to the covers. Same log, fade-in: the start-up
     window averages 36 ms a frame (was 55); the frames still slow there
     are the first covers loading.
-  - **Ring waits for the cover's color (built 2026-10-12, awaiting
-    hardware test, not committed; the tested fade pass below is
-    in the same uncommitted files, so commit both once this passes).** With Tint Ring From Art on
+  - **Ring waits for the cover's color (done and tested 2026-10-12).** With Tint Ring From Art on
     Everywhere the user saw the ring in the accent color first, then
     change to the cover's, visible during the fade-in. The ring aimed at
     the accent whenever the selected cover's art had not arrived, so it

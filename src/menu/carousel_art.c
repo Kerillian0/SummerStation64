@@ -413,18 +413,31 @@ bool carousel_art_aspect (menu_t *menu, int index, float *aspect) {
 }
 
 bool carousel_art_tint (menu_t *menu, int index, color_t *out) {
+    return carousel_art_tint_state(menu, index, out) == ART_TINT_KNOWN;
+}
+
+art_tint_state_t carousel_art_tint_state (menu_t *menu, int index, color_t *out) {
     slot_t *slot = slot_find(menu, index);
-    if (!slot || !slot->art || slot->art->loading || !slot->art->image) {
-        return false;
+    if (!slot || slot->card_pending || (slot->art && slot->art->loading)) {
+        return ART_TINT_PENDING;    /* its art has not arrived yet */
+    }
+    if (!slot->art || !slot->art->image) {
+        return ART_TINT_NONE;       /* it has no art */
     }
     if (slot->tint_state == 0) {
         slot->tint_state = art_tint_from(slot->art->image, &slot->tint) ? 2 : 1;
     }
     if (slot->tint_state != 2) {
-        return false;
+        return ART_TINT_NONE;
     }
     *out = slot->tint;
-    return true;
+    return ART_TINT_KNOWN;
+}
+
+static int art_bright = 255;
+
+void carousel_art_brightness (int bright) {
+    art_bright = (bright < 0) ? 0 : ((bright > 255) ? 255 : bright);
 }
 
 bool carousel_art_draw (menu_t *menu, int index, int x0, int y0, int w, int h, int alpha, bool center) {
@@ -459,11 +472,15 @@ bool carousel_art_draw (menu_t *menu, int index, int x0, int y0, int w, int h, i
     rdpq_mode_push();
         rdpq_set_mode_standard();
         rdpq_mode_filter(FILTER_BILINEAR);
-        if (alpha >= 255) {
+        if (alpha >= 255 && art_bright >= 255) {
             rdpq_mode_combiner(RDPQ_COMBINER_TEX);
+        } else if (alpha >= 255) {
+            /* Darkened as it is drawn (the fade-in): costs the chip nothing extra. */
+            rdpq_set_prim_color(RGBA32(art_bright, art_bright, art_bright, 0xFF));
+            rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);
         } else {
             /* See-through, like the placeholder covers at the sides. */
-            rdpq_set_prim_color(RGBA32(0xFF, 0xFF, 0xFF, alpha));
+            rdpq_set_prim_color(RGBA32(art_bright, art_bright, art_bright, alpha));
             rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);
             rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
         }
