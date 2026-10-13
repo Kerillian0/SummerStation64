@@ -33,8 +33,8 @@ the Theme Maker's share codes). Run them after touching either.
 
 - Branch `carousel-ui`, about 97 commits ahead of upstream `main` (about
   13,600 lines added across 130 files, most of them in new files).
-- **The fork was last pushed 2026-10-12**, with everything up to the ring
-  waiting for a cover's color. Nothing is uncommitted. `git log
+- **The fork was last pushed 2026-10-13**, with everything up to the Theme
+  Maker's version 8. Nothing is uncommitted. `git log
   fork/carousel-ui..carousel-ui` lists anything added since. Push only
   when asked.
 - **v0.1 is complete but not published.** The owner will publish only after
