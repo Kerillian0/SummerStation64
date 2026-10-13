@@ -95,8 +95,9 @@ of in one 140 ms frame). The idle game reader's frames climb from 33 to
    - a random game button (v0.3);
    - save backups (v0.2);
    - the Folders tab is the slowest screen: work 27 ms, chip 29 ms at
-     rest, at the chip's limit (its list now slides in on a tab switch;
-     sliding the title panel with the covers was offered, not asked for);
+     rest, at the chip's limit. **Left on purpose:** the owner finds it
+     fine to browse and wants speed items like this kept for one final
+     optimization run before v1.0 (listed in CLAUDE.md's release plan);
    - bringing the Theme Maker up to date.
 2. **Push the fork when asked.**
 3. **When the Jumper Pak arrives:** give the owner the "4MB test checklist"

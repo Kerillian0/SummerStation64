@@ -826,7 +826,9 @@ Lessons that cost a hardware round each (do not repeat them):
     tab sits right at the chip's 30 ms limit: one resting frame doubled
     (62 ms) with ordinary work. What costs it is still to be found
     (drawing 31 pieces of text, most likely); time it before changing
-    anything. Also seen: one `folders.ini` save of 121 ms (usually 72).
+    anything. **The owner's decision (2026-10-13): it feels fine to
+    browse, so leave it; it goes on the list for a final optimization
+    run before v1.0** (see the release plan). Also seen: one `folders.ini` save of 121 ms (usually 72).
   - **Developers in the game list, and Sort By Developer (done and
     tested 2026-10-12, photo).** The owner chose developer only
     ("people follow the devs"); publishers are not kept. Each name is kept
@@ -1733,6 +1735,14 @@ built-in themes; v0.5's wraparound scrolling.
   fallback), save-file achievements, PNG backgrounds, cover grid layout.
   - Manual viewer: browse pre-converted manual page images one at a time.
     Must fit in 4MB (load one page at a time).
+- **Before v1.0: a final optimization run** (the owner's plan,
+  2026-10-13). Speed matters that feel fine today are collected here
+  instead of being chased one by one:
+  - the Folders tab at rest (work 27 ms, chip 29 ms, at the chip's limit);
+  - the idle game reader's frames climbing from 33 to 39 ms as it goes;
+  - single slow frames on saving (70-90 ms, with odd ones of 120-130);
+  - a cover read from the card doubling three frames while it unpacks.
+  Measure each first.
 - **After that: Analogue 3D support.** A new phase once v0.5 and the "Later"
   items are done. Do not start it before the native N64 menu is finished.
   - Detect when running on an Analogue 3D.
