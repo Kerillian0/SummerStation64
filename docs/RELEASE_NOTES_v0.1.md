@@ -59,10 +59,10 @@ stock `sc64menu.n64` somewhere safe so you can go back.
 - Names tidied for display: no file endings, "Legend of Zelda, The" shown
   as "The Legend of Zelda". Your files are never renamed.
 - Play counts and "last played".
-- **Save backups:** each time you start a game, the menu keeps a copy of
-  its save from before, in a `backups` folder beside the save. The last
-  three are kept (`Game.1.sav` is the newest). To go back to one, copy it
-  over the save with a computer.
+- **Save backups:** each time you start a game, the menu keeps its save
+  from before, by date. Up to five per game, never the same one twice.
+  To go back to one, open the game's Options and choose **Restore save**;
+  the save you have is kept too, so you can change your mind.
 - Settings are saved safely, so switching off at the wrong moment can't
   leave a broken settings file.
 - **Safe mode:** hold **Z** while switching on to start without your
@@ -176,8 +176,7 @@ yet (the Ocean background, built-in themes).
     hasn't been tried on real hardware yet.
   - PAL consoles haven't been tried.
 - Saving settings can cause one short pause.
-- Save backups can't be restored from the menu yet, and 64DD disks are
-  not backed up.
+- Saves of 64DD disks are not backed up.
 - Other flashcarts (64drive, ED64) are not supported by this fork.
 
 ## Credits and licence

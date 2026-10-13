@@ -479,6 +479,11 @@ static component_context_menu_t set_clear_rdram_options_menu = {
     COMPONENT_CONTEXT_MENU_LIST_END,
 }};
 
+static component_context_menu_t restore_save_context_menu = { .list = { // filled in by save_backup_menu_fill(): the kept saves by date
+    { .text = "" }, { .text = "" }, { .text = "" }, { .text = "" }, { .text = "" }, // SAVE_BACKUPS_KEPT rows
+    COMPONENT_CONTEXT_MENU_LIST_END,
+}};
+
 static component_context_menu_t options_context_menu = { .list = {
     { .text = "Set CIC Type", .submenu = &set_cic_type_context_menu },
     { .text = "Set Save Type", .submenu = &set_save_type_context_menu },
@@ -492,6 +497,7 @@ static component_context_menu_t options_context_menu = { .list = {
     { .text = "Use Patches", .submenu = &set_patcher_options_menu },
 #endif
     { .text = "Clear RDRAM on boot", .submenu = &set_clear_rdram_options_menu },
+    { .text = "Restore save", .submenu = &restore_save_context_menu },
     { .text = "Add to favorites", .action = add_favorite },
     { .text = "Show/hide real file name", .action = display_name_toggle_real },
     COMPONENT_CONTEXT_MENU_LIST_END,
@@ -564,6 +570,9 @@ static void process (menu_t *menu) {
     if (ui_components_context_menu_process(menu, &options_context_menu)) {
         return;
     }
+    if (save_backup_prompt_process(menu)) { // "Go back to the save from ...?" is up
+        return;
+    }
 
     if (show_expansion_pak_warning) {
         if (menu->actions.enter) {
@@ -593,6 +602,7 @@ static void process (menu_t *menu) {
         sound_play_effect(SFX_EXIT);
         menu->next_mode = games_ui_origin(); // back to the tab this was opened from
     } else if (menu->actions.options) {
+        save_backup_menu_fill(menu, &restore_save_context_menu); // the dates under "Restore save"
         ui_components_context_menu_show(&options_context_menu);
         sound_play_effect(SFX_SETTING);
     } else if (menu->actions.settings) { // START: details. One pop-up now; it was two, on L and on START.
@@ -748,6 +758,7 @@ static void draw (menu_t *menu, surface_t *d) {
             );
         }
 
+        save_backup_prompt_draw(); // restoring a save: the question, or how it went
         ui_components_context_menu_draw(&options_context_menu);
 #ifdef FEATURE_AUTOLOAD_ROM_ENABLED
     }

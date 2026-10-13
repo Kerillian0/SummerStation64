@@ -87,8 +87,6 @@ of in one 140 ms frame). The idle game reader's frames climb from 33 to
 ## Next steps
 
 1. **Ask the owner what comes next.** They said "keep developing". On offer:
-   - a "Restore save" choice on the game's Options menu, to go with the
-     save backups (built 2026-10-13: three copies kept beside each save);
    - more game details in the index: release dates and developers are in
      (Sort By Release Date / Developer); the owner dropped publishers;
      the metadata pack has no genre, so that needs another source;

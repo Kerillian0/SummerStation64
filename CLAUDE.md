@@ -810,22 +810,40 @@ Lessons that cost a hardware round each (do not repeat them):
     is read once per visit to the covers. Same log, fade-in: the start-up
     window averages 36 ms a frame (was 55); the frames still slow there
     are the first covers loading.
-  - **Save backups (done and tested 2026-10-13).** `save_backup.c/.h`,
-    one hook line at the top of `load()` in `load_rom.c`. Just before a
-    game starts, its save as it stands is copied to a `backups` folder
-    beside it as `Game.1.sav`; the last three are kept (1 newest, moved
-    up by renaming). Nothing is copied when the save is the same as copy
-    1 or blank (every byte alike), so a launch with nothing new writes
-    nothing. The copy goes to a `.tmp` name first. Two static 4 KB
-    buffers, no other memory. Feature `save_backups` (default on, "Back
-    Up Saves" in Settings > Library, which now has nine rows and
-    scrolls). Measured at launch: a 128 KB flash save (Majora's Mask)
-    890 ms, a 32 KB one about 300 ms, a small EEPROM one 203 ms, and the
-    "has it changed" check alone 95 ms. Not covered: 64DD disks.
-    **Not built: restoring from the menu** (a "Restore save" choice on
-    the game's Options menu is the planned next step; until then a
-    backup is copied back with a PC). The logic was run on the PC first
-    with stand-in file functions (eight cases).
+  - **Save backups (done and tested 2026-10-13; second design).**
+    `save_backup.c/.h`. Just before a game starts (one hook line at the
+    top of `load()` in `load_rom.c`) its save as it stands is copied to
+    `saves/backups/<game>/` as `20261013-143500.89abcdef.sav`: the date
+    and time the game was last started (from `play_stats`; the session
+    that save comes from; the clock's time now if not known) and a check
+    number of its contents. Up to five per game (`SAVE_BACKUPS_KEPT`),
+    oldest out. **Never the same save twice:** a save whose check number
+    is already among the names is not copied, and a blank save (every
+    byte alike) never is. Copied under a working name first. One static
+    4 KB buffer. Feature `save_backups` (default on, "Back Up Saves" in
+    Settings > Library, which now has nine rows and scrolls).
+    **Restore:** the game's Options menu has "Restore save", a submenu
+    filled when Options opens (`save_backup_menu_fill()`) with the kept
+    saves by date, newest first ("Oct 13, 2:35 PM"; "None kept yet").
+    Choosing one asks first; the save in use is kept (if it is not in
+    the list already) before the chosen one is put back, so nothing is
+    lost; choosing the save already in use says so and does nothing.
+    Three more hook lines in `load_rom.c` (`save_backup_prompt_process()`
+    / `_draw()`). Not covered: 64DD disks.
+    **The first design was wrong and the owner found it confusing:**
+    three numbered copies ("Copy 1 (newest)"), compared only against copy
+    1. Copy 1 was normally identical to the save in use (a copy is made
+    at launch, so they only differ after a session that saved), so
+    restoring it did nothing, and a restored save was copied again at the
+    next launch, filling the slots with duplicates. The owner asked for
+    dated saves, five per game, no duplicates. **Lesson: a backup made
+    "now" equals the thing backed up until it next changes; never offer
+    that copy as something to go back to, and say plainly when the two
+    are the same.** Timings from the first design (reading and writing
+    are the same work): 128 KB flash save 890 ms, 32 KB about 300 ms,
+    small EEPROM 203 ms. Both designs were run on the PC first with
+    stand-in file functions. **For the companion app (the owner,
+    2026-10-13): an option to back these backups up off the card.**
   - **Folders list slides in on a tab switch (done and tested
     2026-10-13).** The no-memory form of the swipe the owner asked for:
     the path line, list and scroll bar come in from the side L or R was
@@ -1775,7 +1793,9 @@ built-in themes; v0.5's wraparound scrolling.
     check; just verify it.
   - Add Analogue 3D to the release test checklist.
 - **Companion app** (separate repo, after the installable web app): SD card
-  setup wizard, update checker, asset prep tool merged in, save manager,
+  setup wizard, update checker, asset prep tool merged in, save manager
+  (with an option to copy the menu's kept saves, `saves/backups/<game>/`,
+  off the card for those who want a second backup),
   settings editor, theme gallery browser (QR scanning on Android), collection
   overview.
 
