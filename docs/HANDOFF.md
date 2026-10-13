@@ -100,7 +100,9 @@ of in one 140 ms frame). The idle game reader's frames climb from 33 to
      rest, at the chip's limit. **Left on purpose:** the owner finds it
      fine to browse and wants speed items like this kept for one final
      optimization run before v1.0 (listed in CLAUDE.md's release plan);
-   - bringing the Theme Maker up to date.
+   - Frame Borders: the switch does nothing on the redesigned tabs, on
+     the console or in the Theme Maker (updated to version 8 on
+     2026-10-13); the owner wants both fixed later, look not decided.
 2. **Push the fork when asked.**
 3. **When the Jumper Pak arrives:** give the owner the "4MB test checklist"
    from `CLAUDE.md` (24 steps). Every 4MB figure so far is worked out from

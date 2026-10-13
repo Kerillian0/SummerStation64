@@ -59,6 +59,14 @@ roundTrip('A first-eight feature set: v2', {f_quick_launch: 1, f_frame_borders: 
 const v3 = roundTrip('A game-name feature set: v3', {f_hide_tags: 1, f_tidy_titles: 0, f_side_covers: 1}, 3);
 check(v3.replace(/[^0-9A-Z]/g, '').length === 4 + 88, 'v3 is 88 characters after the prefix');
 
+roundTrip('The ocean background: still a short code', {bgType: 'ocean', c1: '#0C78BE', c2: '#A8E4EE'}, 1);
+roundTrip('The newer look switches (bits 11-14): v3', {f_memory_badge: 0, f_button_icons: 1, f_favorite_heart: 0, f_rounded_corners: 0}, 3);
+
+console.log('A v3 code from before the look switches leaves them unset');
+reset({f_hide_tags: 1});
+const older = tm.decodeTheme(tm.encodeTheme());
+['memory_badge', 'button_icons', 'favorite_heart', 'rounded_corners'].forEach(k => check(older.theme['f_' + k] === -1, k + ' is not set'));
+
 console.log('Typing slips are forgiven where the alphabet allows');
 reset({accent: '#ABCDEF'});
 const code = tm.encodeTheme();

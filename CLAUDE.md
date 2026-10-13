@@ -810,6 +810,27 @@ Lessons that cost a hardware round each (do not repeat them):
     is read once per visit to the covers. Same log, fade-in: the start-up
     window averages 36 ms a frame (was 55); the frames still slow there
     are the first covers loading.
+  - **Theme Maker version 8 (published and checked by the owner in a
+    browser 2026-10-13).** The preview shows today's Games and Folders
+    screens (`drawTopbar`, `drawGames`, `drawFolders`, `drawHints`, with
+    the console's layout numbers) in place of the old Files and History;
+    the ocean background (`drawOcean`, the console's sums; `type =
+    ocean`, share code bg type 3); the four built-in themes as the first
+    presets; switches `memory_badge`, `button_icons`, `favorite_heart`,
+    `rounded_corners` (share code bits 11-14). Left out on purpose as
+    personal habits: `remember_selection`, `remember_settings`,
+    `play_stats`, `save_backups`. There is no browser in the dev
+    container: the share codes are tested in Node.js (283 checks) and the
+    preview was checked by running the page's script against stand-in
+    page objects and replaying what it drew with Pillow (the method is
+    noted in `theme-maker/README.md`).
+    **Open, raised by the owner (2026-10-13): Frame Borders does nothing
+    outside Settings.** Since the redesign the Games, Recent, Favorites
+    and Folders tabs draw no frame, so the `frame_borders` switch has no
+    visible effect there, on the console or in the Theme Maker's preview.
+    The owner wants it fixed in both, later. What a frame should look
+    like on the redesigned screens is not decided; the Theme Maker can
+    only preview it once the console draws it.
   - **Save backups (done and tested 2026-10-13; second design).**
     `save_backup.c/.h`. Just before a game starts (one hook line at the
     top of `load()` in `load_rom.c`) its save as it stands is copied to
@@ -1042,7 +1063,8 @@ quick_launch = 1       ; any key from menu_features.c: quick_launch,
 32 bytes, Crockford base32, shown as `SS64-XXXX-...`.
 [0] version=1; [1..24] colors RGB: text, text_dim, accent, panel, color1,
 color2, color3, pattern color; [25] bits0-1 bg type, bits2-3 direction,
-bit4 color3 on, bit5 dither; [26] pattern; [27] size; [28] opacity;
+bit4 color3 on, bit5 dither (bg type: 0 solid, 1 gradient, 2 image, 3 ocean,
+added 2026-10-13; older Theme Makers read 3 as a gradient); [26] pattern; [27] size; [28] opacity;
 [29] reserved; [30..31] CRC-16/CCITT-FALSE of bytes 0..29.
 
 ## Share codes (v2)
@@ -1058,7 +1080,8 @@ bytes 0..49.
 55 bytes (88 characters). Bytes 1..46 as v2. [0] version=3; [47..48] feature
 "is set" mask, 16 bits ([47] = bits 0-7, [48] = bits 8-15); [49..50] feature
 values, same layout; bits 0-7 as v2, then 8 hide_extensions, 9 tidy_titles,
-10 hide_tags (11-15 free); [51..52] reserved; [53..54] CRC-16/CCITT-FALSE of
+10 hide_tags, 11 memory_badge, 12 button_icons, 13 favorite_heart,
+14 rounded_corners (11-14 added 2026-10-13; 15 free); [51..52] reserved; [53..54] CRC-16/CCITT-FALSE of
 bytes 0..52.
 
 The Theme Maker writes the shortest version that can hold the theme: v1 when

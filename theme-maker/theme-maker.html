@@ -96,8 +96,8 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
     <div class="tv"><canvas id="preview" width="640" height="480" aria-label="Menu preview with the current theme"></canvas></div>
     <div class="stage-bar">
       <div class="seg" id="screen" role="group" aria-label="Screen to preview">
-        <button type="button" data-v="files">Files</button>
-        <button type="button" data-v="history">History</button>
+        <button type="button" data-v="games">Games</button>
+        <button type="button" data-v="folders">Folders</button>
       </div>
       <span class="stage-opts">
         <label class="check"><input type="checkbox" id="dither" checked> 16-bit color with dithering</label>
@@ -115,6 +115,7 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
         <div class="seg" id="bgType" role="group" aria-label="Background type">
           <button type="button" data-v="solid">Solid</button>
           <button type="button" data-v="gradient">Gradient</button>
+          <button type="button" data-v="ocean">Ocean</button>
           <button type="button" data-v="image">PNG image</button>
         </div>
       </div>
@@ -125,10 +126,11 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
       </div>
       <div id="colorStops">
         <div class="row"><label class="l" for="c1-hex" id="c1-label">Top color</label><div class="color" data-key="c1"></div></div>
-        <div class="row" id="c2row"><label class="l" for="c2-hex">Bottom color</label><div class="color" data-key="c2"></div></div>
+        <div class="row" id="c2row"><label class="l" for="c2-hex" id="c2-label">Bottom color</label><div class="color" data-key="c2"></div></div>
         <div class="row" id="c3toggle"><span class="l">Middle color</span><label class="check"><input type="checkbox" id="useC3"> Add a third stop</label></div>
         <div class="row" id="c3row"><label class="l" for="c3-hex">Middle</label><div class="color" data-key="c3"></div></div>
       </div>
+      <p class="hint" id="oceanOnly">Water seen from above, with a net of foam lines. The menu draws it itself; it takes a moment longer to appear than a gradient.</p>
       <div id="imageOnly">
         <div class="row"><label class="l" for="imgFile">PNG file</label><input type="file" id="imgFile" accept="image/png"></div>
         <p class="hint">Use 640×480 for a sharp result. Put the file in the theme folder as background.png. The menu doesn't read PNG backgrounds yet and shows the first color instead.</p>
@@ -154,8 +156,8 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
       <h2><i style="background:var(--n-yellow)"></i>Interface colors</h2>
       <div class="row"><label class="l" for="text-hex">Text</label><div class="color" data-key="text"></div></div>
       <div class="row"><label class="l" for="textDim-hex">Dim text</label><div class="color" data-key="textDim"></div></div>
-      <div class="row"><label class="l" for="accent-hex">Selection ring</label><div class="color" data-key="accent"></div></div>
-      <div class="row"><label class="l" for="panel-hex">Covers</label><div class="color" data-key="panel"></div></div>
+      <div class="row"><label class="l" for="accent-hex">Accent (ring, selected tab)</label><div class="color" data-key="accent"></div></div>
+      <div class="row"><label class="l" for="panel-hex">Panels and covers</label><div class="color" data-key="panel"></div></div>
     </section>
 
     <section>
@@ -166,13 +168,13 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
       <div class="row"><label class="l" for="tabInactive-hex">Other tabs</label><div class="color" data-key="tabInactive"></div></div>
       <div class="row"><label class="l" for="tabInactiveBorder-hex">Other tab edge</label><div class="color" data-key="tabInactiveBorder"></div></div>
       <div class="row"><label class="l" for="highlight-hex">Selected row</label><div class="color" data-key="highlight"></div></div>
-      <p class="hint">The selected row shows on the History preview and in the menu's lists.</p>
+      <p class="hint">The Games tabs use "Other tabs" for the tabs, badges and track, and the accent for the selected tab. The selected row shows on the Folders preview. The frame lines, edges and active tab color are used by the older screens (the music player, viewers and pop-up menus).</p>
       <div class="actions"><button type="button" class="btn ghost small" id="resetFrame">Reset to the stock grays</button></div>
     </section>
 
     <section>
       <h2><i style="background:var(--n-green)"></i>Menu features</h2>
-      <p class="hint lead">A theme can switch features on or off. Players can still override each one under Settings, Menu Features.</p>
+      <p class="hint lead">A theme can switch features on or off. Players can still override each one under Settings.</p>
       <div id="features"></div>
     </section>
 
@@ -224,7 +226,7 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
     {key:'quick_launch',  label:'Quick Launch',         def:false, hint:'Tap A starts the game, hold A shows its info.'},
     {key:'hold_launch',   label:'Hold A To Launch',     def:false, hint:'Tap A shows the game info, hold A starts it.'},
     {key:'side_covers',   label:'Previous/Next Covers', def:false, hint:'Smaller covers either side of the selected one.'},
-    {key:'frame_borders', label:'Frame Borders',        def:true,  hint:'The outer frame and the line above the hint bar.'},
+    {key:'frame_borders', label:'Frame Borders',        def:true,  hint:'The outer frame on the older screens. The Games tabs have none.'},
     {key:'updown_scroll', label:'Up/Down Also Scroll',  def:false, hint:'Up and down move the carousel too.'},
     {key:'cover_art',     label:'Cover Art',            def:true,  hint:'Box art on the covers.'},
     {key:'carousel_animation', label:'Cover Slide',      def:true,  hint:'Covers slide into place when you move left or right.'},
@@ -232,19 +234,30 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
     // From here on (bit 8 and up) a feature needs a v3 share code.
     {key:'hide_extensions', label:'Hide Game Extensions', def:true,  hint:'Games are shown without the ending of the file name, such as .z64.'},
     {key:'tidy_titles',     label:'Tidy Game Titles',     def:true,  hint:'"Legend of Zelda, The" is shown as "The Legend of Zelda".'},
-    {key:'hide_tags',       label:'Hide Region Tags',     def:false, hint:'Hides the tags in brackets, such as (U) (V1.2) [!].'}
+    {key:'hide_tags',       label:'Hide Region Tags',     def:false, hint:'Hides the tags in brackets, such as (U) (V1.2) [!].'},
+    {key:'memory_badge',    label:'Memory Badge',         def:true,  hint:'A small Expansion Pak or Jumper Pak under the clock, with 8MB or 4MB.'},
+    {key:'button_icons',    label:'Button Icons',         def:true,  hint:'Colored button shapes in the hints. Off shows the button names in boxes.'},
+    {key:'favorite_heart',  label:'Favorite Heart',       def:true,  hint:'A heart after a favorite game\'s name. Off shows the word Favorite.'},
+    {key:'rounded_corners', label:'Rounded Corners',      def:true,  hint:'Rounded tabs, panels and badges. Off draws them square.'}
   ];
 
   var DEFAULTS = {name:'Midnight Gradient',author:'',bgType:'gradient',dir:'vertical',c1:'#1B2A4A',c2:'#0B0E14',useC3:false,c3:'#3A2F6B',
     pattern:'none',pColor:'#FFFFFF',pSize:16,pOpacity:10,dither:true,crt:false,text:'#E9EDF2',textDim:'#A7B0BB',accent:'#F2B134',panel:'#1B2028',
-    screen:'files'};
+    screen:'games'};
   FRAME_KEYS.forEach(function(k){ DEFAULTS[k] = FRAME_STOCK[k]; });
   FEATURES.forEach(function(f){ DEFAULTS['f_' + f.key] = -1; });   // -1 not set, 0 off, 1 on
 
+  // The first four are the themes built into the menu (builtin_themes.c), as starting points.
   var PRESETS = [
+    {label:'Sunset',s:{bgType:'gradient',dir:'vertical',c1:'#1E0C4A',c2:'#D8622C',useC3:true,c3:'#8A246E',pattern:'scanlines',pColor:'#FFFFFF',pSize:8,pOpacity:6,text:'#FFF4E6',textDim:'#E0B8C8',accent:'#FFD23C',panel:'#240C30',
+      highlight:'#9A3C6E',tabActive:'#9A3C6E',tabInactive:'#4A1C50'}},
+    {label:'Night Drive',s:{bgType:'gradient',dir:'vertical',c1:'#2A0A4A',c2:'#0A0418',useC3:false,pattern:'grid',pColor:'#E050E0',pSize:32,pOpacity:45,text:'#F2E8FF',textDim:'#B8A0D0',accent:'#FF6AD5',panel:'#160824',
+      highlight:'#6A2A8A',tabActive:'#6A2A8A',tabInactive:'#301448'}},
+    {label:'Beach',s:{bgType:'gradient',dir:'vertical',c1:'#1A5C9A',c2:'#B08C52',useC3:true,c3:'#127C80',pattern:'none',text:'#FFFFF4',textDim:'#D8E8E8',accent:'#FF7A50',panel:'#0C243C',
+      highlight:'#1C6C8C',tabActive:'#1C6C8C',tabInactive:'#103C5C'}},
+    {label:'Ocean',s:{bgType:'ocean',c1:'#0C78BE',c2:'#A8E4EE',pattern:'none',text:'#FFFFFF',textDim:'#D4F0F8',accent:'#FFD84A',panel:'#062448',
+      highlight:'#1870A8',tabActive:'#1870A8',tabInactive:'#0A3C68'}},
     {label:'Midnight',s:{}},
-    {label:'Sunset',s:{bgType:'gradient',dir:'diagonal',c1:'#3E1F4F',c2:'#E0703A',useC3:true,c3:'#A8406A',pattern:'scanlines',pColor:'#000000',pSize:8,pOpacity:18,text:'#FFF4EC',textDim:'#EBCFC4',accent:'#FFD166',panel:'#2A1730',
-      border:'#FFD166',highlight:'#8A3A5E',tabActive:'#A8406A',tabInactive:'#3E1F4F',tabActiveBorder:'#FFD166',tabInactiveBorder:'#6B3A6E'}},
     {label:'Mint grid',s:{bgType:'gradient',dir:'vertical',c1:'#0F3B36',c2:'#071A18',useC3:false,pattern:'grid',pColor:'#7FE0C3',pSize:32,pOpacity:12,text:'#EAFBF6',textDim:'#A6D4C8',accent:'#7FE0C3',panel:'#10302C',
       border:'#7FE0C3',highlight:'#1F5A50',tabActive:'#1F6A5C',tabInactive:'#0F3B36',tabActiveBorder:'#7FE0C3',tabInactiveBorder:'#2C6A5E'}},
     {label:'Grape',s:{bgType:'gradient',dir:'radial',c1:'#4A2A7A',c2:'#150B26',useC3:false,pattern:'checker',pColor:'#FFFFFF',pSize:24,pOpacity:5,text:'#F4EEFF',textDim:'#C7B9E4',accent:'#FF8AD8',panel:'#24163D',
@@ -256,6 +269,7 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
   var STORE = 'sc64-theme-maker-v1';
   try { var saved = localStorage.getItem(STORE); if (saved) Object.assign(S, JSON.parse(saved)); } catch(e) {}
   if (S.bgType === 'image') S.bgType = 'gradient';
+  if (S.screen !== 'games' && S.screen !== 'folders') S.screen = 'games';   // the previews were Files and History before
 
   var $ = function(id){ return document.getElementById(id); };
   var canvas = $('preview'), ctx = canvas.getContext('2d');
@@ -307,7 +321,7 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
     var full = Object.assign({}, DEFAULTS, p.s);
     var b = document.createElement('button'); b.type = 'button'; b.className = 'preset';
     var sw = document.createElement('span');
-    sw.style.background = full.bgType === 'solid' ? full.c1 : 'linear-gradient(135deg,' + full.c1 + ',' + full.c2 + ')';
+    sw.style.background = (full.bgType === 'solid' || full.bgType === 'ocean') ? full.c1 : 'linear-gradient(135deg,' + full.c1 + ',' + full.c2 + ')';
     sw.style.boxShadow = 'inset 0 0 0 3px ' + full.accent;
     b.appendChild(sw); b.appendChild(document.createTextNode(p.label));
     b.addEventListener('click', function(){
@@ -351,12 +365,14 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
     Object.keys(colorFields).forEach(function(k){ colorFields[k].pick.value = S[k]; colorFields[k].hex.value = S[k]; });
     document.querySelectorAll('#bgType button').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.v === S.bgType)); });
     document.querySelectorAll('#screen button').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.v === S.screen)); });
-    var grad = S.bgType === 'gradient', img = S.bgType === 'image';
+    var grad = S.bgType === 'gradient', img = S.bgType === 'image', ocean = S.bgType === 'ocean';
     $('gradOnly').hidden = !grad;
     $('colorStops').hidden = img;
     $('imageOnly').hidden = !img;
-    $('c2row').hidden = !grad; $('c3toggle').hidden = !grad; $('c3row').hidden = !(grad && S.useC3);
-    $('c1-label').textContent = grad ? (S.dir === 'horizontal' ? 'Left color' : S.dir === 'radial' ? 'Center color' : 'Start color') : 'Color';
+    $('oceanOnly').hidden = !ocean;
+    $('c2row').hidden = !(grad || ocean); $('c3toggle').hidden = !grad; $('c3row').hidden = !(grad && S.useC3);
+    $('c1-label').textContent = ocean ? 'Water' : grad ? (S.dir === 'horizontal' ? 'Left color' : S.dir === 'radial' ? 'Center color' : 'Start color') : 'Color';
+    $('c2-label').textContent = ocean ? 'Foam' : (S.dir === 'horizontal' ? 'Right color' : S.dir === 'radial' ? 'Edge color' : 'End color');
     $('dir').value = S.dir; $('useC3').checked = S.useC3; $('pattern').value = S.pattern;
     $('patternOpts').hidden = S.pattern === 'none';
     $('pSize').value = S.pSize; $('pSizeOut').textContent = S.pSize + ' px';
@@ -371,6 +387,8 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
       var sc = Math.max(w / bgImg.width, h / bgImg.height);
       var iw = bgImg.width * sc, ih = bgImg.height * sc;
       c.drawImage(bgImg, (w - iw) / 2, (h - ih) / 2, iw, ih);
+    } else if (S.bgType === 'ocean') {
+      drawOcean(c, w, h);
     } else if (S.bgType === 'gradient') {
       var g;
       if (S.dir === 'horizontal') g = c.createLinearGradient(0, 0, w, 0);
@@ -383,6 +401,49 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
       c.fillStyle = S.bgType === 'image' ? '#202329' : S.c1; c.fillRect(0, 0, w, h);
     }
     drawPattern(c, w, h);
+  }
+
+  /* The ocean background, with the same sums as the console (theme.c): water
+   * seen from above, with foam along the borders between scattered points'
+   * territories, bent a little by two sines. The console builds it at half
+   * size and stretches it, so the preview does too. */
+  var OCEAN_CELL = 160, OCEAN_PERIOD = 4, OCEAN_LINE = 0.06, OCEAN_LINE_SOFT = 0.11;
+  function oceanScatter(ix, iz){
+    ix = ((ix % OCEAN_PERIOD) + OCEAN_PERIOD) % OCEAN_PERIOD;
+    iz = ((iz % OCEAN_PERIOD) + OCEAN_PERIOD) % OCEAN_PERIOD;
+    var h = (Math.imul(ix, 374761393) + Math.imul(iz, 668265263)) >>> 0;
+    h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0;
+    return (h ^ (h >>> 16)) >>> 0;
+  }
+  function oceanBorder(x, z){
+    var ix = Math.floor(x), iz = Math.floor(z), nearest = 9, second = 9;
+    for (var dz = -1; dz <= 1; dz++) for (var dx = -1; dx <= 1; dx++) {
+      var h = oceanScatter(ix + dx, iz + dz);
+      var px = (ix + dx) + (h & 0xFFFF) / 65536, pz = (iz + dz) + ((h >>> 16) & 0xFFFF) / 65536;
+      var d = (px - x) * (px - x) + (pz - z) * (pz - z);
+      if (d < nearest) { second = nearest; nearest = d; } else if (d < second) second = d;
+    }
+    return Math.sqrt(second) - Math.sqrt(nearest);
+  }
+  var oceanBuf = null;
+  function drawOcean(c, w, h){
+    var bw = w >> 1, bh = h >> 1;
+    if (!oceanBuf) oceanBuf = document.createElement('canvas');
+    oceanBuf.width = bw; oceanBuf.height = bh;
+    var oc = oceanBuf.getContext('2d'), img = oc.createImageData(bw, bh), d = img.data;
+    var wn = parseInt(S.c1.slice(1), 16), fn = parseInt(S.c2.slice(1), 16);
+    var water = [(wn >> 16) & 255, (wn >> 8) & 255, wn & 255], foam = [(fn >> 16) & 255, (fn >> 8) & 255, fn & 255];
+    for (var by = 0; by < bh; by++) for (var bx = 0; bx < bw; bx++) {
+      var side = (bx * 2) / OCEAN_CELL, away = (by * 2) / OCEAN_CELL;
+      var border = oceanBorder(side + 0.22 * Math.sin(away * 2.3 + side * 1.1), away + 0.22 * Math.sin(side * 1.9 - away * 0.7));
+      var line = border > OCEAN_LINE_SOFT ? 0 : border < OCEAN_LINE ? 1 : (OCEAN_LINE_SOFT - border) / (OCEAN_LINE_SOFT - OCEAN_LINE);
+      var i = (by * bw + bx) * 4;
+      d[i] = water[0] + (foam[0] - water[0]) * line; d[i + 1] = water[1] + (foam[1] - water[1]) * line;
+      d[i + 2] = water[2] + (foam[2] - water[2]) * line; d[i + 3] = 255;
+    }
+    oc.putImageData(img, 0, 0);
+    c.imageSmoothingEnabled = true;
+    c.drawImage(oceanBuf, 0, 0, w, h);
   }
 
   function drawPattern(c, w, h){
@@ -428,11 +489,19 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
   }
 
   /* ---------- Menu layout ----------
-   * Same numbers as the console code: 640x480, overscan 32x24, tabs 20 tall,
-   * 4px frame lines, hint bar below y=400, center cover 224x160 at y=200.
+   * Same numbers as the console code (games_ui.c, browser.c, folders_ui.c):
+   * 640x480, safe area 32..608 by 24..456, tab bar at y 34-56, center cover
+   * 224x160 at y 180, title panel at y 272, position bar at 346, hints at 388.
    */
-  var VX0 = 32, VY0 = 24, VX1 = 608, VY1 = 456, TAB_H = 20, TAB_W = 180, BORDER = 4, SEP_Y = 400;
+  var VX0 = 32, VX1 = 608, TOP_Y = 34, TOP_H = 22, TAB_W = 104, TAB_GAP = 6, TABS_X = 48;
+  var CX0 = 80, CX1 = 560;                    // the title panel and hints
+  var PANEL_Y = 272, PANEL_H = 66, POS_Y = 346, HINTS_Y = 388, ROW_H = 24, BADGE_H = 20, PAD = 6;
   var MENU_FONT = "700 15px 'Chakra Petch', 'Trebuchet MS', sans-serif";
+  var SMALL_FONT = "700 12px 'Chakra Petch', 'Trebuchet MS', sans-serif";
+  function titleFont(px){ return '700 ' + px + "px 'Chakra Petch', 'Trebuchet MS', sans-serif"; }
+  // Fixed colors of the menu's font styles and button icons.
+  var GREEN = '#70FF70', YELLOW = '#FFFF70', ORANGE = '#FF9900', BLUE = '#70BCFF', WHITE = '#FFFFFF', HEART = '#FF5C8A';
+  var BUTTONS = {A:'#1C54D8', Hold:'#1C54D8', B:'#149434', C:'#D09C08', START:'#CC2028', Z:'#70707A'};
 
   function frameBox(c, x0, y0, x1, y1, t, color){
     c.fillStyle = color;
@@ -441,37 +510,49 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
     c.fillRect(x0 - t, y0, t, y1 - y0);
     c.fillRect(x1, y0, t, y1 - y0);
   }
-  function drawTabs(c, selected){
-    var labels = ['Files', 'History', 'Favorites'];
-    function tab(i, bg, edge){
-      var x = VX0 + TAB_W * i;
-      c.fillStyle = bg; c.fillRect(x, VY0, TAB_W, TAB_H);
-      frameBox(c, x, VY0, x + TAB_W, VY0 + TAB_H, BORDER, edge);
+  // A filled box, with rounded corners when the feature is on (8 px, as on the console).
+  function roundFill(c, x0, y0, x1, y1, color, alpha){
+    var r = 8, w = x1 - x0, h = y1 - y0;
+    c.save(); c.fillStyle = color; if (alpha !== undefined) c.globalAlpha = alpha;
+    if (!featureOn('rounded_corners') || w < 2 * r || h < 2 * r) { c.fillRect(x0, y0, w, h); c.restore(); return; }
+    c.beginPath();
+    c.moveTo(x0 + r, y0); c.arcTo(x1, y0, x1, y1, r); c.arcTo(x1, y1, x0, y1, r); c.arcTo(x0, y1, x0, y0, r); c.arcTo(x0, y0, x1, y0, r);
+    c.closePath(); c.fill(); c.restore();
+  }
+  // Text centered up and down in a box, as the console's text boxes do.
+  function label(c, text, x, y, h, color, align, font){
+    c.font = font || MENU_FONT; c.fillStyle = color; c.textAlign = align || 'left'; c.textBaseline = 'middle';
+    c.fillText(text, x, y + h / 2 + 1);
+    c.textAlign = 'left'; c.textBaseline = 'alphabetic';
+  }
+  function width(c, text, font){ c.font = font || MENU_FONT; return Math.ceil(c.measureText(text).width); }
+
+  function drawTopbar(c, selected){
+    var tabs = ['Games', 'Favorites', 'Folders'];     // the menu's default tabs; players can add Recent
+    tabs.forEach(function(t, i){
+      var x = TABS_X + i * (TAB_W + TAB_GAP);
+      if (t === selected) {
+        roundFill(c, x - 2, TOP_Y - 2, x + TAB_W + 2, TOP_Y + TOP_H + 2, S.accent);
+        label(c, t, x + TAB_W / 2, TOP_Y, TOP_H, WHITE, 'center');
+      } else {
+        roundFill(c, x, TOP_Y, x + TAB_W, TOP_Y + TOP_H, S.tabInactive);
+        label(c, t, x + TAB_W / 2, TOP_Y, TOP_H, S.textDim, 'center');
+      }
+    });
+    var clockX = VX1 - 16 - 100;
+    roundFill(c, clockX, TOP_Y, clockX + 100, TOP_Y + TOP_H, S.tabInactive);
+    label(c, '11:45 AM', clockX + 50, TOP_Y, TOP_H, S.textDim, 'center');
+    if (featureOn('memory_badge') && selected !== 'Folders') {
+      var x1 = VX1 - 16, px = x1 - 62 - 24, py = 62;
+      // A stand-in for the little Expansion Pak picture: a grey body with a red lid.
+      c.fillStyle = '#3A3A40'; c.fillRect(px + 2, py + 8, 20, 17);
+      c.fillStyle = '#C8282C'; c.fillRect(px + 1, py + 1, 22, 9);
+      c.fillStyle = '#7A1418'; c.fillRect(px + 5, py + 4, 3, 3); c.fillRect(px + 11, py + 4, 3, 3); c.fillRect(px + 17, py + 4, 3, 3);
+      label(c, '8MB', x1, py - 6, 24, S.textDim, 'right');
+      label(c, 'Detected', x1, py + 9, 22, GREEN, 'right', SMALL_FONT);
     }
-    labels.forEach(function(_, i){ if (i !== selected) tab(i, S.tabInactive, S.tabInactiveBorder); });
-    tab(selected, S.tabActive, S.tabActiveBorder);
-    c.font = MENU_FONT; c.textAlign = 'center'; c.fillStyle = S.text;
-    labels.forEach(function(t, i){ c.fillText(t, VX0 + TAB_W * i + TAB_W / 2, VY0 + 15); });
-    c.textAlign = 'left';
   }
-  function drawFrame(c){
-    if (!featureOn('frame_borders')) return;
-    frameBox(c, VX0, VY0 + TAB_H + BORDER, VX1, VY1, BORDER, S.border);
-    c.fillStyle = S.border; c.fillRect(VX0, SEP_Y, VX1 - VX0, BORDER);
-  }
-  function drawHints(c, left, center, right){
-    c.font = MENU_FONT; c.fillStyle = S.text;
-    var y1 = SEP_Y + 25, y2 = SEP_Y + 44;
-    c.textAlign = 'left'; c.fillText(left[0], VX0 + 10, y1); c.fillText(left[1], VX0 + 10, y2);
-    c.textAlign = 'center'; c.fillText(center[0], 320, y1); c.fillText(center[1], 320, y2);
-    c.textAlign = 'right'; c.fillText(right[0], VX1 - 10, y1); c.fillText(right[1], VX1 - 10, y2);
-    c.textAlign = 'left';
-  }
-  function launchHint(){
-    if (featureOn('quick_launch')) return 'A: Start, Hold: Info';
-    if (featureOn('hold_launch')) return 'A: Info, Hold: Start';
-    return 'A: Load';
-  }
+
   function mockBoxArt(c, x0, y0, w, h){
     // Stand-in for a real box: the menu shows the game's own art here.
     var g = c.createLinearGradient(x0, y0, x0 + w, y0 + h);
@@ -491,7 +572,7 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
       var bare = name.replace(/\s*(\([^)]*\)|\[[^\]]*\])/g, '').replace(/\s+/g, ' ').trim();
       if (bare) name = bare;
     }
-    if (featureOn('tidy_titles')) name = name.replace(/^(.*?), (The|An|A)(?=$| [-(\[])/i, '$2 $1');
+    if (featureOn('tidy_titles')) name = name.replace(/^(.*?), (The|An|A)(?=$| [-(\[])/i, '$2 $1').replace(/_/g, ' ');
     return featureOn('hide_extensions') ? name : name + ext;
   }
   // Cut text that is too wide and end it with "...", as the menu does.
@@ -507,8 +588,56 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
     'Mario Party 2 (U) [!].z64',
     'Lode Runner 3-D (U) [!].z64'
   ];
-  function drawFiles(c){
-    var cx = 320, cy = 200;
+
+  // A word in a small box (boxed) or on its own; returns where the next one goes.
+  function badge(c, x, y, text, color, boxed){
+    var w = width(c, text) + PAD * 2;
+    if (boxed) roundFill(c, x, y, x + w, y + BADGE_H, S.tabInactive);
+    label(c, text, x + PAD, y, BADGE_H, color);
+    return x + w + 8;
+  }
+  function buttonWidth(c, button){
+    var round = button.length === 1 && button !== 'Z';
+    return (featureOn('button_icons') && round) ? BADGE_H : width(c, button) + PAD * 2;
+  }
+  function hintWidth(c, button, action){ return buttonWidth(c, button) + PAD + width(c, action); }
+  // One button hint; returns where the next one on the row goes.
+  function hint(c, x, row, button, action){
+    var y = HINTS_Y + row * ROW_H, w = buttonWidth(c, button);
+    if (featureOn('button_icons')) {
+      c.save(); c.fillStyle = BUTTONS[button] || BUTTONS.Z;
+      c.beginPath();
+      var r = BADGE_H / 2;
+      c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + BADGE_H, r); c.arcTo(x + w, y + BADGE_H, x, y + BADGE_H, r);
+      c.arcTo(x, y + BADGE_H, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); c.fill(); c.restore();
+      label(c, button, x + w / 2, y, BADGE_H, WHITE, 'center');
+    } else {
+      roundFill(c, x, y, x + w, y + BADGE_H, S.tabInactive);
+      label(c, button, x + w / 2, y, BADGE_H, (button === 'A' || button === 'Hold') ? BLUE : button === 'B' ? GREEN : S.text, 'center');
+    }
+    label(c, action, x + w + PAD, y, BADGE_H, S.text);
+    return x + w + PAD + width(c, action) + 14;
+  }
+  function hintRight(c, row, button, action){ hint(c, CX1 - hintWidth(c, button, action), row, button, action); }
+  function drawHints(c, folders){
+    roundFill(c, CX0 - 8, HINTS_Y - 5, CX1 + 8, HINTS_Y + 2 * ROW_H + 1, S.panel, 0.85);
+    var x = CX0;
+    if (folders) {
+      hint(c, x, 0, 'A', 'Open');
+      x = hint(c, CX0, 1, 'B', 'Back');
+      hint(c, x, 1, 'Z', 'Options');
+    } else {
+      var quick = featureOn('quick_launch'), hold = featureOn('hold_launch');
+      x = hint(c, x, 0, 'A', quick ? 'Start' : 'Info');
+      if (quick || hold) hint(c, x, 0, 'Hold', quick ? 'Info' : 'Start');
+      hint(c, CX0, 1, 'Z', 'Options');
+    }
+    hintRight(c, 0, 'START', 'Settings');
+    hintRight(c, 1, 'C', 'Scroll ◀▶ Filter ▲▼');
+  }
+
+  function drawGames(c){
+    var cx = 320, cy = 180;
     var covers = [[-2, SAMPLE_GAMES[4]], [2, SAMPLE_GAMES[3]], [-1, SAMPLE_GAMES[2]], [1, SAMPLE_GAMES[1]], [0, SAMPLE_GAMES[0]]];
     covers.forEach(function(cv){
       var o = cv[0], d = Math.abs(o), center = o === 0;
@@ -530,29 +659,66 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
       c.fillStyle = S.textDim; c.fillText('N64', x0 + 8, y0 + 22);
       c.fillStyle = S.text; c.fillText(fitText(c, displayName(cv[1]), w - 16), x0 + 8, y0 + 48);
     });
-    c.font = MENU_FONT; c.textAlign = 'center';
-    c.fillStyle = S.text; c.fillText(fitText(c, displayName(SAMPLE_GAMES[0]), 560), cx, cy + 80 + 34);
-    c.fillStyle = S.textDim; c.fillText('26 / 142', cx, cy + 80 + 56);
-    c.textAlign = 'left';
-    drawHints(c, [launchHint(), 'B: Back'], ['C: Fast | L Tabs R', 'Mon Oct  5 01:55:15 2026'], ['Start: Settings', 'Z:  Options']);
+
+    // Title panel: the name in the largest of the three sizes that fits, then badges.
+    roundFill(c, CX0, PANEL_Y, CX1, PANEL_Y + PANEL_H, S.panel, 0.85);
+    var heart = featureOn('favorite_heart'), name = displayName(SAMPLE_GAMES[0]);
+    var room = CX1 - CX0 - 24 - (heart ? 24 : 0), size = [26, 20, 15].filter(function(px){ return width(c, name, titleFont(px)) <= room; })[0] || 15;
+    c.font = titleFont(size);
+    name = fitText(c, name, room);
+    label(c, name, CX0 + 12, PANEL_Y + 2, 36, S.text, 'left', titleFont(size));
+    if (heart) {
+      var hx0 = CX0 + 12 + width(c, name, titleFont(size)) + 8, hy = PANEL_Y + 2 + 11;
+      c.save(); c.fillStyle = HEART; c.beginPath();
+      c.moveTo(hx0 + 8, hy + 14); c.bezierCurveTo(hx0 - 4, hy + 5, hx0 + 2, hy - 3, hx0 + 8, hy + 3);
+      c.bezierCurveTo(hx0 + 14, hy - 3, hx0 + 20, hy + 5, hx0 + 8, hy + 14); c.fill(); c.restore();
+    }
+    var bx = CX0 + 12 - PAD, byy = PANEL_Y + 2 + 36 + 3;
+    bx = badge(c, bx, byy, '1 player', S.textDim, false);
+    bx = badge(c, bx, byy, 'Save found', GREEN, true);
+    if (!heart) badge(c, bx, byy, 'Favorite', YELLOW, true);
+
+    // Position bar: the letter, the track with its marker, and "26 of 142".
+    var p0 = 104, p1 = 536, t0 = p0 + 24, t1 = p1 - 116;
+    label(c, SAMPLE_GAMES[0][0], p0, POS_Y, 20, S.text);
+    c.fillStyle = S.tabInactive; c.fillRect(t0, POS_Y + 8, t1 - t0, 4);
+    c.fillStyle = S.accent; c.fillRect(t0 + Math.round((t1 - t0 - 10) * 25 / 141), POS_Y + 5, 10, 10);
+    label(c, '26 of 142', p1, POS_Y, 20, S.textDim, 'right');
+
+    drawHints(c, false);
   }
-  function drawHistory(c){
-    var games = SAMPLE_GAMES;
-    var top = VY0 + TAB_H + BORDER + 4, rowH = 38, sel = 1;
-    c.fillStyle = S.highlight; c.fillRect(VX0, top + sel * rowH, VX1 - VX0, rowH);
-    c.font = MENU_FONT;
-    games.forEach(function(g, i){
-      var y = top + i * rowH;
-      c.fillStyle = S.text; c.fillText(fitText(c, (i + 1) + '  : ' + displayName(g), VX1 - VX0 - 20), VX0 + 10, y + 16);
+
+  var SAMPLE_FILES = [
+    ['saves', 'Folder'], ['64DD', 'Folder'], ['Homebrew', 'Folder'],
+    ['1080 Snowboarding (U) [!].z64', '16 MB'], ['Banjo-Kazooie (U) [!].z64', '16 MB'], ["Bug's Life, A (U) [!].z64", '12 MB'],
+    ['F-Zero X (U) [!].z64', '16 MB'], ['GoldenEye 007 (U) [!].z64', '12 MB'],
+    ['Legend of Zelda, The - Ocarina of Time (U) (V1.2) [!].z64', '32 MB'], ['Lode Runner 3-D (U) [!].z64', '8 MB'],
+    ['Mario Kart 64 (U) [!].z64', '12 MB'], ['Mario Party 2 (U) [!].z64', '32 MB'], ['Pilotwings 64 (U) [!].z64', '8 MB'],
+    ['Star Fox 64 (U) (V1.1) [!].z64', '12 MB'], ['Super Mario 64 (U) [!].z64', '8 MB']
+  ];
+  // The Folders tab: every file by its real name, the selected row in the highlight color.
+  function drawFolders(c){
+    var x0 = VX0 + 16, x1 = VX1 - 16, pathY = 62, rowsY = 84, rowH = 20, sel = 8;
+    label(c, '/N64(US)', x0 + 6, pathY, rowH, S.textDim);
+    SAMPLE_FILES.forEach(function(f, i){
+      var y = rowsY + i * rowH;
+      if (i === sel) {
+        c.fillStyle = S.highlight; c.fillRect(x0, y, x1 - 6 - x0, rowH);
+        c.fillStyle = S.accent; c.fillRect(x0, y + rowH - 2, x1 - 6 - x0, 2);
+      }
+      c.font = MENU_FONT;
+      label(c, fitText(c, f[0], x1 - x0 - 84 - 4 - 18), x0 + 6, y, rowH, f[1] === 'Folder' ? YELLOW : S.text);
+      label(c, f[1], x1 - 4 - 6 - 6, y, rowH, S.textDim, 'right');
     });
-    drawHints(c, [launchHint(), ''], ['L Change Tab R', ''], ['', '']);
+    c.fillStyle = S.tabInactive; c.fillRect(x1 - 4, rowsY, 4, 15 * rowH);
+    c.fillStyle = S.accent; c.fillRect(x1 - 4, rowsY + 60, 4, 110);
+    drawHints(c, true);
   }
   function drawUi(c){
     c.textBaseline = 'alphabetic';
-    var history = S.screen === 'history';
-    drawTabs(c, history ? 1 : 0);
-    drawFrame(c);
-    if (history) drawHistory(c); else drawFiles(c);
+    var folders = S.screen === 'folders';
+    drawTopbar(c, folders ? 'Folders' : 'Games');
+    if (folders) drawFolders(c); else drawGames(c);
   }
 
   // CRT preview: soft focus, lower saturation, bloom, scanlines, vignette and
@@ -603,7 +769,7 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
   }
   function ratio(a, b){ var x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
   function updateContrast(){
-    var bgs = S.bgType === 'gradient' ? [S.c1, S.c2].concat(S.useC3 ? [S.c3] : []) : S.bgType === 'solid' ? [S.c1] : [];
+    var bgs = S.bgType === 'gradient' ? [S.c1, S.c2].concat(S.useC3 ? [S.c3] : []) : (S.bgType === 'solid' || S.bgType === 'ocean') ? [S.c1] : [];
     var worstBg = bgs.length ? Math.min.apply(null, bgs.map(function(b){ return ratio(S.textDim, b); })) : null;
     var el = $('contrast'); el.textContent = '';
     function add(label, v){
@@ -612,9 +778,9 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
       if (v < 4.5) b.className = 'warn';
       span.appendChild(b); el.appendChild(span);
     }
-    add('Text on covers', ratio(S.text, S.panel));
+    add('Text on panels', ratio(S.text, S.panel));
     if (worstBg !== null) add('Dim text on background', worstBg);
-    add('Text on tabs', Math.min(ratio(S.text, S.tabActive), ratio(S.text, S.tabInactive)));
+    add('Dim text on tabs', ratio(S.textDim, S.tabInactive));
     add('Text on selected row', ratio(S.text, S.highlight));
   }
 
@@ -630,6 +796,8 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
     else L.push('color1 = ' + hx(S.c1));
     if (S.bgType === 'gradient') {
       L.push('color2 = ' + hx(S.c2), 'color3 = ' + (S.useC3 ? hx(S.c3) : 'none'), 'direction = ' + S.dir);
+    } else if (S.bgType === 'ocean') {
+      L.push('color2 = ' + hx(S.c2));     // color1 is the water, color2 the foam
     }
     L.push('dither = ' + (S.dither ? 1 : 0), '', '[pattern]', 'style = ' + S.pattern);
     if (S.pattern !== 'none') L.push('color = ' + hx(S.pColor), 'size = ' + S.pSize, 'opacity = ' + S.pOpacity);
@@ -703,7 +871,8 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
    * v1: 32 bytes (52 characters)
    * [0] version = 1
    * [1..24] colors, 3 bytes each: text, text_dim, accent, panel, color1, color2, color3, pattern color
-   * [25] bits 0-1 bg type (0 solid, 1 gradient, 2 image), bits 2-3 direction
+   * [25] bits 0-1 bg type (0 solid, 1 gradient, 2 image, 3 ocean: color1 water,
+   *      color2 foam; added later, older Theme Makers read it as a gradient), bits 2-3 direction
    *      (0 vertical, 1 horizontal, 2 diagonal, 3 radial), bit 4 color3 on, bit 5 dither
    * [26] pattern (0 none, 1 stripes, 2 diagonal, 3 checker, 4 dots, 5 grid, 6 scanlines)
    * [27] pattern size (2-128)   [28] pattern opacity (0-100)
@@ -725,7 +894,9 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
    * [0] version = 3
    * [47..48] feature "is set" mask, 16 bits: [47] holds bits 0-7, [48] bits 8-15
    * [49..50] feature values, laid out the same way
-   *      bits 0-7 as in v2, then 8 hide_extensions, 9 tidy_titles, 10 hide_tags
+   *      bits 0-7 as in v2, then 8 hide_extensions, 9 tidy_titles, 10 hide_tags,
+   *      11 memory_badge, 12 button_icons, 13 favorite_heart, 14 rounded_corners
+   *      (11-14 were added later; older v3 codes leave them unset)
    * [51..52] reserved, 0
    * [53..54] CRC-16/CCITT-FALSE of bytes 0..52, big-endian
    *
@@ -734,7 +905,7 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
    * All three versions load.
    */
   var B32 = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
-  var BG_TYPES = ['solid', 'gradient', 'image'];
+  var BG_TYPES = ['solid', 'gradient', 'image', 'ocean'];
   var DIRS = ['vertical', 'horizontal', 'diagonal', 'radial'];
   var PATTERNS = ['none', 'stripes', 'diagonal', 'checker', 'dots', 'grid', 'scanlines'];
   var COLOR_KEYS = ['text', 'textDim', 'accent', 'panel', 'c1', 'c2', 'c3', 'pColor'];
@@ -829,7 +1000,7 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
   function updateShareCode(){
     $('shareCode').textContent = encodeTheme();
     $('codeKind').textContent = needsV3()
-      ? 'Longest code: it also carries the game name choices.'
+      ? 'Longest code: it also carries the game name and look choices.'
       : needsV2()
         ? 'Long code: it also carries the frame, tab and feature choices.'
         : 'Short code: the frame and tab colors are stock and no features are set.';
