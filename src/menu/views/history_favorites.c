@@ -25,6 +25,24 @@ typedef enum {
 
 static bool confirm_remove = false;  // "Remove this favorite?" is showing
 
+// Z on the cover rows: a short Options menu. Recent has the first row only.
+static void row_random (menu_t *menu, void *arg) {
+    cover_row_random();
+}
+static void row_ask_remove (menu_t *menu, void *arg) {
+    confirm_remove = true;
+}
+static component_context_menu_t row_context_menu = { .list = {
+    { .text = "Random game", .action = row_random },
+    { .text = "Remove from Favorites", .action = row_ask_remove },
+    COMPONENT_CONTEXT_MENU_LIST_END,
+}};
+static void row_menu_show (bool favorites) {
+    row_context_menu.list[1].text = favorites ? "Remove from Favorites" : NULL;   // the list ends at the first row without text
+    ui_components_context_menu_init(&row_context_menu);     // counts the rows
+    ui_components_context_menu_show(&row_context_menu);
+}
+
 static bookkeeping_tab_context_t tab_context = BOOKKEEPING_TAB_CONTEXT_NONE;
 static int selected_item = -1;
 static bookkeeping_item_t *item_list;
@@ -80,7 +98,11 @@ static void process(menu_t *menu) {
         return; // the START menu is open
     }
 
-    // Z asks first: it is easy to press by accident.
+    if (COVER_ROWS && ui_components_context_menu_process(menu, &row_context_menu)) {
+        return; // the Options menu is open
+    }
+
+    // Removing a favorite asks first.
     if (confirm_remove) {
         if (menu->actions.enter && selected_item != -1) {
             confirm_remove = false;
@@ -132,7 +154,10 @@ static void process(menu_t *menu) {
         sound_play_effect(SFX_CURSOR);
     } else if (menu->actions.settings) {
         start_menu_show();
-    }else if(tab_context == BOOKKEEPING_TAB_CONTEXT_FAVORITE && menu->actions.options && selected_item != -1) {
+    } else if (COVER_ROWS && menu->actions.options && selected_item != -1) {
+        row_menu_show(tab_context == BOOKKEEPING_TAB_CONTEXT_FAVORITE);
+        sound_play_effect(SFX_SETTING);
+    } else if (tab_context == BOOKKEEPING_TAB_CONTEXT_FAVORITE && menu->actions.options && selected_item != -1) {
         confirm_remove = true;
         sound_play_effect(SFX_SETTING);
     }
@@ -201,11 +226,12 @@ static void draw(menu_t *menu, surface_t *display) {
 
     if (COVER_ROWS) {
         if (tab_context == BOOKKEEPING_TAB_CONTEXT_FAVORITE) {
-            cover_row_draw(menu, "No favorites yet\n\nAdd one from a game's info screen: Options", "Remove");
+            cover_row_draw(menu, "No favorites yet\n\nAdd one from a game's info screen: Options", "Options");
         } else {
-            cover_row_draw(menu, "No games played yet", NULL);
+            cover_row_draw(menu, "No games played yet", "Options");
         }
         games_ui_hint_right_draw(0, "START", "Settings");
+        ui_components_context_menu_draw(&row_context_menu);
         start_menu_draw();
         if (confirm_remove && selected_item != -1) {
             ui_components_messagebox_draw(
@@ -257,6 +283,7 @@ void view_favorite_init (menu_t *menu) {
     tab_context = BOOKKEEPING_TAB_CONTEXT_FAVORITE;
     confirm_remove = false;
     start_menu_init();
+    ui_components_context_menu_init(&row_context_menu); // closed until Z is pressed
     games_ui_set_origin(MENU_MODE_FAVORITE);
     item_list = menu->bookkeeping.favorite_items;
     item_max = FAVORITES_COUNT;
@@ -275,6 +302,7 @@ void view_favorite_display (menu_t *menu, surface_t *display) {
 void view_history_init (menu_t *menu) {
     tab_context = BOOKKEEPING_TAB_CONTEXT_HISTORY;
     start_menu_init();
+    ui_components_context_menu_init(&row_context_menu); // closed until Z is pressed
     games_ui_set_origin(MENU_MODE_HISTORY);
     item_list = menu->bookkeeping.history_items;
     item_max = HISTORY_COUNT;

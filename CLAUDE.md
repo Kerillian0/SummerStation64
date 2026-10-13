@@ -810,6 +810,19 @@ Lessons that cost a hardware round each (do not repeat them):
     is read once per visit to the covers. Same log, fade-in: the start-up
     window averages 36 ms a frame (was 55); the frames still slow there
     are the first covers loading.
+  - **Random game (done and tested 2026-10-13).** The owner chose a
+    menu entry over the B button (offered: B, the Options menu, or
+    both). "Random game" is the first row of Z Options on the Games tab:
+    jumps to any other game in the row, within the filter in use
+    (`random_game()` in `browser.c`, `getentropy32()`). The Options
+    menu's rows are now copied from `entry_menu_rows` each time it opens
+    (`entry_menu_fill()`), so the Folders tab leaves that row out. The
+    owner then asked for it on Recent and Favorites too: Z there opens a
+    small Options menu (`row_context_menu` in `history_favorites.c`,
+    `cover_row_random()`), "Random game" on both and "Remove from
+    Favorites" on Favorites, which still asks first. Before, Z did
+    nothing on Recent and went straight to the remove question on
+    Favorites. The hint reads "Z Options" on both.
   - **Theme Maker version 8 (published and checked by the owner in a
     browser 2026-10-13).** The preview shows today's Games and Folders
     screens (`drawTopbar`, `drawGames`, `drawFolders`, `drawHints`, with

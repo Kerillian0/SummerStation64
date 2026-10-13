@@ -122,6 +122,19 @@ int cover_row_process (menu_t *menu) {
     return left[current].place;
 }
 
+void cover_row_random (void) {
+    if (row.entries < 2) {
+        return;
+    }
+    int pick = (int) (getentropy32() % (uint32_t) (row.entries - 1));
+    if (pick >= row.selected) {
+        pick++;     /* never the game already selected */
+    }
+    row.selected = pick;
+    left[current].selected = row.selected;
+    left[current].place = row_places[row.selected];
+}
+
 void cover_row_draw (menu_t *menu, const char *empty_message, const char *z_action) {
     if (row.entries <= 0) {
         rdpq_text_printf(&(rdpq_textparms_t) {

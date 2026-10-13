@@ -27,6 +27,9 @@ void cover_row_open (menu_t *menu, bookkeeping_item_t *items, int count);
  */
 int cover_row_process (menu_t *menu);
 
+/** Jump to any other game in the row (Options > "Random game"). Nothing happens with fewer than two. */
+void cover_row_random (void);
+
 /**
  * Draw the covers and the button hints.
  * @param empty_message Shown when the list has no games.

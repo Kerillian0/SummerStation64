@@ -54,7 +54,7 @@ the Theme Maker's share codes). Run them after touching either.
 | Tabs | Games, Favorites and Folders by default, Recent optional; order set in Settings > Tabs; L/R switch, covers slide in; each tab returns to its game |
 | Games tab | Games only, from the start folder plus folders the player adds; cover row with slide, box flip, optional side covers and wrap-round; C-up/C-down filter by region or 64DD |
 | Folders tab | Plain file browser; opens pictures, music, text, zips; adds folders to Games; sets the start folder |
-| Recent, Favorites | Cover rows like Games; Z removes a favorite after asking |
+| Recent, Favorites | Cover rows like Games; Z opens Options (Random game; on Favorites also Remove, which asks first) |
 | Covers | Baked art (4-7 ms) or PNGs on the card; drawn in their own shape; ring follows the shape and, optionally, the cover's color |
 | Game info | Blurred cover backdrop, series and subtitle, badges, Played / Last played / Players, description ending in "..." when cut, one Details pop-up on START |
 | Game knowledge | `gameindex.txt` remembers each game's code and badge facts; unknown games are read while the Games tab is idle |
@@ -92,7 +92,6 @@ of in one 140 ms frame). The idle game reader's frames climb from 33 to
      the metadata pack has no genre, so that needs another source;
    - a special treatment of ROM hacks, which the owner wants but has not
      decided on (today a hack sorts beside its original);
-   - a random game button (v0.3);
    - done 2026-10-13: save backups, dated, five per game, with "Restore
      save" on the game's Options menu (for the companion app later: an
      option to copy them off the card);
