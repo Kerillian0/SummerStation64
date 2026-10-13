@@ -8,6 +8,7 @@
 #include <libdragon.h>
 
 #include "folders_ui.h"
+#include "tabs.h"
 #include "fonts.h"
 #include "games_ui.h"
 #include "theme.h"
@@ -22,6 +23,7 @@
 #define SIZE_WIDTH      (84)    /* room for "1023 MB" or "Folder" */
 #define BAR_WIDTH       (4)
 #define TEXT_INSET      (6)
+#define TAB_SLIDE_PX    (200)   /* how far the list travels when the tab is switched to; the covers' distance */
 
 static void fill (int x0, int y0, int x1, int y1, color_t color) {
     rdpq_mode_push();
@@ -148,6 +150,10 @@ void folders_ui_draw (menu_t *menu) {
     int selected = menu->browser.selected;
     int name_width = LIST_X1 - LIST_X0 - SIZE_WIDTH - BAR_WIDTH - (TEXT_INSET * 3);
 
+    /* Just switched to this tab: the whole list comes in from that side. */
+    int x0 = LIST_X0 + (int) (tabs_slide_folders() * TAB_SLIDE_PX);
+    int x1 = x0 + (LIST_X1 - LIST_X0);
+
     /* Where we are. The "sd:/" at the front tells the player nothing. */
     const char *where = path_get(menu->browser.directory);
     const char *slash = strchr(where, '/');
@@ -160,10 +166,10 @@ void folders_ui_draw (menu_t *menu) {
         path_kept = layout(LIST_X1 - LIST_X0 - TEXT_INSET, ALIGN_LEFT, STL_GRAY, shown);
         path_key = key;
     }
-    rdpq_paragraph_render(path_kept, LIST_X0 + TEXT_INSET, PATH_Y);
+    rdpq_paragraph_render(path_kept, x0 + TEXT_INSET, PATH_Y);
 
     if (entries <= 0) {
-        text(LIST_X0, ROWS_Y + ROW_HEIGHT, LIST_X1 - LIST_X0, ALIGN_CENTER, STL_GRAY, "This folder is empty");
+        text(x0, ROWS_Y + ROW_HEIGHT, LIST_X1 - LIST_X0, ALIGN_CENTER, STL_GRAY, "This folder is empty");
         return;
     }
 
@@ -195,19 +201,19 @@ void folders_ui_draw (menu_t *menu) {
         int y = ROWS_Y + (row * ROW_HEIGHT);
 
         if ((first + row) == selected) {
-            fill(LIST_X0, y, LIST_X1 - BAR_WIDTH - 2, y + ROW_HEIGHT, t->highlight);
-            fill(LIST_X0, y + ROW_HEIGHT - 2, LIST_X1 - BAR_WIDTH - 2, y + ROW_HEIGHT, t->accent);
+            fill(x0, y, x1 - BAR_WIDTH - 2, y + ROW_HEIGHT, t->highlight);
+            fill(x0, y + ROW_HEIGHT - 2, x1 - BAR_WIDTH - 2, y + ROW_HEIGHT, t->accent);
         }
 
         row_text_t *kept = row_text(entry, name_width);
         if (kept) {
-            rdpq_paragraph_render(kept->name, LIST_X0 + TEXT_INSET, y);
-            rdpq_paragraph_render(kept->size, LIST_X1 - BAR_WIDTH - TEXT_INSET - SIZE_WIDTH, y);
+            rdpq_paragraph_render(kept->name, x0 + TEXT_INSET, y);
+            rdpq_paragraph_render(kept->size, x1 - BAR_WIDTH - TEXT_INSET - SIZE_WIDTH, y);
         } else {
             /* Two files that look alike to the key: draw this one the plain way. */
             bool folder = (entry->type == ENTRY_TYPE_DIR);
-            text(LIST_X0 + TEXT_INSET, y, name_width, ALIGN_LEFT, folder ? STL_YELLOW : STL_DEFAULT, entry->name);
-            text(LIST_X1 - BAR_WIDTH - TEXT_INSET - SIZE_WIDTH, y, SIZE_WIDTH - TEXT_INSET, ALIGN_RIGHT, STL_GRAY, size_text(entry));
+            text(x0 + TEXT_INSET, y, name_width, ALIGN_LEFT, folder ? STL_YELLOW : STL_DEFAULT, entry->name);
+            text(x1 - BAR_WIDTH - TEXT_INSET - SIZE_WIDTH, y, SIZE_WIDTH - TEXT_INSET, ALIGN_RIGHT, STL_GRAY, size_text(entry));
         }
     }
 
@@ -216,7 +222,7 @@ void folders_ui_draw (menu_t *menu) {
         int thumb = (track * ROWS) / entries;
         if (thumb < 8) thumb = 8;
         int thumb_y = ROWS_Y + ((track - thumb) * first) / (entries - ROWS);
-        fill(LIST_X1 - BAR_WIDTH, ROWS_Y, LIST_X1, ROWS_Y + track, t->tab_inactive);
-        fill(LIST_X1 - BAR_WIDTH, thumb_y, LIST_X1, thumb_y + thumb, t->accent);
+        fill(x1 - BAR_WIDTH, ROWS_Y, x1, ROWS_Y + track, t->tab_inactive);
+        fill(x1 - BAR_WIDTH, thumb_y, x1, thumb_y + thumb, t->accent);
     }
 }

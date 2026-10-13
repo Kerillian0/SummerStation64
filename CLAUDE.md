@@ -810,6 +810,23 @@ Lessons that cost a hardware round each (do not repeat them):
     is read once per visit to the covers. Same log, fade-in: the start-up
     window averages 36 ms a frame (was 55); the frames still slow there
     are the first covers loading.
+  - **Folders list slides in on a tab switch (done and tested
+    2026-10-13).** The no-memory form of the swipe the owner asked for:
+    the path line, list and scroll bar come in from the side L or R was
+    pressed toward, 200 px over 200 ms like the covers
+    (`tabs_slide_folders()` in `tabs.c`, applied as an x shift in
+    `folders_ui_draw()`). The old tab's content still vanishes at once
+    and the tab bar and hints stay put; sliding the title panel and
+    position bar with the covers was offered and not asked for. Follows
+    Cover Slide. `tabs_slide_begin()` now records whether the slide is
+    for Folders or for covers, so the tab being left never moves.
+    **The Folders tab's resting figures, measured at last from this
+    log: work 27.3 ms, chip 29.0-29.4 ms** (Games: 20.4 / 22.1). So
+    laying its text out once saved only about 2 ms of the 29, and the
+    tab sits right at the chip's 30 ms limit: one resting frame doubled
+    (62 ms) with ordinary work. What costs it is still to be found
+    (drawing 31 pieces of text, most likely); time it before changing
+    anything. Also seen: one `folders.ini` save of 121 ms (usually 72).
   - **Developers in the game list, and Sort By Developer (done and
     tested 2026-10-12, photo).** The owner chose developer only
     ("people follow the devs"); publishers are not kept. Each name is kept

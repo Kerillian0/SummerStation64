@@ -48,8 +48,9 @@ games_tab_t tabs_step (games_tab_t from, int direction);
 void tabs_open (menu_t *menu, games_tab_t tab);
 
 /**
- * Covers slide in from the side when a tab is switched to. Call when L (-1)
- * or R (+1) changes tab, after tabs_open(). Going to Folders plays nothing.
+ * The new tab's covers, or the Folders list, slide in from the side when a
+ * tab is switched to. Call when L (-1) or R (+1) changes tab, after
+ * tabs_open().
  */
 void tabs_slide_begin (menu_t *menu, int direction);
 
@@ -60,6 +61,9 @@ void tabs_slide_begin (menu_t *menu, int direction);
  * first frame on the new tab does not eat the slide.
  */
 float tabs_slide (void);
+
+/** The same for the Folders list (0 when the slide is for a row of covers, and the other way round). */
+float tabs_slide_folders (void);
 
 /** Whether the browser screen should show Folders (true) or Games (false). */
 bool tabs_browser_shows_folders (void);

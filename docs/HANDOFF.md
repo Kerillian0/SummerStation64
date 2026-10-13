@@ -75,8 +75,8 @@ the Theme Maker's share codes). Run them after touching either.
 
 Per frame at rest: Settings work 14 / chip 16 ms; Games 22 / 24 ms; Game
 info 16 / 18 ms. A frame has 33.4 ms, and the chip needs to be done by about
-30. The Folders tab was 29 ms of work before its text was laid out once; the
-saving has **not been measured** (the owner's log was cut short).
+30. The Folders tab is work 27 / chip 29 ms (measured 2026-10-13): laying its
+text out once saved only about 2 ms, and it sits at the chip's limit.
 
 What is still slow, all one frame each: a cover read from the card (about
 50 ms, then three while its PNG unpacks); saving a settings file (70-80
@@ -94,8 +94,9 @@ of in one 140 ms frame). The idle game reader's frames climb from 33 to
      decided on (today a hack sorts beside its original);
    - a random game button (v0.3);
    - save backups (v0.2);
-   - a swipe for the Folders tab, put off by the owner until it fits the
-     memory budget (sliding only what is below the tab bar needs none);
+   - the Folders tab is the slowest screen: work 27 ms, chip 29 ms at
+     rest, at the chip's limit (its list now slides in on a tab switch;
+     sliding the title panel with the covers was offered, not asked for);
    - bringing the Theme Maker up to date.
 2. **Push the fork when asked.**
 3. **When the Jumper Pak arrives:** give the owner the "4MB test checklist"

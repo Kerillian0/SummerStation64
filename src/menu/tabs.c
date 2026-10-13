@@ -77,26 +77,25 @@ static uint64_t slide_asked_ms = 0;
 
 static menu_mode_t slide_screen;     /* the screen the slide is for */
 
+static bool slide_for_folders;       /* ... and whether that is the Folders list or a row of covers */
+
 void tabs_slide_begin (menu_t *menu, int direction) {
     slide_direction = features_enabled(FEATURE_CAROUSEL_ANIMATION) ? direction : 0;
-    if (menu->next_mode == MENU_MODE_BROWSER && folders_wanted) {
-        slide_direction = 0;    /* Folders is a list: nothing slides */
-    }
+    slide_for_folders = (menu->next_mode == MENU_MODE_BROWSER && folders_wanted);
     slide_screen = menu->next_mode;
     slide_started = false;
     slide_asked_ms = get_ticks_ms();
 }
 
-float tabs_slide (void) {
-    /* The tab being left draws one more frame after L or R is pressed; its
-       covers stay where they are. */
-    if (slide_direction == 0 || games_ui_origin() != slide_screen) {
+static float slide_now (bool folders) {
+    /* The tab being left draws one more frame after L or R is pressed; it
+       stays where it is. */
+    if (slide_direction == 0 || folders != slide_for_folders || games_ui_origin() != slide_screen) {
         return 0.0f;
     }
     uint64_t now = get_ticks_ms();
     if (!slide_started) {
-        /* Asked for a while ago and never drawn (the tab was Folders, which
-           has no covers): too late to play it now. */
+        /* Asked for a while ago and never drawn: too late to play it now. */
         if ((now - slide_asked_ms) > 500) {
             slide_direction = 0;
             return 0.0f;
@@ -111,6 +110,14 @@ float tabs_slide (void) {
     }
     float left = (1.0f - progress) * (1.0f - progress); /* fast at first, easing into place */
     return slide_direction * left;
+}
+
+float tabs_slide (void) {
+    return slide_now(false);
+}
+
+float tabs_slide_folders (void) {
+    return slide_now(true);
 }
 
 void tabs_open (menu_t *menu, games_tab_t tab) {
