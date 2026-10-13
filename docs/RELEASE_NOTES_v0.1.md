@@ -30,6 +30,9 @@ stock `sc64menu.n64` somewhere safe so you can go back.
   music, text, zips.
 - Each tab goes back to the game it was left on.
 - Optional wrap-around: the last game sits left of the first.
+- Sort the games by name, recently played, release date or developer
+  (Settings > Library > Sort By). Dates and developers come from the
+  metadata pack.
 
 **Game info**
 - The title panel under the covers shows badges for each game: players,
@@ -56,6 +59,10 @@ stock `sc64menu.n64` somewhere safe so you can go back.
 - Names tidied for display: no file endings, "Legend of Zelda, The" shown
   as "The Legend of Zelda". Your files are never renamed.
 - Play counts and "last played".
+- **Save backups:** each time you start a game, the menu keeps a copy of
+  its save from before, in a `backups` folder beside the save. The last
+  three are kept (`Game.1.sav` is the newest). To go back to one, copy it
+  over the save with a computer.
 - Settings are saved safely, so switching off at the wrong moment can't
   leave a broken settings file.
 - **Safe mode:** hold **Z** while switching on to start without your
@@ -169,7 +176,8 @@ yet (the Ocean background, built-in themes).
     hasn't been tried on real hardware yet.
   - PAL consoles haven't been tried.
 - Saving settings can cause one short pause.
-- The swipe animation for the Folders tab is not in this release.
+- Save backups can't be restored from the menu yet, and 64DD disks are
+  not backed up.
 - Other flashcarts (64drive, ED64) are not supported by this fork.
 
 ## Credits and licence

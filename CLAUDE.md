@@ -810,6 +810,22 @@ Lessons that cost a hardware round each (do not repeat them):
     is read once per visit to the covers. Same log, fade-in: the start-up
     window averages 36 ms a frame (was 55); the frames still slow there
     are the first covers loading.
+  - **Save backups (done and tested 2026-10-13).** `save_backup.c/.h`,
+    one hook line at the top of `load()` in `load_rom.c`. Just before a
+    game starts, its save as it stands is copied to a `backups` folder
+    beside it as `Game.1.sav`; the last three are kept (1 newest, moved
+    up by renaming). Nothing is copied when the save is the same as copy
+    1 or blank (every byte alike), so a launch with nothing new writes
+    nothing. The copy goes to a `.tmp` name first. Two static 4 KB
+    buffers, no other memory. Feature `save_backups` (default on, "Back
+    Up Saves" in Settings > Library, which now has nine rows and
+    scrolls). Measured at launch: a 128 KB flash save (Majora's Mask)
+    890 ms, a 32 KB one about 300 ms, a small EEPROM one 203 ms, and the
+    "has it changed" check alone 95 ms. Not covered: 64DD disks.
+    **Not built: restoring from the menu** (a "Restore save" choice on
+    the game's Options menu is the planned next step; until then a
+    backup is copied back with a PC). The logic was run on the PC first
+    with stand-in file functions (eight cases).
   - **Folders list slides in on a tab switch (done and tested
     2026-10-13).** The no-memory form of the swipe the owner asked for:
     the path line, list and scroll bar come in from the side L or R was
@@ -1000,7 +1016,7 @@ quick_launch = 1       ; any key from menu_features.c: quick_launch,
                        ; see_through_covers, remember_selection,
                        ; hide_extensions, tidy_titles, hide_tags,
                        ; play_stats, memory_badge, button_icons,
-                       ; favorite_heart, rounded_corners
+                       ; favorite_heart, rounded_corners, save_backups
                        ; (0 or 1; leave out = default)
 ```
 
@@ -1642,6 +1658,10 @@ Everything else, once each
 24. Covers of all three shapes (US, Japanese, 64DD) and the ring round
     them, with Tint Ring From Art on Everywhere.
 
+25. Save backups: start a game with a save and note the `save backup:
+    copied ... in N ms` time; the copy needs no memory of its own.
+26. Sort By Release Date and Developer, and the Folders list sliding in.
+
 Also still untested on any console: a theme with `dither = 0`, and a PAL
 console (the frame cap comes out as 25 a second there).
 
@@ -1741,7 +1761,8 @@ built-in themes; v0.5's wraparound scrolling.
   - the Folders tab at rest (work 27 ms, chip 29 ms, at the chip's limit);
   - the idle game reader's frames climbing from 33 to 39 ms as it goes;
   - single slow frames on saving (70-90 ms, with odd ones of 120-130);
-  - a cover read from the card doubling three frames while it unpacks.
+  - a cover read from the card doubling three frames while it unpacks;
+  - the save backup at launch (890 ms for a 128 KB save).
   Measure each first.
 - **After that: Analogue 3D support.** A new phase once v0.5 and the "Later"
   items are done. Do not start it before the native N64 menu is finished.

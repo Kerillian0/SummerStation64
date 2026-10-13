@@ -12,6 +12,7 @@
 #include "../display_name.h"
 #include "../game_info_ui.h"
 #include "../play_stats.h"
+#include "../save_backup.h"
 #include "../baked_art.h" // the cover comes from art baked into the menu when there is some
 #include <string.h>
 
@@ -787,6 +788,7 @@ static void draw_creating_save (float progress) {
 
 static void load (menu_t *menu) {
     debugf("Load ROM: load function called\n");
+    save_backup_before_launch(menu); // keep a copy of the save as it is before this session
     cart_load_err_t err;
 #ifdef FEATURE_AUTOLOAD_ROM_ENABLED
     if (!menu->settings.loading_progress_bar_enabled) {
