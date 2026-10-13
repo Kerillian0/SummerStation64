@@ -93,7 +93,9 @@ of in one 140 ms frame). The idle game reader's frames climb from 33 to
    - a special treatment of ROM hacks, which the owner wants but has not
      decided on (today a hack sorts beside its original);
    - a random game button (v0.3);
-   - save backups (v0.2);
+   - done 2026-10-13: save backups, dated, five per game, with "Restore
+     save" on the game's Options menu (for the companion app later: an
+     option to copy them off the card);
    - the Folders tab is the slowest screen: work 27 ms, chip 29 ms at
      rest, at the chip's limit. **Left on purpose:** the owner finds it
      fine to browse and wants speed items like this kept for one final
