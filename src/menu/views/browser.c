@@ -646,8 +646,26 @@ static void remove_games_folder (menu_t *menu, void *arg) {
     }
 }
 
-static component_context_menu_t entry_context_menu = {
+// Options > "Random game" on the Games tab: jump to any other game in the row
+// (within the filter in use). The row is a few dozen to a few hundred games,
+// so the console's own random numbers are plenty.
+static void random_game (menu_t *menu, void *arg) {
+    if (menu->browser.entries < 2) {
+        return;
+    }
+    int pick = (int) (getentropy32() % (uint32_t) (menu->browser.entries - 1));
+    if (pick >= menu->browser.selected) {
+        pick++;     // never the game already selected
+    }
+    menu->browser.selected = pick;
+    menu->browser.entry = &menu->browser.list[pick];
+}
+
+// Every row the Options menu can have. entry_menu_fill() copies the ones
+// that suit the tab into entry_context_menu each time it is opened.
+static component_context_menu_t entry_menu_rows = {
     .list = {
+        { .text = "Random game", .action = random_game },
         { .text = "Game info", .action = show_game_info },
         { .text = "Show entry properties", .action = show_properties },
         { .text = "Delete selected entry", .action = delete_entry },
@@ -657,6 +675,31 @@ static component_context_menu_t entry_context_menu = {
         COMPONENT_CONTEXT_MENU_LIST_END,
     }
 };
+
+static component_context_menu_t entry_context_menu = {
+    .list = {
+        { .text = "Random game", .action = random_game },
+        { .text = "Game info", .action = show_game_info },
+        { .text = "Show entry properties", .action = show_properties },
+        { .text = "Delete selected entry", .action = delete_entry },
+        { .text = "Set current directory as default", .action = set_default_directory },
+        { .text = "Add this folder to Games", .action = add_games_folder },
+        { .text = "Remove this folder from Games", .action = remove_games_folder },
+        COMPONENT_CONTEXT_MENU_LIST_END,
+    }
+};
+
+static void entry_menu_fill (void) {
+    int rows = 0;
+    for (int i = 0; entry_menu_rows.list[i].text != NULL; i++) {
+        if (folders_tab && entry_menu_rows.list[i].action == random_game) {
+            continue;   // a random pick is for the row of games
+        }
+        entry_context_menu.list[rows++] = entry_menu_rows.list[i];
+    }
+    entry_context_menu.list[rows].text = NULL;
+    ui_components_context_menu_init(&entry_context_menu);   // counts the rows again
+}
 
 static component_context_menu_t archive_context_menu = {
     .list = {
@@ -862,6 +905,7 @@ static void process (menu_t *menu) {
         }
         sound_play_effect(SFX_EXIT);
     } else if (menu->actions.options && menu->browser.entry) {
+        entry_menu_fill(); // "Random game" on the Games tab only
         ui_components_context_menu_show(menu->browser.archive ? &archive_context_menu : &entry_context_menu);
         sound_play_effect(SFX_SETTING);
     } else if (menu->actions.settings) {
