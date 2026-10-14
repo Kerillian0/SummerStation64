@@ -1,175 +1,108 @@
 # SummerStation64 handoff
 
-Written 2026-10-12. This is the short version: where the project stands, what
-comes next, and what is still open. The full record, with every measurement
-and the reasons behind each choice, is `CLAUDE.md` in the top folder. Update
-this file whenever a step is finished.
+Written 2026-10-14. The short version of where things stand. Conventions,
+file layout, every measurement and the reasons behind each choice are in
+`CLAUDE.md`; read this first, then that.
 
-## What this is
+## Goal
 
-SummerStation64 is a themeable game front-end for the SummerCart64, forked
-from N64FlashcartMenu (based on its V0.3.4) and built on libdragon. The owner
-(Kerillian) tests every build on a real N64 with a small composite CRT and is
-learning as the project goes, so changes are explained in plain language.
+A themeable game front-end for the SummerCart64 on a real N64, forked from
+N64FlashcartMenu (V0.3.4) on libdragon. It must run on a stock 4MB console.
+The owner (Kerillian) tests every build on hardware (composite CRT, Expansion
+Pak fitted) and is learning as the project goes, so explain changes plainly.
 
 ## How a step goes
 
-1. Make one change, in a new file where possible, with a small hook in the
-   stock file that calls it.
-2. Build in the dev container with `make sc64`. Warnings are errors.
-3. Stop. The owner deploys from Windows and tests on the console:
-   - `.\localdeploy.bat` runs the build from the cart's memory.
-   - `.\deploy-sd.bat` puts it on the SD card (N64 switched off).
-   - Add `/d` to either to watch the debug log.
-   - **Never `.\localdeploy.bat /dur`:** it empties the menu file on the card.
-4. When the owner says "All testing passed", commit on `carousel-ui`.
-5. Push to `fork` only when asked. Never push to `origin` (upstream) and
-   never merge `n64ever` (a reference fork, read only).
+1. One change, in a new file where possible, with a small hook in the stock
+   file. `make sc64` in the dev container (warnings are errors).
+2. Stop. The owner deploys from Windows (`.\deploy-sd.bat /d` or
+   `.\localdeploy.bat /d`; **never `/dur`**) and reports with the log.
+3. "All testing passed" means commit on `carousel-ui`. Push to `fork` only
+   when asked; never to `origin`.
+4. PC tests: `sh tests/run.sh` (theme.ini reader, hack finder, share codes).
 
-PC-side tests, no console needed: `sh tests/run.sh` (the theme.ini reader and
-the Theme Maker's share codes). Run them after touching either.
+## Current state
 
-## Where it stands
-
-- Branch `carousel-ui`, about 97 commits ahead of upstream `main` (about
-  13,600 lines added across 130 files, most of them in new files).
-- **The fork was last pushed 2026-10-13**, with everything up to the Theme
-  Maker's version 8. Nothing is uncommitted. `git log
-  fork/carousel-ui..carousel-ui` lists anything added since. Push only
-  when asked.
-- **v0.1 is complete but not published.** The owner will publish only after
-  a full test on the 4MB Jumper Pak, the most common setup; it had not
-  arrived on 2026-10-12. The draft notes for players are
+- **v0.1 is complete but not published.** The owner publishes only after a
+  full test on the 4MB Jumper Pak (not arrived yet). Draft notes:
   `docs/RELEASE_NOTES_v0.1.md`.
-- `output/sc64menu.n64` is 27.9 MB because the owner's box art is baked into
-  it. Without baked art it is about 2.5 MB. The owner's art is in
-  `assets/boxart/source/` and the baked covers in `filesystem/art/`; both
-  are ignored by git. **Never commit them, and never publish a build that
-  contains them.**
+- **Fork last pushed 2026-10-13** (`b2e1f57c`). Two commits are local only:
+  Random game on the Games tab (`ca110018`) and the Options menus on Recent
+  and Favorites (`6b946d2c`), both tested.
+- **Uncommitted, built, awaiting the owner's test:** ROM hack detection,
+  step 1 (below). `output/sc64menu.n64` holds it.
+- The build is 27.9 MB because the owner's box art is baked in. Never commit
+  `assets/boxart/source/` or `filesystem/art/`, and never publish a build
+  that contains them.
 
-### What the menu does now
+## What changed since the last handoff (2026-10-12)
 
-| Area | What works (tested on hardware unless noted) |
+All tested on hardware and committed unless marked.
+
+| Change | Main files |
 |---|---|
-| Tabs | Games, Favorites and Folders by default, Recent optional; order set in Settings > Tabs; L/R switch, covers slide in; each tab returns to its game |
-| Games tab | Games only, from the start folder plus folders the player adds; cover row with slide, box flip, optional side covers and wrap-round; C-up/C-down filter by region or 64DD |
-| Folders tab | Plain file browser; opens pictures, music, text, zips; adds folders to Games; sets the start folder |
-| Recent, Favorites | Cover rows like Games; Z opens Options (Random game; on Favorites also Remove, which asks first) |
-| Covers | Baked art (4-7 ms) or PNGs on the card; drawn in their own shape; ring follows the shape and, optionally, the cover's color |
-| Game info | Blurred cover backdrop, series and subtitle, badges, Played / Last played / Players, description ending in "..." when cut, one Details pop-up on START |
-| Game knowledge | `gameindex.txt` remembers each game's code and badge facts; unknown games are read while the Games tab is idle |
-| Look | Rounded corners, button icons, memory badge, favorite heart, all switchable; four built-in summer themes or the player's `theme.ini` |
-| Start-up | Intro with a spinning 3D logo, title picture and tune; fade-in at full speed; both have settings |
-| Controls | Left/right browse, up/down flip, Z options, START menu on every tab, quick launch and hold-A-to-launch |
-| Settings | Game-style screen, seven categories, saved once on leaving |
-| Safety and tools | Safe mode (hold Z at boot), friendly crash screen, safe file saving, Performance Overlay, PC tests |
+| Idle saves take turns (no more 140 ms frame) | `safe_file.c` (`safe_file_idle_turn()`), `folder_memory.c`, `carousel_art.c` |
+| Release dates and developers in the game list; Sort By Release Date / Developer, shown under the title | `game_index.c`, `game_learn.c`, `sort_order.c`, `games_ui.c` |
+| Folders list slides in on a tab switch | `tabs.c`, `folders_ui.c` |
+| Save backups: dated, five per game, never the same twice; "Restore save" on the game's Options | `save_backup.c` (new), `views/load_rom.c` |
+| Theme Maker version 8: today's Games/Folders preview, Ocean, built-in presets, four look switches (published) | `theme-maker/theme-maker.html`, `tests/share_code_test.js` |
+| Random game on the Games tab's Options, and Options menus on Recent and Favorites | `views/browser.c`, `views/history_favorites.c`, `cover_row.c` |
+| **Uncommitted:** ROM hacks get a "Hack" badge and a "Hacks" filter step | `rom_hacks.c` (new), `games_filter.c`, `games_ui.c`, `views/browser.c`, `tests/rom_hacks_test.c` (new), `tests/run.sh`, `Makefile` |
 
-### Speed, as last measured (8MB, 240p, small font)
+### ROM hacks, step 1 (in progress)
 
-| | When first reported | Now |
-|---|---:|---:|
-| Average frame while stepping through covers | 40-53 ms | 33.4 ms |
-| Worst frames while stepping | 90-126 ms | 41-44 ms |
-| Start-up fade | 15 frames a second | full speed, one slow frame |
-| Wait before a cover appears | 0.25 s plus the load | 0.1 s |
+The owner chose: badge and filter first, then one cover per game with a
+version picker (step 2, with a setting between the two looks); detection by
+automatic rules **and** a folder the player marks as holding hacks.
 
-Per frame at rest: Settings work 14 / chip 16 ms; Games 22 / 24 ms; Game
-info 16 / 18 ms. A frame has 33.4 ms, and the chip needs to be done by about
-30. The Folders tab is work 27 / chip 29 ms (measured 2026-10-13): laying its
-text out once saved only about 2 ms, and it sits at the chip's limit.
+How a hack is told now (`rom_hacks.c`):
+1. The name says so: "hack", "romhack", "redux", or a `[h1]` tag.
+2. Files sharing a game code: their names are compared word by word
+   (brackets and little words left out, any order). The name whose words
+   turn up in most of the others is the original; same words = another copy
+   of it; the rest are hacks. No name holding another = nothing is a hack.
 
-What is still slow, all one frame each: a cover read from the card (about
-50 ms, then three while its PNG unpacks); saving a settings file (70-80
-ms; the game list and the folder position now save a second apart instead
-of in one 140 ms frame). The idle game reader's frames climb from 33 to
-39 ms of work as it goes; cause not found.
+Expected on the owner's card: 5 hacks (both Super Mario 64 hacks, Ocarina
+Redux, The Missing Link, The Sealed Palace). The PC test holds all 19 of the
+owner's same-code file names and passes. The log prints each shared code's
+files and what each was taken for (`games filter: code ...`).
 
-## Next steps
+## What failed or did not work
 
-1. **Ask the owner what comes next.** They said "keep developing". On offer:
-   - more game details in the index: release dates and developers are in
-     (Sort By Release Date / Developer); the owner dropped publishers;
-     the metadata pack has no genre, so that needs another source;
-   - a special treatment of ROM hacks, which the owner wants but has not
-     decided on (today a hack sorts beside its original);
-   - done 2026-10-13: save backups, dated, five per game, with "Restore
-     save" on the game's Options menu (for the companion app later: an
-     option to copy them off the card);
-   - the Folders tab is the slowest screen: work 27 ms, chip 29 ms at
-     rest, at the chip's limit. **Left on purpose:** the owner finds it
-     fine to browse and wants speed items like this kept for one final
-     optimization run before v1.0 (listed in CLAUDE.md's release plan);
-   - Frame Borders: the switch does nothing on the redesigned tabs, on
-     the console or in the Theme Maker (updated to version 8 on
-     2026-10-13); the owner wants both fixed later, look not decided.
-2. **Push the fork when asked.**
-3. **When the Jumper Pak arrives:** give the owner the "4MB test checklist"
-   from `CLAUDE.md` (24 steps). Every 4MB figure so far is worked out from
-   8MB runs.
-4. **Publishing v0.1, after that test and only when the owner says:** make
-   a clean build without baked art (move `filesystem/art/` aside, delete
-   `build/N64FlashcartMenu.dfs`, `make sc64 MENU_VERSION="SummerStation64
-   v0.1"`), then rebuild the owner's own copy with the art. The owner
-   creates the GitHub release with `docs/RELEASE_NOTES_v0.1.md`.
+- **Hack rule 2, first try:** "the less tidy name of two same-code files is
+  the hack" flagged second copies of Star Fox 64, GoldenEye, Racer, The New
+  Tetris; "patched" in a name flagged the Dezaemon 3D translation.
+- **Hack rule 2, second try:** "the larger file is the hack" flagged a 16 MB
+  GoldenEye copy and took Ocarina itself for a hack (The Missing Link is
+  smaller). Lesson: the owner keeps duplicate dumps, and file size says
+  nothing about which is the original.
+- **Save backups, first design:** three numbered copies; copy 1 normally
+  equalled the save in use, so restoring it did nothing and duplicates
+  filled the slots. Replaced by dated, deduplicated copies.
+- **Frame Borders does nothing** on the redesigned tabs, on the console or
+  in the Theme Maker. Open; the owner wants it fixed later, look undecided.
+- **Not explained yet:** the idle game reader's frames climb from 33 to 39
+  ms; odd slow saves of 120-130 ms. Both are on the pre-v1.0 optimization
+  list in `CLAUDE.md`, as is the Folders tab (work 27 / chip 29 ms).
 
-## Open questions
+## What the next session should do
 
-- **In the draft release notes:** whether the "made with the help of Claude"
-  line goes in now (the roadmap has an AI disclosure under v0.5), and the
-  Theme Maker link (the online one is a private page; the draft points to
-  the HTML file in the repository).
-- **Tint Ring From Art** defaults to Game Info; the owner uses Everywhere
-  and may want that as the stock setting.
-- **Wrap File List** is off by default, so the cover row's wrap-round is not
-  seen unless switched on.
-- **The Theme Maker is behind the menu.** It does not know the `ocean`
-  background, the built-in themes, or the options added since version 7.
-- Older, still unanswered: counting 64DD launches in play stats.
+1. **Get the hack build tested.** Expect `games filter: 5 hacks among 95
+   games`; no badge on the five base games or Dezaemon 3D. When it passes,
+   commit (the notes in `CLAUDE.md` are already written for it).
+2. **Hacks, next piece:** the marked folder (Folders tab, Z, "This folder
+   holds hacks"), as the owner chose both ways of telling.
+3. **Hacks, step 2:** one cover per game with a version picker, and a setting
+   to choose that or separate covers. Stand-alone hacks with their own art
+   (the owner's examples: The Sealed Palace, The Missing Link) must be able
+   to stay independent. The owner will compile a list of hacks that are
+   practically their own games; offer to research a starting list. The
+   companion app and setup wizard should later set this up for the player.
+4. Push when asked. When the Jumper Pak arrives, give the owner the 4MB
+   checklist in `CLAUDE.md` (26 steps); publish v0.1 only after it passes
+   and the owner says so (clean build without baked art, as described in
+   `CLAUDE.md`).
 
-## Known problems, not being worked on
-
-- **60 frames a second is out of reach for now.** Each screen needs most of
-  a 33 ms frame.
-- **`/dur` empties `sc64menu.n64` on the card.** The stock USB file transfer
-  fails; why is unknown. Worked around with `deploy-sd.bat`.
-- **PAL has never been tried.** The frame cap comes out as 25 a second there.
-- A theme with `dither = 0` has never been checked with the half-size
-  background.
-- Storage paths are not profile-aware yet (`folders.ini`, `playstats.txt`,
-  `gameindex.txt`, `gamefolders.txt`). Profiles are planned for v0.4.
-- Other flashcarts (64drive, ED64) are not supported by this fork.
-
-## Things that are easy to get wrong
-
-- The cart is powered through the USB cable, so it keeps the uploaded menu in
-  memory when the console is switched off. "It survived a power cycle" only
-  counts with the cable unplugged, or for something stored in a settings
-  file. For the same reason the intro shows only on the first start after an
-  upload while the cable is in.
-- The C library's `rename()` always fails on `sd:/`. Use
-  `safe_file_replace()`.
-- The dev container cannot see USB devices, so nothing can be deployed from
-  it. It does have gcc, Python with Pillow, and Node.js.
-- New `.c` files must be added to the Makefile list or they are not built.
-- After adding or removing files under `filesystem/` by script, delete
-  `build/N64FlashcartMenu.dfs`, or the build keeps the old set.
-- Text is dropped if its box is lower than one line of its font. Black text
-  turns into a blob (the font has a dark outline).
-- Every frame must end with `frame_rate_end_frame()`, or finished frames are
-  shown late. Ask for half the refresh rate, never "30".
-- Measure before fixing speed, and know which is slow: `work` (processor) or
-  `chip` (graphics). See-through fills over large areas are what cost the
-  chip; multiply colors as things are drawn where possible.
-- On the Games tab an entry's name carries its folder. Use
-  `entry_file_name()` for anything shown or sorted, and never assume one
-  "current folder" there.
-- A log the owner pastes can be the same one as last time, and is cut at
-  50,000 characters. Compare before concluding anything.
-- The owner prefers saving memory over a small gain in picture quality, and
-  fewer SD card writes over saving at once.
-- Outside pictures and sounds need a source and a licence, recorded in the
-  folder's `CREDITS.md`, before they are committed. Do not copy N64ever's
-  box art or game descriptions.
-- Two things the owner has decided and does not want raised again: the
-  intro's logo is the N64 logo's shape, and box art is baked from their own
-  pack.
+Still waiting on the owner's decisions: what a frame should look like on the
+redesigned screens (Frame Borders), and where genre would come from (the
+metadata pack has none).

@@ -82,7 +82,7 @@ stands, what is next, and what is still open. Read it first in a new session,
 then come back here for the detail. Update it whenever a step is finished.
 
 ## Key context
-How the menu is put together now (2026-10-12):
+How the menu is put together now (2026-10-14):
 - **Tabs.** Up to four, in an order the player chooses (Settings > Tabs;
   default Games, Favorites, Folders; Recent can be added). L/R step
   through them; the new tab's covers slide in from that side. The menu
@@ -92,21 +92,29 @@ How the menu is put together now (2026-10-12):
   folder to Games"; `gamefolders.txt`). It lists from the top of the card,
   so each entry's name carries its folder ("N64(JP)/Game.z64");
   `entry_file_name()` gives the part after it. C-up / C-down filter the
-  row: All, USA, Japan, Europe, 64DD.
+  row: All, USA, Japan, Europe, 64DD, Hacks. Sort By also offers Release
+  Date and Developer. Z opens Options (Random game first).
 - **Folders** is the plain file browser, where everything else is opened
   and folders are added to Games. Games and Folders are the same screen
   and mode (`MENU_MODE_BROWSER`) showing two lists, so every stock "back
   to the browser" lands on whichever was showing.
-- **Recent** and **Favorites** are cover rows too. All four share the tab
+- **Recent** and **Favorites** are cover rows too, with their own small Z
+  Options menu (Random game; Remove on Favorites). All four share the tab
   bar, title panel, badges and button hints from `games_ui.c`.
 - **Where a cover comes from:** art baked into the menu file if the user
   baked theirs (4-7 ms), else the PNG on the SD card (80-120 ms). A cover
   is drawn in its art's own shape (tall Japanese boxes stay tall) and the
   ring follows that shape and, optionally, the cover's color.
 - **What the menu knows about a game** comes from a saved list
-  (`gameindex.txt`): its code and badge facts. Games are learned when
-  first shown, and the rest are read in the background while the Games
-  tab sits idle (`game_learn.c`).
+  (`gameindex.txt`): its code, badge facts, release date and developer.
+  Games are learned when first shown, and the rest are read in the
+  background while the Games tab sits idle (`game_learn.c`).
+- **Hacks** (in progress, 2026-10-14): `rom_hacks.c` tells them from the
+  file names and from files sharing a game code; they get a "Hack" badge
+  and a filter step. Next: a folder the player marks as hacks, then one
+  cover per game with a version picker.
+- **Saves** are copied before each launch to `saves/backups/<game>/`,
+  dated, five per game; a game's Options has "Restore save".
 - **Game info:** cover over a blurred copy of itself, series and subtitle,
   badges, play counts, description, one Details pop-up on START.
 - **Start-up:** an intro (spinning logo, title picture, tune) at power-on,
@@ -172,7 +180,8 @@ docs/RELEASE_NOTES_v0.1.md draft release notes and player instructions
 docs/n64ever-notes.md      what the N64ever fork has, mapped to our roadmap
 docs/*.md (numbered)       upstream's user documentation, untouched
 theme-maker/               web Theme Maker source (one HTML file) + README
-tests/                     PC-side tests: sh tests/run.sh (gcc + Node.js)
+tests/                     PC-side tests: sh tests/run.sh (gcc + Node.js):
+                           theme.ini reader, hack finder, share codes
 tools/sc64/                sc64deployer.exe, not committed (tools/ is ignored)
 output/sc64menu.n64        the build
 libdragon/                 the SDK, a submodule; do not edit
@@ -186,10 +195,10 @@ Our files in `src/menu/`, by what they are for:
 | Themes and look | `theme`, `theme_parse` (reads theme.ini; tested on the PC), `builtin_themes`, `title_font`, `font_choice` |
 | Settings and switches | `menu_features` (on/off, themes may set), `menu_options` (choices, player only), `views/settings_menu` |
 | Tabs and the cover screens | `tabs` (order, and the slide when switching), `games_ui` (tab bar, title panel, hints, rounded boxes, icons, the fade's parts), `carousel.h` + the carousel in `views/browser.c`, `cover_list`, `cover_row`, `folders_ui`, `start_menu`, `controls` |
-| Covers and game data | `games_folders` (which folders the Games tab reads), `games_filter` (region / 64DD filter), `carousel_art`, `baked_art`, `game_index`, `game_learn` (reads unknown games while idle), `game_facts`, `display_name`, `sort_order`, `folder_memory`, `play_stats` |
+| Covers and game data | `games_folders` (which folders the Games tab reads), `games_filter` (region / 64DD / hacks filter), `rom_hacks` (tells hacks from originals; tested on the PC), `carousel_art`, `baked_art`, `game_index`, `game_learn` (reads unknown games while idle), `game_facts`, `display_name`, `sort_order`, `folder_memory`, `play_stats` |
 | Game info screen | `game_info_ui`, `art_tint` (ring color from the cover, also used by the cover rows) |
 | Start-up | `intro`, `intro_logo`, `menu_name.h`, `safe_mode` |
-| Safety and tools | `safe_file`, `crash_screen`, `debug_stats` (log lines and the performance overlay), `frame_rate` (the frame cap, and showing each frame as soon as it is drawn) |
+| Safety and tools | `safe_file` (also `safe_file_idle_turn()`: one idle save at a time), `save_backup` (dated save copies and Restore save), `crash_screen`, `debug_stats` (log lines and the performance overlay), `frame_rate` (the frame cap, and showing each frame as soon as it is drawn) |
 
 All of these are ours and free to change. `views/features_menu` is ours too
 but no longer reachable.
@@ -212,6 +221,7 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
 | `gameindex.txt` | which file is which game, and its badge facts; safe to delete | `game_index.c` |
 | `gamefolders.txt` | folders added to the Games tab, one per line | `games_folders.c` |
 | `metadata/` | box art and `metadata.ini` per game; read only | the user's metadata pack |
+| (beside each save) `backups/<game>/<date>-<time>.<check>.sav` | kept saves, five per game | `save_backup.c` |
 
 ## Conventions for new code
 - A feature is one new `name.c` + `name.h` pair in `src/menu/`, with a
@@ -302,6 +312,10 @@ Lessons that cost a hardware round each (do not repeat them):
   took the cover slide code with it (the build caught it).
 - **A pasted log is cut at 50,000 characters.** Ask for a short one aimed
   at the screen in question, and say so when figures did not arrive.
+- **Guessing from file names needs the owner's real names.** Two rules for
+  telling hacks were built on made-up names and both failed on the card
+  (duplicate dumps called hacks; size taken as a sign). Ask for, or log,
+  the real names first and put them in the PC test.
 - **Pictures and sounds from outside:** find the source and licence before
   committing, and record them in the folder's `CREDITS.md`. Photos and
   other people's artwork are redrawn from scratch instead.
@@ -810,6 +824,33 @@ Lessons that cost a hardware round each (do not repeat them):
     is read once per visit to the covers. Same log, fade-in: the start-up
     window averages 36 ms a frame (was 55); the frames still slow there
     are the first covers loading.
+  - **ROM hacks, step 1 (built 2026-10-14, awaiting hardware test, not
+    committed).** The owner's choices: a "Hack" badge and a "Hacks" filter
+    step first; then one cover per game with a version picker, with a
+    setting between the two looks; detection by automatic rules and by a
+    folder the player marks. Stand-alone hacks with their own art (the
+    owner's examples: The Legend of Zelda: The Sealed Palace, The Missing
+    Link) must be able to stay independent of their parent; the owner
+    will compile a list of hacks that are practically their own games
+    (research a starting list when asked), and the companion app and
+    setup wizard should set this up for the player.
+    `rom_hacks.c/.h` (no console code, tested on the PC with all 19 of the
+    owner's same-code file names, `tests/rom_hacks_test.c`): rule 1, the
+    name holds "hack", "romhack", "redux" or a `[h1]` tag ("patched" alone
+    is not enough: the owner's Dezaemon 3D is a patched translation);
+    rule 2, among files sharing a game code, names are compared word by
+    word (brackets, little words and order left out, roman I-III as
+    digits): the name whose words turn up in most of the others is the
+    original, files with the same words are copies of it, the rest are
+    hacks, and if no name holds another nothing is called a hack.
+    `games_filter.c` runs it after the list loads (`mark_hacks()`, codes
+    from the game list, so nothing is read from the card) and logs every
+    shared code's files (`games filter: code ...`). New filter bit
+    `FILTER_HACKS`, `games_filter_is_hack()`, and a `hack` argument on
+    `games_ui_title_panel_draw()` (orange boxed badge, shown from the
+    start). Expected on the owner's card: 5 hacks among 95 games. Two
+    earlier rule 2s failed on the card (see "Lessons"): "the less tidy of
+    two names" and "the larger file".
   - **Random game (done and tested 2026-10-13).** The owner chose a
     menu entry over the B button (offered: B, the Options menu, or
     both). "Random game" is the first row of Z Options on the Games tab:
