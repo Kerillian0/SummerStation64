@@ -1760,91 +1760,113 @@ Also still untested on any console: a theme with `dither = 0`, and a PAL
 console (the frame cap comes out as 25 a second there).
 
 ## Release plan
-Where it stands (2026-10-12): v0.1 is complete and waits for the 4MB test
-before it is published. Done early from later versions: v0.2's cover
-cache, slide animation, boot animation, sort options, remember-per-folder,
-Expansion Pak warnings and a first game index; v0.3's launch stats, clock
-and Recent row; v0.4's box art tinting, blurred art background, music and
-built-in themes; v0.5's wraparound scrolling.
-- **v0.1 usable carousel (all done):** theme loader ✓, text colors ✓, feature toggles +
-  Expansion Pak check, safe mode + friendly crash screen, left/right browsing,
-  quick launch (skip the ROM info screen), box art on covers.
-  - Dev tooling: debug overlay, a hidden toggle showing frame time and free
-    RAM.
-  - Dev tooling: PC-side automated tests for the theme parser and share code
-    decoder.
-- **v0.2 smooth and safe:** metadata index, cover cache, perspective covers +
-  slide animation, SteamOS-style boot animation, save backups, sort options,
-  4MB-friendly live background, asset prep tool.
-  - Extra game details in the metadata index: year, developer, publisher,
-    genre. Plan the index format with these fields from the start.
-  - Verified ROM badges: the asset prep tool (on PC) checks ROMs against known
-    good dumps and stores a "verified" flag in the index. No ROM hashing on
-    the console.
-  - Compatibility warnings before launch: warn if a game needs the Expansion
-    Pak and none is detected; badges for Controller Pak, Rumble Pak, Transfer
-    Pak (data from the metadata index).
-  - Remember the selected game per folder.
-  - Automated screenshots in the ares emulator for the README and for
-    catching visual regressions.
-  - Memory safeguard on the console: when a theme or setting asks for more
-    memory than is free, fall back quietly instead of failing (for example
-    draw the background live instead of loading a PNG, or leave side covers
-    as placeholders, which already happens), and say why in a short note in
-    Settings. The Theme Maker's RAM meter (v0.4) only estimates; this is what
-    guarantees the menu never crashes.
-- **v0.3 organizing:** continue row, launch stats, smart collections, region
-  dedupe, letter-wheel search, random game, homebrew/64DD shelves, party mode,
-  clock.
-  - Missing art report: a screen listing games without box art, screenshots
-    or descriptions.
-  - Screenshot button: a button combo saves the current screen to the SD card
-    as an image (use safe file writes).
-  - Custom collections (user-made lists, alongside smart collections).
-  - Recently added collection (newest files first).
-  - Hide individual entries without deleting them.
-  - Emulator shelves for NES, SNES, GB, GBC with matching cover shapes.
-  - 64DD pairing: link a disk to its cartridge so both launch together.
-  - Game variants: base game plus hacks/translations under one cover, with a
-    picker for which version to boot.
-- **v0.4 themes:** theme picker, codes + QR on console, box art tinting, blurred
-  art background, music, seasonal themes, profiles, settings backup.
-  - Font and sound packs: theme.ini can point to a custom font and UI sounds.
-    Build on the existing custom font support in `fonts.c`.
-  - Theme Maker: suggest a palette from a box art image or photo.
-  - Theme author guide: a doc explaining every theme.ini key, with CRT tips
-    (contrast, avoid 1px lines, overscan safe areas).
-  - Separate volume controls for UI sounds and music.
-  - Theme Maker: contrast auto-fix button and randomize button.
-  - Theme Maker RAM meter: a bar showing the theme's estimated memory use
-    against the console's total, with the 256 KB reserve marked, turning
-    yellow and then red as it gets close. A console selector (4MB, 8MB, later
-    Analogue 3D) so nobody has to do the sums. Tapping the bar lists what
-    each piece costs ("PNG background: 600 KB", "Cover cache, 5 covers:
-    180 KB") so people can see what to switch off. The costs come from a
-    small table generated from hardware logs for each menu release, not from
-    guesses. Worth building once themes can change memory use by much (PNG
-    backgrounds); today only the side covers and cover art do.
-  - Installable web app: turn the Theme Maker into an installable page. The
-    companion app comes after this.
-  - Community theme repo on GitHub: one folder per theme, issue-form
-    submissions (paste a share code), an Action that validates, renders
-    previews, and rebuilds index.json. License themes CC0/CC-BY; no
-    copyrighted images.
-- **v0.5 polish:** setup wizard, accessibility, overscan + CRT test patterns,
-  240p mode, wraparound scrolling, rumble, attract mode, what's new screen,
-  README/FAQ, theme gallery, acknowledgements + AI disclosure.
-  - Setup wizard and the intro: the wizard asks whether the player wants
-    the intro and the fade-in, and on that first run plays the intro and
-    then fades in (today the fade only draws on the Games screen, so the
-    first run, which opens on the credits, fades the music only).
-  - Controller test screen: button presses and stick range. Put it in the
-    same settings area as screen calibration (overscan + CRT test patterns).
-  - Widescreen layout: optional 16:9 anamorphic layout for stretched TVs.
-  - System info screen with a QR code (version, RAM, region, video mode,
-    theme) for bug reports.
-  - Beta channel: test builds published separately from stable releases.
-  - Autoboot: boot straight into the last game; hold a button for the menu.
+Sorted 2026-10-14 at the owner's request: everything built so far sits in
+the version it belongs to, and from here the work goes version by version,
+one item at a time, in the order listed. ✓ done and tested on hardware;
+◐ partly done (what is missing is said); ☐ not started.
+
+### v0.1 usable carousel — complete, not published
+✓ Theme loader, text colors, feature toggles + Expansion Pak check, safe
+mode + friendly crash screen, left/right browsing, quick launch, box art on
+covers, performance overlay, PC-side tests.
+Left before publishing (all wait on the Jumper Pak):
+- ☐ The 4MB test (checklist above). It also covers the one v0.1 fix never
+  tested on hardware: safe mode skipping the custom background (step 10).
+- ☐ Bring `docs/RELEASE_NOTES_v0.1.md` up to date: the release will carry
+  everything built since (Random game, Options menus, hacks).
+- ☐ Clean build without baked art, then publish when the owner says so.
+
+### v0.2 smooth and safe
+✓ Cover cache. Slide animation (and the tab slides, Folders included).
+Boot animation (intro and fade-in). Save backups with Restore save. Sort
+options (six orders). Remember the selected game per folder. Expansion Pak
+warning. Year and developer in the game list (publisher dropped by the
+owner: "people follow the devs").
+- ◐ Metadata index: `gameindex.txt` holds code, badge facts, date and
+  developer, learned in the background. Missing: genre (no source yet) and
+  the verified flag.
+- ◐ Compatibility badges: Expansion Pak done. Controller Pak, Rumble Pak
+  and Transfer Pak not yet; the stock database already has them
+  (`rom_info_t.features`).
+- ◐ Memory safeguard: the menu already falls back quietly (side covers,
+  baked art, the intro's title picture). Missing: a short note in Settings
+  saying what was turned down and why.
+- ◐ Asset prep tool: `make_baked_art.py` bakes covers into the menu file.
+  Missing: the full PC tool (building the index, checking dumps).
+- ☐ Perspective covers (side covers angled away).
+- ☐ 4MB-friendly live background: draw the theme background each frame
+  instead of keeping its 300 KB picture.
+- ☐ Verified ROM badges: the PC tool checks ROMs against known good dumps
+  and stores a "verified" flag. No ROM hashing on the console.
+- ☐ Automated screenshots in the ares emulator, for the README and for
+  catching visual changes.
+- ☐ Genre: needs a source (the owner's pack has none).
+
+### v0.3 organizing
+✓ Continue row (the Recent tab). Launch stats. Random game (Games, Recent,
+Favorites). Clock. Region filter (All, USA, Japan, Europe, 64DD, Hacks).
+- ◐ Game variants: step 1 done (Hack badge and filter). Next: a folder the
+  player marks as hacks; then one cover per game with a version picker and
+  a setting between the two looks; stand-alone hacks with their own art
+  stay separate (the owner is compiling a list).
+- ◐ Homebrew/64DD shelves: 64DD is a filter step; homebrew is not.
+- ◐ Region dedupe: the filter shows one region, but a game kept in several
+  regions still shows once per copy under All.
+- ☐ Smart collections; custom collections (user-made lists); recently
+  added (newest files first).
+- ☐ Letter-wheel search.
+- ☐ Party mode.
+- ☐ Missing art report: games without box art, screenshots or text.
+- ☐ Screenshot button (button combo saves the screen; safe file writes).
+- ☐ Hide entries without deleting them.
+- ☐ Emulator shelves for NES, SNES, GB, GBC with matching cover shapes.
+- ☐ 64DD pairing: link a disk to its cartridge so both launch together.
+
+### v0.4 themes
+✓ Box art tinting (ring from the cover). Blurred art background. Music.
+Theme Maker version 8.
+- ◐ Theme picker: the four built-in themes or the card's `theme.ini`.
+  Missing: choosing between several theme files on the card.
+- ◐ Seasonal themes: four summer ones so far.
+- ☐ Frame Borders on the redesigned screens, menu and Theme Maker (the
+  owner, 2026-10-13; what the frame looks like is not decided).
+- ☐ Codes + QR on the console; profiles; settings backup.
+- ☐ Font and sound packs: theme.ini points to a font and UI sounds (build
+  on the custom font support in `fonts.c`).
+- ☐ Separate volume controls for UI sounds and music.
+- ☐ Owner's ideas (2026-10-09): a banded sun in the intro, a "horizon
+  grid" pattern, palm silhouettes, a time-of-day look, summer sounds.
+- ☐ Theme Maker: palette from a picture; contrast auto-fix and randomize;
+  RAM meter (a bar of the theme's estimated memory against the console's,
+  the 256 KB reserve marked, a 4MB/8MB selector, tap for what each piece
+  costs, costs taken from hardware logs; worth it once themes can change
+  memory use by much, e.g. PNG backgrounds).
+- ☐ Theme author guide: every theme.ini key, with CRT tips.
+- ☐ Installable web app (the companion app comes after it).
+- ☐ Community theme repo on GitHub: one folder per theme, issue-form
+  submissions (paste a share code), an Action that checks, renders previews
+  and rebuilds index.json. Themes CC0/CC-BY; no copyrighted images.
+
+### v0.5 polish
+✓ Wraparound scrolling.
+- ◐ 240p: the "Video Output" row shows 480i or 240p (scaled). Missing: a
+  native 320x240 layout.
+- ◐ Acknowledgements: the credits screen names the music and sounds.
+  Missing: N64ever's credit and the AI disclosure.
+- ◐ README/FAQ: only the draft release notes.
+- ☐ Setup wizard; it also asks about the intro and fade-in and, on that
+  first run, plays the intro and fades in (today the first run opens on
+  the credits and fades the music only).
+- ☐ Accessibility.
+- ☐ Overscan + CRT test patterns, with a controller test screen (buttons
+  and stick range) beside them.
+- ☐ Rumble. Attract mode. What's new screen. Theme gallery.
+- ☐ Widescreen (16:9 anamorphic) layout.
+- ☐ System info screen with a QR code (version, RAM, region, video mode,
+  theme) for bug reports.
+- ☐ Beta channel. Autoboot (last game; hold a button for the menu).
+
+### After v0.5
 - **Later:** on-console theme editor, video previews (screenshot slideshow
   fallback), save-file achievements, PNG backgrounds, cover grid layout.
   - Manual viewer: browse pre-converted manual page images one at a time.

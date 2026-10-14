@@ -26,9 +26,7 @@ Pak fitted) and is learning as the project goes, so explain changes plainly.
 - **v0.1 is complete but not published.** The owner publishes only after a
   full test on the 4MB Jumper Pak (not arrived yet). Draft notes:
   `docs/RELEASE_NOTES_v0.1.md`.
-- **Fork last pushed 2026-10-13** (`b2e1f57c`). Two commits are local only:
-  Random game on the Games tab (`ca110018`) and the Options menus on Recent
-  and Favorites (`6b946d2c`), both tested.
+- **Fork last pushed 2026-10-14** (`29c09822`).
 - ROM hack detection, step 1 (below): tested and committed 2026-10-14.
 - The build is 27.9 MB because the owner's box art is baked in. Never commit
   `assets/boxart/source/` or `filesystem/art/`, and never publish a build
@@ -86,9 +84,16 @@ files and what each was taken for (`games filter: code ...`).
 
 ## What the next session should do
 
-1. ~~Get the hack build tested~~ (passed 2026-10-14, committed).
-2. **Hacks, next piece:** the marked folder (Folders tab, Z, "This folder
-   holds hacks"), as the owner chose both ways of telling.
+**The owner's plan from 2026-10-14: work version by version, one item at a
+time, in the order of the release plan in `CLAUDE.md`** (each item marked
+done, partly done or not started). v0.1 waits on the Jumper Pak, so the
+work is in v0.2. The fork was pushed 2026-10-14 (`29c09822`).
+
+1. **v0.2, next item:** Controller Pak, Rumble Pak and Transfer Pak badges
+   (data already in the stock database). Then the Settings note for the
+   memory safeguard, then perspective covers, then the live background.
+2. Hacks (v0.3, picked up when v0.3 is reached): the marked folder
+   (Folders tab, Z, "This folder holds hacks").
 3. **Hacks, step 2:** one cover per game with a version picker, and a setting
    to choose that or separate covers. Stand-alone hacks with their own art
    (the owner's examples: The Sealed Palace, The Missing Link) must be able
