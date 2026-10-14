@@ -243,7 +243,7 @@ static void heart_draw (int x, int y) {
 
 static int text_width (const char *string);    /* further down, with the hints */
 
-void games_ui_title_panel_draw (const char *title, const char *detail, const char *lead, const game_facts_t *facts) {
+void games_ui_title_panel_draw (const char *title, const char *detail, const char *lead, bool hack, const game_facts_t *facts) {
     const theme_t *t = theme_get();
     int x0 = GAMES_UI_CONTENT_X0;
     int x1 = GAMES_UI_CONTENT_X1;
@@ -288,13 +288,22 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const cha
         heart_draw(title_end + HEART_GAP, PANEL_Y + 2 + ((PANEL_TITLE - HEART_HEIGHT) / 2));
     }
 
+    int x = x0 + 12 - BADGE_PADDING;
+    int y = line2_y + (PANEL_LINE - BADGE_HEIGHT) / 2;
+
     if (!facts) {
-        text(x0 + 12, line2_y, x1 - x0 - 24, PANEL_LINE, ALIGN_LEFT, STL_GRAY, lead ? lead : detail);
+        /* Not looked up yet: what is known at once. A hack says so from the start. */
+        if (hack) {
+            if (lead) {
+                x = games_ui_badge(x, y, lead, STL_DEFAULT, false);
+            }
+            games_ui_badge(x, y, "Hack", STL_ORANGE, true);
+        } else {
+            text(x0 + 12, line2_y, x1 - x0 - 24, PANEL_LINE, ALIGN_LEFT, STL_GRAY, lead ? lead : detail);
+        }
         return;
     }
 
-    int x = x0 + 12 - BADGE_PADDING;
-    int y = line2_y + (PANEL_LINE - BADGE_HEIGHT) / 2;
     int limit = x1 - 12 + BADGE_PADDING;
 
     /* What the row is sorted by (developer, year) comes first and always
@@ -306,6 +315,9 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const cha
 
     if (lead) {
         x = games_ui_badge(x, y, lead, STL_DEFAULT, false);
+    }
+    if (hack) {
+        PANEL_BADGE("Hack", STL_ORANGE, true);
     }
     if (facts->players > 0) {
         char players[24];

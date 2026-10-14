@@ -82,6 +82,7 @@ SRCS = \
 	menu/theme_parse.c \
 	menu/games_folders.c \
 	menu/games_filter.c \
+	menu/rom_hacks.c \
 	menu/game_learn.c \
 	menu/intro.c \
 	menu/baked_art.c \

@@ -1,6 +1,6 @@
 #!/bin/sh
-# PC-side tests: the theme.ini reader (C, built with the PC's own compiler)
-# and the Theme Maker's share codes (JavaScript, run with Node.js).
+# PC-side tests: the theme.ini reader and the hack finder (C, built with the
+# PC's own compiler) and the Theme Maker's share codes (JavaScript, run with Node.js).
 # Run from anywhere:  sh tests/run.sh
 # Needs gcc and node (in the dev container: sudo apt-get install -y nodejs).
 set -e
@@ -14,6 +14,12 @@ echo "== theme.ini reader =="
 gcc -std=gnu11 -Wall -Werror -I"$here/stubs" -I"$here/../src/menu" \
     -o "$out/theme_parse_test" "$here/theme_parse_test.c" "$here/../src/menu/theme_parse.c"
 "$out/theme_parse_test" || status=1
+
+echo
+echo "== hacks told from originals =="
+gcc -std=gnu11 -Wall -Werror -I"$here/../src/menu" \
+    -o "$out/rom_hacks_test" "$here/rom_hacks_test.c" "$here/../src/menu/rom_hacks.c"
+"$out/rom_hacks_test" || status=1
 
 echo
 echo "== share codes =="

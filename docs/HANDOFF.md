@@ -29,8 +29,7 @@ Pak fitted) and is learning as the project goes, so explain changes plainly.
 - **Fork last pushed 2026-10-13** (`b2e1f57c`). Two commits are local only:
   Random game on the Games tab (`ca110018`) and the Options menus on Recent
   and Favorites (`6b946d2c`), both tested.
-- **Uncommitted, built, awaiting the owner's test:** ROM hack detection,
-  step 1 (below). `output/sc64menu.n64` holds it.
+- ROM hack detection, step 1 (below): tested and committed 2026-10-14.
 - The build is 27.9 MB because the owner's box art is baked in. Never commit
   `assets/boxart/source/` or `filesystem/art/`, and never publish a build
   that contains them.
@@ -47,9 +46,9 @@ All tested on hardware and committed unless marked.
 | Save backups: dated, five per game, never the same twice; "Restore save" on the game's Options | `save_backup.c` (new), `views/load_rom.c` |
 | Theme Maker version 8: today's Games/Folders preview, Ocean, built-in presets, four look switches (published) | `theme-maker/theme-maker.html`, `tests/share_code_test.js` |
 | Random game on the Games tab's Options, and Options menus on Recent and Favorites | `views/browser.c`, `views/history_favorites.c`, `cover_row.c` |
-| **Uncommitted:** ROM hacks get a "Hack" badge and a "Hacks" filter step | `rom_hacks.c` (new), `games_filter.c`, `games_ui.c`, `views/browser.c`, `tests/rom_hacks_test.c` (new), `tests/run.sh`, `Makefile` |
+| ROM hacks get a "Hack" badge and a "Hacks" filter step | `rom_hacks.c` (new), `games_filter.c`, `games_ui.c`, `views/browser.c`, `tests/rom_hacks_test.c` (new), `tests/run.sh`, `Makefile` |
 
-### ROM hacks, step 1 (in progress)
+### ROM hacks, step 1 (done and tested)
 
 The owner chose: badge and filter first, then one cover per game with a
 version picker (step 2, with a setting between the two looks); detection by
@@ -87,9 +86,7 @@ files and what each was taken for (`games filter: code ...`).
 
 ## What the next session should do
 
-1. **Get the hack build tested.** Expect `games filter: 5 hacks among 95
-   games`; no badge on the five base games or Dezaemon 3D. When it passes,
-   commit (the notes in `CLAUDE.md` are already written for it).
+1. ~~Get the hack build tested~~ (passed 2026-10-14, committed).
 2. **Hacks, next piece:** the marked folder (Folders tab, Z, "This folder
    holds hacks"), as the owner chose both ways of telling.
 3. **Hacks, step 2:** one cover per game with a version picker, and a setting

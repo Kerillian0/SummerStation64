@@ -1,8 +1,8 @@
 /**
  * @file games_filter.h
- * @brief Shows only one region's games, or only 64DD disks, on the Games tab.
+ * @brief Shows only one region's games, only 64DD disks or only hacks, on the Games tab.
  *
- * C-up and C-down step through All, USA, Japan, Europe and 64DD, leaving out
+ * C-up and C-down step through All, USA, Japan, Europe, 64DD and Hacks, leaving out
  * any with no games. A game's region comes from its code in the remembered
  * game list (the last letter: E USA, J Japan, P and the other PAL letters
  * Europe), or else from tags in its file name such as (U), (J), (E), (Japan).
@@ -38,6 +38,9 @@ bool games_filter_step (menu_t *menu, int direction);
  * gave none. It shows under that filter the next time the filter is chosen.
  */
 void games_filter_note_code (const entry_t *e, const char *code);
+
+/** True if this game of the Games tab's list is a hack of another game (see rom_hacks.h). */
+bool games_filter_is_hack (const entry_t *e);
 
 /** How many entries the list really holds, the hidden ones included (for freeing it). */
 int games_filter_all_entries (int shown);

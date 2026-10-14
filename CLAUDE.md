@@ -109,7 +109,7 @@ How the menu is put together now (2026-10-14):
   (`gameindex.txt`): its code, badge facts, release date and developer.
   Games are learned when first shown, and the rest are read in the
   background while the Games tab sits idle (`game_learn.c`).
-- **Hacks** (in progress, 2026-10-14): `rom_hacks.c` tells them from the
+- **Hacks** (step 1 done, 2026-10-14): `rom_hacks.c` tells them from the
   file names and from files sharing a game code; they get a "Hack" badge
   and a filter step. Next: a folder the player marks as hacks, then one
   cover per game with a version picker.
@@ -824,8 +824,7 @@ Lessons that cost a hardware round each (do not repeat them):
     is read once per visit to the covers. Same log, fade-in: the start-up
     window averages 36 ms a frame (was 55); the frames still slow there
     are the first covers loading.
-  - **ROM hacks, step 1 (built 2026-10-14, awaiting hardware test, not
-    committed).** The owner's choices: a "Hack" badge and a "Hacks" filter
+  - **ROM hacks, step 1 (done and tested 2026-10-14).** The owner's choices: a "Hack" badge and a "Hacks" filter
     step first; then one cover per game with a version picker, with a
     setting between the two looks; detection by automatic rules and by a
     folder the player marks. Stand-alone hacks with their own art (the

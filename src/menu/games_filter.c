@@ -12,7 +12,9 @@
 
 #include "game_index.h"
 #include "games_filter.h"
+#include "games_folders.h"
 #include "path.h"
+#include "rom_hacks.h"
 #include "sort_order.h"
 
 typedef enum {
@@ -21,10 +23,11 @@ typedef enum {
     FILTER_JAPAN,
     FILTER_EUROPE,
     FILTER_64DD,
+    FILTER_HACKS,
     FILTER_COUNT
 } filter_t;
 
-static const char *names[FILTER_COUNT] = { "All", "USA", "Japan", "Europe", "64DD" };
+static const char *names[FILTER_COUNT] = { "All", "USA", "Japan", "Europe", "64DD", "Hacks" };
 
 /* Which filters a game belongs to, one bit each (bit FILTER_ALL always set). */
 static uint8_t *marks = NULL;   /* indexed by entry->index, the order the folder was read in */
@@ -129,6 +132,76 @@ static void apply (menu_t *menu, bool sort) {
     }
 }
 
+/* Which games are hacks of others (rom_hacks.h): told from the file names
+   and from games sharing a code in the remembered game list. The working
+   lists are given back at once. */
+static void mark_hacks (menu_t *menu) {
+    const char **names = malloc(total * sizeof(char *));
+    char (*codes)[4] = calloc(total, 4);
+    bool *is_rom = malloc(total * sizeof(bool));
+    bool *hack = malloc(total * sizeof(bool));
+    long long *sizes = malloc(total * sizeof(long long));
+    if (names && codes && is_rom && hack && sizes) {
+        for (int i = 0; i < total; i++) {
+            entry_t *e = &menu->browser.list[i];
+            names[i] = entry_file_name(e->name);
+            is_rom[i] = (e->type == ENTRY_TYPE_ROM);
+            sizes[i] = e->size;
+            if (is_rom[i]) {
+                path_t *path = path_clone_push(menu->browser.directory, e->name);
+                const game_index_entry_t *known = game_index_find(path_get(path), e->size);
+                if (known) {
+                    memcpy(codes[i], known->code, 4);
+                }
+                path_free(path);
+            }
+        }
+        rom_hacks_find(names, codes, is_rom, total, hack);
+        int found = 0;
+        for (int i = 0; i < total; i++) {
+            if (hack[i]) {
+                marks[menu->browser.list[i].index] |= 1 << FILTER_HACKS;
+                found++;
+            }
+        }
+        /* For checking the rules: every game code more than one file shares,
+           with each file's size and what it was taken for. */
+        for (int i = 0; i < total; i++) {
+            bool first = is_rom[i] && memcmp(codes[i], "\0\0\0\0", 4) != 0;
+            bool shared = false;
+            for (int j = 0; first && j < total; j++) {
+                if (j != i && is_rom[j] && memcmp(codes[i], codes[j], 4) == 0) {
+                    if (j < i) first = false;
+                    shared = true;
+                }
+            }
+            if (!first || !shared) {
+                continue;
+            }
+            for (int j = i; j < total; j++) {
+                if (is_rom[j] && memcmp(codes[i], codes[j], 4) == 0) {
+                    debugf("games filter: code %.4s: %s (%d KB)%s\n", codes[i], names[j], (int) (sizes[j] / 1024), hack[j] ? " - hack" : "");
+                }
+            }
+        }
+        for (int i = 0; i < total; i++) {
+            if (hack[i] && rom_hacks_name_says(names[i])) {
+                debugf("games filter: %s - hack, by its name\n", names[i]);
+            }
+        }
+        debugf("games filter: %d hacks among %d games\n", found, total);
+    }
+    free(names);
+    free(codes);
+    free(is_rom);
+    free(hack);
+    free(sizes);
+}
+
+bool games_filter_is_hack (const entry_t *e) {
+    return matches(e, FILTER_HACKS);
+}
+
 void games_filter_forget (void) {
     free(marks);
     marks = NULL;
@@ -154,6 +227,7 @@ void games_filter_after_load (menu_t *menu, int (*compare) (const void *, const 
         e->index = i;
         marks[i] = classify(menu, e);
     }
+    mark_hacks(menu);
     if (current != FILTER_ALL && count_for(menu, current) == 0) {
         current = FILTER_ALL;   /* nothing of that kind any more */
     }
@@ -198,7 +272,7 @@ void games_filter_note_code (const entry_t *e, const char *code) {
     if (e->index < 0 || e->index >= marks_count) {
         return;
     }
-    uint8_t region_bits = (uint8_t) ~((1 << FILTER_ALL) | (1 << FILTER_64DD));
+    uint8_t region_bits = (1 << FILTER_USA) | (1 << FILTER_JAPAN) | (1 << FILTER_EUROPE);
     if (!(marks[e->index] & region_bits)) {
         marks[e->index] |= from_code_letter(code[3]);
     }
