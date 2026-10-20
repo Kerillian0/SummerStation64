@@ -1,115 +1,157 @@
-![Build](https://github.com/polprzewodnikowy/N64FlashcartMenu/actions/workflows/build.yml/badge.svg)
-![GitHub Org's stars](https://img.shields.io/github/stars/Polprzewodnikowy/N64FlashcartMenu)
-[![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/Polprzewodnikowy/N64FlashcartMenu.svg)](http://isitmaintained.com/project/Polprzewodnikowy/N64FlashcartMenu "Average time to resolve an issue")
-[![Percentage of issues still open](http://isitmaintained.com/badge/open/Polprzewodnikowy/N64FlashcartMenu.svg)](http://isitmaintained.com/project/Polprzewodnikowy/N64FlashcartMenu "Percentage of issues still open")
-[![#yourfirstpr](https://img.shields.io/badge/first--timers--only-friendly-blue.svg)](https://github.com/Polprzewodnikowy/N64FlashcartMenu/blob/main/CONTRIBUTING.md)
+<h1 align="center">☀️ SummerStation64 ☀️</h1>
 
-# N64FlashcartMenu
-An open source menu for N64 flashcarts that aims to support as many as possible.  
-This menu is not affiliated with any particular flashcart and does not necessarily expose all possible firmware features.
+<p align="center">
+  <b>A themeable game menu for the SummerCart64, built on a real N64 and a CRT.</b><br><br>
+  <a href="https://github.com/Kerillian0/SummerStation64/releases/latest"><img src="https://img.shields.io/github/v/release/Kerillian0/SummerStation64?label=download&color=f2b134" alt="Download the latest release"></a>
+  <img src="https://img.shields.io/badge/runs%20on-4MB%20%26%208MB-3fa34d" alt="Runs on 4MB and 8MB">
+  <img src="https://img.shields.io/badge/licence-AGPL--3.0-1c54d8" alt="Licence AGPL-3.0">
+</p>
+
+SummerStation64 is an unofficial game menu for the **SummerCart64** flashcart,
+made as a fork of [N64FlashcartMenu](https://github.com/Polprzewodnikowy/N64FlashcartMenu).
+It turns the file list into a row of box covers, with tabs, themes, badges,
+save backups and an intro, and every build is tested on a real Nintendo 64
+and a CRT television, with and without the Expansion Pak.
+
+<!-- Screenshots: drag pictures into GitHub's editor for this file, so they
+     are stored on GitHub's image server rather than in the repository. -->
 
 > [!TIP]
-> Help sponsor development [NetworkFusion on Ko-Fi](https://ko-fi.com/networkfusion). Or submit your Pull Request.
+> **Quick start:** download **`sc64menu.n64`** from the Assets below, copy it
+> to the top folder of your SD card, switch on. Covers and game details are
+> built in.
 
-> [!TIP]
-> New users are invited to read the latest [Documentation / User Guide](./docs/00_index.md).
+> [!IMPORTANT]
+> This is a first release. **Back up your SD card**, and keep your current
+> `sc64menu.n64` somewhere safe so you can go back.
 
-## Flashcart Support
-This menu aims to support as many N64 flashcarts as possible.  
-The current state of support is:
+> [!NOTE]
+> **💬 Feedback wanted!** This is the first release, and I'd love to hear
+> how it runs on your console: what works, what doesn't, and what you'd
+> like to see next.
+> Please [open an issue](https://github.com/Kerillian0/SummerStation64/issues/new)
+> with your console setup (Expansion Pak or Jumper Pak, NTSC or PAL) and,
+> if something went wrong, a photo of the screen.
+>--Please test on Analogue 3D! I don't have one and need some testers for it!--
+>--I'd like to create an exclusive theme for it. Sounds, Theme, and Analogue 3D check in the top right.--
 
-### Supported
-* SummerCart64
-* 64Drive
+<img width="640" height="480" alt="shot0004" src="https://github.com/user-attachments/assets/a709d0db-f93b-4a62-a116-7f67c348ba06" />
+<img width="640" height="480" alt="shot0003" src="https://github.com/user-attachments/assets/0ef95926-fc83-45f7-9089-28a5c923ce71" />
+<img width="640" height="480" alt="shot0005" src="https://github.com/user-attachments/assets/11e1ac76-b359-4dd4-ac19-371a01a089b0" />
+<img width="640" height="480" alt="shot0008" src="https://github.com/user-attachments/assets/9d34cba9-8be6-479b-a2c6-5ea67e2143f1" />
+<img width="640" height="480" alt="shot0001" src="https://github.com/user-attachments/assets/26081a8c-d606-4dd4-bca0-5e4516004837" />
 
-### Work in Progress
-* EverDrive-64 (X and V series)
-* ED64P (clones)
+## ✨ Highlights
 
-### Not yet planned
-* Doctor V64
-* PicoCart
-* DaisyDrive
+| | |
+|---|---|
+| 🎮 **Cover row** | Your games as box covers that slide left and right; turn a box over to see its back. Japanese and 64DD boxes keep their own shape. |
+| 🗂️ **Tabs** | Games, Favorites, Folders and Recent, in the order you choose. Games gathers games from as many folders as you like. |
+| 🔎 **Find a game** | Filter by region, 64DD or hacks; sort by name, recently played, release date or developer; or press Z for a random game. |
+| 🏷️ **Badges** | Players, Expansion Pak, save found, Controller / Rumble / Transfer Pak, and a Hack badge for ROM hacks. |
+| 📖 **Game info** | The cover over a blurred copy of itself, a big title, times played, the description, and a ring tinted to match the box. |
+| 🎨 **Themes** | Four built-in summer themes, or your own made with the web [Theme Maker](theme-maker/) and shared with a short code. |
+| 💾 **Save backups** | Each start keeps the game's save from before, dated, five per game; "Restore save" brings one back. |
+| 🛡️ **Safe by design** | Safe mode (hold Z at power-on), safe settings saves, a friendly crash screen, and it leaves extras out instead of stopping when memory is short. |
+| 🌅 **Intro** | A spinning logo, a title picture and a tune at power-on, then a fade-in. Both optional. |
 
+## 📥 Downloads
 
-## Current (notable) menu features
-* Fully Open Source.
-* Loads all known N64 games, even if they are byteswapped.
-* Fully emulates the 64DD and loads 64DD disks (SummerCart64 only).
-* Emulator support (NES, SNES, GB, GBC, SMS, GG, CHF) ROMs.
-* N64 ROM box art image support.
-* Background image (PNG) support.
-* Comprehensive ROM save database (including homebrew headers).
-* Comprehensive ROM information display.
-* Real Time Clock support.
-* Music playback (MP3).
-* Menu sound effects.
-* N64 ROM fast reboot option (on reset).
-* ROM history and favorites.  
+Each [release](https://github.com/Kerillian0/SummerStation64/releases) comes in two editions of the same menu:
 
-Experimental (beta):
-* ROM Datel code editor.
-* Zip archive browsing and file extraction.
-* Controller Pak backup and restore (including individual notes).
-* Game art image switching.
+- **Art Edition** (`sc64menu.n64`, recommended): box covers built in. Copy one file and go.
+- **Standard** (`.zip`): a small download that reads box covers from the
+  [metadata pack](https://github.com/n64-tools/n64-flashcart-menu-metadata/releases)
+  on your SD card, for people who want their own art.
 
+Both have the game details (descriptions, release dates, developers, players)
+built in.
 
-## Aims
-* Support as many N64 Flashcarts as possible.
-* Be open source, using permissively licensed third-party libraries.
-* Be testable in an emulated environment (Ares).
-* Encourage active development from community members and N64 FlashCart owners.
-* Support as many common mods and features as possible (flashcart dependent).
+## 📚 Documentation
 
+- **[Release notes and install guide](docs/RELEASE_NOTES_v0.1.md)**: what's
+  new, installing, first steps, controls, settings and known limitations.
+- **[Theme Maker](theme-maker/)**: build a `theme.ini` in your web browser
+  with a live preview.
+- **[N64FlashcartMenu's documentation](docs/00_index.md)**: still describes
+  the file browser, ROM settings, cheats, 64DD and the other stock features.
 
-## Flashcart specific information
+## 🧭 Roadmap
 
-### SummerCart64
-Download the latest `sc64menu.n64` file from the [releases](https://github.com/Polprzewodnikowy/N64FlashcartMenu/releases/) page, then put it in the root directory of your SD card.  
-  
-> [!TIP]
-> A quick video tutorial can be found here:
->
-> [![Video tutorial](https://img.youtube.com/vi/IGX0XXf0wgo/default.jpg)](https://www.youtube.com/shorts/IGX0XXf0wgo)
+- **v0.1** ✅ released: the cover row, tabs, themes, badges, save backups,
+  tested on 4MB and 8MB.
+- **v0.2** smooth and safe: angled side covers, a lighter background for 4MB,
+  a PC prep tool.
+- **v0.3** organizing: one cover per game with a version picker for hacks,
+  collections, search, screenshots.
+- **v0.4** themes: theme picker, sound and font packs, more seasonal themes.
+- **v0.5** polish: setup wizard, CRT test patterns, accessibility.
 
+## 🔧 Building from source
 
-### 64drive
-* Ensure the cart has the latest [firmware](https://64drive.retroactive.be/support.php) installed.
-* Download the latest `menu.bin` file from the [releases](https://github.com/Polprzewodnikowy/N64FlashcartMenu/releases/) page, then put it in the root directory of your SD card.
+The project builds with [libdragon](https://github.com/DragonMinded/libdragon)
+inside the included dev container (`.devcontainer/`, for VS Code):
 
+```sh
+git submodule update --init
+make sc64          # writes output/sc64menu.n64
+sh tests/run.sh    # PC-side tests (gcc and Node.js)
+```
 
-# Contributors
-The features in this project were made possible by the [contributors](https://github.com/Polprzewodnikowy/N64FlashcartMenu/graphs/contributors).
+Box art and game details can be built into your own copy from a metadata
+pack; see [assets/boxart/README.md](assets/boxart/README.md). Never commit
+the art itself.
 
-# License
-This project is released under the [GNU AFFERO GENERAL PUBLIC LICENSE](LICENSE.md) as compatible with all other dependent project licenses.  
-Other license options may be available upon request with permissions of the original `N64FlashcartMenu` project authors / maintainers.  
-* [Mateusz Faderewski / Polprzewodnikowy](https://github.com/Polprzewodnikowy)
-* [Robin Jones / NetworkFusion](https://github.com/networkfusion)
+## 🤖 AI disclosure
 
-# Open source software and licenses used
-## Libraries
-* [libdragon](https://github.com/DragonMinded/libdragon/tree/preview) - [UNLICENSE License](https://github.com/DragonMinded/libdragon/blob/preview/LICENSE.md)
-* [libspng](https://github.com/randy408/libspng) - [BSD 2-Clause License](https://github.com/randy408/libspng/blob/master/LICENSE)
-* [minimp3](https://github.com/lieff/minimp3) - [CC0 1.0 Universal](https://github.com/lieff/minimp3/blob/master/LICENSE)
-* [miniz](https://github.com/richgel999/miniz) - [MIT License](https://github.com/richgel999/miniz/blob/master/LICENSE)
-* [dr_flac](https://github.com/mackron/dr_libs) - [MIT License](https://github.com/mackron/dr_libs/blob/master/LICENSE)
+SummerStation64 was made with Claude, an AI model by Anthropic, used
+through Claude Code (Anthropic's coding assistant) inside Visual Studio
+Code.
 
-## Sounds
-See [License](https://pixabay.com/en/service/license-summary/) for the following sounds:
-* [Cursor sound](https://pixabay.com/en/sound-effects/click-buttons-ui-menu-sounds-effects-button-7-203601/) by Skyscraper_seven (Free to use)
-* [Actions (Enter, Back) sound](https://pixabay.com/en/sound-effects/menu-button-user-interface-pack-190041/) by Liecio (Free to use)
-* [Error sound](https://pixabay.com/en/sound-effects/error-call-to-attention-129258/) by Universfield (Free to use)
+Model: Claude Opus 5.5, as recorded on the commits.
+- How much: Claude wrote nearly all of this fork's code and text.
+121 of the 123 commits between N64FlashcartMenu V0.3.4 and v0.1 are
+co-authored by Claude (October 4 to 20, 2026).
+- About 10,900 lines of menu code in 82 new source files. The original
+menu's own files were changed only with small hooks that call the new
+code.
+- Also the build and art scripts, the PC-side tests, the Theme Maker, and
+the documentation, these release notes included.
+- What the owner (Kerillian) did: decided what to build and in what
+order, supplied the design mockups, made every choice along the way
+(features, layout, colours, sounds, art and licensing questions), and
+tested every build on a real N64 and CRT, with and without an
+Expansion Pak, reporting back with photos and debug logs. Nothing was
+committed until it passed on the console.
+- How the work went: one change at a time. Claude proposed and wrote a
+change, built it and explained it in plain words; the owner tested it on
+hardware; problems seen there (with the console's own timing and memory
+figures) came back to Claude to fix.
+- Not made by AI: the music and interface sounds (credited below), the
+fonts, the box art and game details (a community pack), and
+- N64FlashcartMenu and libdragon, which this is built on. The icons, the
+title picture and the intro logo are drawn by small programs Claude
+wrote, not by an image-generating AI.
+- There are a few placeholder elements, such as the Intro Logo that are AI generated. If this makes you uncomfortable, please contact me and I will rectify it asap. I am looking to commission or create these elements in the next few releases. If you are willing to contribute to this and create some assets for this frontend menu. Please contact my Discord at "Kerillian." And we may work something out.
+- If you do not want to use this menu due to AI usage, I completely understand and accept this. Please use the stock menu or N64ever. I do not believe either of these utilize or at the very least disclose AI usage. They are far more talented than me. Please support them as this fork uses their code. They are the reason why this was possible in the first place.
+- If something seems wrong, please open an issue.
 
-See [License](https://creativecommons.org/licenses/by/4.0/) for the following sounds:
-* [Background Music](https://www.playonloop.com/2017-music-loops/flying-dreams/) POL-flying-dreams-short
+## 🙏 Credits and licence
 
-## Emulators
-* [neon64v2](https://github.com/hcs64/neon64v2) by *hcs64* - [ISC License](https://github.com/hcs64/neon64v2/blob/master/LICENSE.txt)
-* [sodium64](https://github.com/Hydr8gon/sodium64) by *Hydr8gon* - [GPL-3.0 License](https://github.com/Hydr8gon/sodium64/blob/master/LICENSE)
-* [gb64](https://github.com/lambertjamesd/gb64) by *lambertjamesd* - [MIT License](https://github.com/lambertjamesd/gb64/blob/master/LICENSE)
-* [smsPlus64](https://github.com/fhoedemakers/smsplus64) by *fhoedmakers* - [GPL-3.0 License](https://github.com/fhoedemakers/smsplus64/blob/main/LICENSE)
-* [Press-F-Ultra](https://github.com/celerizer/Press-F-Ultra) by *celerizer* - [MIT License](https://github.com/celerizer/Press-F-Ultra/blob/master/LICENSE)
+- Built on [N64FlashcartMenu](https://github.com/Polprzewodnikowy/N64FlashcartMenu)
+  by Polprzewodnikowy and contributors (their README is kept in
+  [docs/UPSTREAM_README.md](docs/UPSTREAM_README.md)), and on
+  [libdragon](https://github.com/DragonMinded/libdragon).
+- Ideas from the [N64ever](https://github.com/bjerreman/N64FlashcartMenu-N64ever) fork.
+- Music by Eric Matyas, www.soundimage.org. Interface sounds by Lokif (CC0).
+  Title lettering with the Anton and Mr Dafoe fonts (SIL Open Font License).
+- Box art and game details in the release files come from the community
+  [n64-flashcart-menu-metadata](https://github.com/n64-tools/n64-flashcart-menu-metadata)
+  pack; they belong to the games' publishers and are not part of the source
+  code or its licence.
 
-## Fonts
-* [Firple](https://github.com/negset/Firple) by *negset* - (SIL Open Font License 1.1)
+Released under the [GNU Affero General Public License v3](LICENSE.md), like
+N64FlashcartMenu.
+
+<sub>SummerStation64 is an unofficial fan project, not made or approved by
+Nintendo. Nintendo 64 and the N64 logo are trademarks of Nintendo.</sub>
