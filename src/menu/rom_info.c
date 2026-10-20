@@ -12,6 +12,7 @@
 #include <libdragon.h>
 #include <miniz.h>
 
+#include "baked_meta.h"
 #include "ini_parser.h"
 
 #include "boot/cic.h"
@@ -1091,7 +1092,12 @@ static void load_rom_meta_from_file (path_t *path, rom_info_t *rom_info) {
     path_ext_replace(rom_info_meta_path, "metadata.ini");
     meta_path_str = path_get(rom_info_meta_path);
 
-    if (!file_exists(path_get(rom_info_meta_path))) {
+    char baked_meta[40];
+    if (!file_exists(path_get(rom_info_meta_path)) && baked_meta_path(rom_info->game_code, baked_meta, sizeof(baked_meta))) {
+        path_free(rom_info_meta_path);
+        rom_info_meta_path = path_create(baked_meta);  // baked into the menu file (baked_meta.c)
+        meta_path_str = path_get(rom_info_meta_path);
+    } else if (!file_exists(path_get(rom_info_meta_path))) {
         debugf("[META] load_rom_meta_from_file: metadata.ini not found at '%s'\n", meta_path_str);
         // If that file does not exist, fall back to metadata database using game_code (like boxart uses).
         // TODO: we should probably check the homebrew path as well.

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "baked_meta.h"
 #include "cart_load.h"
 #include "cover_list.h"
 #include "game_index.h"
@@ -66,7 +67,8 @@ static int remembered_next = 0;
 static int players_from_metadata (menu_t *menu, const char *game_code) {
     char sub[32];
     snprintf(sub, sizeof(sub), "menu/metadata/%c/%c/%c/%c/metadata.ini", game_code[0], game_code[1], game_code[2], game_code[3]);
-    path_t *path = path_init(menu->storage_prefix, sub);
+    char baked[40];
+    path_t *path = baked_meta_path(game_code, baked, sizeof(baked)) ? path_create(baked) : path_init(menu->storage_prefix, sub);
 
     int players = 0;
     if (file_exists(path_get(path))) {

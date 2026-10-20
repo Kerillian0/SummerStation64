@@ -7,6 +7,7 @@
 #include <string.h>
 #include <libdragon.h>
 
+#include "baked_meta.h"
 #include "game_index.h"
 #include "game_learn.h"
 #include "games_filter.h"
@@ -30,7 +31,8 @@ static uint64_t time_spent_ms = 0;
 static void learn_details (menu_t *menu, const char *file, int64_t size, const char *code) {
     char sub[48];
     snprintf(sub, sizeof(sub), "menu/metadata/%c/%c/%c/%c/metadata.ini", code[0], code[1], code[2], code[3]);
-    path_t *path = path_init(menu->storage_prefix, sub);
+    char baked[40];
+    path_t *path = baked_meta_path(code, baked, sizeof(baked)) ? path_create(baked) : path_init(menu->storage_prefix, sub);
     uint16_t date;
     char developer[GAME_INDEX_DEVELOPER_LENGTH];
     game_index_read_details(path_get(path), &date, developer);

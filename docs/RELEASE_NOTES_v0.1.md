@@ -97,6 +97,7 @@ There are two editions. They are the same menu; only the box art differs.
 | File to download (below, on this page) | `SummerStation64-v0.1.zip` | `SummerStation64-v0.1-Art-Edition.zip` |
 | File size | about 3 MB | about 28 MB |
 | Box covers | read from the metadata pack on your SD card | built in, so they appear faster |
+| Game details (descriptions, dates, developers, players) | built in | built in |
 
 Not sure? Take the Standard edition; you can switch at any time by
 copying the other file over it.
@@ -110,14 +111,14 @@ copying the other file over it.
    and unzip it to get `sc64menu.n64`.
 4. **Copy `sc64menu.n64` to the top folder of your SD card**, replacing
    the one there. The name must stay exactly `sc64menu.n64`.
-5. **Add the metadata pack (recommended for both editions).** Download it
-   from the
+5. **Standard edition only: add the metadata pack for box covers.**
+   Download it from the
    [n64-flashcart-menu-metadata releases](https://github.com/n64-tools/n64-flashcart-menu-metadata/releases)
    and extract it so its folders sit in `sd:/menu/metadata/` (for example
-   `sd:/menu/metadata/N/G/E/E/`). The Standard edition takes its covers
-   from it; both editions take descriptions, release dates, developers
-   and player counts from it. If you already use box art with the stock
-   menu, it is already there.
+   `sd:/menu/metadata/N/G/E/E/`). If you already use box art with the
+   stock menu, it is already there. The Art Edition doesn't need it, and
+   neither edition needs it for game details. (With the pack on the card,
+   the game info screen also shows the box's sides and top.)
 6. **Put the SD card back in the cart and switch the N64 on.** The intro
    plays, then the Games tab opens on your start folder.
 
@@ -248,14 +249,15 @@ themes as starting points, and share codes.
 Released under the GNU Affero General Public License v3, like
 N64FlashcartMenu; the source is in this repository.
 
-**About the Art Edition's covers:** they are not part of the source code
-and not covered by its licence. They belong to the games' publishers and
-are included in reduced size for use with the menu on your own console.
-They come from the community
+**About the built-in covers and game details:** the Art Edition's covers,
+and the game descriptions built into both editions, are not part of the
+source code and not covered by its licence. They belong to the games'
+publishers and writers, and are included (covers in reduced size) for
+use with the menu on your own console. They come from the community
 [n64-flashcart-menu-metadata](https://github.com/n64-tools/n64-flashcart-menu-metadata)
 pack (scans credited there to ABeezy, LaunchBox community). If you hold
 the rights to any of them and want them removed, open an issue and the
-Art Edition file will be replaced without them.
+release files will be replaced without them.
 
 SummerStation64 is an unofficial fan project, not made or approved by
 Nintendo. Nintendo 64 and the N64 logo are trademarks of Nintendo.

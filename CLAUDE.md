@@ -146,7 +146,13 @@ The owner and how they work:
   to this repository. **Releases come in two editions (the owner's
   choice, 2026-10-20):** Standard (no art) and Art Edition (art baked
   in), both as zipped files on the same GitHub release of this
-  repository. The art lives **only inside that release file**: never in
+  repository. **Both carry the game details baked in** (`baked_meta.c`,
+  `make_baked_meta.py`: the pack's 302 `metadata.ini` files, comments
+  stripped, 99 KB as `filesystem/meta/Z/S/NZSE.ini`; read before the SD
+  card by the player count, the idle reader and the game info screen;
+  tested 2026-10-20 with the card's metadata folder renamed). The owner
+  will offer a build without them if players want to edit metadata. The
+  art and details live **only inside the release files**: never in
   a commit, so it is not in the history or in forks. If a rights holder
   complains, delete or replace that one file at once (GitHub usually
   allows about a business day before disabling a repository). A
@@ -203,7 +209,7 @@ Our files in `src/menu/`, by what they are for:
 | Themes and look | `theme`, `theme_parse` (reads theme.ini; tested on the PC), `builtin_themes`, `title_font`, `font_choice` |
 | Settings and switches | `menu_features` (on/off, themes may set), `menu_options` (choices, player only), `views/settings_menu` |
 | Tabs and the cover screens | `tabs` (order, and the slide when switching), `games_ui` (tab bar, title panel, hints, rounded boxes, icons, the fade's parts), `carousel.h` + the carousel in `views/browser.c`, `cover_list`, `cover_row`, `folders_ui`, `start_menu`, `controls` |
-| Covers and game data | `games_folders` (which folders the Games tab reads), `games_filter` (region / 64DD / hacks filter), `rom_hacks` (tells hacks from originals; tested on the PC), `carousel_art`, `baked_art`, `game_index`, `game_learn` (reads unknown games while idle), `game_facts`, `display_name`, `sort_order`, `folder_memory`, `play_stats` |
+| Covers and game data | `games_folders` (which folders the Games tab reads), `games_filter` (region / 64DD / hacks filter), `rom_hacks` (tells hacks from originals; tested on the PC), `carousel_art`, `baked_art`, `baked_meta` (game details in the menu file), `game_index`, `game_learn` (reads unknown games while idle), `game_facts`, `display_name`, `sort_order`, `folder_memory`, `play_stats` |
 | Game info screen | `game_info_ui`, `art_tint` (ring color from the cover, also used by the cover rows) |
 | Start-up | `intro`, `intro_logo`, `menu_name.h`, `safe_mode` |
 | Safety and tools | `memory_note` (what was left out for lack of memory; Settings > System > Memory), `safe_file` (also `safe_file_idle_turn()`: one idle save at a time), `save_backup` (dated save copies and Restore save), `crash_screen`, `debug_stats` (log lines and the performance overlay), `frame_rate` (the frame cap, and showing each frame as soon as it is drawn) |
@@ -1808,7 +1814,7 @@ Left before publishing (all wait on the Jumper Pak):
 - ☐ Bring `docs/RELEASE_NOTES_v0.1.md` up to date: the release will carry
   everything built since (Random game, Options menus, hacks).
 - ☐ Two release files, published only when the owner says so: Standard
-  (clean build without baked art) on this repository, Art Edition (the
+  (no baked art, `filesystem/art/` moved aside; baked details kept), Art Edition (the
   owner's art build, zipped), both on this repository's release.
   The release notes' install steps cover both (done 2026-10-20).
 

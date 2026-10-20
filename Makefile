@@ -87,6 +87,7 @@ SRCS = \
 	menu/game_learn.c \
 	menu/intro.c \
 	menu/baked_art.c \
+	menu/baked_meta.c \
 	menu/game_index.c \
 	menu/builtin_themes.c \
 	menu/intro_logo.c \
@@ -206,6 +207,8 @@ $(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM)
 
 # Box art baked into the menu, if any has been made (see assets/boxart/README.md).
 $(BUILD_DIR)/$(PROJECT_NAME).dfs: $(wildcard $(FILESYSTEM_DIR)/art)
+# Game details baked in the same way (make_baked_meta.py).
+$(BUILD_DIR)/$(PROJECT_NAME).dfs: $(wildcard $(FILESYSTEM_DIR)/meta)
 
 # Small font for consoles without the Expansion Pak: the same typeface with
 # Latin characters only (about 64 KB in RAM instead of 760 KB).
