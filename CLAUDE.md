@@ -142,7 +142,13 @@ The owner and how they work:
   card writes over saving at once. Dislikes clutter on screen.
 - Decides art and trademark questions themselves once told the facts. Two
   standing decisions: the intro uses the N64 logo's shape (do not raise it
-  again), and box art is baked from the owner's own pack, never committed.
+  again), and box art is baked from the owner's own pack, never committed
+  to this repository. **Releases come in two editions (the owner's
+  choice, 2026-10-20):** Standard (no art, from this repository) and Art
+  Edition (art baked in, published only from a separate repository,
+  `Kerillian0/SummerStation64-Art-Edition`, so a takedown there cannot
+  touch the menu's code). Its README is drafted in
+  `docs/art-edition/README.md`.
 - Their games: `sd:/N64(US)/` (the start folder), a 64DD folder and a
   Japanese game or two; about 95 games; many file names carry no region
   tag ("0222 - F-Zero X").
@@ -1799,7 +1805,10 @@ Left before publishing (all wait on the Jumper Pak):
   freeing it and asking for a new block.
 - ☐ Bring `docs/RELEASE_NOTES_v0.1.md` up to date: the release will carry
   everything built since (Random game, Options menus, hacks).
-- ☐ Clean build without baked art, then publish when the owner says so.
+- ☐ Two release files, published only when the owner says so: Standard
+  (clean build without baked art) on this repository, Art Edition (the
+  owner's art build, zipped) on the separate Art Edition repository.
+  The release notes' install steps cover both (done 2026-10-20).
 
 ### v0.2 smooth and safe
 ✓ Cover cache. Slide animation (and the tab slides, Folders included).

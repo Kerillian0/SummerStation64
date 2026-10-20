@@ -24,8 +24,11 @@ stock `sc64menu.n64` somewhere safe so you can go back.
   Settings > Tabs. L and R switch between them.
 - **Games** shows only games, gathered from as many folders as you like
   (see "Adding your games" below).
-- **C-up and C-down** filter the Games tab: All, USA, Japan, Europe or
-  64DD.
+- **C-up and C-down** filter the Games tab: All, USA, Japan, Europe,
+  64DD or Hacks.
+- **Random game:** press Z on Games, Recent or Favorites and choose
+  Random game to jump to any other game in the row (within the filter in
+  use).
 - **Folders** is a plain file browser for everything else: pictures,
   music, text, zips.
 - Each tab goes back to the game it was left on.
@@ -36,13 +39,24 @@ stock `sc64menu.n64` somewhere safe so you can go back.
 
 **Game info**
 - The title panel under the covers shows badges for each game: players,
-  Expansion Pak, and whether a save was found.
+  Expansion Pak, whether a save was found, and the accessories it uses
+  (Controller Pak, Rumble Pak, Transfer Pak). Settings > Display >
+  Accessory Badges shows those in blue boxes, as plain grey words, or not
+  at all.
 - A screen per game with the cover over a blurred copy of itself, a large
   title, badges (Expansion Pak, Rumble Pak, Controller Pak, Transfer Pak),
   times played and when, and the description.
 - The ring round the cover takes the colour of the box art.
 - Japanese (tall) and 64DD covers keep their own shape.
 - START shows the technical details.
+
+**ROM hacks**
+- Hacks get an orange **Hack** badge and their own step in the filter.
+- A file counts as a hack when its name says so ("hack", "redux", or a
+  `[h1]`-style tag), or when it shares its game code with the original
+  game but its name is a different game ("Super Mario 64 - Return to
+  Yoshi's Island" next to "Super Mario 64"). Two copies of the same game
+  under slightly different names are not called hacks.
 
 **Look and sound**
 - Four built-in summer themes (Sunset, Night Drive, Beach, Ocean), or
@@ -68,17 +82,47 @@ stock `sc64menu.n64` somewhere safe so you can go back.
 - **Safe mode:** hold **Z** while switching on to start without your
   theme and settings, if something goes wrong.
 - A friendly screen instead of a crash dump if the menu ever fails.
+- When memory runs short (mostly without an Expansion Pak), the menu
+  leaves a few extras out instead of stopping: art on the side covers,
+  the intro's title picture. Settings > System > **Memory** shows how much
+  is free and what, if anything, was left out.
 
 ## Installing
 
-1. Make sure your SummerCart64 has up-to-date firmware.
-2. Download `sc64menu.n64` from this release.
-3. Copy it to the **top folder of your SD card**, replacing the one that
-   is there. The name must stay exactly `sc64menu.n64`.
-4. Put the SD card back in the cart and switch the N64 on.
+### Choose a download
+There are two editions. They are the same menu; only the box art differs.
 
-To go back to the stock menu, copy the stock `sc64menu.n64` back the same
-way.
+| | **Standard** | **Art Edition** |
+|---|---|---|
+| Where | this release | [SummerStation64-Art-Edition](https://github.com/Kerillian0/SummerStation64-Art-Edition/releases) |
+| File size | about 3 MB | about 28 MB |
+| Box covers | read from the metadata pack on your SD card | built in, so they appear faster |
+
+Not sure? Take the Standard edition; you can switch at any time by
+copying the other file over it.
+
+### Steps
+1. **Update your SummerCart64's firmware** if it is old (see the
+   SummerCart64 documentation).
+2. **Back up the menu you have now.** Copy `sc64menu.n64` from the top
+   folder of your SD card to your computer, so you can go back.
+3. **Download your edition.** The Art Edition comes as a `.zip`: unzip it
+   to get `sc64menu.n64`.
+4. **Copy `sc64menu.n64` to the top folder of your SD card**, replacing
+   the one there. The name must stay exactly `sc64menu.n64`.
+5. **Add the metadata pack (recommended for both editions).** Download it
+   from the
+   [n64-flashcart-menu-metadata releases](https://github.com/n64-tools/n64-flashcart-menu-metadata/releases)
+   and extract it so its folders sit in `sd:/menu/metadata/` (for example
+   `sd:/menu/metadata/N/G/E/E/`). The Standard edition takes its covers
+   from it; both editions take descriptions, release dates, developers
+   and player counts from it. If you already use box art with the stock
+   menu, it is already there.
+6. **Put the SD card back in the cart and switch the N64 on.** The intro
+   plays, then the Games tab opens on your start folder.
+
+To go back to the stock menu, copy your backed-up `sc64menu.n64` onto the
+SD card the same way.
 
 ## First steps
 
@@ -97,12 +141,9 @@ can forget them all. To change the start folder itself, go into it on the
 Folders tab, press Z and choose **Set current directory as default**.
 
 ### Box art
-Covers come from the same metadata pack as the stock menu. Extract it so
-the pictures sit in `sd:/menu/metadata/`, for example
-`sd:/menu/metadata/N/G/E/E/boxart_front.png`. The
+Without box art a cover shows the game's name. The
 [N64FlashcartMenu box art page](https://github.com/Polprzewodnikowy/N64FlashcartMenu/blob/main/docs/19_gamepak_boxart.md)
-explains the layout and links to a ready-made pack. Without it the covers
-show the game's name.
+explains how the metadata folder is laid out.
 
 The first time you browse your games, the menu notes which file is which
 game (in `sd:/menu/gameindex.txt`), so covers and badges come up faster
@@ -126,7 +167,7 @@ no tag in its name shows only under "All".
 | A | game info (or start the game, with Quick Launch) | open |
 | B | | go up a folder |
 | L / R | previous / next tab | previous / next tab |
-| Z | options for the selected game | options |
+| Z | options (Random game, and more) | options |
 | START | settings | settings |
 
 On the game info screen: A starts the game, B goes back, R opens the
@@ -161,20 +202,32 @@ defaults.
 | `playstats.txt` | play counts and last played |
 | `gameindex.txt` | which file is which game; rebuilt by itself if deleted |
 
+Kept saves sit beside your saves, in a `backups` folder with one folder
+per game (`saves/backups/<game>/` when the menu keeps saves in a `saves`
+folder). Delete any you no longer want.
+
 ## Making your own theme
 
 Put a `theme.ini` in `sd:/menu/theme/`, then choose **From SD Card**
 under Settings > Display > Theme. The Theme Maker in this repository
 (`theme-maker/theme-maker.html`, open it in any web browser) builds one
-with a live preview and share codes. It doesn't know the newest options
-yet (the Ocean background, built-in themes).
+with a live preview of the Games and Folders screens, the four built-in
+themes as starting points, and share codes.
 
 ## Known limitations
 
-- **Tested on one console:** an NTSC N64 with the Expansion Pak, on a CRT.
-  - Without an Expansion Pak (4MB) the menu is designed to fit, but this
-    hasn't been tried on real hardware yet.
+- **Tested on one console:** an NTSC N64 on a CRT, with an Expansion Pak
+  and with a Jumper Pak (4MB).
+  - On 4MB the menu uses a smaller character set by itself (Settings >
+    System > Character Set: Auto), which leaves plenty of room. With the
+    full set on 4MB it still works, but leaves extras out (see Memory
+    above), and Japanese names need the full set.
+  - Once on 4MB, opening a full-screen picture straight after a lot of
+    cover browsing said "PNG decode failed due to insufficient memory".
+    Nothing was lost; opening it again works.
   - PAL consoles haven't been tried.
+- Accessory badges come from the menu's built-in game list; a game it
+  doesn't list shows none.
 - Saving settings can cause one short pause.
 - Saves of 64DD disks are not backed up.
 - Other flashcarts (64drive, ED64) are not supported by this fork.
