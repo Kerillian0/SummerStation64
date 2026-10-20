@@ -198,6 +198,19 @@ static void mark_hacks (menu_t *menu) {
     free(sizes);
 }
 
+void games_filter_recheck_hacks (menu_t *menu) {
+    if (total <= 0 || !marks) {
+        return;
+    }
+    for (int i = 0; i < marks_count; i++) {
+        marks[i] &= ~(1 << FILTER_HACKS);
+    }
+    mark_hacks(menu);   /* the whole list, hidden games included */
+    if (current == FILTER_HACKS) {
+        apply(menu, true);      /* the Hacks step is showing: show the new set */
+    }
+}
+
 bool games_filter_is_hack (const entry_t *e) {
     return matches(e, FILTER_HACKS);
 }

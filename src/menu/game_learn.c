@@ -109,6 +109,9 @@ void game_learn_update (menu_t *menu) {
     busy = false;
     if (learned > 0 || detailed > 0) {
         debugf("game learn: %d games read, details of %d looked up, in %d ms\n", learned, detailed, (int) time_spent_ms);
+        if (learned > 0) {
+            games_filter_recheck_hacks(menu);   /* telling hacks needs the codes just learned */
+        }
         learned = 0;
         detailed = 0;
         /* Saved by the covers' idle save (carousel_art.c), which takes

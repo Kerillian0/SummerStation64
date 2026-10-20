@@ -42,6 +42,12 @@ void games_filter_note_code (const entry_t *e, const char *code);
 /** True if this game of the Games tab's list is a hack of another game (see rom_hacks.h). */
 bool games_filter_is_hack (const entry_t *e);
 
+/**
+ * Work out which games are hacks again, now that more game codes are known
+ * (called when the idle reader has learned some). Reads nothing from the card.
+ */
+void games_filter_recheck_hacks (menu_t *menu);
+
 /** How many entries the list really holds, the hidden ones included (for freeing it). */
 int games_filter_all_entries (int shown);
 
