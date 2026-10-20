@@ -144,9 +144,12 @@ The owner and how they work:
   standing decisions: the intro uses the N64 logo's shape (do not raise it
   again), and box art is baked from the owner's own pack, never committed
   to this repository. **Releases come in two editions (the owner's
-  choice, 2026-10-20):** Standard (no art) and Art Edition (art baked
-  in), both as zipped files on the same GitHub release of this
-  repository. **Both carry the game details baked in** (`baked_meta.c`,
+  choice, 2026-10-20):** Art Edition (art baked in), **the default**,
+  attached to the GitHub release as a plain `sc64menu.n64`, the way
+  other menus ship (the owner: most SummerCart64 players want plug and
+  play); and Standard (no art), attached as
+  `SummerStation64-v0.1-Standard.zip` with `sc64menu.n64` inside, so
+  neither download needs renaming. **Both carry the game details baked in** (`baked_meta.c`,
   `make_baked_meta.py`: the pack's 302 `metadata.ini` files, comments
   stripped, 99 KB as `filesystem/meta/Z/S/NZSE.ini`; read before the SD
   card by the player count, the idle reader and the game info screen;

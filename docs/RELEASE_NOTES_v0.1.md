@@ -90,37 +90,47 @@ stock `sc64menu.n64` somewhere safe so you can go back.
 ## Installing
 
 ### Choose a download
-There are two editions. They are the same menu; only the box art differs.
+There are two editions. They are the same menu; only where the box covers
+come from differs. **Most people want the Art Edition:** copy one file and
+everything works.
 
-| | **Standard** | **Art Edition** |
+| | **Art Edition** (recommended) | **Standard** |
 |---|---|---|
-| File to download (below, on this page) | `SummerStation64-v0.1.zip` | `SummerStation64-v0.1-Art-Edition.zip` |
-| File size | about 3 MB | about 28 MB |
-| Box covers | read from the metadata pack on your SD card | built in, so they appear faster |
+| File to download (Assets, below) | `sc64menu.n64` | `SummerStation64-v0.1-Standard.zip` |
+| File size | about 28 MB | about 3 MB |
+| Box covers | built in, so they appear faster | read from the metadata pack on your SD card |
 | Game details (descriptions, dates, developers, players) | built in | built in |
+| Extra download needed | none | the metadata pack, for covers |
 
-Not sure? Take the Standard edition; you can switch at any time by
-copying the other file over it.
+Choose Standard if you want to use your own box art, or prefer the small
+download. You can switch at any time by copying the other file over it.
 
-### Steps
+### Art Edition: steps
 1. **Update your SummerCart64's firmware** if it is old (see the
    SummerCart64 documentation).
 2. **Back up the menu you have now.** Copy `sc64menu.n64` from the top
    folder of your SD card to your computer, so you can go back.
-3. **Download your edition** from the files at the bottom of this page,
-   and unzip it to get `sc64menu.n64`.
-4. **Copy `sc64menu.n64` to the top folder of your SD card**, replacing
-   the one there. The name must stay exactly `sc64menu.n64`.
-5. **Standard edition only: add the metadata pack for box covers.**
-   Download it from the
+3. **Download `sc64menu.n64`** from the Assets at the bottom of this page.
+4. **Copy it to the top folder of your SD card**, replacing the one there.
+   The name must stay exactly `sc64menu.n64`.
+5. **Put the SD card back in the cart and switch the N64 on.** The intro
+   plays, then the Games tab opens on your start folder.
+
+### Standard: steps
+1. and 2. As above: update the firmware and back up your menu.
+3. **Download `SummerStation64-v0.1-Standard.zip`** from the Assets and
+   unzip it. Inside is a file already named `sc64menu.n64`.
+4. **Copy that `sc64menu.n64` to the top folder of your SD card**,
+   replacing the one there.
+5. **Add the metadata pack for box covers.** Download it from the
    [n64-flashcart-menu-metadata releases](https://github.com/n64-tools/n64-flashcart-menu-metadata/releases)
    and extract it so its folders sit in `sd:/menu/metadata/` (for example
    `sd:/menu/metadata/N/G/E/E/`). If you already use box art with the
-   stock menu, it is already there. The Art Edition doesn't need it, and
-   neither edition needs it for game details. (With the pack on the card,
-   the game info screen also shows the box's sides and top.)
-6. **Put the SD card back in the cart and switch the N64 on.** The intro
-   plays, then the Games tab opens on your start folder.
+   stock menu, it is already there.
+6. **Put the SD card back in the cart and switch the N64 on.**
+
+Optional for either edition: with the metadata pack on the card, the game
+info screen also shows the box's sides and top.
 
 To go back to the stock menu, copy your backed-up `sc64menu.n64` onto the
 SD card the same way.
