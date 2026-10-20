@@ -17,9 +17,10 @@ and a CRT television, with and without the Expansion Pak.
      are stored on GitHub's image server rather than in the repository. -->
 
 > [!TIP]
-> **Quick start:** download **`sc64menu.n64`** from the Assets below, copy it
-> to the top folder of your SD card, switch on. Covers and game details are
-> built in.
+> **Quick start:** download **`sc64menu.n64`** from the
+> [latest release](https://github.com/Kerillian0/SummerStation64/releases/latest),
+> copy it to the top folder of your SD card, switch on. Covers and game
+> details are built in.
 
 > [!IMPORTANT]
 > This is a first release. **Back up your SD card**, and keep your current
@@ -108,30 +109,30 @@ SummerStation64 was made with Claude, an AI model by Anthropic, used
 through Claude Code (Anthropic's coding assistant) inside Visual Studio
 Code.
 
-Model: Claude Opus 5.5, as recorded on the commits.
-- How much: Claude wrote nearly all of this fork's code and text.
-121 of the 123 commits between N64FlashcartMenu V0.3.4 and v0.1 are
-co-authored by Claude (October 4 to 20, 2026).
-- About 10,900 lines of menu code in 82 new source files. The original
-menu's own files were changed only with small hooks that call the new
-code.
-- Also the build and art scripts, the PC-side tests, the Theme Maker, and
-the documentation, these release notes included.
-- What the owner (Kerillian) did: decided what to build and in what
-order, supplied the design mockups, made every choice along the way
-(features, layout, colours, sounds, art and licensing questions), and
-tested every build on a real N64 and CRT, with and without an
-Expansion Pak, reporting back with photos and debug logs. Nothing was
-committed until it passed on the console.
-- How the work went: one change at a time. Claude proposed and wrote a
-change, built it and explained it in plain words; the owner tested it on
-hardware; problems seen there (with the console's own timing and memory
-figures) came back to Claude to fix.
-- Not made by AI: the music and interface sounds (credited below), the
-fonts, the box art and game details (a community pack), and
-- N64FlashcartMenu and libdragon, which this is built on. The icons, the
-title picture and the intro logo are drawn by small programs Claude
-wrote, not by an image-generating AI.
+- **Model:** Claude Opus 5.5, as recorded on the commits.
+- **How much:** Claude wrote nearly all of this fork's code and text.
+  - 121 of the 123 commits between N64FlashcartMenu V0.3.4 and v0.1 are
+    co-authored by Claude (October 4 to 20, 2026).
+  - About 10,900 lines of menu code in 82 new source files. The original
+    menu's own files were changed only with small hooks that call the new
+    code.
+  - Also the build and art scripts, the PC-side tests, the Theme Maker, and
+    the documentation, these release notes included.
+- **What the owner (Kerillian) did:** decided what to build and in what
+  order, supplied the design mockups, made every choice along the way
+  (features, layout, colours, sounds, art and licensing questions), and
+  tested every build on a real N64 and CRT, with and without an
+  Expansion Pak, reporting back with photos and debug logs. Nothing was
+  committed until it passed on the console.
+- **How the work went:** one change at a time. Claude proposed and wrote a
+  change, built it and explained it in plain words; the owner tested it on
+  hardware; problems seen there (with the console's own timing and memory
+  figures) came back to Claude to fix.
+- **Not made by AI:** the music and interface sounds (credited below), the
+  fonts, the box art and game details (a community pack), and
+  N64FlashcartMenu and libdragon, which this is built on. The icons, the
+  title picture and the intro logo are drawn by small programs Claude
+  wrote, not by an image-generating AI.
 - There are a few placeholder elements, such as the Intro Logo that are AI generated. If this makes you uncomfortable, please contact me and I will rectify it asap. I am looking to commission or create these elements in the next few releases. If you are willing to contribute to this and create some assets for this frontend menu. Please contact my Discord at "Kerillian." And we may work something out.
 - If you do not want to use this menu due to AI usage, I completely understand and accept this. Please use the stock menu or N64ever. I do not believe either of these utilize or at the very least disclose AI usage. They are far more talented than me. Please support them as this fork uses their code. They are the reason why this was possible in the first place.
 - If something seems wrong, please open an issue.
