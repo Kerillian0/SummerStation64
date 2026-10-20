@@ -93,7 +93,14 @@ work is in v0.2. The fork was pushed 2026-10-14 (`29c09822`).
    (2026-10-20). Both release files are made in `output/release-v0.1/`
    (how, in the release plan in `CLAUDE.md`). Left: the owner uploads
    them to a GitHub release when they say so (Art Edition `sc64menu.n64`
-   as the default; Standard zip), with the release notes as its text. Then v0.2: perspective covers, then the live background. (Pak badges and
+   as the default; Standard zip), with the release notes as its text.
+   Then v0.2's first step (the owner agreed 2026-10-20): **merge upstream's
+   N64FlashcartMenu v0.3.5** (13 commits on `origin/main`: autoload fixes,
+   a low-voltage warning at start-up, metadata handling, a libdragon
+   update) locally into `summerstation`, never with GitHub's Sync fork on
+   that branch (it offers to discard our commits). They touch `rom_info.c/.h`,
+   `load_rom.c` and `startup.c`, which we edit too; build and give the owner
+   a full test, since the libdragon update may change speed or memory. Then v0.2: perspective covers, then the live background. (Pak badges and
    the memory note were done 2026-10-20.)
 2. Hacks (v0.3, picked up when v0.3 is reached): the marked folder
    (Folders tab, Z, "This folder holds hacks").
