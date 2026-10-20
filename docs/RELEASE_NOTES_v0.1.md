@@ -21,6 +21,15 @@ with tabs, themes, badges, save backups and an intro.
 > This is a first release. **Back up your SD card**, and keep your current
 > `sc64menu.n64` somewhere safe so you can go back.
 
+> [!NOTE]
+> **💬 Feedback wanted!** This is the first release, and I'd love to hear
+> how it runs on your console: what works, what doesn't, and what you'd
+> like to see next. Please
+> [open an issue](https://github.com/Kerillian0/SummerStation64/issues/new)
+> with your console setup (Expansion Pak or Jumper Pak, NTSC or PAL) and,
+> if something went wrong, a photo of the screen. Reports from PAL consoles
+> are especially welcome, as none has been tried yet.
+
 ---
 
 ## ✨ What's new compared with N64FlashcartMenu
