@@ -79,6 +79,7 @@ SRCS = \
 	menu/settings.c \
 	menu/sound.c \
 	menu/memory_note.c \
+	menu/screenshot.c \
 	menu/art_tint.c \
 	menu/theme_parse.c \
 	menu/games_folders.c \

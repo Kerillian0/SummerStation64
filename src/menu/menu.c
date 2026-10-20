@@ -10,6 +10,7 @@
 
 #include <libdragon.h>
 
+#include "screenshot.h"
 #include "actions.h"
 #include "boot/boot.h"
 #include "flashcart/flashcart.h"
@@ -277,6 +278,7 @@ void menu_run (boot_params_t *boot_params) {
 
             time(&menu->current_time);
             frame_rate_end_frame(); // show the frame as soon as the graphics chip has drawn it
+            screenshot_after_frame(display);
             debug_stats_frame(menu);
             intro_poll();
         }

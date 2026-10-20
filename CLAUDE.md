@@ -218,7 +218,7 @@ Our files in `src/menu/`, by what they are for:
 | Covers and game data | `games_folders` (which folders the Games tab reads), `games_filter` (region / 64DD / hacks filter), `rom_hacks` (tells hacks from originals; tested on the PC), `carousel_art`, `baked_art`, `baked_meta` (game details in the menu file), `game_index`, `game_learn` (reads unknown games while idle), `game_facts`, `display_name`, `sort_order`, `folder_memory`, `play_stats` |
 | Game info screen | `game_info_ui`, `art_tint` (ring color from the cover, also used by the cover rows) |
 | Start-up | `intro`, `intro_logo`, `menu_name.h`, `safe_mode` |
-| Safety and tools | `memory_note` (what was left out for lack of memory; Settings > System > Memory), `safe_file` (also `safe_file_idle_turn()`: one idle save at a time), `save_backup` (dated save copies and Restore save), `crash_screen`, `debug_stats` (log lines and the performance overlay), `frame_rate` (the frame cap, and showing each frame as soon as it is drawn) |
+| Safety and tools | `screenshot` (START on controller 2 saves the screen), `memory_note` (what was left out for lack of memory; Settings > System > Memory), `safe_file` (also `safe_file_idle_turn()`: one idle save at a time), `save_backup` (dated save copies and Restore save), `crash_screen`, `debug_stats` (log lines and the performance overlay), `frame_rate` (the frame cap, and showing each frame as soon as it is drawn) |
 
 All of these are ours and free to change. `views/features_menu` is ours too
 but no longer reachable.
@@ -1882,7 +1882,18 @@ Favorites). Clock. Region filter (All, USA, Japan, Europe, 64DD, Hacks).
 - ☐ Letter-wheel search.
 - ☐ Party mode.
 - ☐ Missing art report: games without box art, screenshots or text.
-- ☐ Screenshot button (button combo saves the screen; safe file writes).
+- ◐ Screenshot button: first form built and used by the owner for the
+  README pictures (2026-10-20): START on a controller in **port 2** (that
+  press is kept from the menu; the stock code reads every port, and L/R/Z
+  act the moment they are pressed, so no one-controller combination was
+  free) saves the next finished frame to `sd:/menu/screenshots/shotNNNN.png`
+  (`screenshot.c`, hooks in `actions.c` and after `frame_rate_end_frame()`
+  in `menu.c`; feature `screenshots`, Settings > System). 640x480, written
+  a line at a time as an uncompressed PNG (stored deflate blocks, about 900
+  KB, 2 KB of memory; a compressed PNG would need about 300 KB, too much on
+  4MB with the full font). Checked on the PC with Pillow and zlib. To refine
+  in v0.3 (the owner's call): a one-controller button, smaller files, and
+  smoothing the 16-bit dither the TV hides but a screenshot shows.
 - ☐ Hide entries without deleting them.
 - ☐ Emulator shelves for NES, SNES, GB, GBC with matching cover shapes.
 - ☐ 64DD pairing: link a disk to its cartridge so both launch together.

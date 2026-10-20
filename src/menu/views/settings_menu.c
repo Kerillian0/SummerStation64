@@ -253,6 +253,7 @@ static const item_t system_items[] = {
         "When the menu starts, the picture comes up from black and the background music rises, over one or two seconds. Off shows the menu at once."),
     CHOICES("Performance Overlay", OPTION_PERF_OVERLAY, 2, debug_stats_overlay_name, NULL,
         "For testing: a strip at the bottom of the screen shows the frame time (33.4 ms is on time), how long the graphics chip took, and free memory."),
+    FEATURE("Screenshots", FEATURE_SCREENSHOTS, "Press START on a controller in port 2 to save the screen as a picture in menu/screenshots on the SD card. The menu pauses for a moment while it saves."),
     FEATURE("Remember Settings Page", FEATURE_REMEMBER_SETTINGS, "Reopen Settings on the page and row you last used, until the console is switched off."),
     ACTION("Reset Settings", ask_reset, "Put the stock settings back to how they were on a fresh install."),
 };

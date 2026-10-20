@@ -41,6 +41,7 @@ static const feature_info_t feature_info[FEATURE_COUNT] = {
     [FEATURE_FAVORITE_HEART]      = { "favorite_heart",      true,  false },
     [FEATURE_ROUNDED_CORNERS]     = { "rounded_corners",     true,  false },
     [FEATURE_SAVE_BACKUPS]        = { "save_backups",        true,  false },
+    [FEATURE_SCREENSHOTS]         = { "screenshots",         true,  false },
 };
 
 #define FEATURES_USER_PATH      "sd:/menu/features.ini"
