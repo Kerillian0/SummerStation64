@@ -89,9 +89,10 @@ time, in the order of the release plan in `CLAUDE.md`** (each item marked
 done, partly done or not started). v0.1 waits on the Jumper Pak, so the
 work is in v0.2. The fork was pushed 2026-10-14 (`29c09822`).
 
-1. **The 4MB checklist** (the Jumper Pak arrived 2026-10-20; the critical
-   steps were given to the owner, run on the Full font, the tightest case).
-   Then v0.2: perspective covers, then the live background. (Pak badges and
+1. **v0.1:** the 4MB test passed 2026-10-20 (see the release plan in
+   `CLAUDE.md`, with one open, rare image viewer message). Left: bring the
+   release notes up to date, a clean build without baked art, publish when
+   the owner says so. Then v0.2: perspective covers, then the live background. (Pak badges and
    the memory note were done 2026-10-20.)
 2. Hacks (v0.3, picked up when v0.3 is reached): the marked folder
    (Folders tab, Z, "This folder holds hacks").

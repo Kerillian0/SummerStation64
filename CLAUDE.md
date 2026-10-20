@@ -1780,8 +1780,23 @@ one item at a time, in the order listed. ✓ done and tested on hardware;
 mode + friendly crash screen, left/right browsing, quick launch, box art on
 covers, performance overlay, PC-side tests.
 Left before publishing (all wait on the Jumper Pak):
-- ☐ The 4MB test (checklist above). It also covers the one v0.1 fix never
-  tested on hardware: safe mode skipping the custom background (step 10).
+- ✓ The 4MB test (done 2026-10-20 on the Jumper Pak, Character Set on Full,
+  the tightest case; the owner's critical steps): the Expansion Pak game's
+  warning (Quick Launch goes to its info screen instead), launch and RESET
+  with the cable out (the save backup was made, correctly dated), Game info,
+  fast scrolling with side covers, every tab, a full-screen picture in the
+  viewer and as the background, safe mode with that background (533 to 992
+  KB free: the picture is left out as intended), music and text viewers,
+  the Ocean theme. Left out as low priority: folders over 1,024 files, zips
+  over 512, sort orders, idle reader, overlay, PAL, `dither = 0`.
+  **Open, not a blocker:** once, after quick cover browsing, opening a
+  full-screen PNG (84 KB file, the wallpaper in use) in the image viewer
+  said "PNG decode failed due to insufficient memory" with 706 KB free
+  (about 1,300 KB once the viewer frees the wallpaper). Stock path, handled
+  cleanly: the wallpaper came back, the menu returned, no memory lost. Not
+  reproduced; most likely the heap was in pieces with no 600 KB run left.
+  Fix if it returns: decode into the wallpaper's own 600 KB instead of
+  freeing it and asking for a new block.
 - ☐ Bring `docs/RELEASE_NOTES_v0.1.md` up to date: the release will carry
   everything built since (Random game, Options menus, hacks).
 - ☐ Clean build without baked art, then publish when the owner says so.
