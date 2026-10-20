@@ -1,8 +1,5 @@
 # SummerStation64 v0.1
 
-> **Draft, not published.** Release notes and setup instructions for the
-> first release, for players downloading it from GitHub.
-
 SummerStation64 is an unofficial, themeable game menu for the
 **SummerCart64**, made as a fork of
 [N64FlashcartMenu](https://github.com/Polprzewodnikowy/N64FlashcartMenu)
