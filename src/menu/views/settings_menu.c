@@ -13,6 +13,7 @@
 #include "../debug_stats.h"
 #include "../tabs.h"
 #include "../games_ui.h"
+#include "../memory_note.h"
 #include "../menu_features.h"
 #include "../menu_options.h"
 #include "../sort_order.h"
@@ -184,6 +185,11 @@ static const item_t sound_items[] = {
 
 static char games_folders_text[16];
 
+static const char *memory_note_info (menu_t *menu) {
+    (void) menu;
+    return memory_note_value();
+}
+
 static const char *games_folders_info (menu_t *menu) {
     (void) menu;
     int n = games_folders_count();
@@ -237,6 +243,7 @@ static const item_t tab_items[] = {
 static const item_t system_items[] = {
     CHOICES("Character Set", OPTION_FONT, FONT_COUNT, font_choice_name, NULL,
         "Latin Only frees about 700 KB of memory but can't show Japanese names. Auto uses Latin Only without the Expansion Pak, Full with it. Restart the console to apply."),
+    INFO("Memory", memory_note_info, "Free memory now. When memory runs short the menu leaves extras out instead of stopping; any left out since power-on are listed here."),
     INFO("Start Folder", default_folder, "The folder the menu opens in. Change it from Options on the Files screen."),
     CHOICES("Intro", OPTION_INTRO, INTRO_CHOICE_COUNT, intro_choice_name, NULL,
         "The short intro with its tune. On shows it when the console is switched on. Both shows it after RESET as well. Any button skips it. The tune follows the Sound Effects setting."),
@@ -468,6 +475,8 @@ static void draw_help (menu_t *menu, const item_t *it) {
         } else {
             note = "\nDefault follows the theme. Press A to cycle Default, On, Off.";
         }
+    } else if (it->type == ITEM_INFO && it->info == memory_note_info) {
+        note = memory_note_details();
     }
 
     rdpq_text_printf(&(rdpq_textparms_t) {

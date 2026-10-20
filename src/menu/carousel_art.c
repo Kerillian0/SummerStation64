@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "memory_note.h"
 #include "carousel_art.h"
 #include "art_tint.h"
 #include "game_learn.h"
@@ -126,7 +127,11 @@ static bool any_loading (void) {
 static bool memory_for_side_art (void) {
     heap_stats_t heap;
     sys_get_heap_stats(&heap);
-    return (heap.total - heap.used) >= SIDE_ART_MIN_FREE;
+    if ((heap.total - heap.used) < SIDE_ART_MIN_FREE) {
+        memory_note_cut(MEMORY_CUT_SIDE_ART);
+        return false;
+    }
+    return true;
 }
 
 /* This menu carries baked art (one cover has come from it), so covers use

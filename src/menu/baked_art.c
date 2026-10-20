@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <libdragon.h>
 
+#include "memory_note.h"
 #include "baked_art.h"
 
 #define MAX_LOADED      (8)             /* more than the cover row ever holds at once */
@@ -72,7 +73,11 @@ component_boxart_t *baked_art_load (const char *game_code, file_image_type_t whi
        beforehand that there is room. */
     heap_stats_t heap;
     sys_get_heap_stats(&heap);
-    if (slot < 0 || (heap.total - heap.used) < MIN_FREE) {
+    if (slot < 0) {
+        return NULL;
+    }
+    if ((heap.total - heap.used) < MIN_FREE) {
+        memory_note_cut(MEMORY_CUT_BAKED_ART);
         return NULL;
     }
 

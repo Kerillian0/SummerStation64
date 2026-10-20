@@ -4,6 +4,7 @@
  */
 
 #include <libdragon.h>
+#include "memory_note.h"
 #include "flashcart/flashcart.h"
 #include "fonts.h"
 #include "intro.h"
@@ -156,6 +157,8 @@ void intro_begin (menu_t *menu) {
     sys_get_heap_stats(&heap);
     if ((heap.total - heap.used) >= WORDMARK_MIN_FREE) {
         wordmark = sprite_load("rom:/wordmark.sprite");
+    } else {
+        memory_note_cut(MEMORY_CUT_INTRO_PICTURE);
     }
     debugf("intro: title %s\n", wordmark ? "picture" : "as text (memory is short)");
     music_volume(0.0f);

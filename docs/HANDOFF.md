@@ -89,9 +89,10 @@ time, in the order of the release plan in `CLAUDE.md`** (each item marked
 done, partly done or not started). v0.1 waits on the Jumper Pak, so the
 work is in v0.2. The fork was pushed 2026-10-14 (`29c09822`).
 
-1. **v0.2, next item:** the Settings note for the memory safeguard (the Pak
-   badges were done 2026-10-20), then perspective covers, then the live
-   background.
+1. **The 4MB checklist** (the Jumper Pak arrived 2026-10-20; the critical
+   steps were given to the owner, run on the Full font, the tightest case).
+   Then v0.2: perspective covers, then the live background. (Pak badges and
+   the memory note were done 2026-10-20.)
 2. Hacks (v0.3, picked up when v0.3 is reached): the marked folder
    (Folders tab, Z, "This folder holds hacks").
 3. **Hacks, step 2:** one cover per game with a version picker, and a setting

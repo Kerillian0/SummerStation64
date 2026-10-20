@@ -198,7 +198,7 @@ Our files in `src/menu/`, by what they are for:
 | Covers and game data | `games_folders` (which folders the Games tab reads), `games_filter` (region / 64DD / hacks filter), `rom_hacks` (tells hacks from originals; tested on the PC), `carousel_art`, `baked_art`, `game_index`, `game_learn` (reads unknown games while idle), `game_facts`, `display_name`, `sort_order`, `folder_memory`, `play_stats` |
 | Game info screen | `game_info_ui`, `art_tint` (ring color from the cover, also used by the cover rows) |
 | Start-up | `intro`, `intro_logo`, `menu_name.h`, `safe_mode` |
-| Safety and tools | `safe_file` (also `safe_file_idle_turn()`: one idle save at a time), `save_backup` (dated save copies and Restore save), `crash_screen`, `debug_stats` (log lines and the performance overlay), `frame_rate` (the frame cap, and showing each frame as soon as it is drawn) |
+| Safety and tools | `memory_note` (what was left out for lack of memory; Settings > System > Memory), `safe_file` (also `safe_file_idle_turn()`: one idle save at a time), `save_backup` (dated save copies and Restore save), `crash_screen`, `debug_stats` (log lines and the performance overlay), `frame_rate` (the frame cap, and showing each frame as soon as it is drawn) |
 
 All of these are ours and free to change. `views/features_menu` is ours too
 but no longer reachable.
@@ -1149,6 +1149,16 @@ optional `SS64` prefix is told apart from an 88-character v3 code.
 - Print free RAM and frame time with debugf on every hardware test.
 
 ## Memory budget (4MB console = 4096 KB)
+**Measured on a real 4MB console (Jumper Pak), 2026-10-20**, which replaces
+the worked-out 4MB figures below: heap 2,966 KB (the program and its static
+tables have grown to about 1,130 KB outside the heap). Games tab at rest:
+Latin font (Auto, the 4MB default) 2,117 KB used, **848 KB free** with all
+five covers loaded and the intro's title picture shown; Full font 2,687
+KB used, **278 KB free**, with side cover art and the intro picture left
+out. Settings 304-308 KB free on Full. Frames at rest the same as on 8MB
+(Games work 20.9 / chip 22.6 ms). The older tables below were about 360
+KB too hopeful for Full.
+
 Measured 2026-10-05 on the user's console **with the Expansion Pak** (8MB,
 240p output) from the `stats:` debug lines. Updated the same day after the
 theme background went from 600 KB to 300 KB.
@@ -1789,12 +1799,16 @@ from before is looked up again once per game) and drawn after "Save
 found". Option `pak_badges` ("Accessory Badges", Settings > Display):
 Off / Plain (grey words) / Colored (blue boxes, the default; red, blue
 and yellow were tried first and the owner chose blue for all three).
+Memory safeguard (done and tested on the 4MB Jumper Pak 2026-10-20):
+the menu leaves extras out when memory is short instead of stopping
+(side cover art under 384 KB free, baked covers under 160 KB, the
+intro's title picture under 700 KB); each place reports it to
+`memory_note.c`, and Settings > System > Memory shows free memory with
+what was left out since power-on on its help line. The log prints
+`memory: short, left out ...` once each.
 - ◐ Metadata index: `gameindex.txt` holds code, badge facts, date and
   developer, learned in the background. Missing: genre (no source yet) and
   the verified flag.
-- ◐ Memory safeguard: the menu already falls back quietly (side covers,
-  baked art, the intro's title picture). Missing: a short note in Settings
-  saying what was turned down and why.
 - ◐ Asset prep tool: `make_baked_art.py` bakes covers into the menu file.
   Missing: the full PC tool (building the index, checking dumps).
 - ☐ Perspective covers (side covers angled away).
