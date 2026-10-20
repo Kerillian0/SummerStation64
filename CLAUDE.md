@@ -144,11 +144,13 @@ The owner and how they work:
   standing decisions: the intro uses the N64 logo's shape (do not raise it
   again), and box art is baked from the owner's own pack, never committed
   to this repository. **Releases come in two editions (the owner's
-  choice, 2026-10-20):** Standard (no art, from this repository) and Art
-  Edition (art baked in, published only from a separate repository,
-  `Kerillian0/SummerStation64-Art-Edition`, so a takedown there cannot
-  touch the menu's code). Its README is drafted in
-  `docs/art-edition/README.md`.
+  choice, 2026-10-20):** Standard (no art) and Art Edition (art baked
+  in), both as zipped files on the same GitHub release of this
+  repository. The art lives **only inside that release file**: never in
+  a commit, so it is not in the history or in forks. If a rights holder
+  complains, delete or replace that one file at once (GitHub usually
+  allows about a business day before disabling a repository). A
+  separate art repository was considered and dropped for simplicity.
 - Their games: `sd:/N64(US)/` (the start folder), a 64DD folder and a
   Japanese game or two; about 95 games; many file names carry no region
   tag ("0222 - F-Zero X").
@@ -1807,7 +1809,7 @@ Left before publishing (all wait on the Jumper Pak):
   everything built since (Random game, Options menus, hacks).
 - ☐ Two release files, published only when the owner says so: Standard
   (clean build without baked art) on this repository, Art Edition (the
-  owner's art build, zipped) on the separate Art Edition repository.
+  owner's art build, zipped), both on this repository's release.
   The release notes' install steps cover both (done 2026-10-20).
 
 ### v0.2 smooth and safe

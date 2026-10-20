@@ -94,7 +94,7 @@ There are two editions. They are the same menu; only the box art differs.
 
 | | **Standard** | **Art Edition** |
 |---|---|---|
-| Where | this release | [SummerStation64-Art-Edition](https://github.com/Kerillian0/SummerStation64-Art-Edition/releases) |
+| File to download (below, on this page) | `SummerStation64-v0.1.zip` | `SummerStation64-v0.1-Art-Edition.zip` |
 | File size | about 3 MB | about 28 MB |
 | Box covers | read from the metadata pack on your SD card | built in, so they appear faster |
 
@@ -106,8 +106,8 @@ copying the other file over it.
    SummerCart64 documentation).
 2. **Back up the menu you have now.** Copy `sc64menu.n64` from the top
    folder of your SD card to your computer, so you can go back.
-3. **Download your edition.** The Art Edition comes as a `.zip`: unzip it
-   to get `sc64menu.n64`.
+3. **Download your edition** from the files at the bottom of this page,
+   and unzip it to get `sc64menu.n64`.
 4. **Copy `sc64menu.n64` to the top folder of your SD card**, replacing
    the one there. The name must stay exactly `sc64menu.n64`.
 5. **Add the metadata pack (recommended for both editions).** Download it
@@ -247,6 +247,15 @@ themes as starting points, and share codes.
 
 Released under the GNU Affero General Public License v3, like
 N64FlashcartMenu; the source is in this repository.
+
+**About the Art Edition's covers:** they are not part of the source code
+and not covered by its licence. They belong to the games' publishers and
+are included in reduced size for use with the menu on your own console.
+They come from the community
+[n64-flashcart-menu-metadata](https://github.com/n64-tools/n64-flashcart-menu-metadata)
+pack (scans credited there to ABeezy, LaunchBox community). If you hold
+the rights to any of them and want them removed, open an issue and the
+Art Edition file will be replaced without them.
 
 SummerStation64 is an unofficial fan project, not made or approved by
 Nintendo. Nintendo 64 and the N64 logo are trademarks of Nintendo.
