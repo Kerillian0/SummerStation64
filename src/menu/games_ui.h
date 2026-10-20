@@ -32,6 +32,17 @@ typedef enum {
  */
 void games_ui_topbar_draw (menu_t *menu, games_tab_t selected);
 
+/** How the Controller, Rumble and Transfer Pak badges look (option `pak_badges`). */
+typedef enum {
+    PAK_BADGES_OFF,
+    PAK_BADGES_PLAIN,       /**< grey words, like the player count */
+    PAK_BADGES_COLORED,     /**< each in its own colored box, like Save found (the default) */
+    PAK_BADGES_COUNT
+} pak_badges_t;
+
+/** Name of a pak_badges_t choice, for Settings. */
+const char *games_ui_pak_badges_name (int choice);
+
 /**
  * Dark panel with the selected entry's name. Under it: badges for a game
  * whose facts are known, otherwise the plain line of detail.

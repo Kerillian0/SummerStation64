@@ -8,7 +8,9 @@
 #include "fonts.h"
 #include "games_ui.h"
 #include "tabs.h"
+#include "game_index.h"
 #include "menu_features.h"
+#include "menu_options.h"
 #include "theme.h"
 #include "title_font.h"
 #include "ui_components/constants.h"
@@ -243,6 +245,11 @@ static void heart_draw (int x, int y) {
 
 static int text_width (const char *string);    /* further down, with the hints */
 
+const char *games_ui_pak_badges_name (int choice) {
+    static const char *names[PAK_BADGES_COUNT] = { "Off", "Plain", "Colored" };
+    return (choice >= 0 && choice < PAK_BADGES_COUNT) ? names[choice] : "";
+}
+
 void games_ui_title_panel_draw (const char *title, const char *detail, const char *lead, bool hack, const game_facts_t *facts) {
     const theme_t *t = theme_get();
     int x0 = GAMES_UI_CONTENT_X0;
@@ -335,6 +342,19 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const cha
     }
     if (facts->save_found) {
         PANEL_BADGE("Save found", STL_GREEN, true);
+    }
+    int paks = options_get(OPTION_PAK_BADGES);
+    if (paks != PAK_BADGES_OFF) {
+        bool colored = (paks == PAK_BADGES_COLORED);
+        if (facts->paks & GAME_INDEX_PAK_RUMBLE) {
+            PANEL_BADGE("Rumble Pak", colored ? STL_BLUE : STL_GRAY, colored);
+        }
+        if (facts->paks & GAME_INDEX_PAK_CONTROLLER) {
+            PANEL_BADGE("Controller Pak", colored ? STL_BLUE : STL_GRAY, colored);
+        }
+        if (facts->paks & GAME_INDEX_PAK_TRANSFER) {
+            PANEL_BADGE("Transfer Pak", colored ? STL_BLUE : STL_GRAY, colored);
+        }
     }
     if (facts->favorite && !heart) {
         PANEL_BADGE("Favorite", STL_YELLOW, true);

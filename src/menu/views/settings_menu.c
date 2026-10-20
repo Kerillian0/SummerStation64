@@ -160,6 +160,8 @@ static const item_t display_items[] = {
     FEATURE("Favorite Heart", FEATURE_FAVORITE_HEART, "Mark a favorite game with a heart beside its name. Off shows the word Favorite under the name."),
     FEATURE("Button Icons", FEATURE_BUTTON_ICONS, "Show the buttons in the hints along the bottom in their own shapes and colors. Off shows them as plain boxes."),
     FEATURE("Memory Badge", FEATURE_MEMORY_BADGE, "Show a small Expansion Pak or Jumper Pak under the clock, with the console's memory (8MB or 4MB)."),
+    CHOICES("Accessory Badges", OPTION_PAK_BADGES, PAK_BADGES_COUNT, games_ui_pak_badges_name, NULL,
+        "Show which accessories a game uses (Controller Pak, Rumble Pak, Transfer Pak) under its name. Colored puts each in its own colored box, like Save found; Plain shows them in grey. Known for most games from the menu's built-in list."),
     FEATURE("Frame Borders", FEATURE_FRAME_BORDERS, "Draw the frame around the screen and the line above the button hints."),
     CHOICE("Video Output", force_progressive_scan, false, "480i", "240p", NULL,
         "480i is sharper but can flicker. 240p is steady with softer text, and suits TVs that struggle with interlaced video. Restart the console to apply."),

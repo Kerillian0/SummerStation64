@@ -22,17 +22,23 @@
 
 typedef struct {
     char code[4];           /**< the game's code from its header, e.g. NZSE */
-    bool has_facts;         /**< the four below are known */
+    bool has_facts;         /**< the five below are known */
     int8_t players;         /**< number of players, 0 if not known */
     bool needs_expansion;
     bool likes_expansion;
     bool saves;
+    uint8_t paks;           /**< accessories it uses, GAME_INDEX_PAK_... bits */
     bool has_details;       /**< the game's details were looked for (the date may still be unknown) */
     uint16_t date;          /**< release date, 0 if not known; a later date is a larger number */
     const char *developer;  /**< who made the game, NULL if not known; stays valid while the menu runs */
 } game_index_entry_t;
 
 #define GAME_INDEX_DEVELOPER_LENGTH (40)
+
+/** Accessories a game uses, from the built-in game database. */
+#define GAME_INDEX_PAK_CONTROLLER   (1 << 0)
+#define GAME_INDEX_PAK_RUMBLE       (1 << 1)
+#define GAME_INDEX_PAK_TRANSFER     (1 << 2)
 
 /** Year, month and day of a release date from the list (0 if the date is not known). */
 #define GAME_INDEX_DATE(year, month, day)   ((uint16_t) ((((year) - 1980) << 9) | ((month) << 5) | (day)))
@@ -61,7 +67,7 @@ bool game_index_read_header (const char *path, char *code, char *title);
 void game_index_set_code (const char *path, int64_t size, const char *code);
 
 /** Note a file's game code and the facts for its badges. */
-void game_index_set_facts (const char *path, int64_t size, const char *code, int players, bool needs_expansion, bool likes_expansion, bool saves);
+void game_index_set_facts (const char *path, int64_t size, const char *code, int players, bool needs_expansion, bool likes_expansion, bool saves, uint8_t paks);
 
 /**
  * Read a game's details from its metadata pack entry on the card (one

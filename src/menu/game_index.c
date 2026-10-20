@@ -24,6 +24,10 @@
 #define FLAG_DETAILS    (1 << 4)    /* the metadata pack was asked for this game's date */
 #define FLAG_MAKER      (1 << 5)    /* ... and for its developer */
 
+/* A note's paks: GAME_INDEX_PAK_... bits, and this one once they were looked
+   for. Lists saved before then have none, so those games are looked up again. */
+#define PAKS_KNOWN      (1 << 7)
+
 /* Developers' names are kept once each; a game's note holds the number of
    its developer. About 120 different ones in a full metadata pack. */
 #define MAX_MAKERS      (224)
@@ -37,6 +41,7 @@ typedef struct {
     uint8_t flags;
     uint16_t date;      /* release date (see GAME_INDEX_DATE), 0 if not known */
     uint8_t maker;      /* which developer (1 = the first name kept), 0 if not known */
+    uint8_t paks;       /* accessories (see PAKS_KNOWN); fits a spare byte, so a note is still 20 bytes */
 } note_t;
 
 static char maker_text[MAKER_TEXT];
@@ -131,6 +136,7 @@ static void load (void) {
                 memcpy(n->code, code, 4);
                 n->players = (int8_t) players;
                 n->flags = (uint8_t) flags;
+                n->paks = (uint8_t) (flags >> 8);     /* saved in the flags' second byte */
                 n->date = (uint16_t) date;
                 n->maker = (used > 0) ? maker_number(trimmed(line + used)) : 0;
             }
@@ -188,11 +194,12 @@ const game_index_entry_t *game_index_find (const char *path, int64_t size) {
         return NULL;
     }
     memcpy(answer.code, n->code, 4);
-    answer.has_facts = (n->flags & FLAG_FACTS) != 0;
+    answer.has_facts = (n->flags & FLAG_FACTS) && (n->paks & PAKS_KNOWN);
     answer.players = n->players;
     answer.needs_expansion = (n->flags & FLAG_NEEDS) != 0;
     answer.likes_expansion = (n->flags & FLAG_LIKES) != 0;
     answer.saves = (n->flags & FLAG_SAVES) != 0;
+    answer.paks = n->paks & ~PAKS_KNOWN;
     answer.has_details = (n->flags & FLAG_DETAILS) && (n->flags & FLAG_MAKER);
     answer.date = n->date;
     answer.developer = (n->maker > 0 && n->maker <= maker_count) ? &maker_text[maker_at[n->maker - 1]] : NULL;
@@ -214,7 +221,7 @@ void game_index_set_code (const char *path, int64_t size, const char *code) {
     dirty = true;
 }
 
-void game_index_set_facts (const char *path, int64_t size, const char *code, int players, bool needs_expansion, bool likes_expansion, bool saves) {
+void game_index_set_facts (const char *path, int64_t size, const char *code, int players, bool needs_expansion, bool likes_expansion, bool saves, uint8_t paks) {
     if (!code_ok(code)) {
         return;
     }
@@ -225,6 +232,7 @@ void game_index_set_facts (const char *path, int64_t size, const char *code, int
     }
     n->players = (int8_t) players;
     n->flags = (n->flags & (FLAG_DETAILS | FLAG_MAKER)) | FLAG_FACTS | (needs_expansion ? FLAG_NEEDS : 0) | (likes_expansion ? FLAG_LIKES : 0) | (saves ? FLAG_SAVES : 0);
+    n->paks = PAKS_KNOWN | paks;
     dirty = true;
 }
 
@@ -363,7 +371,7 @@ void game_index_flush (void) {
             continue;
         }
         fprintf(f, "%08lx %lu %c%c%c%c %d %d %u", (unsigned long) n->key, (unsigned long) n->size,
-            n->code[0], n->code[1], n->code[2], n->code[3], (int) n->players, (int) n->flags, (unsigned int) n->date);
+            n->code[0], n->code[1], n->code[2], n->code[3], (int) n->players, (int) (n->flags | (n->paks << 8)), (unsigned int) n->date);
         if (n->maker > 0 && n->maker <= maker_count) {
             fprintf(f, " %s", &maker_text[maker_at[n->maker - 1]]);
         }

@@ -20,6 +20,7 @@ typedef struct {
     bool saves;             /**< the game keeps a save file */
     bool save_found;        /**< ...and one exists on the card */
     bool favorite;          /**< it is in the Favorites list */
+    uint8_t paks;           /**< accessories it uses, GAME_INDEX_PAK_... bits (game_index.h) */
 } game_facts_t;
 
 /**

@@ -215,7 +215,7 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
 |---|---|---|
 | `theme/theme.ini` (or `theme.txt`) | the theme; read only | the user / Theme Maker |
 | `features.ini` | the player's On/Off choices | `menu_features.c` |
-| `options.ini` | `sort_order` (Type, Name A-Z, Name Z-A, Recently Played, Release Date, Developer), `font`, `frame_rate_experiment`, `intro`, `fade`, `intro_logo`, `theme`, `tab1`..`tab4`, `ring_tint`, `perf_overlay` | `menu_options.c` |
+| `options.ini` | `sort_order` (Type, Name A-Z, Name Z-A, Recently Played, Release Date, Developer), `font`, `frame_rate_experiment`, `intro`, `fade`, `intro_logo`, `theme`, `tab1`..`tab4`, `ring_tint`, `perf_overlay`, `pak_badges` | `menu_options.c` |
 | `folders.ini` | selected entry per folder | `folder_memory.c` |
 | `playstats.txt` | play count and last played | `play_stats.c` |
 | `gameindex.txt` | which file is which game, and its badge facts; safe to delete | `game_index.c` |
@@ -1781,13 +1781,17 @@ Left before publishing (all wait on the Jumper Pak):
 Boot animation (intro and fade-in). Save backups with Restore save. Sort
 options (six orders). Remember the selected game per folder. Expansion Pak
 warning. Year and developer in the game list (publisher dropped by the
-owner: "people follow the devs").
+owner: "people follow the devs"). Compatibility badges: Controller,
+Rumble and Transfer Pak (done and tested 2026-10-20, photo), from the
+stock database (`rom_info_t.features`, so a game it does not list shows
+none), kept in `gameindex.txt` (the flags field's second byte; a list
+from before is looked up again once per game) and drawn after "Save
+found". Option `pak_badges` ("Accessory Badges", Settings > Display):
+Off / Plain (grey words) / Colored (blue boxes, the default; red, blue
+and yellow were tried first and the owner chose blue for all three).
 - ◐ Metadata index: `gameindex.txt` holds code, badge facts, date and
   developer, learned in the background. Missing: genre (no source yet) and
   the verified flag.
-- ◐ Compatibility badges: Expansion Pak done. Controller Pak, Rumble Pak
-  and Transfer Pak not yet; the stock database already has them
-  (`rom_info_t.features`).
 - ◐ Memory safeguard: the menu already falls back quietly (side covers,
   baked art, the intro's title picture). Missing: a short note in Settings
   saying what was turned down and why.

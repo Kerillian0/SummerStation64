@@ -89,9 +89,9 @@ time, in the order of the release plan in `CLAUDE.md`** (each item marked
 done, partly done or not started). v0.1 waits on the Jumper Pak, so the
 work is in v0.2. The fork was pushed 2026-10-14 (`29c09822`).
 
-1. **v0.2, next item:** Controller Pak, Rumble Pak and Transfer Pak badges
-   (data already in the stock database). Then the Settings note for the
-   memory safeguard, then perspective covers, then the live background.
+1. **v0.2, next item:** the Settings note for the memory safeguard (the Pak
+   badges were done 2026-10-20), then perspective covers, then the live
+   background.
 2. Hacks (v0.3, picked up when v0.3 is reached): the marked folder
    (Folders tab, Z, "This folder holds hacks").
 3. **Hacks, step 2:** one cover per game with a version picker, and a setting

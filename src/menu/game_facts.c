@@ -56,6 +56,7 @@ typedef struct {
     bool needs_expansion;
     bool likes_expansion;
     bool saves;
+    uint8_t paks;
 } remembered_t;
 
 static remembered_t remembered[REMEMBERED];
@@ -201,6 +202,7 @@ static void lookup (menu_t *menu, int index) {
         found->needs_expansion = noted->needs_expansion;
         found->likes_expansion = noted->likes_expansion;
         found->saves = noted->saves;
+        found->paks = noted->paks;
     }
 
     if (!found) {
@@ -216,8 +218,11 @@ static void lookup (menu_t *menu, int index) {
             found->likes_expansion = (info.features.expansion_pak == EXPANSION_PAK_RECOMMENDED) ||
                 (info.features.expansion_pak == EXPANSION_PAK_SUGGESTED);
             found->saves = (rom_info_get_save_type(&info) != SAVE_TYPE_NONE);
+            found->paks = (info.features.controller_pak ? GAME_INDEX_PAK_CONTROLLER : 0) |
+                (info.features.rumble_pak ? GAME_INDEX_PAK_RUMBLE : 0) |
+                (info.features.transfer_pak ? GAME_INDEX_PAK_TRANSFER : 0);
             game_index_set_facts(path_get(path), size, info.game_code, found->players,
-                found->needs_expansion, found->likes_expansion, found->saves);
+                found->needs_expansion, found->likes_expansion, found->saves, found->paks);
         }
         rom_info_free_meta(&info);
     }
@@ -227,6 +232,7 @@ static void lookup (menu_t *menu, int index) {
         facts.needs_expansion = found->needs_expansion;
         facts.likes_expansion = found->likes_expansion;
         facts.saves = found->saves;
+        facts.paks = found->paks;
         known = true;
 
         /* These two can change while the menu is running, so they are checked each time. */
