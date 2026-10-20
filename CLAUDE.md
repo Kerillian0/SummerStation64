@@ -10,11 +10,14 @@ libdragon. Think ES-DE / Pegasus, on a real N64.
 - Explain each change briefly in plain language; the user is learning as we go.
 - Keep the fork easy to merge with upstream: put features in new files and keep
   edits to original files small (one-line hooks where possible).
-- Branch: `carousel-ui`. Commit after each working step.
+- Branch: `summerstation` (renamed from `carousel-ui` by the owner on
+  2026-10-20; it is the fork's default branch, so its README is the
+  project's front page). Commit after each working step.
 - Remotes: `origin` is upstream (Polprzewodnikowy/N64FlashcartMenu) — fetch
   only, never push there. `fork` is the user's public fork
-  (https://github.com/Kerillian0/SummerStation64); `carousel-ui` tracks
-  `fork/carousel-ui`. Push only when the user asks.
+  (https://github.com/Kerillian0/SummerStation64); `summerstation` tracks
+  `fork/summerstation`; `main` is left as an untouched copy of upstream
+  (GitHub's Sync fork works on it). Push only when the user asks.
 - `n64ever` is a third remote, for reading only (its push address is
   disabled): https://github.com/bjerreman/N64FlashcartMenu-N64ever , another
   fork of the same menu, based on upstream V0.3.2. Never merge it. What it
@@ -224,7 +227,7 @@ Stock files we have edited (keep these edits small): `menu.c`, `actions.c`,
 `fonts.c/.h`, `rom_info.c/.h`, `ui_components/background.c`, `common.c`,
 `constants.h`, `views/browser.c` (the carousel lives here, the one large
 edit), `views/history_favorites.c`, `views/load_rom.c`, `views/load_disk.c`,
-`views/startup.c`, `views/credits.c`, `views/settings_editor.c`. `git diff --stat origin/main..carousel-ui` lists
+`views/startup.c`, `views/credits.c`, `views/settings_editor.c`. `git diff --stat origin/main..summerstation` lists
 them all.
 
 Files the menu keeps on the SD card, all under `sd:/menu/`:

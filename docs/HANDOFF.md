@@ -17,7 +17,7 @@ Pak fitted) and is learning as the project goes, so explain changes plainly.
    file. `make sc64` in the dev container (warnings are errors).
 2. Stop. The owner deploys from Windows (`.\deploy-sd.bat /d` or
    `.\localdeploy.bat /d`; **never `/dur`**) and reports with the log.
-3. "All testing passed" means commit on `carousel-ui`. Push to `fork` only
+3. "All testing passed" means commit on `summerstation`. Push to `fork` only
    when asked; never to `origin`.
 4. PC tests: `sh tests/run.sh` (theme.ini reader, hack finder, share codes).
 
