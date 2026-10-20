@@ -89,10 +89,11 @@ time, in the order of the release plan in `CLAUDE.md`** (each item marked
 done, partly done or not started). v0.1 waits on the Jumper Pak, so the
 work is in v0.2. The fork was pushed 2026-10-14 (`29c09822`).
 
-1. **v0.1:** the 4MB test passed 2026-10-20 (see the release plan in
-   `CLAUDE.md`, with one open, rare image viewer message). Left: bring the
-   release notes up to date, a clean build without baked art, publish when
-   the owner says so. Then v0.2: perspective covers, then the live background. (Pak badges and
+1. **v0.1:** the 4MB test passed and the release notes are up to date
+   (2026-10-20). Both release files are made in `output/release-v0.1/`
+   (how, in the release plan in `CLAUDE.md`). Left: the owner uploads
+   them to a GitHub release when they say so (Art Edition `sc64menu.n64`
+   as the default; Standard zip), with the release notes as its text. Then v0.2: perspective covers, then the live background. (Pak badges and
    the memory note were done 2026-10-20.)
 2. Hacks (v0.3, picked up when v0.3 is reached): the marked folder
    (Folders tab, Z, "This folder holds hacks").

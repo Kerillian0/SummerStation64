@@ -1816,8 +1816,17 @@ Left before publishing (all wait on the Jumper Pak):
   freeing it and asking for a new block.
 - ☐ Bring `docs/RELEASE_NOTES_v0.1.md` up to date: the release will carry
   everything built since (Random game, Options menus, hacks).
-- ☐ Two release files, published only when the owner says so: Standard
-  (no baked art, `filesystem/art/` moved aside; baked details kept), Art Edition (the
+- ◐ Two release files, **made 2026-10-20** in `output/release-v0.1/`
+  (ignored by git, wiped by `make clean`): `sc64menu.n64` (Art Edition,
+  28,098,560 bytes) and `SummerStation64-v0.1-Standard.zip` (2.3 MB,
+  holding a 2.6 MB `sc64menu.n64`). Built with
+  `make sc64 MENU_VERSION='"SummerStation64 v0.1"'` (the inner quotes
+  are needed: the Makefile's default carries them, and without them the
+  name splits at the space); delete `build/menu/views/credits.o` first so
+  the name is compiled in, and `build/N64FlashcartMenu.dfs` after moving
+  `filesystem/art/` in or out. No `zip` in the container: Python's
+  `zipfile` made the zip. **Not uploaded: publish only when the owner
+  says so.** Standard (no baked art, `filesystem/art/` moved aside; baked details kept), Art Edition (the
   owner's art build, zipped), both on this repository's release.
   The release notes' install steps cover both (done 2026-10-20).
 
