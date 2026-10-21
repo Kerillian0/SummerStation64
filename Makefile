@@ -298,6 +298,11 @@ sc64: $(OUTPUT_DIR)/$(PROJECT_NAME).n64
 	@cp $< $(OUTPUT_DIR)/sc64menu.n64
 .PHONY: sc64
 
+# Both release editions in output/release-v$(VERSION)/ (scripts/make_release.py).
+release:
+	@python3 scripts/make_release.py "$(VERSION)"
+.PHONY: release
+
 all: $(OUTPUT_DIR)/$(PROJECT_NAME).n64 64drive ed64 ed64-clone sc64
 .PHONY: all
 
