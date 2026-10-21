@@ -30,7 +30,7 @@ and a CRT television, with and without the Expansion Pak.
 > **💬 Feedback wanted!** This is the first release, and I'd love to hear
 > how it runs on your console: what works, what doesn't, and what you'd
 > like to see next.
-> Please [open an issue](https://github.com/Kerillian0/SummerStation64/issues/new)
+> Please [open an issue](https://github.com/Kerillian0/SummerStation64/issues)
 > with your console setup (Expansion Pak or Jumper Pak, NTSC or PAL) and,
 > if something went wrong, a photo of the screen.
 >--Please test on Analogue 3D! I don't have one and need some testers for it!--
