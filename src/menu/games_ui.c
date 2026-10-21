@@ -363,7 +363,7 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const cha
     }
     if (facts->players > 0) {
         char players[24];
-        snprintf(players, sizeof(players), (facts->players == 1) ? "1 player" : "%d players", facts->players);
+        snprintf(players, sizeof(players), (facts->players == 1) ? "1 player" : "1-%d players", facts->players);
         PANEL_BADGE(players, STL_GRAY, false);
     }
     if (facts->needs_expansion) {

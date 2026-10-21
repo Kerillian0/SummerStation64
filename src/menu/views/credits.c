@@ -77,6 +77,9 @@ static void draw (menu_t *menu, surface_t *d) {
             "\tdr_flac (MIT License)\n"
             "\nSounds:\n\n"
             "\tGUI Sound Effects by Lokif (CC0)\n"
+            "\nGame data:\n\n"
+            "\tGenres and player counts from\n"
+            "\tlibretro-database (CC-BY-SA 4.0)\n"
         );
     }
 

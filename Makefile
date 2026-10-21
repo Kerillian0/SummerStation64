@@ -83,6 +83,7 @@ SRCS = \
 	menu/settings.c \
 	menu/sound.c \
 	menu/dump_check.c \
+	menu/game_data.c \
 	menu/memory_note.c \
 	menu/screenshot.c \
 	menu/art_tint.c \
@@ -221,6 +222,12 @@ $(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM)
 $(BUILD_DIR)/$(PROJECT_NAME).dfs: $(wildcard $(FILESYSTEM_DIR)/art)
 # Game details baked in the same way (make_baked_meta.py).
 $(BUILD_DIR)/$(PROJECT_NAME).dfs: $(wildcard $(FILESYSTEM_DIR)/meta)
+
+# Genre, players and play modes per game code (assets/data/make_game_data.py).
+$(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM_DIR)/gamedata.txt
+$(FILESYSTEM_DIR)/gamedata.txt: $(ASSETS_DIR)/data/gamedata.txt
+	@echo "    [DATA] $@"
+	@cp "$<" $@
 
 # Small font for consoles without the Expansion Pak: the same typeface with
 # Latin characters only (about 64 KB in RAM instead of 760 KB).

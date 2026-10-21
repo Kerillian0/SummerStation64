@@ -1,0 +1,48 @@
+# How each game's players play together, written for SummerStation64 (not from
+# libretro). One line per game: the code's first three letters (so every
+# region counts), then
+#   C  co-op only (players on the same side)
+#   V  versus only
+#   B  both (a co-op mode and a versus mode)
+# Games for one player, or not listed, show the player count alone.
+# After the letter, P=n corrects libretro's player count and G=Name its genre
+# (an underscore for a space), where libretro is plainly wrong.
+# A draft from general knowledge, 2026-10-21: lines marked "check" are the
+# least certain. The owner checks these against the games.
+CFZ V   # F-Zero X
+NB7 V   # Banjo-Tooie: the story is for one; the multiplayer games are versus
+NBM V   # Bomberman 64: battle mode; the adventure is for one
+NBV B   # Bomberman 64: The Second Attack!: two-player story, and battle (check)
+NDY V G=Racing   # Diddy Kong Racing (libretro: Adventure)
+NN6 V   # Dr. Mario 64
+NDN B   # Duke Nukem 64: two-player co-op campaign, and deathmatch
+NDZ V   # Duke Nukem: Zero Hour: deathmatch only (check)
+NGE V   # GoldenEye 007
+NHX B   # Hexen: co-op and deathmatch (check)
+NMT V   # Magical Tetris Challenge
+NKT V G=Racing   # Mario Kart 64 (libretro: Sports)
+CLB V   # Mario Party
+NMW V   # Mario Party 2
+NMV V   # Mario Party 3
+NMF V   # Mario Golf
+NM8 B   # Mario Tennis: doubles on one side, or against each other
+NMO V   # Monopoly
+NRI V   # The New Tetris
+NPN V   # Pokemon Puzzle League
+NPO V   # Pokemon Stadium
+NP3 V   # Pokemon Stadium 2
+NQK V   # Quake: two-player deathmatch
+NQ2 V   # Quake II
+NFX V   # Star Fox 64
+NEP V   # Star Wars Episode I: Racer
+NAL V   # Super Smash Bros. (team battles too, but against others)
+NR6 B   # Tom Clancy's Rainbow Six: two-player co-op, and versus (check)
+NTQ V   # Tony Hawk's Pro Skater 2
+N3T V   # Tony Hawk's Pro Skater 3
+NRW V   # Turok: Rage Wars
+NT2 V   # Turok 2: Seeds of Evil
+NTK V   # Turok 3: Shadow of Oblivion
+NXF V   # Xena: The Talisman of Fate
+NK4 V   # Kirby 64: the story is for one; the mini-games are versus
+NPD B   # Perfect Dark: co-op and counter-op, and combat simulator
+NWR V P=2   # Wave Race 64 (libretro: 4 players)

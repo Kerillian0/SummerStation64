@@ -146,6 +146,10 @@ Code.
 - Ideas from the [N64ever](https://github.com/bjerreman/N64FlashcartMenu-N64ever) fork.
 - Music by Eric Matyas, www.soundimage.org. Interface sounds by Lokif (CC0).
   Title lettering with the Anton and Mr Dafoe fonts (SIL Open Font License).
+- Genres and player counts come from
+  [libretro-database](https://github.com/libretro/libretro-database)
+  (CC-BY-SA 4.0); the table built from it, `assets/data/gamedata.txt`, is
+  shared under the same licence.
 - Box art and game details in the release files come from the community
   [n64-flashcart-menu-metadata](https://github.com/n64-tools/n64-flashcart-menu-metadata)
   pack; they belong to the games' publishers and are not part of the source

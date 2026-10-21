@@ -7,6 +7,7 @@
 #include "cover_list.h"
 #include "game_index.h"
 #include "dump_check.h"
+#include "game_data.h"
 #include "game_facts.h"
 #include "ini_parser.h"
 #include "path.h"
@@ -64,8 +65,13 @@ typedef struct {
 static remembered_t remembered[REMEMBERED];
 static int remembered_next = 0;
 
-/* How many players, from the metadata pack entry for this game code. */
+/* How many players: the built-in table (game_data.c), else the metadata
+   pack entry for this game code (the owner's pack has none). */
 static int players_from_metadata (menu_t *menu, const char *game_code) {
+    const game_data_t *data = game_data_find(game_code);
+    if (data && data->players > 0) {
+        return data->players;
+    }
     char sub[32];
     snprintf(sub, sizeof(sub), "menu/metadata/%c/%c/%c/%c/metadata.ini", game_code[0], game_code[1], game_code[2], game_code[3]);
     char baked[40];
@@ -202,6 +208,11 @@ static void lookup (menu_t *menu, int index) {
         remembered_next = (remembered_next + 1) % REMEMBERED;
         found->key = key;
         found->players = noted->players;
+        if (found->players <= 0) {
+            /* Noted before the built-in table existed. */
+            const game_data_t *data = game_data_find(noted->code);
+            found->players = data ? data->players : 0;
+        }
         found->needs_expansion = noted->needs_expansion;
         found->likes_expansion = noted->likes_expansion;
         found->saves = noted->saves;

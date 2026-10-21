@@ -6,6 +6,7 @@
 #include <libdragon.h>
 
 #include "fonts.h"
+#include "game_data.h"
 #include "game_info_ui.h"
 #include "art_tint.h"
 #include "dump_check.h"
@@ -455,8 +456,11 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
     }
     draw_cover(image);
 
-    /* Who made it and when, above the title. */
-    if (known(info->meta.author) || known(info->meta.release_date)) {
+    /* The genre, when it came out and who made it, above the title: the
+       developer last, so a long name is what gets cut short, not the date. */
+    const game_data_t *data = game_data_find(info->game_code);
+    const char *genre = (data && data->genre[0]) ? data->genre : NULL;
+    if (genre || known(info->meta.author) || known(info->meta.release_date)) {
         char released[32] = "";
         if (known(info->meta.release_date)) {
             format_date(released, sizeof(released), info->meta.release_date);
@@ -465,10 +469,12 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
             .width = TITLE_WIDTH,
             .wrap = WRAP_ELLIPSES,
             .style_id = STL_GRAY,
-        }, FNT_DEFAULT, X0, MAKER_Y + 14, "%s%s%s",
-            known(info->meta.author) ? info->meta.author : "",
-            (known(info->meta.author) && known(info->meta.release_date)) ? ", " : "",
-            released);
+        }, FNT_DEFAULT, X0, MAKER_Y + 14, "%s%s%s%s%s",
+            genre ? genre : "",
+            (genre && (released[0] || known(info->meta.author))) ? " \xC2\xB7 " : "",
+            released,
+            (released[0] && known(info->meta.author)) ? " \xC2\xB7 " : "",
+            known(info->meta.author) ? info->meta.author : "");
     }
 
     /* The name. "Series - Subtitle" is shown as the series in big letters
@@ -544,9 +550,14 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
     char last_played[24];
     format_last_played(last_played, sizeof(last_played), last, menu->current_time, plays);
 
-    char players[16];
-    if (info->meta.num_players > 1) {
-        snprintf(players, sizeof(players), "1 to %d", (int) info->meta.num_players);
+    /* Players: the count and how they play together, from the built-in
+       table (game_data.c), else the game's metadata. */
+    char players[40];
+    const char *together = game_data_players_text(data, false);
+    if (together[0]) {
+        snprintf(players, sizeof(players), "%s", together);
+    } else if (info->meta.num_players > 1) {
+        snprintf(players, sizeof(players), "1-%d", (int) info->meta.num_players);
     } else {
         snprintf(players, sizeof(players), "1");
     }

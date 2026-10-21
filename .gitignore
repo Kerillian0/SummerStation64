@@ -34,3 +34,4 @@
 
 # Ignore macOS filesystem cruft
 .DS_Store
+/filesystem/gamedata.txt

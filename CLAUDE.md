@@ -1986,7 +1986,19 @@ what was left out since power-on on its help line. The log prints
   at 14 px/s after 10 s untouched, rests 4 s at the end, returns to the
   top; D-Pad or stick scrolls by hand (stick speed follows the tilt);
   drawn through a scissor window. Off: cut at a word with "...".
-- ☐ Genre: needs a source (the owner's pack has none).
+- ✓ Genre, players and play modes (done and tested 2026-10-21):
+  `assets/data/make_game_data.py` joins libretro's genre and maxusers
+  lists to game codes through its No-Intro list (812 codes) and adds
+  `play_modes.txt` (ours: C co-op, V versus, B both per three-letter
+  code, plus `P=`/`G=` corrections: Mario Kart 64 and Diddy Kong Racing
+  "Racing", Wave Race 64 two players). Output `assets/data/gamedata.txt`
+  (committed, CC-BY-SA 4.0, credited on the credits pop-up and README),
+  copied into the ROM by the Makefile; `game_data.c` reads it (about 6 KB).
+  Cover rows: "1-N players" badge (players from the table, also for games
+  noted in `gameindex.txt` with 0). Game info: Players box "1-4, versus" /
+  "co-op" / "co-op/vs" (the box holds about 14 characters); the line above
+  the title is genre · date · developer.
+
   **Source found 2026-10-21:** libretro-database (CC-BY-SA 4.0):
   `metadat/genre` and `metadat/maxusers` for N64 (about 2,060 ROMs each,
   keyed by the ROM's CRC32) and `metadat/no-intro` (each ROM's CRC, MD5,
@@ -1994,9 +2006,9 @@ what was left out since power-on on its help line. The log prints
   joined by game code and built into the menu. The owner's pack has **no
   player counts at all** (no `num-players` key), so today's Players badge
   and box only show when a per-game ini has one.
-- ☐ Players detail (asked on Reddit, 2026-10-21): "1-4 players, co-op,
-  versus only" on the Players box / badge. Counts from libretro
-  (maxusers); co-op / versus has no known source yet.
+- ✓ Players detail (asked on Reddit, 2026-10-21): see above; the
+  co-op/versus list is a hand-written draft for the owner's multiplayer
+  games, checked by the owner; add more games to `play_modes.txt`.
 - **Right after v0.2 (the owner, 2026-10-21): 3D boxes and a hover.** The
   selected cover as a box with depth: front, the pack's top-edge picture
   (`boxart_top.png`, 158x22, 298 games; plain color otherwise) and a side
