@@ -1854,13 +1854,26 @@ into `/opt/libdragon` with `make clobber && ./build.sh --no-examples`
 and the generated `filesystem/*.font64 *.wav64 *.sprite` and rebuild;
 never `make clean`, which also wipes `output/release-*`. The gcc toolchain
 itself was not reinstalled (only libdragon's library and tools).
-**Seen in the first log (8MB, Full font), not yet explained:** the Folders
-tab now doubles every resting frame (work 28, chip 29-31 ms; before the
-merge 27.3 / 29.0-29.4 with one doubled frame), and the "Midnight"
-background built in 469 ms (299 before, on 4MB). The owner had Character
-Set on Full, which may differ from earlier runs. Next: compare with the
-v0.1 release file on the same console and settings before changing
-anything. Games tab at rest: work 21.5 / chip 23.1 ms (was 20.4 / 22.1).
+**Speed after the merge, measured 2026-10-21 (8MB, same console):**
+- Folders tab: the doubled frames in the first log were the **Full
+  character set**, not the merge. On Auto (Latin) the Folders tab rests at
+  work 26.4 / chip 28.1 ms, on time (before the merge 27.3 / 29.0). So Full
+  costs the text-heavy Folders tab enough to double every frame: note for
+  the pre-v1.0 speed run.
+- The "Midnight" background build: **300 ms with the v0.1 release file,
+  470 ms with the merged build**, same console and settings (the v0.1 file
+  was run from the cart's memory with `sc64deployer upload`, so the SD
+  card was untouched). Games tab at rest 21.3 / 23.0 ms then, 22.2 / 23.7
+  now. Not explained: the build loop is our own float arithmetic, compiled
+  by the same gcc with the same flags (`n64.mk` only gained the Expansion
+  Pak option; the toolchain was not reinstalled, so the VR4300 "mulmul"
+  fix is not active), and the libdragon changes that run beside it (mixer,
+  rspq) hold nothing that costly. Most likely the same as Ocean's
+  unexplained creep (621 to 944 ms with no code change): the code and data
+  moved, and the loop now fights the 8 KB direct-mapped data cache.
+  Parked for the pre-v1.0 speed run (one-off cost at power-on, partly
+  under the intro). A decisive test if wanted: build today's code against
+  the old libdragon (`N64_INST=/opt/libdragon.before-0.3.5`) and time it.
 ✓ Cover cache. Slide animation (and the tab slides, Folders included).
 Boot animation (intro and fade-in). Save backups with Restore save. Sort
 options (six orders). Remember the selected game per folder. Expansion Pak
@@ -1982,6 +1995,9 @@ Theme Maker version 8.
   - single slow frames on saving (70-90 ms, with odd ones of 120-130);
   - a cover read from the card doubling three frames while it unpacks;
   - the save backup at launch (890 ms for a 128 KB save).
+  - the background build (470 ms since the upstream v0.3.5 merge, 300
+    before, with no change to its code; likely cache layout, see v0.2);
+  - the Folders tab with the Full character set (every frame doubled).
   Measure each first.
 - **After that: Analogue 3D support.** A new phase once v0.5 and the "Later"
   items are done. Do not start it before the native N64 menu is finished.
