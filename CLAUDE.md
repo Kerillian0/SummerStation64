@@ -1922,7 +1922,14 @@ what was left out since power-on on its help line. The log prints
   the verified flag.
 - ◐ Asset prep tool: `make_baked_art.py` bakes covers into the menu file.
   Missing: the full PC tool (building the index, checking dumps).
-- ☐ Perspective covers (side covers angled away).
+- ☐ Perspective covers (side covers angled away). The owner's choice
+  (2026-10-21): part of the optional side covers, still off by default.
+  Angled covers take less width, which should also pull them in from the
+  overscan edge; whether they become the default is decided after seeing
+  them on the CRT.
+- ☐ GitHub bug-report form (issue template asking for console setup,
+  Expansion/Jumper Pak, NTSC/PAL, menu version, photo, log). The owner's
+  choice (2026-10-21): ships with v0.2, not before.
 - ☐ 4MB-friendly live background: draw the theme background each frame
   instead of keeping its 300 KB picture.
 - ☐ Verified ROM badges: the PC tool checks ROMs against known good dumps

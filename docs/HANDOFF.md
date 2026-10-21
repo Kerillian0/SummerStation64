@@ -84,21 +84,18 @@ All tested on hardware and committed.
 The owner's plan: **finish v0.2, then build the release tooling and release
 v0.2.** Proposed order (the owner has not answered yet):
 
-1. **Two open questions to the owner, asked 2026-10-21:**
-   - Perspective covers: only for players who switch side covers on (they
-     are off by default, and the owner dislikes them on the CRT), or
-     redesign the side covers so they are worth having on?
-   - The GitHub bug-report form: add now (helps v0.1 players), or with v0.2?
+1. **Answered 2026-10-21:** perspective covers stay part of the optional
+   side covers (off by default); the GitHub bug-report form ships with v0.2.
 2. **Live background:** draw the theme background each frame instead of
    keeping its 300 KB picture; measure the chip on every screen; Ocean and
    patterns may keep the stored picture.
-3. **Perspective covers**, as the owner decides in 1.
+3. **Perspective covers**, on the optional side covers.
 4. **PC prep tool:** one program that prepares a card (bakes art and
    details, builds `gameindex.txt` ahead, checks dumps).
 5. **"Verified dump" badge and genre**, once there is a source (check the
    terms of No-Intro's lists first).
 6. Proposed: move "automated screenshots in ares" to Later.
-7. Then: `make release` (both editions in one command; the manual steps are
+7. Then: the bug-report form, `make release` (both editions in one command; the manual steps are
    in `CLAUDE.md`, Release plan, v0.1) and the v0.2 release.
 
 Waiting on the owner, later: what a frame looks like on the redesigned
