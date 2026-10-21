@@ -1,63 +1,50 @@
-name: Feature request
-description: Suggest an idea to help us improve.
-labels: 
+name: Feature idea
+description: Something you'd like SummerStation64 to do.
+labels:
   - "enhancement"
-  - "low priority"
-  - "awaiting triage"
 body:
   - type: markdown
     attributes:
       value: |
-        # :warning: **Please read before raising the feature request** :warning:
-
-        If you have a **question** that needs clarification on something, or need help in a particular situation, create a discussion instead. _Otherwise it will be automatically closed!_ .
-
-        If you really want to suggest a new feature, please make sure to follow the template and provide the required information. Failing to do so will most likely end up on the issue being close. Don't take offense at this. It is simply a time management decision. Whenever an issue is raised without following the template and the required information is not provided, very often too much time has to be spent going back and forth to obtain the details that are outlined below.
+        Ideas are welcome! The [roadmap in the README](https://github.com/Kerillian0/SummerStation64#-roadmap) shows what is already planned.
+        Everything has to run on a stock console without the Expansion Pak, so some ideas may come as an option for 8MB only.
 
   - type: textarea
-    id: description
+    id: idea
     attributes:
-      label: Description
-      description: Is your feature request related to a problem? Please describe.
-      placeholder: A clear and concise description of what the problem is. E.g. I'm always frustrated when [...]
+      label: The idea
+      description: What would you like the menu to do?
     validations:
       required: true
 
   - type: textarea
-    id: release-context
+    id: why
     attributes:
-      label: Release Context
-      description: Is your feature request related to the latest release or pre-release version.
-      placeholder: This is still not available on the latest release or the pre-release versions, so it is applicable to both (and not a regression).
+      label: Why
+      description: What would it make easier or nicer? How do you use the menu today?
     validations:
-      required: true
+      required: false
 
-  - type: textarea
-    id: solution
+  - type: dropdown
+    id: where
     attributes:
-      label: How to solve the problem
-      description: Describe the solution you'd like
-      placeholder: A clear and concise description of what you would like to happen/exist.
+      label: Where in the menu
+      options:
+        - Games, Recent or Favorites (the cover rows)
+        - Folders
+        - Game info
+        - Settings
+        - Themes and the Theme Maker
+        - Start-up and intro
+        - Card Prep (the PC page)
+        - Somewhere new
     validations:
       required: false
 
   - type: textarea
-    id: alternatives
+    id: pictures
     attributes:
-      label: Describe alternatives you've considered
-      description: What alternatives you've considered and/or tested.
-      placeholder: A clear and concise description of any alternative solutions, features or tools that you've considered.
-    validations:
-      required: false
-
-  - type: textarea
-    id: other_context
-    attributes:
-      label: Additional context
-      description: Add any other context or screenshots about the feature request here.
-      placeholder: |
-        code snippets
-        screenshots
-        mockups
+      label: Pictures or examples
+      description: Mockups, photos, or another menu or console that does it well.
     validations:
       required: false

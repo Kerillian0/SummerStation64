@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
-    - name: GitHub Discussions
-      url: https://github.com/Polprzewodnikowy/N64FlashcartMenu/discussions
-      about: Channel for asking QUESTIONS.
+    - name: Questions and help
+      url: https://github.com/Kerillian0/SummerStation64/discussions
+      about: Not sure something is a bug, or need a hand setting up? Ask here.
+    - name: The original N64FlashcartMenu
+      url: https://github.com/Polprzewodnikowy/N64FlashcartMenu
+      about: SummerStation64 is an unofficial fork. Please don't report its problems to the original menu.
