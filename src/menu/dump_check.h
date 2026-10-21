@@ -2,7 +2,7 @@
  * @file dump_check.h
  * @brief Whether a game file is a known good dump.
  *
- * The Card Prep web page (prep-tool/) checks every game on the card against
+ * The Card Prep web page (docs/companion/, the Companion's Card Prep tab) checks every game on the card against
  * No-Intro's list and writes sd:/menu/verified.txt; this reads it once and
  * answers per file. A file that differs from the list is "not verified"
  * unless its name says why (a fix, translation, trainer or hack: no mark)

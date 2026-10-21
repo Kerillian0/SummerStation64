@@ -1,7 +1,15 @@
-<title>SC64 Theme Maker</title>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SummerStation64 Companion</title>
+<meta name="description" content="Theme Maker, Card Prep and a setup guide for the SummerStation64 menu on the SummerCart64.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Chakra+Petch:wght@600;700&display=swap" rel="stylesheet">
 <style>
+/* SummerStation64 Companion: one page, three tabs (Theme Maker, Card Prep,
+   Guide). Published with GitHub Pages from docs/companion/. */
 /* Layout: sticky TV preview on the left, a single column of control sections on the right; stacks on phones. */
 :root{
   --bg:#e3e5e9; --surface:#f4f5f7; --field:#ffffff; --line:#c3c8d0;
@@ -84,12 +92,80 @@ pre.code{white-space:pre-wrap;word-break:break-all;font-size:15px;font-weight:70
 canvas#qr{display:block;width:232px;max-width:100%;height:auto;background:#ffffff;border-radius:8px;image-rendering:pixelated}
 button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
-</style>
+/* ---------- Companion: the top bar and tabs (after the menu's own pill tabs) ---------- */
+body{margin:0}
+.topbar{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.topbar-in{max-width:1180px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;justify-content:space-between}
+.brand{font-family:var(--display);font-weight:700;font-size:20px;margin:0;letter-spacing:.01em}
+.brand span{color:var(--ink-2);font-weight:600}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tabs a{font-weight:700;text-decoration:none;color:var(--ink);border:2px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 16px}
+.tabs a:hover{border-color:var(--ink-2)}
+.tabs a[aria-current="page"]{background:var(--n-blue);border-color:var(--n-blue);color:var(--on-accent)}
+.tabs a:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.tabpane[hidden]{display:none}
+h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0;letter-spacing:.01em}
+.foot{max-width:1180px;margin:0 auto;padding:0 16px 32px;color:var(--ink-2);font-size:13px}
+.foot a{color:inherit}
 
+/* ---------- Card Prep ---------- */
+#prep .wrap{max-width:960px;display:grid;grid-template-columns:minmax(0,1fr)}
+#prep h2 .n{width:26px;height:26px;border-radius:50%;background:var(--n-blue);color:var(--on-accent);display:inline-grid;place-items:center;font-size:14px;flex-shrink:0}
+#prep section p{margin:0 0 10px;color:var(--ink-2);max-width:72ch}
+#prep .go{font:inherit;font-weight:700;border:0;border-radius:999px;padding:9px 18px;background:var(--n-blue);color:var(--on-accent);cursor:pointer}
+#prep .go.quiet{background:transparent;color:var(--ink);border:2px solid var(--line);padding:7px 16px}
+#prep .go:disabled{opacity:.45;cursor:not-allowed}
+#prep .line{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+#prep .status{margin-top:0}
+#prep .status b{color:var(--ink)}
+#prep .bad{color:var(--n-red)}
+#prep progress{width:100%;height:12px;margin-top:10px;accent-color:var(--n-blue)}
+#prep .counts{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+#prep .chip{border-radius:999px;padding:3px 12px;font-weight:700;font-size:14px;border:2px solid currentColor}
+#prep .V{color:var(--n-green)} #prep .M{color:var(--n-yellow)} #prep .U{color:var(--ink-2)}
+#prep .tablewrap{overflow-x:auto}
+#prep table{border-collapse:collapse;width:100%;font-size:14px}
+#prep th,#prep td{text-align:left;padding:6px 8px;border-top:1px solid var(--line);vertical-align:top}
+#prep th{font-weight:700;color:var(--ink-2);border-top:0}
+#prep td.code{font-family:ui-monospace,Consolas,monospace}
+#prep td.file{overflow-wrap:anywhere}
+#prep .hidden{display:none}
+
+/* ---------- Guide ---------- */
+#guide .wrap{max-width:960px;display:grid;grid-template-columns:minmax(0,1fr)}
+#guide .toc{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+#guide .toc a{font-weight:700;font-size:14px;text-decoration:none;color:var(--ink);border:2px solid var(--line);border-radius:8px;padding:5px 10px;background:var(--field)}
+#guide .toc a:hover{border-color:var(--ink-2)}
+#guide section{scroll-margin-top:80px}
+#guide section p,#guide li{max-width:74ch}
+#guide p{margin:0 0 10px}
+#guide ol,#guide ul{margin:0 0 10px;padding-left:22px}
+#guide li{margin-bottom:6px}
+#guide code{font-size:14px;background:var(--field);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+#guide a{color:var(--n-blue)}
+#guide h3{font-size:16px;margin:16px 0 6px}
+#guide .qa{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}
+#guide .qa:first-of-type{border-top:0;padding-top:0;margin-top:0}
+#guide .qa b{display:block;margin-bottom:4px}
+#guide .note{border-left:4px solid var(--n-blue);background:var(--field);border-radius:6px;padding:8px 12px;margin:0 0 10px;max-width:74ch}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="topbar-in">
+  <p class="brand">SummerStation64 <span>Companion</span></p>
+  <nav class="tabs" aria-label="Tools">
+    <a href="#themes" data-tab="themes">Theme Maker</a>
+    <a href="#prep" data-tab="prep">Card Prep</a>
+    <a href="#guide" data-tab="guide">Guide</a>
+  </nav>
+</div></div>
+
+<main>
+<div class="tabpane" id="themes">
 <div class="wrap">
   <header>
-    <h1>SC64 Theme Maker</h1>
-    <p>Pick colors, a gradient and a pattern, then export a theme.ini for the carousel menu. The preview follows the menu's current 640×480 layout.</p>
+    <h1 class="page-title">Theme Maker</h1>
+    <p>Pick colors, a gradient and a pattern, then export a theme.ini for the menu. The preview follows the menu's current 640×480 layout.</p>
   </header>
 
   <div class="stage">
@@ -213,6 +289,190 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
     </section>
   </div>
 </div>
+</div>
+
+<div class="tabpane" id="prep" hidden>
+<div class="wrap">
+  <header>
+    <h1 class="page-title">Card Prep</h1>
+    <p>Checks the games on your SD card against the No-Intro list of known good dumps, so the menu can show a
+      <b>Verified</b> badge. Everything happens in this browser: no game is uploaded anywhere.</p>
+  </header>
+
+  <div class="panel">
+    <section>
+      <h2><span class="n">1</span>Pick your SD card</h2>
+      <p>Choose the top folder of the card (the one with <code>sc64menu.n64</code> in it). Chrome or Edge can save the
+        result straight onto the card; other browsers can read it and give you the file to copy over.</p>
+      <div class="line">
+        <button class="go" id="pick">Choose SD card</button>
+        <input type="file" id="pickOld" webkitdirectory class="hidden">
+        <span class="status" id="cardStatus">No card chosen yet.</span>
+      </div>
+    </section>
+
+    <section>
+      <h2><span class="n">2</span>The list of known dumps</h2>
+      <p>Downloaded from <a href="https://github.com/libretro/libretro-database" target="_blank" rel="noopener">libretro-database</a>
+        (No-Intro's Nintendo 64 list). Without internet, load the file <code>Nintendo - Nintendo 64.dat</code> yourself.</p>
+      <div class="line">
+        <span class="status" id="datStatus">Downloading…</span>
+        <button class="go quiet" type="button" id="datPickBtn">Load a .dat file</button>
+        <input type="file" id="datPick" accept=".dat,.txt" class="hidden">
+      </div>
+    </section>
+
+    <section>
+      <h2><span class="n">3</span>Check the games</h2>
+      <p>Every game is read in full, so this takes a minute or two for a full card. Games checked before are
+        skipped, so running it again after adding games is quick.</p>
+      <div class="line">
+        <button class="go" id="check" disabled>Check games</button>
+        <span class="status" id="checkStatus"></span>
+      </div>
+      <progress id="progress" class="hidden" value="0" max="1"></progress>
+    </section>
+
+    <section>
+      <h2><span class="n">4</span>Save the result to the card</h2>
+      <p>Writes <code>menu/verified.txt</code>, which the menu reads at start-up.</p>
+      <div class="line">
+        <button class="go" id="save" disabled>Save to card</button>
+        <span class="status" id="saveStatus"></span>
+      </div>
+    </section>
+  </div>
+
+  <div class="panel hidden" id="report">
+    <section>
+      <h2>What was found</h2>
+      <div class="counts" id="counts"></div>
+      <p><b class="V">Verified</b>: exactly a known good dump.
+        <b class="M">Not a known dump</b>: the game is in the list, but this file differs: a hack, a translation,
+        a patched or a bad dump. <b class="U">Not in the list</b>: homebrew, prototypes and the like.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>File</th><th>Code</th><th>Result</th><th>Known as</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table></div>
+    </section>
+  </div>
+</div>
+</div>
+
+<div class="tabpane" id="guide" hidden>
+<div class="wrap">
+  <header>
+    <h1 class="page-title">Guide</h1>
+    <p>Setting up a card, the hardware that works best, handy tools, and what to do when something is off.</p>
+    <nav class="toc" aria-label="Guide sections">
+      <a href="#guide-setup">SD card setup</a>
+      <a href="#guide-hardware">Hardware</a>
+      <a href="#guide-tools">Tools</a>
+      <a href="#guide-help">Troubleshooting</a>
+    </nav>
+  </header>
+
+  <div class="panel">
+    <section id="guide-setup">
+      <h2><i style="background:var(--n-blue)"></i>SD card setup</h2>
+      <ol>
+        <li><b>Back up your card</b>, and keep your current <code>sc64menu.n64</code> somewhere safe so you can go back.</li>
+        <li><b>Format</b>: the SummerCart64 reads FAT32 and exFAT cards. A card that already works with the cart is fine as it is.</li>
+        <li><b>The menu</b>: download <code>sc64menu.n64</code> from the
+          <a href="https://github.com/Kerillian0/SummerStation64/releases/latest">latest release</a> and copy it to the top folder of the card,
+          replacing the one there. The plain <code>sc64menu.n64</code> is the <b>Art Edition</b> (box covers built in); the <b>Standard</b> zip is a
+          small download that reads covers from the card.</li>
+        <li><b>Games</b>: put them in a folder, for example <code>N64</code>. On the console, open the <b>Folders</b> tab, go into that folder,
+          press <b>Z</b> and choose <b>Set current directory as default</b>; the <b>Games</b> tab now shows its games as covers. More folders can be
+          added the same way with <b>Add this folder to Games</b>.</li>
+        <li><b>Standard edition only</b>: download the
+          <a href="https://github.com/n64-tools/n64-flashcart-menu-metadata/releases">metadata pack</a> and copy its <code>metadata</code> folder
+          into the card's <code>menu</code> folder (<code>menu/metadata/</code>).</li>
+        <li><b>Optional</b>: run <a href="#prep">Card Prep</a> once to give each game a check mark for a known good dump, and make a theme in the
+          <a href="#themes">Theme Maker</a> (it goes in <code>menu/theme/theme.ini</code>).</li>
+      </ol>
+      <p class="note">Your saves stay where they are. Before each game starts, the menu also keeps a dated copy of its save in
+        <code>saves/backups/</code> (five per game); a game's Options menu has <b>Restore save</b>.</p>
+    </section>
+
+    <section id="guide-hardware">
+      <h2><i style="background:var(--n-green)"></i>Hardware</h2>
+      <h3>Expansion Pak or Jumper Pak</h3>
+      <p>SummerStation64 runs fully on a console <b>without</b> the Expansion Pak (with the Jumper Pak, 4MB). With 4MB it picks the smaller
+        character set and leaves out a few extras when memory runs short, such as art on the side covers; <b>Settings &gt; System &gt; Memory</b>
+        says what was left out. Some games need the Expansion Pak themselves (Majora's Mask, Donkey Kong 64, most of Perfect Dark); the menu
+        warns before starting them. Third-party Expansion Paks work the same as Nintendo's.</p>
+      <h3>SD card</h3>
+      <p>Any reliable card will do; speed matters little, because the menu reads small files. Size: the Art Edition is about 27 MB and games are
+        4 to 64 MB each, so even a small card holds a full library. Buy from a trusted seller: fake cards that report more space than they have
+        are common and lose files.</p>
+      <h3>Picture</h3>
+      <ul>
+        <li><b>Composite</b> works well: the menu is designed and tested on a small composite CRT.</li>
+        <li><b>S-Video</b> is sharper and works on NTSC consoles with the right cable; <b>RGB</b> needs a PAL console or a modded NTSC one.</li>
+        <li><b>HDMI</b> mods and adapters, and upscalers (RetroTINK, OSSC and the like), work too. Try <b>Settings &gt; Display &gt; Video Output:
+          240p</b> for a sharper, steadier picture on CRTs and upscalers (it applies after a restart).</li>
+        <li><b>Analogue 3D</b>: not tested yet, as there is none to test on. Reports are very welcome.</li>
+      </ul>
+      <h3>Controllers</h3>
+      <p>The menu answers to any controller. <b>START on the controller in port 2</b> saves a screenshot to <code>menu/screenshots/</code>.</p>
+    </section>
+
+    <section id="guide-tools">
+      <h2><i style="background:var(--n-yellow)"></i>Tools</h2>
+      <div class="qa"><b>SummerCart64 deployer</b>
+        <p>The cart's own PC tool (<code>sc64deployer</code>, from the
+          <a href="https://github.com/Polprzewodnikowy/SummerCart64/releases">SummerCart64 releases</a>), over USB: update the cart's firmware,
+          and read the menu's <b>debug log</b> with <code>sc64deployer debug --no-writeback</code>, the most useful thing to add to a bug report.</p></div>
+      <div class="qa"><b>Metadata pack</b>
+        <p>Covers, descriptions and release dates for the Standard edition:
+          <a href="https://github.com/n64-tools/n64-flashcart-menu-metadata/releases">n64-flashcart-menu-metadata</a>. The Art Edition has them built in.</p></div>
+      <div class="qa"><b>Checking a game file</b>
+        <p><a href="#prep">Card Prep</a> checks every game on the card at once. To check one file by hand, work out its CRC32 or SHA-1 and compare
+          it with No-Intro's list (<a href="https://datomatic.no-intro.org/">DAT-o-MATIC</a>):</p>
+        <ul>
+          <li>Windows: <code>certutil -hashfile "Game.z64" SHA1</code> in a command prompt, or 7-Zip's right-click <b>CRC SHA</b> menu.</li>
+          <li>macOS and Linux: <code>shasum "Game.z64"</code> or <code>sha1sum "Game.z64"</code>.</li>
+        </ul>
+        <p>No-Intro lists the <code>.z64</code> byte order. A <code>.v64</code> or <code>.n64</code> file has its bytes in another order, so its
+          sums differ even when the game is fine; Card Prep allows for that.</p></div>
+      <div class="qa"><b>Theme share codes</b>
+        <p>The <a href="#themes">Theme Maker</a> turns a theme into a short code (<code>SS64-…</code>) that others can paste into the same page.</p></div>
+    </section>
+
+    <section id="guide-help">
+      <h2><i style="background:var(--n-red)"></i>Troubleshooting</h2>
+      <div class="qa"><b>Something looks wrong after changing a theme or setting</b>
+        <p>Hold <b>Z</b> while switching the console on: <b>Safe Mode</b> starts the menu without the theme, your settings and the background
+          picture. Nothing on the card is changed.</p></div>
+      <div class="qa"><b>The menu doesn't start</b>
+        <p>Check that <code>sc64menu.n64</code> is in the card's top folder and copied in full. Keep the cart's firmware up to date with the
+          deployer. To go back, copy your old <code>sc64menu.n64</code> over it.</p></div>
+      <div class="qa"><b>A game has no cover, or the wrong one</b>
+        <p>The Art Edition has covers for the games in the metadata pack; others show a plain box. With the Standard edition, check that the pack is
+          in <code>menu/metadata/</code>. A few games share a code with another region's game and can show its cover; this is being fixed.</p></div>
+      <div class="qa"><b>What do the ✓, ? and ✗ marks mean?</b>
+        <p>They come from Card Prep. <b>✓</b>: exactly a known good dump. <b>?</b>: the file differs from the known dump. Often that is harmless
+          (an old tool changed a header byte, or the file is padded), but if the game misbehaves, try another copy. <b>✗</b>: the file name marks it
+          as a bad dump. Hacks, translations and fixed dumps get no mark. Turn them off in <b>Settings &gt; Display &gt; Dump Check Marks</b>.</p></div>
+      <div class="qa"><b>Covers or the intro picture are missing on a 4MB console</b>
+        <p>The menu leaves extras out rather than run out of memory. <b>Settings &gt; System &gt; Memory</b> says what; the <b>Latin</b>
+          character set (Settings &gt; System) frees the most.</p></div>
+      <div class="qa"><b>Reporting a problem</b>
+        <p>Open an issue on <a href="https://github.com/Kerillian0/SummerStation64/issues/new/choose">GitHub</a>: the form asks for your setup. A
+          photo of the screen and the debug log help the most.</p></div>
+    </section>
+  </div>
+</div>
+</div>
+</main>
+
+<footer class="foot">
+  <p>An unofficial fan project, not made or approved by Nintendo.
+    <a href="https://github.com/Kerillian0/SummerStation64">SummerStation64 on GitHub</a> ·
+    Card Prep reads No-Intro's Nintendo 64 list from <a href="https://github.com/libretro/libretro-database">libretro-database</a> (CC-BY-SA 4.0).
+    Nothing you open here leaves your browser.</p>
+</footer>
 
 <script>
 (function(){
@@ -833,7 +1093,16 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
     try { navigator.clipboard.writeText(txt).then(done, fallback); } catch(e) { fallback(); }
   });
 
+  /* On an ordinary web page (GitHub Pages) the browser downloads the file
+     itself; inside a claude.ai page the host's save prompt is used instead. */
   var downloads = null;
+  function plainDownload(name, blob){
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+  }
+  if (!window.claude) { $('saveIni').hidden = false; $('savePng').hidden = false; }
   if (window.claude && typeof window.claude.use === 'function') {
     window.claude.use('downloads').then(function(d){
       if (!d) return;
@@ -847,18 +1116,22 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
     else status('Saving isn’t available here. Use Copy instead.');
   }
   $('saveIni').addEventListener('click', function(){
-    if (!downloads) return;
+    if (!downloads) {
+      plainDownload('theme.ini', new Blob([buildIni()], {type: 'text/plain'}));
+      status('Downloaded theme.ini. Put it in menu/theme/ on the SD card.');
+      return;
+    }
     downloads.save({filename: 'theme.txt', data: buildIni()}).then(function(r){
       status(r.status === 'saved' ? 'Saved theme.txt. Put it in menu/theme/ on the SD card.' : 'Sent theme.txt.');
     }, handleSaveError);
   });
   $('savePng').addEventListener('click', function(){
-    if (!downloads) return;
     var off = document.createElement('canvas'); off.width = 640; off.height = 480;
     var oc = off.getContext('2d');
     drawBackground(oc, 640, 480); if (S.dither) to16bit(oc, 640, 480);
     off.toBlob(function(blob){
       if (!blob) { status('Couldn’t create the PNG.'); return; }
+      if (!downloads) { plainDownload('background.png', blob); status('Downloaded background.png.'); return; }
       downloads.save({filename: 'background.png', data: blob}).then(function(r){
         status(r.status === 'saved' ? 'Saved background.png.' : 'Sent background.png.');
       }, handleSaveError);
@@ -1078,3 +1351,349 @@ button:focus-visible,select:focus-visible,input:focus-visible,pre:focus-visible{
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ render(); });
 })();
 </script>
+
+<script>
+(function(){
+'use strict';
+// --- logic (also run by tests/prep_tool_test.js) ---
+var VERIFIED_PATH = 'menu/verified.txt';
+var VERIFIED_HEADER = 'verified 1';
+var DAT_URL = 'https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Nintendo%2064.dat';
+var ROM_EXTENSIONS = ['z64', 'v64', 'n64'];
+var SKIP_FOLDERS = ['menu', 'saves', 'system volume information'];
+
+var CRC_TABLE = (function () {
+  var t = new Uint32Array(256);
+  for (var n = 0; n < 256; n++) {
+    var c = n;
+    for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+
+// CRC-32 carried over several pieces: start with 0xFFFFFFFF, finish with crcEnd().
+function crcAdd(crc, bytes) {
+  for (var i = 0; i < bytes.length; i++) crc = CRC_TABLE[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+  return crc >>> 0;
+}
+function crcEnd(crc) { return (crc ^ 0xFFFFFFFF) >>> 0; }
+function hex8(n) { return ('0000000' + (n >>> 0).toString(16)).slice(-8); }
+
+// How a dump's bytes are ordered, from its first four bytes: 'z64' (as the
+// console reads it), 'v64' (pairs swapped) or 'n64' (fours reversed).
+function byteOrder(b) {
+  if (b[0] === 0x80 && b[1] === 0x37) return 'z64';
+  if (b[0] === 0x37 && b[1] === 0x80) return 'v64';
+  if (b[0] === 0x40 && b[1] === 0x12) return 'n64';
+  return null;
+}
+
+// Puts the bytes in the console's order, in place (No-Intro lists that order).
+function toZ64(b, order) {
+  var i, x;
+  if (order === 'v64') {
+    for (i = 0; i + 1 < b.length; i += 2) { x = b[i]; b[i] = b[i + 1]; b[i + 1] = x; }
+  } else if (order === 'n64') {
+    for (i = 0; i + 3 < b.length; i += 4) {
+      x = b[i]; b[i] = b[i + 3]; b[i + 3] = x;
+      x = b[i + 1]; b[i + 1] = b[i + 2]; b[i + 2] = x;
+    }
+  }
+  return b;
+}
+
+// The game code (e.g. NSME) from the first 64 bytes, already in z64 order.
+function gameCode(b) {
+  var s = String.fromCharCode(b[0x3B], b[0x3C], b[0x3D], b[0x3E]);
+  return /^[A-Z0-9]{4}$/.test(s) ? s : '';
+}
+
+// The menu's key for a file: FNV-1a of its full path ("sd:/N64(US)/Game.z64"),
+// the same sum as path_key() in src/menu/game_index.c.
+function pathKey(path) {
+  var bytes = new TextEncoder().encode(path);
+  var h = 2166136261;
+  for (var i = 0; i < bytes.length; i++) h = Math.imul(h ^ bytes[i], 16777619) >>> 0;
+  return h === 0 ? 1 : h;
+}
+
+// Reads the No-Intro list: the CRC of each dump in z64 order, with its name
+// and game code, and the set of game codes the list knows.
+function parseDat(text) {
+  var byCrc = new Map(), codes = new Set();
+  var re = /^\s*rom \( (.*) \)\s*$/gm, m;   // a dump's whole line: names hold brackets of their own
+  while ((m = re.exec(text))) {
+    var body = m[1];
+    var name = /name "([^"]*)"/.exec(body);
+    var crc = /crc ([0-9A-Fa-f]{8})/.exec(body);
+    var serial = /serial "([A-Z0-9]{4})"/.exec(body);
+    if (serial) codes.add(serial[1]);
+    if (!name || !crc || !/\.z64$/i.test(name[1])) continue;
+    byCrc.set(crc[1].toLowerCase(), { name: name[1].replace(/\.z64$/i, ''), code: serial ? serial[1] : '' });
+  }
+  return { byCrc: byCrc, codes: codes };
+}
+
+// 'V' a known good dump; 'M' a game the list knows, but not this dump
+// (hack, translation, patched, bad dump); 'U' a game the list doesn't know.
+function classify(crc, code, db) {
+  if (db.byCrc.has(hex8(crc))) return 'V';
+  if (code && db.codes.has(code)) return 'M';
+  return 'U';
+}
+
+// One line of verified.txt: key, size, CRC, result, then the No-Intro name.
+function formatLine(r) {
+  return hex8(r.key) + ' ' + r.size + ' ' + hex8(r.crc) + ' ' + r.result + (r.known ? ' ' + r.known : '');
+}
+function parseVerified(text) {
+  var out = new Map();
+  var lines = text.split(/\r?\n/);
+  if (lines[0].trim() !== VERIFIED_HEADER) return out;
+  for (var i = 1; i < lines.length; i++) {
+    var m = /^([0-9a-f]{8}) (\d+) ([0-9a-f]{8}) ([VMU])(?: (.*))?$/.exec(lines[i].trim());
+    if (m) out.set(m[1] + ' ' + m[2], { crc: parseInt(m[3], 16) });
+  }
+  return out;
+}
+function isRom(name) {
+  var dot = name.lastIndexOf('.');
+  return dot > 0 && ROM_EXTENSIONS.indexOf(name.slice(dot + 1).toLowerCase()) >= 0;
+}
+function skipFolder(name) {
+  return name.charAt(0) === '.' || SKIP_FOLDERS.indexOf(name.toLowerCase()) >= 0;
+}
+// --- end logic ---
+
+var card = null;        // { root: directory handle or null, files: [{path, file}] }
+var db = null;
+var results = [];
+var $ = function (id) { return document.getElementById(id); };
+
+// The games on the card, with their paths from the top of the card.
+async function listFromHandle(dir, prefix, out) {
+  for await (var [name, handle] of dir.entries()) {
+    if (handle.kind === 'directory') {
+      if (!skipFolder(name)) await listFromHandle(handle, prefix + name + '/', out);
+    } else if (isRom(name)) {
+      out.push({ path: prefix + name, file: await handle.getFile() });
+    }
+  }
+  return out;
+}
+
+async function readOldResults() {
+  try {
+    var text;
+    if (card.root) {
+      var menuDir = await card.root.getDirectoryHandle('menu');
+      text = await (await (await menuDir.getFileHandle('verified.txt')).getFile()).text();
+    } else if (card.oldFile) {
+      text = await card.oldFile.text();
+    }
+    return text ? parseVerified(text) : new Map();
+  } catch (e) {
+    return new Map();
+  }
+}
+
+function cardChosen(files, root, oldFile) {
+  card = { root: root, files: files, oldFile: oldFile };
+  $('cardStatus').innerHTML = '<b>' + files.length + '</b> game' + (files.length === 1 ? '' : 's') + ' found.' +
+    (root ? '' : ' This browser can\'t write to the card: you\'ll get the file to copy.');
+  updateButtons();
+}
+
+$('pick').addEventListener('click', async function () {
+  if (!window.showDirectoryPicker) {
+    $('pickOld').click();
+    return;
+  }
+  try {
+    var root = await window.showDirectoryPicker({ mode: 'readwrite' });
+    $('cardStatus').textContent = 'Looking for games…';
+    cardChosen(await listFromHandle(root, '', []), root, null);
+  } catch (e) {
+    if (e.name !== 'AbortError') $('cardStatus').innerHTML = '<span class="bad">Could not open that folder: ' + e.message + '</span>';
+  }
+});
+
+$('pickOld').addEventListener('change', function () {
+  var files = [], oldFile = null;
+  Array.prototype.forEach.call(this.files, function (f) {
+    var parts = f.webkitRelativePath.split('/').slice(1);    // without the chosen folder's own name
+    var path = parts.join('/');
+    if (path.toLowerCase() === VERIFIED_PATH) oldFile = f;
+    if (parts.slice(0, -1).some(skipFolder) || !isRom(f.name)) return;
+    files.push({ path: path, file: f });
+  });
+  cardChosen(files, null, oldFile);
+});
+
+function datLoaded(text, where) {
+  db = parseDat(text);
+  if (db.byCrc.size === 0) {
+    db = null;
+    $('datStatus').innerHTML = '<span class="bad">That file holds no Nintendo 64 dumps.</span>';
+  } else {
+    $('datStatus').innerHTML = '<b>' + db.byCrc.size + '</b> known dumps loaded ' + where + '.';
+  }
+  updateButtons();
+}
+
+fetch(DAT_URL).then(function (r) {
+  if (!r.ok) throw new Error(r.status);
+  return r.text();
+}).then(function (t) { datLoaded(t, 'from libretro'); }).catch(function () {
+  $('datStatus').innerHTML = '<span class="bad">Could not download the list.</span> Load it from a file instead.';
+});
+$('datPickBtn').addEventListener('click', function () { $('datPick').click(); });
+$('datPick').addEventListener('change', async function () {
+  if (this.files[0]) datLoaded(await this.files[0].text(), 'from your file');
+});
+
+function updateButtons() {
+  $('check').disabled = !(card && db && card.files.length);
+  $('save').disabled = results.length === 0;
+}
+
+var CHUNK = 8 * 1024 * 1024;
+
+async function checkOne(entry, old) {
+  var file = entry.file;
+  var key = pathKey('sd:/' + entry.path);
+  var head = new Uint8Array(await file.slice(0, 64).arrayBuffer());
+  var order = byteOrder(head);
+  var code = order ? gameCode(toZ64(head, order)) : '';
+  var known = old.get(hex8(key) + ' ' + file.size);
+  var crc;
+  if (known) {
+    crc = known.crc;
+  } else {
+    crc = 0xFFFFFFFF;
+    for (var at = 0; at < file.size; at += CHUNK) {
+      var piece = new Uint8Array(await file.slice(at, at + CHUNK).arrayBuffer());
+      crc = crcAdd(crc, order ? toZ64(piece, order) : piece);
+      entry.done = at + piece.length;
+      showProgress();
+    }
+    crc = crcEnd(crc);
+  }
+  var hit = db.byCrc.get(hex8(crc));
+  return { path: entry.path, key: key, size: file.size, crc: crc, code: code,
+           result: classify(crc, code, db), known: hit ? hit.name : '', reused: !!known };
+}
+
+var totalBytes = 0, doneBefore = 0, current = null;
+function showProgress() {
+  var done = doneBefore + (current ? current.done || 0 : 0);
+  $('progress').value = totalBytes ? done / totalBytes : 1;
+}
+
+$('check').addEventListener('click', async function () {
+  $('check').disabled = true;
+  $('progress').classList.remove('hidden');
+  var old = await readOldResults();
+  results = [];
+  totalBytes = card.files.reduce(function (s, e) { return s + e.file.size; }, 0);
+  doneBefore = 0;
+  var started = performance.now();
+  for (var i = 0; i < card.files.length; i++) {
+    current = card.files[i];
+    current.done = 0;
+    $('checkStatus').textContent = 'Checking ' + (i + 1) + ' of ' + card.files.length + ': ' + current.path;
+    try {
+      results.push(await checkOne(current, old));
+    } catch (e) {
+      results.push({ path: current.path, error: e.message });
+    }
+    doneBefore += current.file.size;
+    current = null;
+    showProgress();
+  }
+  var reused = results.filter(function (r) { return r.reused; }).length;
+  $('checkStatus').innerHTML = 'Done in <b>' + Math.round((performance.now() - started) / 1000) + ' s</b>' +
+    (reused ? ' (' + reused + ' remembered from last time)' : '') + '.';
+  showReport();
+  updateButtons();
+  $('check').disabled = false;
+});
+
+function showReport() {
+  var labels = { V: 'Verified', M: 'Not a known dump', U: 'Not in the list' };
+  var counts = { V: 0, M: 0, U: 0 };
+  var body = $('rows');
+  body.textContent = '';
+  results.slice().sort(function (a, b) { return a.path.localeCompare(b.path); }).forEach(function (r) {
+    var tr = document.createElement('tr');
+    var cells = r.error ? [r.path, '', 'Could not read: ' + r.error, ''] : [r.path, r.code, labels[r.result], r.known];
+    cells.forEach(function (text, i) {
+      var td = document.createElement('td');
+      td.textContent = text;
+      if (i === 0) td.className = 'file';
+      if (i === 1) td.className = 'code';
+      if (i === 2 && !r.error) td.className = r.result;
+      if (i === 2 && r.error) td.className = 'bad';
+      tr.appendChild(td);
+    });
+    body.appendChild(tr);
+    if (!r.error) counts[r.result]++;
+  });
+  $('counts').innerHTML = ['V', 'M', 'U'].map(function (k) {
+    return '<span class="chip ' + k + '">' + counts[k] + ' ' + labels[k] + '</span>';
+  }).join('');
+  $('report').classList.remove('hidden');
+}
+
+function verifiedText() {
+  return VERIFIED_HEADER + '\n' + results.filter(function (r) { return !r.error; }).map(formatLine).join('\n') + '\n';
+}
+
+$('save').addEventListener('click', async function () {
+  var text = verifiedText();
+  if (card.root) {
+    try {
+      var menuDir = await card.root.getDirectoryHandle('menu', { create: true });
+      var handle = await menuDir.getFileHandle('verified.txt', { create: true });
+      var w = await handle.createWritable();    // written to a side file, swapped in on close
+      await w.write(text);
+      await w.close();
+      $('saveStatus').innerHTML = 'Saved <b>' + VERIFIED_PATH + '</b> on the card.';
+      return;
+    } catch (e) {
+      $('saveStatus').innerHTML = '<span class="bad">Could not write to the card (' + e.message + ').</span> Here is the file instead.';
+    }
+  }
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+  a.download = 'verified.txt';
+  a.click();
+  if (!card.root) $('saveStatus').innerHTML = 'Copy <b>verified.txt</b> into the card\'s <b>menu</b> folder.';
+});
+})();
+</script>
+
+<script>
+/* Tabs: one per address (#themes, #prep, #guide, or a Guide section such as
+   #guide-tools), so each can be linked to directly. */
+(function () {
+  var panes = ['themes', 'prep', 'guide'];
+  function show() {
+    var hash = (location.hash || '#themes').slice(1);
+    var tab = hash.indexOf('guide') === 0 ? 'guide' : (panes.indexOf(hash) >= 0 ? hash : 'themes');
+    panes.forEach(function (p) {
+      document.getElementById(p).hidden = (p !== tab);
+      var link = document.querySelector('.tabs a[data-tab="' + p + '"]');
+      if (p === tab) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current');
+    });
+    var target = document.getElementById(hash);
+    if (target && panes.indexOf(hash) < 0) target.scrollIntoView();
+    else window.scrollTo(0, 0);
+  }
+  window.addEventListener('hashchange', show);
+  show();
+})();
+</script>
+</body>
+</html>

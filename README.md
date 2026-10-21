@@ -51,7 +51,7 @@ and a CRT television, with and without the Expansion Pak.
 | 🔎 **Find a game** | Filter by region, 64DD or hacks; sort by name, recently played, release date or developer; or press Z for a random game. |
 | 🏷️ **Badges** | Players, Expansion Pak, save found, Controller / Rumble / Transfer Pak, and a Hack badge for ROM hacks. |
 | 📖 **Game info** | The cover over a blurred copy of itself, a big title, times played, the description, and a ring tinted to match the box. |
-| 🎨 **Themes** | Four built-in summer themes, or your own made with the web [Theme Maker](theme-maker/) and shared with a short code. |
+| 🎨 **Themes** | Four built-in summer themes, or your own made with the [Theme Maker](https://kerillian0.github.io/SummerStation64/companion/#themes) and shared with a short code. |
 | 💾 **Save backups** | Each start keeps the game's save from before, dated, five per game; "Restore save" brings one back. |
 | 🛡️ **Safe by design** | Safe mode (hold Z at power-on), safe settings saves, a friendly crash screen, and it leaves extras out instead of stopping when memory is short. |
 | 🌅 **Intro** | A spinning logo, a title picture and a tune at power-on, then a fade-in. Both optional. |
@@ -72,8 +72,9 @@ built in.
 
 - **[Release notes and install guide](docs/RELEASE_NOTES_v0.1.md)**: what's
   new, installing, first steps, controls, settings and known limitations.
-- **[Theme Maker](theme-maker/)**: build a `theme.ini` in your web browser
-  with a live preview.
+- **[SummerStation64 Companion](https://kerillian0.github.io/SummerStation64/companion/)**:
+  the Theme Maker, Card Prep (checks your games against known good dumps) and
+  a setup guide, in your web browser. Source: [docs/companion/](docs/companion/).
 - **[N64FlashcartMenu's documentation](docs/00_index.md)**: still describes
   the file browser, ROM settings, cheats, 64DD and the other stock features.
 

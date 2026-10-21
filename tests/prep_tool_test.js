@@ -1,10 +1,10 @@
-// PC-side tests for the Card Prep page (prep-tool/prep-tool.html). The code
+// PC-side tests for the Card Prep page (the Card Prep tab of docs/companion/index.html). The code
 // under test is taken straight out of the page. Run with tests/run.sh.
 'use strict';
 const fs = require('fs');
 const path = require('path');
 
-const html = fs.readFileSync(path.join(__dirname, '..', 'prep-tool', 'prep-tool.html'), 'utf8');
+const html = fs.readFileSync(path.join(__dirname, '..', 'docs', 'companion', 'index.html'), 'utf8');
 const a = html.indexOf('// --- logic'), b = html.indexOf('// --- end logic ---');
 if (a < 0 || b < 0) throw new Error('Could not find the logic block in the Card Prep page; did it change?');
 const pt = new Function(html.slice(a, b) +

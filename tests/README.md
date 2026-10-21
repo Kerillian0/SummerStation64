@@ -10,7 +10,7 @@ project that read what people type or share:
   the PC's own compiler; `stubs/libdragon.h` stands in for the console's
   library, which the reader only needs for its color type.
 - `share_code_test.js` — the Theme Maker's share codes. The code is taken
-  straight out of `theme-maker/theme-maker.html`, so the test checks the
+  straight out of `docs/companion/index.html`, so the test checks the
   page itself: codes of all three versions load back the same, the right
   version is chosen, the check sum matches its published value, typing
   slips the alphabet allows are forgiven, and damaged codes are refused

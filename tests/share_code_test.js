@@ -1,11 +1,11 @@
-// PC-side tests for the Theme Maker's share codes (theme-maker/theme-maker.html).
+// PC-side tests for the Theme Maker's share codes (the Theme Maker tab of docs/companion/index.html).
 // The code under test is taken straight out of the page, so these check the
 // real thing, not a copy. Run with tests/run.sh (needs Node.js).
 'use strict';
 const fs = require('fs');
 const path = require('path');
 
-const html = fs.readFileSync(path.join(__dirname, '..', 'theme-maker', 'theme-maker.html'), 'utf8');
+const html = fs.readFileSync(path.join(__dirname, '..', 'docs', 'companion', 'index.html'), 'utf8');
 function between(from, to) {
   const a = html.indexOf(from), b = html.indexOf(to, a);
   if (a < 0 || b < 0) throw new Error('Could not find "' + from + '" in the Theme Maker; did it change?');
