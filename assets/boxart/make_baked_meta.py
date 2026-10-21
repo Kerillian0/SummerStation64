@@ -6,6 +6,10 @@ Reads   assets/boxart/source/<N>/<Z>/<S>/<E>/metadata.ini, the layout of the
 Writes  filesystem/meta/Z/S/NZSE.ini: the same file with its comments and
         blank lines left out (about a tenth of the size). Folders are named
         after the code's middle letters, as for the baked art.
+        filesystem/meta/Z/S/NZSE.txt: the game's full description, from the
+        description.txt beside its metadata.ini or, as the pack mostly has
+        it, one folder up (shared by every region). The pack's short-desc is
+        cut off at about 120 characters, often mid-sentence.
 
 The menu reads a game's details (name, developer, release date, players,
 age rating, description) from here first and from the SD card only when a
@@ -28,6 +32,7 @@ if os.path.exists("build/N64FlashcartMenu.dfs"):
     os.remove("build/N64FlashcartMenu.dfs")
 
 made = 0
+described = 0
 bytes_in = 0
 bytes_out = 0
 for folder, _, files in sorted(os.walk(SOURCE)):
@@ -50,4 +55,18 @@ for folder, _, files in sorted(os.walk(SOURCE)):
     bytes_in += len(text.encode("utf-8"))
     bytes_out += os.path.getsize(target)
 
-print(f"Baked the details of {made} games: {bytes_in // 1024} KB of files packed into {bytes_out // 1024} KB.")
+    for place in (folder, os.path.dirname(folder)):
+        description = os.path.join(place, "description.txt")
+        if os.path.isfile(description):
+            with open(description, encoding="utf-8", errors="replace") as f:
+                lines = [line.strip() for line in f.read().splitlines()]
+            body = "\n".join(lines).strip()
+            if body:
+                target = os.path.join(OUT, code[1], code[2], f"{code}.txt")
+                with open(target, "w", encoding="utf-8", newline="\n") as f:
+                    f.write(body)
+                described += 1
+                bytes_out += os.path.getsize(target)
+            break
+
+print(f"Baked the details of {made} games ({described} with a full description): {bytes_in // 1024} KB of files packed into {bytes_out // 1024} KB.")

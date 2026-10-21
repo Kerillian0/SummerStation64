@@ -14,6 +14,7 @@
 #include "../play_stats.h"
 #include "../save_backup.h"
 #include "../baked_art.h" // the cover comes from art baked into the menu when there is some
+#include "../baked_meta.h" // the full description, baked into the menu or from the card
 #include <string.h>
 
 static bool show_extra_info_message = false;
@@ -104,7 +105,10 @@ static void scan_metadata_images(menu_t *menu) {
 }
 
 static const char *format_rom_description(menu_t *menu) {
-    const char *rom_description = NULL;
+    const char *rom_description = baked_meta_description(menu->load.rom_info.game_code); // SummerStation64: the full text; the pack's short-desc stops mid-sentence
+    if (rom_description) {
+        return rom_description;
+    }
 
     if (menu->load.rom_info.meta.short_description != NULL && strlen(menu->load.rom_info.meta.short_description) > 0) {
         rom_description = menu->load.rom_info.meta.short_description;

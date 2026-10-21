@@ -23,4 +23,11 @@
  */
 bool baked_meta_path (const char *game_code, char *path, size_t size);
 
+/**
+ * A game's full description: from the menu file, else the metadata pack on
+ * the SD card (description.txt beside the game's metadata.ini or one folder
+ * up). NULL if it has none. The text is kept until another game is asked for.
+ */
+const char *baked_meta_description (const char *game_code);
+
 #endif /* BAKED_META_H__ */
