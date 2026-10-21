@@ -109,7 +109,7 @@ bool theme_background_dimmed (void);
  */
 void theme_background_draw_part (int x0, int y0, int x1, int y1);
 
-/** Draw the pre-built background. Call right after rdpq_attach(). */
+/** Draw the background (drawn live, or the pre-built picture). Call right after rdpq_attach(). */
 void theme_background_draw (void);
 
 /**

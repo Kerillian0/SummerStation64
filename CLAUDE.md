@@ -1930,15 +1930,23 @@ what was left out since power-on on its help line. The log prints
 - ☐ GitHub bug-report form (issue template asking for console setup,
   Expansion/Jumper Pak, NTSC/PAL, menu version, photo, log). The owner's
   choice (2026-10-21): ships with v0.2, not before.
-- ☐ 4MB-friendly live background: draw the theme background each frame
-  instead of keeping its 300 KB picture.
+- ✓ 4MB-friendly live background (done and tested 2026-10-21): gradients
+  and plain colors are drawn each frame as shaded triangles (`live_draw()`
+  in `theme.c`; straight gradients one box, split at the middle color;
+  radial 16x12 boxes); a pattern is a repeating tile of at most 64x64
+  (power-of-two sizes only), mixed in by the combiner. Ocean and other
+  pattern sizes keep the stored picture. Measured (8MB): **300 KB freed**,
+  no build at power-on, Games at rest work 19.6 / chip 20.9 ms (was 22.2 /
+  23.7), Settings 12.2 / 14.3. First build passed colors as 0-255 where the
+  chip wants 0-1: wrong, pale gradients. Not yet run on 4MB (expect side
+  cover art back with the Full character set).
 - ☐ Verified ROM badges: the PC tool checks ROMs against known good dumps
   and stores a "verified" flag. No ROM hashing on the console.
 - ☐ Automated screenshots in the ares emulator, for the README and for
   catching visual changes. Proposed 2026-10-21 to move to Later (ares may
   not emulate the SummerCart64's SD card; the screenshot button covers the
   README), awaiting the owner.
-- **Proposed order for the rest of v0.2:** live background, perspective
+- **Proposed order for the rest of v0.2:** perspective
   covers, PC prep tool, verified badge and genre; then `make release`
   (both editions in one command) and the v0.2 release.
 - ☐ Genre: needs a source (the owner's pack has none).

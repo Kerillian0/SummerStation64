@@ -86,6 +86,19 @@ static float gradient_pos (const theme_t *t, int x, int y, int w, int h) {
     }
 }
 
+/* The gradient's color at a screen position. */
+static rgbf_t gradient_color (const theme_t *t, int x, int y, int w, int h) {
+    float p = gradient_pos(t, x, y, w, h);
+    p = (p < 0.0f) ? 0.0f : ((p > 1.0f) ? 1.0f : p);
+    rgbf_t c1 = to_f(t->color1);
+    rgbf_t c2 = to_f(t->color2);
+    if (t->use_color3) {
+        rgbf_t c3 = to_f(t->color3);
+        return (p < 0.5f) ? lerp(c1, c3, p * 2.0f) : lerp(c3, c2, (p - 0.5f) * 2.0f);
+    }
+    return lerp(c1, c2, p);
+}
+
 static bool pattern_hit (const theme_t *t, int x, int y) {
     int s = t->pattern_size;
     switch (t->pattern) {
@@ -271,7 +284,6 @@ static void theme_build_background (const theme_t *t) {
 
     rgbf_t c1 = to_f(t->color1);
     rgbf_t c2 = to_f(t->color2);
-    rgbf_t c3 = to_f(t->color3);
     rgbf_t pc = to_f(t->pattern_color);
     float pa = t->pattern_opacity / 100.0f;
 
@@ -289,12 +301,7 @@ static void theme_build_background (const theme_t *t) {
             int y = by * BG_SCALE;
             rgbf_t c;
             if (type == THEME_BG_GRADIENT) {
-                float p = gradient_pos(t, x, y, w, h);
-                if (t->use_color3) {
-                    c = (p < 0.5f) ? lerp(c1, c3, p * 2.0f) : lerp(c3, c2, (p - 0.5f) * 2.0f);
-                } else {
-                    c = lerp(c1, c2, p);
-                }
+                c = gradient_color(t, x, y, w, h);
             } else if (type == THEME_BG_OCEAN) {
                 c = ocean_color(x, y, c1, c2);
             } else {
@@ -313,6 +320,166 @@ static void theme_build_background (const theme_t *t) {
     free(row);
     ocean_finish();
     debugf("theme: background \"%s\" built in %d ms\n", t->name, (int) (get_ticks_ms() - build_started));
+}
+
+/* ---------- the live background ---------- */
+
+/* Gradients and plain colors are not kept as a picture (300 KB) but drawn
+   afresh each frame as a few shaded triangles, which the graphics chip
+   blends smoothly and dithers like the picture. A pattern is a small tile
+   (at most 64 x 64, 4 KB) repeated over it; the chip mixes the pattern
+   color in where the tile says. Ocean, and patterns whose tile can't be
+   repeated by the chip (a size that isn't a power of two, or too large),
+   keep the stored picture. */
+#define LIVE_TILE_MAX   (64)
+
+static bool live = false;               /* drawn each frame, no stored picture */
+static surface_t pattern_tile;          /* the pattern's strength per pixel, or none */
+
+/* The pattern repeats every this many pixels both ways (0 when it can't be
+   drawn live). */
+static int pattern_period (const theme_t *t) {
+    int s = t->pattern_size;
+    int p;
+    switch (t->pattern) {
+        case THEME_PATTERN_STRIPES:
+        case THEME_PATTERN_DIAGONAL:
+        case THEME_PATTERN_CHECKER:
+            p = 2 * s;
+            break;
+        case THEME_PATTERN_DOTS:
+        case THEME_PATTERN_GRID:
+            p = s;
+            break;
+        case THEME_PATTERN_SCANLINES:
+            p = (s + 1) / 2;
+            if (p < 4) p = 4;
+            break;
+        default:
+            return 0;
+    }
+    bool power_of_two = (p > 0) && ((p & (p - 1)) == 0);
+    return (power_of_two && p <= LIVE_TILE_MAX) ? p : 0;
+}
+
+static bool has_pattern (const theme_t *t) {
+    return t->pattern != THEME_PATTERN_NONE && t->pattern_opacity > 0;
+}
+
+static bool live_possible (const theme_t *t) {
+    if (t->bg_type == THEME_BG_OCEAN) {
+        return false;
+    }
+    return !has_pattern(t) || pattern_period(t) > 0;
+}
+
+static void live_prepare (const theme_t *t) {
+    live = true;
+    if (!has_pattern(t)) {
+        debugf("theme: background \"%s\" drawn live\n", t->name);
+        return;
+    }
+    int p = pattern_period(t);
+    pattern_tile = surface_alloc(FMT_I8, p, p);
+    if (!pattern_tile.buffer) {
+        debugf("theme: no memory for the pattern tile, pattern left out\n");
+        return;
+    }
+    uint8_t strength = to_byte(t->pattern_opacity * 255.0f / 100.0f);
+    for (int y = 0; y < p; y++) {
+        uint8_t *out = (uint8_t *) pattern_tile.buffer + y * pattern_tile.stride;
+        for (int x = 0; x < p; x++) {
+            out[x] = pattern_hit(t, x, y) ? strength : 0;
+        }
+    }
+    debugf("theme: background \"%s\" drawn live, pattern tile %dx%d\n", t->name, p, p);
+}
+
+static void live_forget (void) {
+    if (pattern_tile.buffer) {
+        surface_free(&pattern_tile);
+        memset(&pattern_tile, 0, sizeof(pattern_tile));
+    }
+    live = false;
+}
+
+/* One corner of a triangle: position, color (0-1), pattern position. */
+static void live_vertex (float *v, int x, int y, int w, int h, float bright) {
+    rgbf_t c = (theme.bg_type == THEME_BG_GRADIENT) ? gradient_color(&theme, x, y, w, h) : to_f(theme.color1);
+    float k = bright / (255.0f * 255.0f);   /* the chip wants colors 0-1; the theme's are 0-255 */
+    v[0] = x;
+    v[1] = y;
+    v[2] = c.r * k;
+    v[3] = c.g * k;
+    v[4] = c.b * k;
+    v[5] = 1.0f;
+    v[6] = x;
+    v[7] = y;
+    v[8] = 1.0f;
+}
+
+/* Draws the part x0..x1, y0..y1 of the background, `bright` 0-255. */
+static void live_draw (int x0, int y0, int x1, int y1, int bright) {
+    int w = display_get_width();
+    int h = display_get_height();
+    bool tiled = (pattern_tile.buffer != NULL);
+    bool gradient = (theme.bg_type == THEME_BG_GRADIENT);
+
+    if (!gradient && !tiled) {
+        rdpq_set_mode_fill(RGBA32(theme.color1.r * bright / 255, theme.color1.g * bright / 255, theme.color1.b * bright / 255, 0xFF));
+        rdpq_fill_rectangle(x0, y0, x1, y1);
+        return;
+    }
+
+    /* Straight gradients come out exact from a single box, split where the
+       middle color sits; a round one is made of small boxes. */
+    int cols = 1, rows = 1;
+    if (gradient) {
+        switch (theme.direction) {
+            case THEME_DIR_HORIZONTAL: cols = theme.use_color3 ? 2 : 1; break;
+            case THEME_DIR_DIAGONAL:   if (theme.use_color3) { cols = 8; rows = 6; } break;
+            case THEME_DIR_RADIAL:     cols = 16; rows = 12; break;
+            case THEME_DIR_VERTICAL:
+            default:                   rows = theme.use_color3 ? 2 : 1; break;
+        }
+    }
+
+    rdpq_set_mode_standard();
+    rdpq_mode_dithering(theme.dither ? DITHER_BAYER_NONE : DITHER_NONE_NONE);
+    if (tiled) {
+        /* The pattern color mixed into the gradient by the tile's strength. */
+        rdpq_mode_combiner(RDPQ_COMBINER1((PRIM, SHADE, TEX0, SHADE), (0, 0, 0, SHADE)));
+        rdpq_set_prim_color(RGBA32(theme.pattern_color.r * bright / 255, theme.pattern_color.g * bright / 255, theme.pattern_color.b * bright / 255, 0xFF));
+        rdpq_tex_upload(TILE0, &pattern_tile, &(rdpq_texparms_t) {
+            .s.repeats = REPEAT_INFINITE,
+            .t.repeats = REPEAT_INFINITE,
+        });
+    } else {
+        rdpq_mode_combiner(RDPQ_COMBINER_SHADE);
+    }
+    const rdpq_trifmt_t *format = tiled ? &TRIFMT_SHADE_TEX : &TRIFMT_SHADE;
+
+    for (int row = 0; row < rows; row++) {
+        int top = (y0 > row * h / rows) ? y0 : row * h / rows;
+        int bottom = (y1 < (row + 1) * h / rows) ? y1 : (row + 1) * h / rows;
+        if (bottom <= top) {
+            continue;
+        }
+        for (int col = 0; col < cols; col++) {
+            int left = (x0 > col * w / cols) ? x0 : col * w / cols;
+            int right = (x1 < (col + 1) * w / cols) ? x1 : (col + 1) * w / cols;
+            if (right <= left) {
+                continue;
+            }
+            float a[9], b[9], c[9], d[9];
+            live_vertex(a, left, top, w, h, bright);
+            live_vertex(b, right, top, w, h, bright);
+            live_vertex(c, right, bottom, w, h, bright);
+            live_vertex(d, left, bottom, w, h, bright);
+            rdpq_triangle(format, a, b, c);
+            rdpq_triangle(format, a, c, d);
+        }
+    }
 }
 
 /* ---------- public API ---------- */
@@ -349,7 +516,11 @@ static void theme_ensure_background (void) {
     }
     background_built = true;
     theme_init();
-    theme_build_background(&theme);
+    if (live_possible(&theme)) {
+        live_prepare(&theme);
+    } else {
+        theme_build_background(&theme);
+    }
 }
 
 const theme_t *theme_get (void) {
@@ -369,6 +540,10 @@ void theme_background_suspend (void) {
         rspq_wait(); /* nothing may still be drawing from it */
         surface_free(&background);
         memset(&background, 0, sizeof(background));
+    }
+    if (live) {
+        rspq_wait();
+        live_forget();
     }
     background_built = false;
 }
@@ -391,6 +566,20 @@ bool theme_background_dimmed (void) {
 }
 
 void theme_background_draw_part (int x0, int y0, int x1, int y1) {
+    if (live) {
+        int w = display_get_width();
+        int h = display_get_height();
+        if (x0 < 0) x0 = 0;
+        if (y0 < 0) y0 = 0;
+        if (x1 > w) x1 = w;
+        if (y1 > h) y1 = h;
+        if (x1 > x0 && y1 > y0) {
+            rdpq_mode_push();
+            live_draw(x0, y0, x1, y1, 255);
+            rdpq_mode_pop();
+        }
+        return;
+    }
     /* Whole background pixels only (it is stored at 1/BG_SCALE size). */
     x0 = (x0 < 0) ? 0 : (x0 / BG_SCALE) * BG_SCALE;
     y0 = (y0 < 0) ? 0 : (y0 / BG_SCALE) * BG_SCALE;
@@ -426,7 +615,9 @@ void theme_background_draw (void) {
         theme_ensure_background();
     }
     rdpq_mode_push();
-    if (background.buffer) {
+    if (live) {
+        live_draw(0, 0, display_get_width(), display_get_height(), 255 - dim_dark);
+    } else if (background.buffer) {
         /* Stretching needs the standard mode; the fast copy mode can't scale. */
         rdpq_set_mode_standard();
         if (dim_dark > 0) {

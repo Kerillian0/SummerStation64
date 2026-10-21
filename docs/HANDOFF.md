@@ -82,13 +82,11 @@ All tested on hardware and committed.
 ## What the next session should do
 
 The owner's plan: **finish v0.2, then build the release tooling and release
-v0.2.** Proposed order (the owner has not answered yet):
+v0.2.** Order:
 
 1. **Answered 2026-10-21:** perspective covers stay part of the optional
    side covers (off by default); the GitHub bug-report form ships with v0.2.
-2. **Live background:** draw the theme background each frame instead of
-   keeping its 300 KB picture; measure the chip on every screen; Ocean and
-   patterns may keep the stored picture.
+2. ✓ **Live background** (done 2026-10-21: 300 KB freed, chip 3 ms faster).
 3. **Perspective covers**, on the optional side covers.
 4. **PC prep tool:** one program that prepares a card (bakes art and
    details, builds `gameindex.txt` ahead, checks dumps).
