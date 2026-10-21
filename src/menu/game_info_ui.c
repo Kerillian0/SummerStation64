@@ -419,7 +419,9 @@ static bool draw_description_scrolling (const char *text, int height) {
 
     int top = DESC_Y + 20;
     rdpq_set_scissor(X0 + 2, top - 4, X1 - 2, top + height);
-    rdpq_paragraph_render(scroll_layout, X0 + PAD, top - (int) scroll_offset);
+    /* Moved in whole steps of 2: with 240p output two of these lines are one
+       line on the TV, and a step of 1 made the letters shimmer as they went. */
+    rdpq_paragraph_render(scroll_layout, X0 + PAD, top - ((int) scroll_offset & ~1));
     rdpq_set_scissor(0, 0, display_get_width(), display_get_height());
     return true;
 }

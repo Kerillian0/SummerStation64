@@ -362,6 +362,9 @@ Lessons that cost a hardware round each (do not repeat them):
   change.** After the upstream merge, two slowdowns looked like the merge;
   running the v0.1 file from the cart's memory showed one was the Full
   character set and only the other was the merge.
+- **Move things in steps of 2 pixels on 240p.** Two lines of the 640x480
+  picture make one line on the TV; scrolling text 1 px at a time made the
+  letters shimmer. Snap moving text to even positions (`& ~1`).
 - **A file changed on disk may be an old copy.** The owner's editor once
   saved a stale release-notes copy over a newer one. `git diff` it first.
 - **Pictures and sounds from outside:** find the source and licence before
@@ -1972,6 +1975,17 @@ what was left out since power-on on its help line. The log prints
 - **Proposed order for the rest of v0.2:** perspective
   covers, PC prep tool, verified badge and genre; then `make release`
   (both editions in one command) and the v0.2 release.
+- ✓ Full descriptions on Game info (done and tested 2026-10-21): the
+  pack's `short-desc` stops at about 120 characters, mid-sentence; the
+  full text is `description.txt` (278 games), usually one folder up from
+  the region folder. `make_baked_meta.py` bakes it as
+  `filesystem/meta/Z/S/NZSE.txt` (+112 KB in the file);
+  `baked_meta_description()` reads it (then the card's pack), one hook in
+  `format_rom_description()` in `load_rom.c`. Feature `desc_scroll`
+  ("Scroll Descriptions", Display, on): text longer than the box drifts up
+  at 14 px/s after 10 s untouched, rests 4 s at the end, returns to the
+  top; D-Pad or stick scrolls by hand (stick speed follows the tilt);
+  drawn through a scissor window. Off: cut at a word with "...".
 - ☐ Genre: needs a source (the owner's pack has none).
   **Source found 2026-10-21:** libretro-database (CC-BY-SA 4.0):
   `metadat/genre` and `metadat/maxusers` for N64 (about 2,060 ROMs each,
