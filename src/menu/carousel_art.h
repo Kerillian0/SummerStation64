@@ -68,6 +68,14 @@ void carousel_art_brightness (int bright);
 bool carousel_art_draw (menu_t *menu, int index, int x0, int y0, int w, int h, int alpha, bool center);
 
 /**
+ * Draw a side cover's art turned away from the viewer (Angled Side Covers):
+ * the box x0..x0+w, with its left edge `left` times the full height h and
+ * its right edge `right` times it (1 = full height), centered on the box's
+ * middle line. @return false if there is no art (yet).
+ */
+bool carousel_art_draw_angled (menu_t *menu, int index, int x0, int y0, int w, int h, float left, float right, int alpha);
+
+/**
  * Turn the selected box over (front <-> back). Does nothing if no art is showing.
  * @return True if a flip started.
  */

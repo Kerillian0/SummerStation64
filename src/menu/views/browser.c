@@ -929,6 +929,8 @@ static void process (menu_t *menu) {
 #define CAROUSEL_SIDE_W     144
 #define CAROUSEL_SIDE_H     104
 #define CAROUSEL_GAP        16
+#define CAROUSEL_ANGLED_W   (0.62f) // Angled Side Covers: a side cover's width when turned away...
+#define CAROUSEL_ANGLED_FAR (0.78f) // ...and the height of its far edge, against the near one
 
 static const char *carousel_type_label (entry_type_t type) {
     switch (type) {
@@ -1023,6 +1025,25 @@ static void carousel_fit_to_art (menu_t *menu, int index, int *w, int *h) {
     } else {
         *h = (int) (*w / aspect);
     }
+}
+
+// A plain cover turned away (Angled Side Covers), for a game with no art yet.
+static void carousel_angled_box (int x0, int y0, int w, int h, float left, float right, color_t color, int alpha) {
+    float cy = y0 + h / 2.0f;
+    float tl[2] = { x0, cy - h * left / 2.0f };
+    float tr[2] = { x0 + w, cy - h * right / 2.0f };
+    float br[2] = { x0 + w, cy + h * right / 2.0f };
+    float bl[2] = { x0, cy + h * left / 2.0f };
+    rdpq_mode_push();
+    rdpq_set_mode_standard();
+    rdpq_set_prim_color(RGBA32(color.r, color.g, color.b, alpha));
+    rdpq_mode_combiner(RDPQ_COMBINER_FLAT);
+    if (alpha < 255) {
+        rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+    }
+    rdpq_triangle(&TRIFMT_FILL, tl, tr, br);
+    rdpq_triangle(&TRIFMT_FILL, tl, br, bl);
+    rdpq_mode_pop();
 }
 
 // The ring's size: the selected cover's shape, eased so it changes smoothly.
@@ -1170,6 +1191,7 @@ void carousel_draw (menu_t *menu) {
     const int cx = screen_w / 2;
     const bool side_covers = features_enabled(FEATURE_SIDE_COVERS);
     const bool see_through = features_enabled(FEATURE_SEE_THROUGH_COVERS);
+    const bool angled = side_covers && features_enabled(FEATURE_ANGLED_COVERS);
 
 
     drawn_count = 0;
@@ -1181,8 +1203,9 @@ void carousel_draw (menu_t *menu) {
     const int bright = drawn_moving ? 255 : (255 - carousel_dark); // while covers slide, the fade darkens the whole row at once
     carousel_dark = 0;
     bool center_dimmed = false;
-    const int first = CAROUSEL_CENTER_W / 2 + CAROUSEL_GAP + CAROUSEL_SIDE_W / 2;
-    const int step = CAROUSEL_SIDE_W + CAROUSEL_GAP;
+    const int side_w = angled ? (int) (CAROUSEL_SIDE_W * CAROUSEL_ANGLED_W) : CAROUSEL_SIDE_W; // turned covers take less room
+    const int first = CAROUSEL_CENTER_W / 2 + CAROUSEL_GAP + side_w / 2;
+    const int step = side_w + CAROUSEL_GAP;
 
     // Draw outer covers first so the center one sits on top. While sliding,
     // every cover sits a fraction of a position away from where it will rest.
@@ -1225,6 +1248,12 @@ void carousel_draw (menu_t *menu) {
             int h = (int) carousel_lerp(CAROUSEL_SIDE_H, CAROUSEL_CENTER_H, grow);
             carousel_fit_to_art(menu, i, &w, &h); // a tall Japanese box is drawn tall, without bars at its sides
 
+            // Angled Side Covers: a cover turns away as it leaves the center,
+            // its far edge (toward the screen's side) shorter than its near one.
+            float turn = angled ? ((away < 1.0f) ? away : 1.0f) : 0.0f;
+            float far = carousel_lerp(1.0f, CAROUSEL_ANGLED_FAR, turn);
+            w = (int) (w * carousel_lerp(1.0f, CAROUSEL_ANGLED_W, turn));
+
             // Horizontal center of this cover.
             float mid = (away < 1.0f) ? (pos * first) : ((pos < 0.0f ? -1.0f : 1.0f) * (first + (away - 1.0f) * step));
             int x0 = cx + tab_shift + (int) mid - w / 2;
@@ -1248,6 +1277,16 @@ void carousel_draw (menu_t *menu) {
                 drawn_covers[drawn_count++] = (carousel_box_t) { x0, y0, x0 + w, y0 + h };
             }
             carousel_art_brightness(cover_bright);
+
+            if (turn > 0.0f) {
+                float left = (pos < 0.0f) ? far : 1.0f;
+                float right = (pos < 0.0f) ? 1.0f : far;
+                if (!carousel_art_draw_angled(menu, i, x0, y0, w, h, left, right, (int) alpha)) {
+                    carousel_angled_box(x0, y0, w, h, left, right, panel, (int) alpha); // no art yet: a plain box, no text
+                }
+                carousel_art_brightness(255);
+                continue;
+            }
 
             if (alpha >= 255.0f) {
                 // While the box turns over, the cover is squashed sideways.

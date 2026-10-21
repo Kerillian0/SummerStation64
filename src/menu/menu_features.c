@@ -42,6 +42,7 @@ static const feature_info_t feature_info[FEATURE_COUNT] = {
     [FEATURE_ROUNDED_CORNERS]     = { "rounded_corners",     true,  false },
     [FEATURE_SAVE_BACKUPS]        = { "save_backups",        true,  false },
     [FEATURE_SCREENSHOTS]         = { "screenshots",         true,  false },
+    [FEATURE_ANGLED_COVERS]       = { "angled_covers",       true,  false },
 };
 
 #define FEATURES_USER_PATH      "sd:/menu/features.ini"

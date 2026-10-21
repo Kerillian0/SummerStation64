@@ -499,3 +499,77 @@ bool carousel_art_draw (menu_t *menu, int index, int x0, int y0, int w, int h, i
 
     return true;
 }
+
+/* One corner of an angled cover: screen position, then the art's position
+   and how near the edge is (1 = full size, smaller = further away), which
+   the chip uses to keep the picture's perspective right. */
+static void angled_vertex (float *v, float x, float y, float s, float t, float near) {
+    v[0] = x;
+    v[1] = y;
+    v[2] = s;
+    v[3] = t;
+    v[4] = near;
+}
+
+bool carousel_art_draw_angled (menu_t *menu, int index, int x0, int y0, int w, int h, float left, float right, int alpha) {
+    slot_t *slot = slot_find(menu, index);
+    if (!slot || !art_ready(slot->art)) {
+        return false;
+    }
+    surface_t *image = slot->art->image;
+    tex_format_t format = surface_get_format(image);
+    if (format != FMT_RGBA16 && format != FMT_RGBA32) {
+        return carousel_art_draw(menu, index, x0, y0, w, h, alpha, false);
+    }
+    if (w < 2) {
+        return true;
+    }
+
+    /* The art is far larger than the chip's 4 KB texture memory, so it is
+       drawn in bands of rows, each one loaded and drawn in turn. A band
+       loads one row more than it draws, so smoothing has its neighbor. */
+    int iw = image->width;
+    int ih = image->height;
+    int line_bytes = ((iw * 2) + 7) & ~7;           /* RGBA32 is split in two halves of 16 bits */
+    int capacity = (format == FMT_RGBA32) ? 2048 : 4096;
+    int band = (capacity / line_bytes) - 1;
+    if (band < 1) {
+        return carousel_art_draw(menu, index, x0, y0, w, h, alpha, false);
+    }
+
+    float cy = y0 + h / 2.0f;
+    float lh = h * left;
+    float rh = h * right;
+    float lx = x0;
+    float rx = x0 + w;
+
+    rdpq_mode_push();
+        rdpq_set_mode_standard();
+        rdpq_mode_filter(FILTER_BILINEAR);
+        rdpq_mode_persp(true);
+        if (alpha >= 255 && art_bright >= 255) {
+            rdpq_mode_combiner(RDPQ_COMBINER_TEX);
+        } else if (alpha >= 255) {
+            rdpq_set_prim_color(RGBA32(art_bright, art_bright, art_bright, 0xFF));
+            rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);
+        } else {
+            rdpq_set_prim_color(RGBA32(art_bright, art_bright, art_bright, alpha));
+            rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);
+            rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+        }
+        for (int t0 = 0; t0 < ih; t0 += band) {
+            int t1 = (t0 + band < ih) ? (t0 + band) : ih;
+            rdpq_tex_upload_sub(TILE0, image, NULL, 0, t0, iw, (t1 + 1 < ih) ? (t1 + 1) : ih);
+            float a = (float) t0 / ih;
+            float b = (float) t1 / ih;
+            float tl[5], tr[5], br[5], bl[5];
+            angled_vertex(tl, lx, cy + lh * (a - 0.5f), 0, t0, left);
+            angled_vertex(tr, rx, cy + rh * (a - 0.5f), iw, t0, right);
+            angled_vertex(br, rx, cy + rh * (b - 0.5f), iw, t1, right);
+            angled_vertex(bl, lx, cy + lh * (b - 0.5f), 0, t1, left);
+            rdpq_triangle(&TRIFMT_TEX, tl, tr, br);
+            rdpq_triangle(&TRIFMT_TEX, tl, br, bl);
+        }
+    rdpq_mode_pop();
+    return true;
+}
