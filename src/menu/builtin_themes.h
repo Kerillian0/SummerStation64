@@ -4,7 +4,7 @@
  *
  * A small set of summer looks to choose from in Settings > Display, with no
  * files needed on the SD card. The first choice, "From SD Card", uses the
- * player's own theme.ini as before; with no such file it shows Sunset,
+ * player's own theme.ini as before; with no such file it shows Midnight,
  * which is the menu's stock look.
  */
 
@@ -15,18 +15,20 @@
 
 /** Option `theme` in options.ini. */
 typedef enum {
-    BUILTIN_THEME_FROM_CARD,    /**< sd:/menu/theme/theme.ini, or Sunset if there is none (the default) */
+    BUILTIN_THEME_FROM_CARD,    /**< sd:/menu/theme/theme.ini, or Midnight if there is none (the default) */
     BUILTIN_THEME_SUNSET,
-    BUILTIN_THEME_NIGHT_DRIVE,
+    BUILTIN_THEME_MIDNIGHT,     /**< was Night Drive (same number in options.ini) */
     BUILTIN_THEME_BEACH,
     BUILTIN_THEME_OCEAN,
+    BUILTIN_THEME_MINT_GRID,
+    BUILTIN_THEME_GRAPE,
     BUILTIN_THEME_COUNT
 } builtin_theme_t;
 
 /** Name of a choice, for the settings screen. */
 const char *builtin_theme_name (int choice);
 
-/** Fill in a theme's colors, background and pattern. FROM_CARD gives Sunset. */
+/** Fill in a theme's colors, background and pattern. FROM_CARD gives Midnight. */
 void builtin_theme_apply (theme_t *theme, int choice);
 
 #endif /* BUILTIN_THEMES_H__ */

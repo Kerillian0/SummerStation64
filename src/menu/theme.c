@@ -493,8 +493,8 @@ void theme_init (void) {
     theme_set_defaults(&theme);
 
     /* One of the built-in themes, or the player's own file from the card.
-       With no file, and in safe mode, it is the stock look (Sunset). */
-    int choice = safe_mode_active() ? BUILTIN_THEME_SUNSET : options_get(OPTION_THEME);
+       With no file, and in safe mode, it is the stock look (Midnight). */
+    int choice = safe_mode_active() ? BUILTIN_THEME_MIDNIGHT : options_get(OPTION_THEME);
     builtin_theme_apply(&theme, choice);
     from_sd = false;
     if (choice == BUILTIN_THEME_FROM_CARD) {

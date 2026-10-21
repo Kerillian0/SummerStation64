@@ -25,8 +25,8 @@ When a feature switch or a color key is added to the menu, add it here too:
   share codes, so only ever add to the end. The first eight fit in a v2 code;
   later ones need v3, which has room for sixteen. Fifteen are used. Leave out
   switches that are personal habits and not part of a look.
-- `PRESETS` starts with the four themes built into the menu; keep them the
-  same as `src/menu/builtin_themes.c`.
+- `PRESETS` starts with the six themes built into the menu (Midnight, the
+  default, first); keep them the same as `src/menu/builtin_themes.c`.
 - `BG_TYPES` for background types (two bits in a share code: all four used).
 - The preview (`drawTopbar`, `drawGames`, `drawFolders`, `drawHints`) uses the
   console's own layout numbers from `games_ui.c`, `browser.c` and
