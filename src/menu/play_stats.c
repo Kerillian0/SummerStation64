@@ -6,7 +6,7 @@
 #include "play_stats.h"
 #include "safe_file.h"
 
-/* Not profile-aware yet: see "Decide early" in CLAUDE.md. */
+/* Not profile-aware yet. */
 #define STATS_PATH      "sd:/menu/playstats.txt"
 #define STATS_TMP_PATH  "sd:/menu/playstats.tmp"
 

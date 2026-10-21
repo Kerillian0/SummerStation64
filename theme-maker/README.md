@@ -36,5 +36,5 @@ There is no browser in the dev container. `tests/run.sh` checks the share
 codes with Node.js; the preview was last checked by running the page's
 script against stand-in page objects and replaying what it drew with Pillow.
 
-The `theme.ini` keys and the share code formats are documented in `CLAUDE.md`
-at the top of the repository.
+The `theme.ini` keys are read by `src/menu/theme_parse.c`; the share code
+formats are written and read by `encodeTheme()` / `decodeTheme()` in the page.

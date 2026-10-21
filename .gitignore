@@ -35,3 +35,7 @@
 # Ignore macOS filesystem cruft
 .DS_Store
 /filesystem/gamedata.txt
+
+# Project notes for Claude Code: kept on this machine only (the owner, 2026-10-21).
+/CLAUDE.md
+/docs/HANDOFF.md

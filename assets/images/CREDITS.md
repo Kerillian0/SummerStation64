@@ -15,4 +15,4 @@ font files on with their licence text, which is why both sit here.
 Reference pictures the project owner supplied were used for style only
 (an 80s title treatment for the wordmark; a recolored N64 logo for the
 intro's spinning logo and its two patterns). Nothing was copied from them.
-The spinning logo's shape is Nintendo's N64 logo; see `CLAUDE.md`.
+The spinning logo's shape is Nintendo's N64 logo.

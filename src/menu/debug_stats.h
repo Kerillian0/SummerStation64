@@ -3,7 +3,7 @@
  * @brief Prints free memory and frame time to the debug log.
  *
  * Read it on the PC with `localdeploy.bat /d` or `deploy-sd.bat /d`. The
- * numbers feed the memory budget table in CLAUDE.md.
+ * numbers feed the project's memory budget.
  */
 
 #ifndef DEBUG_STATS_H__
