@@ -1,121 +1,106 @@
 # SummerStation64 handoff
 
-Written 2026-10-14. The short version of where things stand. Conventions,
+Written 2026-10-21. The short version of where things stand. Conventions,
 file layout, every measurement and the reasons behind each choice are in
 `CLAUDE.md`; read this first, then that.
 
 ## Goal
 
 A themeable game front-end for the SummerCart64 on a real N64, forked from
-N64FlashcartMenu (V0.3.4) on libdragon. It must run on a stock 4MB console.
-The owner (Kerillian) tests every build on hardware (composite CRT, Expansion
-Pak fitted) and is learning as the project goes, so explain changes plainly.
+N64FlashcartMenu on libdragon. It must run on a stock 4MB console. The owner
+(Kerillian) tests every build on hardware (composite CRT; Expansion Pak and a
+Jumper Pak) and is learning as the project goes, so explain changes plainly.
 
 ## How a step goes
 
 1. One change, in a new file where possible, with a small hook in the stock
    file. `make sc64` in the dev container (warnings are errors).
-2. Stop. The owner deploys from Windows (`.\deploy-sd.bat /d` or
-   `.\localdeploy.bat /d`; **never `/dur`**) and reports with the log.
+2. Stop. The owner deploys from Windows: `.\deploy-sd.bat /d` (onto the card,
+   with the log), or `.\tools\sc64\sc64deployer.exe upload <file>` then
+   `... debug --no-writeback` (runs a file from the cart's memory, card
+   untouched; unplug USB to go back). **Never `/dur`.**
 3. "All testing passed" means commit on `summerstation`. Push to `fork` only
    when asked; never to `origin`.
 4. PC tests: `sh tests/run.sh` (theme.ini reader, hack finder, share codes).
 
 ## Current state
 
-- **v0.1 is complete but not published.** The owner publishes only after a
-  full test on the 4MB Jumper Pak (not arrived yet). Draft notes:
-  `docs/RELEASE_NOTES_v0.1.md`.
-- **Fork last pushed 2026-10-14** (`29c09822`).
-- ROM hack detection, step 1 (below): tested and committed 2026-10-14.
-- The build is 27.9 MB because the owner's box art is baked in. Never commit
-  `assets/boxart/source/` or `filesystem/art/`, and never publish a build
-  that contains them.
+- **v0.1 is published** on GitHub (2026-10-20) and posted on Reddit; people
+  like it, no complaints so far. Two files on the release: the Art Edition
+  `sc64menu.n64` (default, covers and game details built in) and
+  `SummerStation64-v0.1-Standard.zip` (details built in, covers from the
+  card). Text: `docs/RELEASE_NOTES_v0.1.md`. The files are kept in
+  `output/release-v0.1/` (never `make clean`, it wipes them).
+- **The repository's front page** is `README.md` on the default branch
+  `summerstation` (renamed from `carousel-ui`). The owner edits it on GitHub
+  too: always fetch before pushing.
+- **v0.2 has started.** First step done 2026-10-21: upstream
+  N64FlashcartMenu v0.3.5 merged, tested and pushed (`767dfb12`).
+- **Kept on this machine only:** branch `before-upstream-0.3.5` and the old
+  libdragon install `/opt/libdragon.before-0.3.5`, in case the merge's
+  slower background build ever matters.
+- Never commit the owner's art or details (`assets/boxart/source/`,
+  `filesystem/art/`, `filesystem/meta/`); they go only into release files.
 
-## What changed since the last handoff (2026-10-12)
+## What changed since the last handoff (2026-10-14)
 
-All tested on hardware and committed unless marked.
+All tested on hardware and committed.
 
 | Change | Main files |
 |---|---|
-| Idle saves take turns (no more 140 ms frame) | `safe_file.c` (`safe_file_idle_turn()`), `folder_memory.c`, `carousel_art.c` |
-| Release dates and developers in the game list; Sort By Release Date / Developer, shown under the title | `game_index.c`, `game_learn.c`, `sort_order.c`, `games_ui.c` |
-| Folders list slides in on a tab switch | `tabs.c`, `folders_ui.c` |
-| Save backups: dated, five per game, never the same twice; "Restore save" on the game's Options | `save_backup.c` (new), `views/load_rom.c` |
-| Theme Maker version 8: today's Games/Folders preview, Ocean, built-in presets, four look switches (published) | `theme-maker/theme-maker.html`, `tests/share_code_test.js` |
-| Random game on the Games tab's Options, and Options menus on Recent and Favorites | `views/browser.c`, `views/history_favorites.c`, `cover_row.c` |
-| ROM hacks get a "Hack" badge and a "Hacks" filter step | `rom_hacks.c` (new), `games_filter.c`, `games_ui.c`, `views/browser.c`, `tests/rom_hacks_test.c` (new), `tests/run.sh`, `Makefile` |
-
-### ROM hacks, step 1 (done and tested)
-
-The owner chose: badge and filter first, then one cover per game with a
-version picker (step 2, with a setting between the two looks); detection by
-automatic rules **and** a folder the player marks as holding hacks.
-
-How a hack is told now (`rom_hacks.c`):
-1. The name says so: "hack", "romhack", "redux", or a `[h1]` tag.
-2. Files sharing a game code: their names are compared word by word
-   (brackets and little words left out, any order). The name whose words
-   turn up in most of the others is the original; same words = another copy
-   of it; the rest are hacks. No name holding another = nothing is a hack.
-
-Expected on the owner's card: 5 hacks (both Super Mario 64 hacks, Ocarina
-Redux, The Missing Link, The Sealed Palace). The PC test holds all 19 of the
-owner's same-code file names and passes. The log prints each shared code's
-files and what each was taken for (`games filter: code ...`).
+| Roadmap sorted by version, each item done / partly / not started | `CLAUDE.md` (Release plan) |
+| Controller, Rumble, Transfer Pak badges; Settings > Display > Accessory Badges (Off / Plain / Colored, blue) | `game_index.c`, `game_facts.c`, `games_ui.c`, option `pak_badges` |
+| Settings > System > Memory: free memory and what was left out for lack of it | `memory_note.c` (new), hooks in `carousel_art.c`, `baked_art.c`, `intro.c` |
+| 4MB test passed on the Jumper Pak; real memory figures recorded | `CLAUDE.md` (Memory budget) |
+| Game details (descriptions, dates, developers, players) baked into the menu file | `baked_meta.c` (new), `assets/boxart/make_baked_meta.py` (new), hooks in `game_facts.c`, `game_learn.c`, `rom_info.c` |
+| Hacks worked out again once the idle reader learns new codes | `games_filter.c`, `game_learn.c` |
+| Screenshots: START on controller 2 saves `menu/screenshots/shotNNNN.png` | `screenshot.c` (new), hooks in `actions.c`, `menu.c` |
+| Release: two editions, formatted notes with AI disclosure and a feedback box; README front page; upstream's README kept in `docs/` | `docs/RELEASE_NOTES_v0.1.md`, `README.md`, `docs/UPSTREAM_README.md` |
+| Upstream v0.3.5: autoload fixes, low-voltage error, newer libdragon and libraries, the menu's own metadata | `views/startup.c`, `metadata/` (now describes SummerStation64), `game_facts.c`, `game_info_ui.c` (Expansion Pak enum renamed) |
 
 ## What failed or did not work
 
-- **Hack rule 2, first try:** "the less tidy name of two same-code files is
-  the hack" flagged second copies of Star Fox 64, GoldenEye, Racer, The New
-  Tetris; "patched" in a name flagged the Dezaemon 3D translation.
-- **Hack rule 2, second try:** "the larger file is the hack" flagged a 16 MB
-  GoldenEye copy and took Ocarina itself for a hack (The Missing Link is
-  smaller). Lesson: the owner keeps duplicate dumps, and file size says
-  nothing about which is the original.
-- **Save backups, first design:** three numbered copies; copy 1 normally
-  equalled the save in use, so restoring it did nothing and duplicates
-  filled the slots. Replaced by dated, deduplicated copies.
-- **Frame Borders does nothing** on the redesigned tabs, on the console or
-  in the Theme Maker. Open; the owner wants it fixed later, look undecided.
-- **Not explained yet:** the idle game reader's frames climb from 33 to 39
-  ms; odd slow saves of 120-130 ms. Both are on the pre-v1.0 optimization
-  list in `CLAUDE.md`, as is the Folders tab (work 27 / chip 29 ms).
+- **The background build got slower with the merge:** 470 ms against 300 ms
+  for the v0.1 file, same console and settings. Not explained (same
+  compiler and flags; probably code layout against the 8 KB data cache, as
+  Ocean's earlier creep). Not noticeable; parked for the pre-v1.0 speed run.
+- **The Folders tab doubles every frame with the Full character set** (fine
+  on Auto). First blamed on the merge; a comparison showed it was the font.
+- **Image viewer, 4MB, once:** "PNG decode failed due to insufficient
+  memory" after quick cover browsing. Handled cleanly, not reproduced; fix
+  idea in `CLAUDE.md` if it returns.
+- **No one-controller screenshot button was possible:** L, R and Z act the
+  moment they are pressed, and the stock code reads every port.
+- **A separate art repository** was considered for the Art Edition and
+  dropped; the art lives only inside the release file.
+- **The owner's editor saved an old copy of the release notes over a newer
+  one** (restored from git). When a file changes on disk, `git diff` it
+  before building on it.
+- **Pak badge colours:** red, blue and yellow were tried; the owner chose
+  blue for all three.
 
 ## What the next session should do
 
-**The owner's plan from 2026-10-14: work version by version, one item at a
-time, in the order of the release plan in `CLAUDE.md`** (each item marked
-done, partly done or not started). v0.1 waits on the Jumper Pak, so the
-work is in v0.2. The fork was pushed 2026-10-14 (`29c09822`).
+The owner's plan: **finish v0.2, then build the release tooling and release
+v0.2.** Proposed order (the owner has not answered yet):
 
-1. **v0.1:** the 4MB test passed and the release notes are up to date
-   (2026-10-20). Both release files are made in `output/release-v0.1/`
-   (how, in the release plan in `CLAUDE.md`). Left: the owner uploads
-   them to a GitHub release when they say so (Art Edition `sc64menu.n64`
-   as the default; Standard zip), with the release notes as its text.
-   v0.1 was published on GitHub and posted on Reddit (2026-10-20); no
-   complaints so far.
-   **Done 2026-10-21: upstream v0.3.5 merged** (tested, pushed). Kept
-   locally only: the branch `before-upstream-0.3.5` and the old libdragon
-   install `/opt/libdragon.before-0.3.5`, in case its slower background
-   build (470 against 300 ms, not noticeable) ever matters.
-   **Next, in order (the owner's agreed list):** a one-command release
-   build for both editions; a GitHub bug-report form; then perspective
-   covers and the live background (v0.2).
-2. Hacks (v0.3, picked up when v0.3 is reached): the marked folder
-   (Folders tab, Z, "This folder holds hacks").
-3. **Hacks, step 2:** one cover per game with a version picker, and a setting
-   to choose that or separate covers. Stand-alone hacks with their own art
-   (the owner's examples: The Sealed Palace, The Missing Link) must be able
-   to stay independent. The owner will compile a list of hacks that are
-   practically their own games; offer to research a starting list. The
-   companion app and setup wizard should later set this up for the player.
-4. Push when asked. When the Jumper Pak arrives, give the owner the 4MB
-   checklist in `CLAUDE.md` (26 steps); publish v0.1 only after it passes
-   and the owner says so (clean build without baked art, as described in
-   `CLAUDE.md`).
+1. **Two open questions to the owner, asked 2026-10-21:**
+   - Perspective covers: only for players who switch side covers on (they
+     are off by default, and the owner dislikes them on the CRT), or
+     redesign the side covers so they are worth having on?
+   - The GitHub bug-report form: add now (helps v0.1 players), or with v0.2?
+2. **Live background:** draw the theme background each frame instead of
+   keeping its 300 KB picture; measure the chip on every screen; Ocean and
+   patterns may keep the stored picture.
+3. **Perspective covers**, as the owner decides in 1.
+4. **PC prep tool:** one program that prepares a card (bakes art and
+   details, builds `gameindex.txt` ahead, checks dumps).
+5. **"Verified dump" badge and genre**, once there is a source (check the
+   terms of No-Intro's lists first).
+6. Proposed: move "automated screenshots in ares" to Later.
+7. Then: `make release` (both editions in one command; the manual steps are
+   in `CLAUDE.md`, Release plan, v0.1) and the v0.2 release.
 
-Still waiting on the owner's decisions: what a frame should look like on the
-redesigned screens (Frame Borders), and where genre would come from (the
-metadata pack has none).
+Waiting on the owner, later: what a frame looks like on the redesigned
+screens (Frame Borders, v0.4), a list of stand-alone hacks (v0.3 hacks step
+2), Analogue 3D testers (asked in the README).

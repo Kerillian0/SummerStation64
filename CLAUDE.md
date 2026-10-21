@@ -85,7 +85,7 @@ stands, what is next, and what is still open. Read it first in a new session,
 then come back here for the detail. Update it whenever a step is finished.
 
 ## Key context
-How the menu is put together now (2026-10-14):
+How the menu is put together now (2026-10-21):
 - **Tabs.** Up to four, in an order the player chooses (Settings > Tabs;
   default Games, Favorites, Folders; Recent can be added). L/R step
   through them; the new tab's covers slide in from that side. The menu
@@ -118,6 +118,14 @@ How the menu is put together now (2026-10-14):
   cover per game with a version picker.
 - **Saves** are copied before each launch to `saves/backups/<game>/`,
   dated, five per game; a game's Options has "Restore save".
+- **Badges** include Controller / Rumble / Transfer Pak (option
+  `pak_badges`); **Settings > System > Memory** says what was left out
+  for lack of memory; **START on controller 2** saves a screenshot.
+- **Built into the menu file** (release files and the owner's build only,
+  never committed): box covers (`baked_art.c`) and game details
+  (`baked_meta.c`), each read before the SD card.
+- **Upstream:** merged up to N64FlashcartMenu v0.3.5 (2026-10-21). Merge
+  upstream by hand into `summerstation`; never GitHub's Sync fork there.
 - **Game info:** cover over a blurred copy of itself, series and subtitle,
   badges, play counts, description, one Details pop-up on START.
 - **Start-up:** an intro (spinning logo, title picture, tune) at power-on,
@@ -166,9 +174,10 @@ The owner and how they work:
 - Their games: `sd:/N64(US)/` (the start folder), a 64DD folder and a
   Japanese game or two; about 95 games; many file names carry no region
   tag ("0222 - F-Zero X").
-- **v0.1 is finished but not published:** the owner will publish only
-  after testing fully on the 4MB Jumper Pak, which had not arrived on
-  2026-10-12. Until then every 4MB figure is worked out, not measured.
+- **v0.1 is published** (2026-10-20, GitHub release plus a Reddit post,
+  well received) after a full test on the 4MB Jumper Pak. The owner now
+  wants v0.2 finished before the next release.
+- Edits the README on GitHub as well: fetch before pushing.
 
 ## Where things are
 ```
@@ -194,9 +203,17 @@ assets/boxart/source/      the user's art (their SD card's menu/metadata
 filesystem/                what gets packed into the ROM; generated files
                            here are ignored by git
 filesystem/art/            baked covers made by make_baked_art.py; ignored
+filesystem/meta/           baked game details (make_baked_meta.py); ignored
+output/release-v0.1/       the published release files; ignored, and
+                           `make clean` deletes them
 docs/HANDOFF.md            current state and next steps
-docs/RELEASE_NOTES_v0.1.md draft release notes and player instructions
-                           (not published)
+docs/RELEASE_NOTES_v0.1.md the published v0.1 release text (install
+                           guide, AI disclosure); paste into the release
+README.md                  the project's front page on GitHub (the owner
+                           edits it there too)
+docs/UPSTREAM_README.md    N64FlashcartMenu's README, kept for reference
+metadata/                  the menu's own metadata.ini, built into the ROM
+                           (describes SummerStation64)
 docs/n64ever-notes.md      what the N64ever fork has, mapped to our roadmap
 docs/*.md (numbered)       upstream's user documentation, untouched
 theme-maker/               web Theme Maker source (one HTML file) + README
@@ -242,6 +259,7 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
 | `gamefolders.txt` | folders added to the Games tab, one per line | `games_folders.c` |
 | `metadata/` | box art and `metadata.ini` per game; read only | the user's metadata pack |
 | (beside each save) `backups/<game>/<date>-<time>.<check>.sav` | kept saves, five per game | `save_backup.c` |
+| `screenshots/shotNNNN.png` | screenshots (START on controller 2) | `screenshot.c` |
 
 ## Conventions for new code
 - A feature is one new `name.c` + `name.h` pair in `src/menu/`, with a
@@ -336,6 +354,12 @@ Lessons that cost a hardware round each (do not repeat them):
   telling hacks were built on made-up names and both failed on the card
   (duplicate dumps called hacks; size taken as a sign). Ask for, or log,
   the real names first and put them in the PC test.
+- **Compare with the last release on the same console before blaming a
+  change.** After the upstream merge, two slowdowns looked like the merge;
+  running the v0.1 file from the cart's memory showed one was the Full
+  character set and only the other was the merge.
+- **A file changed on disk may be an old copy.** The owner's editor once
+  saved a stale release-notes copy over a newer one. `git diff` it first.
 - **Pictures and sounds from outside:** find the source and licence before
   committing, and record them in the folder's `CREDITS.md`. Photos and
   other people's artwork are redrawn from scratch instead.
@@ -1128,7 +1152,8 @@ quick_launch = 1       ; any key from menu_features.c: quick_launch,
                        ; see_through_covers, remember_selection,
                        ; hide_extensions, tidy_titles, hide_tags,
                        ; play_stats, memory_badge, button_icons,
-                       ; favorite_heart, rounded_corners, save_backups
+                       ; favorite_heart, rounded_corners, save_backups,
+                       ; screenshots
                        ; (0 or 1; leave out = default)
 ```
 
@@ -1795,7 +1820,7 @@ the version it belongs to, and from here the work goes version by version,
 one item at a time, in the order listed. ✓ done and tested on hardware;
 ◐ partly done (what is missing is said); ☐ not started.
 
-### v0.1 usable carousel — complete, not published
+### v0.1 usable carousel — published 2026-10-20
 ✓ Theme loader, text colors, feature toggles + Expansion Pak check, safe
 mode + friendly crash screen, left/right browsing, quick launch, box art on
 covers, performance overlay, PC-side tests.
@@ -1817,9 +1842,9 @@ Left before publishing (all wait on the Jumper Pak):
   reproduced; most likely the heap was in pieces with no 600 KB run left.
   Fix if it returns: decode into the wallpaper's own 600 KB instead of
   freeing it and asking for a new block.
-- ☐ Bring `docs/RELEASE_NOTES_v0.1.md` up to date: the release will carry
-  everything built since (Random game, Options menus, hacks).
-- ◐ Two release files, **made 2026-10-20** in `output/release-v0.1/`
+- ✓ Release notes brought up to date, formatted for GitHub, with an AI
+  disclosure and a feedback request; README written as the front page.
+- ✓ Two release files, **made and published 2026-10-20** in `output/release-v0.1/`
   (ignored by git, wiped by `make clean`): `sc64menu.n64` (Art Edition,
   28,098,560 bytes) and `SummerStation64-v0.1-Standard.zip` (2.3 MB,
   holding a 2.6 MB `sc64menu.n64`). Built with
@@ -1828,8 +1853,7 @@ Left before publishing (all wait on the Jumper Pak):
   name splits at the space); delete `build/menu/views/credits.o` first so
   the name is compiled in, and `build/N64FlashcartMenu.dfs` after moving
   `filesystem/art/` in or out. No `zip` in the container: Python's
-  `zipfile` made the zip. **Not uploaded: publish only when the owner
-  says so.** Standard (no baked art, `filesystem/art/` moved aside; baked details kept), Art Edition (the
+  `zipfile` made the zip. Standard (no baked art, `filesystem/art/` moved aside; baked details kept), Art Edition (the
   owner's art build, zipped), both on this repository's release.
   The release notes' install steps cover both (done 2026-10-20).
 
@@ -1904,7 +1928,12 @@ what was left out since power-on on its help line. The log prints
 - ☐ Verified ROM badges: the PC tool checks ROMs against known good dumps
   and stores a "verified" flag. No ROM hashing on the console.
 - ☐ Automated screenshots in the ares emulator, for the README and for
-  catching visual changes.
+  catching visual changes. Proposed 2026-10-21 to move to Later (ares may
+  not emulate the SummerCart64's SD card; the screenshot button covers the
+  README), awaiting the owner.
+- **Proposed order for the rest of v0.2:** live background, perspective
+  covers, PC prep tool, verified badge and genre; then `make release`
+  (both editions in one command) and the v0.2 release.
 - ☐ Genre: needs a source (the owner's pack has none).
 
 ### v0.3 organizing
