@@ -1953,6 +1953,15 @@ Favorites). Clock. Region filter (All, USA, Japan, Europe, 64DD, Hacks).
 - ◐ Homebrew/64DD shelves: 64DD is a filter step; homebrew is not.
 - ◐ Region dedupe: the filter shows one region, but a game kept in several
   regions still shows once per copy under All.
+- ☐ Time played (asked on Reddit, added 2026-10-21): a "Time played" box
+  on Game info. Nothing of ours runs during a game (the cart's battery
+  only keeps its clock), so: `play_stats` already notes the launch time;
+  when the menu next starts after a RESET (the intro's power-on mark,
+  `intro.c`), the session is now minus that time. After a power-off the
+  gap includes the time switched off: skip it, cap it (e.g. 4 hours), or
+  end it at the save file's last change if the cart's save writeback
+  dates the file (check on hardware). With the USB cable in, power-offs
+  look like RESETs; 64DD games overwrite the mark.
 - ☐ Smart collections; custom collections (user-made lists); recently
   added (newest files first).
 - ☐ Letter-wheel search.
