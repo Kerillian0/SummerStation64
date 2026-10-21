@@ -77,7 +77,7 @@ dump_state_t dump_check (const char *path, int64_t size, bool hack) {
     uint32_t key = path_key(path);
     char result = 0;
     for (int i = 0; i < count; i++) {
-        if (keys[i] == key && (size < 0 || sizes[i] == (uint32_t) size)) {
+        if (keys[i] == key && (size <= 0 || sizes[i] == (uint32_t) size)) {   /* Recent and Favorites don't know sizes (0) */
             result = results[i];
             break;
         }

@@ -25,7 +25,7 @@ typedef enum {
 
 /**
  * What to show for this file (its full path, "sd:/..."). `size` is the
- * file's size, or a negative number if not known. `hack`: the menu took it
+ * file's size, or 0 or less if not known. `hack`: the menu took it
  * for a hack, which explains a difference.
  */
 dump_state_t dump_check (const char *path, int64_t size, bool hack);

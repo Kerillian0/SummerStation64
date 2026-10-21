@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -324,7 +325,109 @@ static rdpq_paragraph_t *desc_build (const char *text, int length, int height) {
     return layout;
 }
 
+/* Scroll Descriptions: the whole text, laid out once, drawn through a window
+   the size of the box. Left alone for SCROLL_WAIT_MS it drifts up, rests at
+   the end, then starts again from the top; the D-Pad or stick moves it by
+   hand at any time. Timed by the clock. */
+#define SCROLL_WAIT_MS      (10000)
+#define SCROLL_END_MS       (4000)
+#define SCROLL_SPEED        (14.0f)     /* pixels a second on its own */
+#define SCROLL_HAND_SPEED   (120.0f)    /* pixels a second, D-Pad or stick held all the way */
+#define SCROLL_DEADZONE     (12)
+
+static rdpq_paragraph_t *scroll_layout = NULL;
+static uint32_t scroll_key = 0;
+static float scroll_offset = 0.0f;
+static uint64_t scroll_still_since = 0;     /* last time it was at the top or moved by hand */
+static uint64_t scroll_end_since = 0;       /* reached the end on its own; 0 = not there */
+static uint64_t scroll_last_ms = 0;
+
+/* -1 to 1: up is toward the start of the text. */
+static float scroll_input (void) {
+    float most = 0.0f;
+    JOYPAD_PORT_FOREACH (port) {
+        joypad_inputs_t in = joypad_get_inputs(port);
+        float v = 0.0f;
+        if (in.btn.d_up) {
+            v = 1.0f;
+        } else if (in.btn.d_down) {
+            v = -1.0f;
+        } else if (in.stick_y > SCROLL_DEADZONE || in.stick_y < -SCROLL_DEADZONE) {
+            v = in.stick_y / 80.0f;
+            v = (v > 1.0f) ? 1.0f : ((v < -1.0f) ? -1.0f : v);
+        }
+        if (fabsf(v) > fabsf(most)) {
+            most = v;
+        }
+    }
+    return most;
+}
+
+/* True if it drew the text (it was longer than the box). */
+static bool draw_description_scrolling (const char *text, int height) {
+    uint64_t now = get_ticks_ms();
+    uint32_t key = text_hash(text) ^ (uint32_t) height ^ ((uint32_t) (uintptr_t) theme_get()->text.r << 24);
+    if (!scroll_layout || key != scroll_key) {
+        if (scroll_layout) {
+            rdpq_paragraph_free(scroll_layout);
+        }
+        int nbytes = strlen(text);
+        scroll_layout = rdpq_paragraph_build(&(rdpq_textparms_t) {
+            .width = X1 - X0 - (PAD * 2),
+            .height = 4000,         /* no real limit; a height puts the origin at the box's top, as below */
+            .wrap = WRAP_WORD,
+        }, FNT_DEFAULT, text, &nbytes);
+        scroll_key = key;
+        scroll_offset = 0.0f;
+        scroll_still_since = now;
+        scroll_end_since = 0;
+    }
+    if (now - scroll_last_ms > 500) {
+        /* The screen has just been opened (again): start from the top. */
+        scroll_offset = 0.0f;
+        scroll_still_since = now;
+        scroll_end_since = 0;
+    }
+    float seconds = (now - scroll_last_ms) / 1000.0f;
+    scroll_last_ms = now;
+    if (seconds > 0.1f) {
+        seconds = 0.1f;
+    }
+
+    float overflow = scroll_layout->bbox.y1 - height + 4;
+    if (overflow <= 0.0f) {
+        return false;
+    }
+
+    float hand = scroll_input();
+    if (hand != 0.0f) {
+        scroll_offset -= hand * SCROLL_HAND_SPEED * seconds;
+        scroll_still_since = now;
+        scroll_end_since = 0;
+    } else if (now - scroll_still_since > SCROLL_WAIT_MS) {
+        if (scroll_offset < overflow) {
+            scroll_offset += SCROLL_SPEED * seconds;
+        } else if (scroll_end_since == 0) {
+            scroll_end_since = now;
+        } else if (now - scroll_end_since > SCROLL_END_MS) {
+            scroll_offset = 0.0f;       /* back to the start, and wait again */
+            scroll_still_since = now;
+            scroll_end_since = 0;
+        }
+    }
+    scroll_offset = (scroll_offset < 0.0f) ? 0.0f : ((scroll_offset > overflow) ? overflow : scroll_offset);
+
+    int top = DESC_Y + 20;
+    rdpq_set_scissor(X0 + 2, top - 4, X1 - 2, top + height);
+    rdpq_paragraph_render(scroll_layout, X0 + PAD, top - (int) scroll_offset);
+    rdpq_set_scissor(0, 0, display_get_width(), display_get_height());
+    return true;
+}
+
 static void draw_description (const char *text, int height) {
+    if (features_enabled(FEATURE_DESC_SCROLL) && draw_description_scrolling(text, height)) {
+        return;
+    }
     uint32_t key = text_hash(text) ^ (uint32_t) height ^ ((uint32_t) (uintptr_t) theme_get()->text.r << 24);
     if (!desc_layout || key != desc_key) {
         if (desc_layout) {
