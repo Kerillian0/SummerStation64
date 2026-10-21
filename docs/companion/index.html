@@ -348,7 +348,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
       <h2>What was found</h2>
       <div class="counts" id="counts"></div>
       <p><b class="V">Verified</b>: exactly a known good dump.
-        <b class="M">Not a known dump</b>: the game is in the list, but this file differs: a hack, a translation,
+        <b class="M">Not verified</b>: the game is in the list, but this file differs: a hack, a translation,
         a patched or a bad dump. <b class="U">Not in the list</b>: homebrew, prototypes and the like.</p>
       <div class="tablewrap"><table>
         <thead><tr><th>File</th><th>Code</th><th>Result</th><th>Known as</th></tr></thead>
@@ -1620,7 +1620,7 @@ $('check').addEventListener('click', async function () {
 });
 
 function showReport() {
-  var labels = { V: 'Verified', M: 'Not a known dump', U: 'Not in the list' };
+  var labels = { V: 'Verified', M: 'Not verified', U: 'Not in the list' };  // the same words as the menu's marks
   var counts = { V: 0, M: 0, U: 0 };
   var body = $('rows');
   body.textContent = '';
