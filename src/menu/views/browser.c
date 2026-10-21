@@ -929,8 +929,8 @@ static void process (menu_t *menu) {
 #define CAROUSEL_SIDE_W     144
 #define CAROUSEL_SIDE_H     104
 #define CAROUSEL_GAP        16
-#define CAROUSEL_ANGLED_W   (0.62f) // Angled Side Covers: a side cover's width when turned away...
-#define CAROUSEL_ANGLED_FAR (0.78f) // ...and the height of its far edge, against the near one
+#define CAROUSEL_ANGLED_W   (0.80f) // Angled Side Covers: a side cover's width when turned away...
+#define CAROUSEL_ANGLED_FAR (0.90f) // ...and the height of its far edge, against the near one
 
 static const char *carousel_type_label (entry_type_t type) {
     switch (type) {
