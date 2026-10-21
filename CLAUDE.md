@@ -1834,6 +1834,33 @@ Left before publishing (all wait on the Jumper Pak):
   The release notes' install steps cover both (done 2026-10-20).
 
 ### v0.2 smooth and safe
+**First step done 2026-10-21: upstream N64FlashcartMenu v0.3.5 merged**
+(13 commits, merged by hand; tested by the owner on 8MB, all passed).
+Brought in: autoload fixes, a start-up error when the cart reports under
+3.0 V, `long-desc-fn` metadata, `N64_ROM_EXPANSIONPAK = recommended`, the
+menu's own `metadata/metadata.ini` built into the ROM (changed to describe
+SummerStation64), and newer libdragon, libspng, miniz and dr_libs.
+Clashes: `startup.c` (include lines only; their voltage check runs before
+our intro) and README (ours kept; their change applied to
+`docs/UPSTREAM_README.md`). Upstream renamed `rom_expansion_pak_t`
+(UNSPECIFIED, UNUSED, RECOMMENDED, REQUIRED, FAULTY; "SUGGESTED" gone, and
+no database entry ever used it), so `game_facts.c` and `game_info_ui.c`
+now check RECOMMENDED only. Container fixes: the submodules and
+`.git/modules` were owned by root (chowned to `vscode`), their working
+trees held only line-ending noise (discarded), and libdragon was rebuilt
+into `/opt/libdragon` with `make clobber && ./build.sh --no-examples`
+(owned by `vscode` now; the old install is kept at
+`/opt/libdragon.before-0.3.5`). After a libdragon update, delete `build/`
+and the generated `filesystem/*.font64 *.wav64 *.sprite` and rebuild;
+never `make clean`, which also wipes `output/release-*`. The gcc toolchain
+itself was not reinstalled (only libdragon's library and tools).
+**Seen in the first log (8MB, Full font), not yet explained:** the Folders
+tab now doubles every resting frame (work 28, chip 29-31 ms; before the
+merge 27.3 / 29.0-29.4 with one doubled frame), and the "Midnight"
+background built in 469 ms (299 before, on 4MB). The owner had Character
+Set on Full, which may differ from earlier runs. Next: compare with the
+v0.1 release file on the same console and settings before changing
+anything. Games tab at rest: work 21.5 / chip 23.1 ms (was 20.4 / 22.1).
 ✓ Cover cache. Slide animation (and the tab slides, Folders included).
 Boot animation (intro and fade-in). Save backups with Restore save. Sort
 options (six orders). Remember the selected game per folder. Expansion Pak

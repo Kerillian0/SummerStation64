@@ -404,7 +404,7 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
         x = is_memory_expanded()
             ? games_ui_badge(x, BADGES_Y, "Uses Expansion Pak", STL_GREEN, true)
             : games_ui_badge(x, BADGES_Y, "Needs Expansion Pak", STL_ORANGE, true);
-    } else if (info->features.expansion_pak == EXPANSION_PAK_RECOMMENDED || info->features.expansion_pak == EXPANSION_PAK_SUGGESTED) {
+    } else if (info->features.expansion_pak == EXPANSION_PAK_RECOMMENDED) {
         x = games_ui_badge(x, BADGES_Y, "Expansion Pak", STL_GREEN, true);
     }
     if (info->features.rumble_pak) {

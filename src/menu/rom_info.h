@@ -104,10 +104,10 @@ typedef enum {
 
 /** @brief ROM memory requirements enumeration. */
 typedef enum {
-    EXPANSION_PAK_NONE,             /**< Happy with 4MB of memory */
-    EXPANSION_PAK_REQUIRED,         /**< Requires 8MB of memory */
+    EXPANSION_PAK_UNSPECIFIED,      /**< Unspecified use of 4-8MB of memory */
+    EXPANSION_PAK_UNUSED,           /**< Only uses 4MB of memory */
     EXPANSION_PAK_RECOMMENDED,      /**< Recommends 8MB of memory */
-    EXPANSION_PAK_SUGGESTED,        /**< Suggests 8MB of memory */
+    EXPANSION_PAK_REQUIRED,         /**< Requires 8MB of memory */
     EXPANSION_PAK_FAULTY,           /**< Faulty with 8MB of memory */
 } rom_expansion_pak_t;
 
@@ -174,6 +174,7 @@ typedef struct {
         uint32_t age_rating;        /**< The minimum game age rating */
         uint32_t num_players;       /**< The number of players supported */
         char *short_description;    /**< The short game description */
+        char *long_description_fn;  /**< The long game description file name */
         bool size_limit_exceeded;   /**< Metadata was skipped because metadata.ini exceeded size cap */
     } meta;                         /**< The ROM metadata */
 } rom_info_t;

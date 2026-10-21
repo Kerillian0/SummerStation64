@@ -195,11 +195,11 @@ static const char *format_rom_tv_type (rom_tv_type_t tv_type) {
 
 static const char *format_rom_expansion_pak_info (rom_expansion_pak_t expansion_pak_info) {
     switch (expansion_pak_info) {
-        case EXPANSION_PAK_REQUIRED: return "Required";
-        case EXPANSION_PAK_RECOMMENDED: return "Recommended";
-        case EXPANSION_PAK_SUGGESTED: return "Suggested";
+        case EXPANSION_PAK_REQUIRED: return "Required"; // This ROM requires the Expansion Pak to run.
+        case EXPANSION_PAK_RECOMMENDED: return "Recommended"; // This ROM will run without the Expansion Pak, but will have limited functionality or performance.
+        case EXPANSION_PAK_UNUSED: return "Unused"; // This ROM will does not use the Expansion Pak.
         case EXPANSION_PAK_FAULTY: return "May require ROM patch";
-        default: return "Not required";
+        default: return "Unspecified"; // This ROM will probably run without the Expansion Pak, and will have full functionality.
     }
 }
 
@@ -295,10 +295,17 @@ static void set_tv_type (menu_t *menu, void *arg) {
 }
 #ifdef FEATURE_AUTOLOAD_ROM_ENABLED
 static void set_autoload_type (menu_t *menu, void *arg) {
-    free(menu->settings.rom_autoload_path);
-    menu->settings.rom_autoload_path = strdup(strip_fs_prefix(path_get(menu->browser.directory)));
+    // Save the ROM this screen shows. From the History or Favorites tab, the browser's
+    // directory and entry can be another file. The path is rebuilt from the storage
+    // prefix first: bookkeeping loads its paths with path_create(), and path_pop() on
+    // one of those would cut a ROM in the root folder back to "sd:".
+    path_t *rom = path_init(menu->storage_prefix, strip_fs_prefix(path_get(menu->load.rom_path)));
     free(menu->settings.rom_autoload_filename);
-    menu->settings.rom_autoload_filename = strdup(menu->browser.entry->name);
+    menu->settings.rom_autoload_filename = strdup(path_last_get(rom));
+    path_pop(rom);
+    free(menu->settings.rom_autoload_path);
+    menu->settings.rom_autoload_path = strdup(strip_fs_prefix(path_get(rom)));
+    path_free(rom);
     // FIXME: add a confirmation box here! (press start on reboot)
     menu->settings.rom_autoload_enabled = true;
     settings_save(&menu->settings);

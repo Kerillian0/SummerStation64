@@ -1,0 +1,5 @@
+A themeable game menu for the SummerCart64, built on a real N64 and a CRT: box covers, tabs, themes, badges, save backups and an intro. Released under AGPL-3.0.
+
+SummerStation64 is a fork of N64FlashcartMenu: https://github.com/n64brew/N64FlashcartMenu
+
+Downloads, guide and feedback: https://github.com/Kerillian0/SummerStation64

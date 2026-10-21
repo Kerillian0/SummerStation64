@@ -77,7 +77,7 @@ typedef enum {
     FEAT_RTC = (1 << 4), /**< Real Time Clock */
     FEAT_EXP_PAK_REQUIRED = (1 << 5), /**< Expansion Pak required */
     FEAT_EXP_PAK_RECOMMENDED = (1 << 6), /**< Expansion Pak recommended */
-    FEAT_EXP_PAK_ENHANCED = (1 << 7), /**< Expansion Pak enhanced */
+    FEAT_EXP_PAK_UNUSED = (1 << 7), /**< Expansion Pak unused */
     FEAT_EXP_PAK_BROKEN = (1 << 8), /**< Expansion Pak broken */
     FEAT_64DD_CONVERSION = (1 << 9), /**< 64DD disk to ROM conversion */
     FEAT_64DD_ENHANCED = (1 << 10) /**< Combo ROM + Disk games */
@@ -762,12 +762,12 @@ static void extract_rom_info (match_t *match, rom_header_t *rom_header, rom_info
         rom_info->features.expansion_pak = EXPANSION_PAK_REQUIRED;
     } else if (match->data.feat & FEAT_EXP_PAK_RECOMMENDED) {
         rom_info->features.expansion_pak = EXPANSION_PAK_RECOMMENDED;
-    } else if (match->data.feat & FEAT_EXP_PAK_ENHANCED) {
-        rom_info->features.expansion_pak = EXPANSION_PAK_SUGGESTED;
+    } else if (match->data.feat & FEAT_EXP_PAK_UNUSED) {
+        rom_info->features.expansion_pak = EXPANSION_PAK_UNUSED;
     } else if (match->data.feat & FEAT_EXP_PAK_BROKEN) {
         rom_info->features.expansion_pak = EXPANSION_PAK_FAULTY;
     } else {
-        rom_info->features.expansion_pak = EXPANSION_PAK_NONE;
+        rom_info->features.expansion_pak = EXPANSION_PAK_UNSPECIFIED;
     }
 
     rom_info->meta.name = strdup("");
@@ -1058,6 +1058,7 @@ static bool load_rom_meta_from_embedded_zip (const char *rom_path, rom_header_t 
         rom_info->meta.age_rating = ini_get_int(meta_ini, "meta", "age-rating", 0);
         rom_info->meta.num_players = ini_get_int(meta_ini, "meta", "num-players", 1);
         ok &= replace_owned_string(&rom_info->meta.short_description, ini_get_string(meta_ini, "meta", "short-desc",   ""));
+        ok &= replace_owned_string(&rom_info->meta.long_description_fn, ini_get_string(meta_ini, "meta", "long-desc-fn", ""));
         ini_free(meta_ini);
         success = ok;
         if (ok) {
@@ -1132,6 +1133,7 @@ static void load_rom_meta_from_file (path_t *path, rom_info_t *rom_info) {
         rom_info->meta.age_rating = ini_get_int(rom_meta_ini, "meta", "age-rating", 0);
         rom_info->meta.num_players = ini_get_int(rom_meta_ini, "meta", "num-players", 1);
         ok &= replace_owned_string(&rom_info->meta.short_description, ini_get_string(rom_meta_ini, "meta", "short-desc",   ""));
+        ok &= replace_owned_string(&rom_info->meta.long_description_fn, ini_get_string(rom_meta_ini, "meta", "long-desc-fn", ""));
         ini_free(rom_meta_ini);
         if (ok) {
             debugf("[META] Loaded from INI file: name='%s', author='%s'\n", rom_info->meta.name, rom_info->meta.author);
@@ -1171,6 +1173,10 @@ void rom_info_free_meta(rom_info_t *rom_info) {
     if (rom_info->meta.short_description) {
         free(rom_info->meta.short_description);
         rom_info->meta.short_description = NULL;
+    }
+    if (rom_info->meta.long_description_fn) {
+        free(rom_info->meta.long_description_fn);
+        rom_info->meta.long_description_fn = NULL;
     }
 }
 

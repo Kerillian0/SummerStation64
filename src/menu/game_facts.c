@@ -217,8 +217,7 @@ static void lookup (menu_t *menu, int index) {
             found->key = key;
             found->players = (int8_t) players_from_metadata(menu, info.game_code);
             found->needs_expansion = (info.features.expansion_pak == EXPANSION_PAK_REQUIRED);
-            found->likes_expansion = (info.features.expansion_pak == EXPANSION_PAK_RECOMMENDED) ||
-                (info.features.expansion_pak == EXPANSION_PAK_SUGGESTED);
+            found->likes_expansion = (info.features.expansion_pak == EXPANSION_PAK_RECOMMENDED);
             found->saves = (rom_info_get_save_type(&info) != SAVE_TYPE_NONE);
             found->paks = (info.features.controller_pak ? GAME_INDEX_PAK_CONTROLLER : 0) |
                 (info.features.rumble_pak ? GAME_INDEX_PAK_RUMBLE : 0) |
