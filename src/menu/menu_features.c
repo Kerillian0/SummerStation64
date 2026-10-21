@@ -43,6 +43,7 @@ static const feature_info_t feature_info[FEATURE_COUNT] = {
     [FEATURE_SAVE_BACKUPS]        = { "save_backups",        true,  false },
     [FEATURE_SCREENSHOTS]         = { "screenshots",         true,  false },
     [FEATURE_ANGLED_COVERS]       = { "angled_covers",       true,  false },
+    [FEATURE_DUMP_MARKS]          = { "dump_marks",          true,  false },
 };
 
 #define FEATURES_USER_PATH      "sd:/menu/features.ini"

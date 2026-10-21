@@ -6,6 +6,7 @@
 #include "cart_load.h"
 #include "cover_list.h"
 #include "game_index.h"
+#include "dump_check.h"
 #include "game_facts.h"
 #include "ini_parser.h"
 #include "path.h"
@@ -235,6 +236,8 @@ static void lookup (menu_t *menu, int index) {
         facts.saves = found->saves;
         facts.paks = found->paks;
         known = true;
+
+        facts.dump = (uint8_t) dump_check(path_get(path), size, false);    /* the panel leaves out the amber mark for hacks */
 
         /* These two can change while the menu is running, so they are checked each time. */
         facts.favorite = is_favorite(menu, path);

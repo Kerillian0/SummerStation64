@@ -215,6 +215,19 @@ bool games_filter_is_hack (const entry_t *e) {
     return matches(e, FILTER_HACKS);
 }
 
+bool games_filter_is_hack_path (menu_t *menu, const char *path) {
+    if (!marks || !path || strncmp(path, "sd:/", 4) != 0 || !menu->browser.list) {
+        return false;
+    }
+    int all = games_filter_all_entries(menu->browser.entries);
+    for (int i = 0; i < all; i++) {
+        if (strcmp(menu->browser.list[i].name, path + 4) == 0) {
+            return games_filter_is_hack(&menu->browser.list[i]);
+        }
+    }
+    return false;
+}
+
 void games_filter_forget (void) {
     free(marks);
     marks = NULL;

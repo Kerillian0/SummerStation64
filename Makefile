@@ -82,6 +82,7 @@ SRCS = \
 	menu/rom_info.c \
 	menu/settings.c \
 	menu/sound.c \
+	menu/dump_check.c \
 	menu/memory_note.c \
 	menu/screenshot.c \
 	menu/art_tint.c \
@@ -159,6 +160,9 @@ IMAGES = \
 	jumper_pak.png \
 	button.png \
 	heart.png \
+	mark_check.png \
+	mark_cross.png \
+	mark_question.png \
 	corner.png \
 	logo_holo.png \
 	logo_stripes.png \
@@ -168,6 +172,9 @@ IMAGES = \
 MKSPRITE_FLAGS ?= --format CI4
 $(FILESYSTEM_DIR)/button.sprite: MKSPRITE_FLAGS=--format I4
 $(FILESYSTEM_DIR)/heart.sprite: MKSPRITE_FLAGS=--format I4
+$(FILESYSTEM_DIR)/mark_check.sprite: MKSPRITE_FLAGS=--format I4
+$(FILESYSTEM_DIR)/mark_cross.sprite: MKSPRITE_FLAGS=--format I4
+$(FILESYSTEM_DIR)/mark_question.sprite: MKSPRITE_FLAGS=--format I4
 $(FILESYSTEM_DIR)/corner.sprite: MKSPRITE_FLAGS=--format I4
 $(FILESYSTEM_DIR)/logo_holo.sprite: MKSPRITE_FLAGS=--format RGBA16
 $(FILESYSTEM_DIR)/logo_stripes.sprite: MKSPRITE_FLAGS=--format RGBA16

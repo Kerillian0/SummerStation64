@@ -47,6 +47,12 @@ const char *games_ui_pak_badges_name (int choice);
  * Dark panel with the selected entry's name. Under it: badges for a game
  * whose facts are known, otherwise the plain line of detail.
  */
+/** A dump mark (dump_state_t from dump_check.h): a 20 px colored disc with a check, ? or cross. */
+void games_ui_dump_mark_draw (int x, int y, int state);
+
+/** A dump mark and its word, centered in a hint row (0 top, 1 bottom). */
+void games_ui_hint_mark_draw (int row, int state, const char *label, int style);
+
 void games_ui_title_panel_draw (const char *title, const char *detail, const char *lead, bool hack, const game_facts_t *facts);
 
 /**

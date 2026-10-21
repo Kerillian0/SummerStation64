@@ -6,6 +6,7 @@
 #include <libdragon.h>
 
 #include "fonts.h"
+#include "dump_check.h"
 #include "games_ui.h"
 #include "tabs.h"
 #include "game_index.h"
@@ -245,6 +246,34 @@ static void heart_draw (int x, int y) {
 
 static int text_width (const char *string);    /* further down, with the hints */
 
+void games_ui_dump_mark_draw (int x, int y, int state) {
+    static sprite_t *disc = NULL, *check = NULL, *question = NULL, *cross = NULL;
+    if (!disc) {
+        disc = sprite_load("rom:/button.sprite");
+        check = sprite_load("rom:/mark_check.sprite");
+        question = sprite_load("rom:/mark_question.sprite");
+        cross = sprite_load("rom:/mark_cross.sprite");
+    }
+    sprite_t *symbol;
+    color_t color;
+    switch (state) {
+        case DUMP_VERIFIED:   symbol = check;    color = RGBA32(0x3C, 0xB8, 0x4A, 0xFF); break;
+        case DUMP_UNVERIFIED: symbol = question; color = RGBA32(0xF0, 0xA0, 0x20, 0xFF); break;
+        case DUMP_BAD:        symbol = cross;    color = RGBA32(0xE0, 0x40, 0x38, 0xFF); break;
+        default: return;
+    }
+    rdpq_mode_push();
+        /* A tinted disc, then the white symbol on it, both smooth-edged. */
+        rdpq_set_mode_standard();
+        rdpq_mode_combiner(RDPQ_COMBINER1((0,0,0,PRIM), (0,0,0,TEX0)));
+        rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+        rdpq_set_prim_color(color);
+        rdpq_sprite_blit(disc, x, y, NULL);
+        rdpq_set_prim_color(RGBA32(0xFF, 0xFF, 0xFF, 0xFF));
+        rdpq_sprite_blit(symbol, x, y, NULL);
+    rdpq_mode_pop();
+}
+
 const char *games_ui_pak_badges_name (int choice) {
     static const char *names[PAK_BADGES_COUNT] = { "Off", "Plain", "Colored" };
     return (choice >= 0 && choice < PAK_BADGES_COUNT) ? names[choice] : "";
@@ -261,7 +290,8 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const cha
     /* With the heart switched on, room for it is always kept after the
        name, so the name doesn't change size when the heart turns up. */
     bool heart = features_enabled(FEATURE_FAVORITE_HEART);
-    int title_width = x1 - x0 - 24 - (heart ? (HEART_WIDTH + HEART_GAP) : 0);
+    bool marks = features_enabled(FEATURE_DUMP_MARKS);   /* room kept for the dump mark at the right, the same way */
+    int title_width = x1 - x0 - 24 - (heart ? (HEART_WIDTH + HEART_GAP) : 0) - (marks ? (BADGE_HEIGHT + 8) : 0);
 
     /* The big title font when the name fits on one line in it, the body font otherwise. */
     /* The name is laid out once and kept until another game is selected:
@@ -293,6 +323,11 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const cha
 
     if (heart && facts && facts->favorite) {
         heart_draw(title_end + HEART_GAP, PANEL_Y + 2 + ((PANEL_TITLE - HEART_HEIGHT) / 2));
+    }
+    if (marks && facts) {
+        /* A hack differs from the known dump on purpose: no amber mark. */
+        int dump = (hack && facts->dump == DUMP_UNVERIFIED) ? DUMP_NONE : facts->dump;
+        games_ui_dump_mark_draw(x1 - 12 - BADGE_HEIGHT, PANEL_Y + 2 + ((PANEL_TITLE - BADGE_HEIGHT) / 2), dump);
     }
 
     int x = x0 + 12 - BADGE_PADDING;
@@ -503,6 +538,18 @@ int games_ui_hint_draw (int x, int row, const char *button, const char *action) 
 
 void games_ui_hint_right_draw (int row, const char *button, const char *action) {
     games_ui_hint_draw(GAMES_UI_CONTENT_X1 - games_ui_hint_width(button, action), row, button, action);
+}
+
+void games_ui_hint_mark_draw (int row, int state, const char *label, int style) {
+    int y = HINTS_Y + (row * HINT_ROW_HEIGHT);
+    int width = BADGE_HEIGHT + BADGE_PADDING + text_width(label);
+    int x = (GAMES_UI_CONTENT_X0 + GAMES_UI_CONTENT_X1 - width) / 2;
+    games_ui_dump_mark_draw(x, y, state);
+    text(x + BADGE_HEIGHT + BADGE_PADDING, y, width, BADGE_HEIGHT, ALIGN_LEFT, style, label);
+    if (row > 0) {
+        /* What the mark is about, in grey in the row above. */
+        text(GAMES_UI_CONTENT_X0, y - HINT_ROW_HEIGHT, GAMES_UI_CONTENT_X1 - GAMES_UI_CONTENT_X0, BADGE_HEIGHT, ALIGN_CENTER, STL_GRAY, "Dump check");
+    }
 }
 
 void games_ui_position_draw (const char *title, int selected, int count, const char *label) {

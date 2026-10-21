@@ -21,6 +21,7 @@ typedef struct {
     bool save_found;        /**< ...and one exists on the card */
     bool favorite;          /**< it is in the Favorites list */
     uint8_t paks;           /**< accessories it uses, GAME_INDEX_PAK_... bits (game_index.h) */
+    uint8_t dump;           /**< dump_state_t from Card Prep's verified.txt (dump_check.h), before hacks are left out */
 } game_facts_t;
 
 /**

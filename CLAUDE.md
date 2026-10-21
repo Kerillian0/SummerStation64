@@ -263,7 +263,7 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
 | `metadata/` | box art and `metadata.ini` per game; read only | the user's metadata pack |
 | (beside each save) `backups/<game>/<date>-<time>.<check>.sav` | kept saves, five per game | `save_backup.c` |
 | `screenshots/shotNNNN.png` | screenshots (START on controller 2) | `screenshot.c` |
-| `verified.txt` | which games are known good dumps; read only | the Card Prep page |
+| `verified.txt` | which games are known good dumps; read only (`dump_check.c`) | the Card Prep page |
 
 ## Conventions for new code
 - A feature is one new `name.c` + `name.h` pair in `src/menu/`, with a
@@ -1157,7 +1157,7 @@ quick_launch = 1       ; any key from menu_features.c: quick_launch,
                        ; hide_extensions, tidy_titles, hide_tags,
                        ; play_stats, memory_badge, button_icons,
                        ; favorite_heart, rounded_corners, save_backups,
-                       ; screenshots
+                       ; screenshots, angled_covers, dump_marks
                        ; (0 or 1; leave out = default)
 ```
 
@@ -1952,9 +1952,19 @@ what was left out since power-on on its help line. The log prints
   23.7), Settings 12.2 / 14.3. First build passed colors as 0-255 where the
   chip wants 0-1: wrong, pale gradients. Not yet run on 4MB (expect side
   cover art back with the Full character set).
-- ◐ Verified ROM badges: the PC tool part is done (`menu/verified.txt`).
-  Next: the menu reads it and shows a "Verified" badge. No ROM hashing on
-  the console.
+- ✓ Verified ROM marks (done and tested 2026-10-21): `dump_check.c`
+  reads `menu/verified.txt` once (about 7 KB); feature `dump_marks` ("Dump
+  Check Marks", Settings > Display, on). A 20 px disc in the title panel's
+  top-right corner (room always kept): green ✓ verified, amber ? differs
+  from the known dump with no reason in the name, red ✗ a `[b]` tag. No
+  mark for hacks (the menu's verdict or the name), `[f] [t] [h] [p]`,
+  "patched", "translat", homebrew (U), or files Card Prep hasn't seen.
+  Game info: the mark and word centred in the bottom hint row under grey
+  "Dump check" (in the badge row it pushed badges onto the cover), and a
+  two-line grey note in the description box for amber and red (a third
+  line is cut off: keep it short). The owner chose amber over red for
+  unexplained mismatches: on their card 19 files differ, including
+  GoodN64 `[!]` dumps that play fine (Super Mario 64, Racer).
 - ☐ Automated screenshots in the ares emulator, for the README and for
   catching visual changes. Proposed 2026-10-21 to move to Later (ares may
   not emulate the SummerCart64's SD card; the screenshot button covers the

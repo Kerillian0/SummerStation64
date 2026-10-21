@@ -7,6 +7,8 @@
 #include "fonts.h"
 #include "game_info_ui.h"
 #include "art_tint.h"
+#include "dump_check.h"
+#include "games_filter.h"
 #include "games_ui.h"
 #include "menu_features.h"
 #include "path.h"
@@ -44,6 +46,7 @@
 #define DESC_Y          (FACTS_Y + FACTS_HEIGHT + 8)
 #define DESC_HEIGHT     (140)   /* down to just above the button hints */
 #define DESC_SWITCHES   (26)    /* room kept at the bottom when one of the game's switches is on */
+#define DESC_NOTE       (46)    /* room for the two-line note about a copy that isn't a known good dump */
 
 #define PAD             (10)
 
@@ -397,6 +400,10 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
         }, title_font_pick(view->name, (TITLE_WIDTH * 2) - 32), X0, TITLE_Y, "%s", view->name);
     }
 
+    /* Whether this copy is a known good dump (Card Prep's verified.txt). */
+    const char *rom_path = menu->load.rom_path ? path_get(menu->load.rom_path) : NULL;
+    dump_state_t dump = dump_check(rom_path, -1, rom_path && games_filter_is_hack_path(menu, rom_path));
+
     /* What the game supports. */
     int x = X0 - 6;
     if (info->features.expansion_pak == EXPANSION_PAK_REQUIRED) {
@@ -447,7 +454,20 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
        of them is on, as badges along the bottom of the box. */
     bool switches = view->cheats || view->patches || view->clear_rdram;
     fill(X0, DESC_Y, X1, DESC_Y + DESC_HEIGHT, panel_color());
-    draw_description(view->description, DESC_HEIGHT - 30 - (switches ? DESC_SWITCHES : 0));
+    bool note = (dump == DUMP_UNVERIFIED || dump == DUMP_BAD);
+    draw_description(view->description, DESC_HEIGHT - 30 - (switches ? DESC_SWITCHES : 0) - (note ? DESC_NOTE : 0));
+    if (note) {
+        /* A quiet word, not a warning in the way: the mark says the rest. */
+        rdpq_text_printf(&(rdpq_textparms_t) {
+            .width = X1 - X0 - (PAD * 2),
+            .height = DESC_NOTE,
+            .wrap = WRAP_WORD,
+            .style_id = STL_GRAY,
+        }, FNT_DEFAULT, X0 + PAD, DESC_Y + DESC_HEIGHT - (switches ? DESC_SWITCHES : 0) - DESC_NOTE + 4, "%s",
+            (dump == DUMP_BAD)    /* each fits two lines; a third would be cut off */
+                ? "A bad dump: it may freeze or glitch. Find a copy that Card Prep or CRC32/SHA-1 verifies."
+                : "Not a known good dump. If it misbehaves, find a copy that Card Prep or CRC32/SHA-1 verifies.");
+    }
     if (switches) {
         int bx = X0 + PAD - 6;
         int by = DESC_Y + DESC_HEIGHT - DESC_SWITCHES - 2;
@@ -464,4 +484,9 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
     games_ui_hint_draw(GAMES_UI_HINTS_X, 1, "R", "Options");
     games_ui_hint_right_draw(0, "START", "Details");
     games_ui_hint_right_draw(1, "◀▶", "Pictures");
+    if (dump != DUMP_NONE) {
+        /* Between the hints, out of the way of the badges and the cover. */
+        games_ui_hint_mark_draw(1, dump, dump_check_label(dump),
+            (dump == DUMP_VERIFIED) ? STL_GREEN : (dump == DUMP_BAD) ? STL_RED : STL_ORANGE);
+    }
 }

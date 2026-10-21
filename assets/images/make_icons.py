@@ -106,6 +106,32 @@ heart = shrink(heart, HW, HH).point(lambda v: (v // 17) * 17)
 heart.save("heart.png")
 print(f"heart.png: {HW} x {HH}")
 
+# The dump marks (Card Prep's verified.txt): white symbols drawn over the
+# button disc, which the menu tints green, amber or red. Same size as the
+# disc, 16 shades. Thick strokes: they are seen on a composite CRT.
+def mark(name, draw):
+    m = Image.new("L", (SIZE * SCALE, SIZE * SCALE), 0)
+    draw(ImageDraw.Draw(m), SCALE)
+    m = shrink(m, SIZE, SIZE).point(lambda v: (v // 17) * 17)
+    m.save(name)
+    print(f"{name}: {SIZE} x {SIZE}")
+
+def check(d, k):
+    d.line([(5.2 * k, 10.4 * k), (8.6 * k, 13.8 * k), (14.8 * k, 6.4 * k)], fill=255, width=int(2.8 * k), joint="curve")
+
+def cross(d, k):
+    d.line([(6.3 * k, 6.3 * k), (13.7 * k, 13.7 * k)], fill=255, width=int(2.8 * k))
+    d.line([(13.7 * k, 6.3 * k), (6.3 * k, 13.7 * k)], fill=255, width=int(2.8 * k))
+
+def question(d, k):
+    d.arc([6.2 * k, 3.6 * k, 13.8 * k, 10.8 * k], start=190, end=80, fill=255, width=int(2.5 * k))
+    d.line([(11.2 * k, 10.0 * k), (10.0 * k, 11.4 * k), (10.0 * k, 12.6 * k)], fill=255, width=int(2.5 * k))
+    d.ellipse([8.6 * k, 14.2 * k, 11.4 * k, 17.0 * k], fill=255)
+
+mark("mark_check.png", check)
+mark("mark_cross.png", cross)
+mark("mark_question.png", question)
+
 # The two patterns on the intro logo's pillars, after the look of the
 # reference picture the project owner supplied: a marbled lavender, cyan and
 # pink "hologram", and pink-to-deep-blue stripes. Both are made from sums.
