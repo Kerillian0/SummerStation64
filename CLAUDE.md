@@ -217,6 +217,9 @@ metadata/                  the menu's own metadata.ini, built into the ROM
 docs/n64ever-notes.md      what the N64ever fork has, mapped to our roadmap
 docs/*.md (numbered)       upstream's user documentation, untouched
 theme-maker/               web Theme Maker source (one HTML file) + README
+prep-tool/                 Card Prep web page (one HTML file) + README: checks
+                           the card's games against No-Intro, writes
+                           menu/verified.txt
 tests/                     PC-side tests: sh tests/run.sh (gcc + Node.js):
                            theme.ini reader, hack finder, share codes
 tools/sc64/                sc64deployer.exe, not committed (tools/ is ignored)
@@ -260,6 +263,7 @@ Files the menu keeps on the SD card, all under `sd:/menu/`:
 | `metadata/` | box art and `metadata.ini` per game; read only | the user's metadata pack |
 | (beside each save) `backups/<game>/<date>-<time>.<check>.sav` | kept saves, five per game | `save_backup.c` |
 | `screenshots/shotNNNN.png` | screenshots (START on controller 2) | `screenshot.c` |
+| `verified.txt` | which games are known good dumps; read only | the Card Prep page |
 
 ## Conventions for new code
 - A feature is one new `name.c` + `name.h` pair in `src/menu/`, with a
@@ -1921,7 +1925,15 @@ what was left out since power-on on its help line. The log prints
   developer, learned in the background. Missing: genre (no source yet) and
   the verified flag.
 - ◐ Asset prep tool: `make_baked_art.py` bakes covers into the menu file.
-  Missing: the full PC tool (building the index, checking dumps).
+  **Card Prep page done and tested 2026-10-21** (`prep-tool/`, the
+  owner's choice of a web page over a script or program): Chrome/Edge
+  open the card folder (others read it and download the result), the
+  No-Intro N64 list is fetched from libretro-database at run time (not
+  copied into this repo), every ROM is put in z64 order and CRC-32'd,
+  and `menu/verified.txt` is written (`verified 1`, then `key size crc
+  V|M|U name`; key = the menu's FNV-1a path key). Reruns reuse known
+  CRCs. Tested in Node (`tests/prep_tool_test.js`) and by the owner on
+  the card. Missing: building `gameindex.txt` ahead.
 - ☐ Perspective covers (side covers angled away). The owner's choice
   (2026-10-21): part of the optional side covers, still off by default.
   Angled covers take less width, which should also pull them in from the
@@ -1940,8 +1952,9 @@ what was left out since power-on on its help line. The log prints
   23.7), Settings 12.2 / 14.3. First build passed colors as 0-255 where the
   chip wants 0-1: wrong, pale gradients. Not yet run on 4MB (expect side
   cover art back with the Full character set).
-- ☐ Verified ROM badges: the PC tool checks ROMs against known good dumps
-  and stores a "verified" flag. No ROM hashing on the console.
+- ◐ Verified ROM badges: the PC tool part is done (`menu/verified.txt`).
+  Next: the menu reads it and shows a "Verified" badge. No ROM hashing on
+  the console.
 - ☐ Automated screenshots in the ares emulator, for the README and for
   catching visual changes. Proposed 2026-10-21 to move to Later (ares may
   not emulate the SummerCart64's SD card; the screenshot button covers the

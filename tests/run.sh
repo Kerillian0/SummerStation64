@@ -1,6 +1,7 @@
 #!/bin/sh
 # PC-side tests: the theme.ini reader and the hack finder (C, built with the
-# PC's own compiler) and the Theme Maker's share codes (JavaScript, run with Node.js).
+# PC's own compiler), the Theme Maker's share codes and the Card Prep page
+# (JavaScript, run with Node.js).
 # Run from anywhere:  sh tests/run.sh
 # Needs gcc and node (in the dev container: sudo apt-get install -y nodejs).
 set -e
@@ -25,6 +26,9 @@ echo
 echo "== share codes =="
 if command -v node >/dev/null 2>&1; then
     node "$here/share_code_test.js" || status=1
+    echo
+    echo "== card prep page =="
+    node "$here/prep_tool_test.js" || status=1
 else
     echo "node not found: skipped (sudo apt-get install -y nodejs)"
     status=1
