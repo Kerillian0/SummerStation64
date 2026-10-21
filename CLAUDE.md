@@ -1950,6 +1950,27 @@ what was left out since power-on on its help line. The log prints
   covers, PC prep tool, verified badge and genre; then `make release`
   (both editions in one command) and the v0.2 release.
 - ☐ Genre: needs a source (the owner's pack has none).
+  **Source found 2026-10-21:** libretro-database (CC-BY-SA 4.0):
+  `metadat/genre` and `metadat/maxusers` for N64 (about 2,060 ROMs each,
+  keyed by the ROM's CRC32) and `metadat/no-intro` (each ROM's CRC, MD5,
+  SHA-1 and its serial = our game code), so genre and player count can be
+  joined by game code and built into the menu. The owner's pack has **no
+  player counts at all** (no `num-players` key), so today's Players badge
+  and box only show when a per-game ini has one.
+- ☐ Players detail (asked on Reddit, 2026-10-21): "1-4 players, co-op,
+  versus only" on the Players box / badge. Counts from libretro
+  (maxusers); co-op / versus has no known source yet.
+- **Right after v0.2 (the owner, 2026-10-21): 3D boxes and a hover.** The
+  selected cover as a box with depth: front, the pack's top-edge picture
+  (`boxart_top.png`, 158x22, 298 games; plain color otherwise) and a side
+  colored from the cover (no side pictures in the pack); bobbing a few px
+  and swaying about 10° like the GameCube menu, time-based; each a
+  setting (motion can shimmer on a CRT). Then cartridges the same way
+  from `gamepak_front.png` (303 games), the owner's "placeholder
+  cartridge models", and with them the wrong-art fix: a region-less
+  cover (`NDZ_f`) is used for a game of another region (Dezaemon 3D,
+  NDZJ, shows Duke Nukem: Zero Hour, NDZE); use it only when no other
+  region of that code has its own cover.
 
 ### v0.3 organizing
 ✓ Continue row (the Recent tab). Launch stats. Random game (Games, Recent,
