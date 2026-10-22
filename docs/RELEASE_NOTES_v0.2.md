@@ -134,7 +134,8 @@ copy into the card's `menu` folder yourself.
 SHA-1 of each `sc64menu.n64`, to check your download:
 
 ```
-(filled in from SHA1SUMS.txt when the release is built)
+5d2e577c2d7e049655b1c09a1ac933f6150afb7e  sc64menu.n64 (Art Edition)
+2814852fc7836381e1ed6864629f0d1ce45b667a  sc64menu.n64 in SummerStation64-v0.2-Standard.zip
 ```
 </details>
 
@@ -152,7 +153,9 @@ SHA-1 of each `sc64menu.n64`, to check your download:
   are welcome in an issue.
 - **Card Prep** needs Chrome or Edge to save straight onto the card.
 - The **Grape** theme's checker pattern can't be drawn live, so it keeps the
-  older 300 KB background picture (like Ocean).
+  older 300 KB background picture (like Ocean). On a 4MB console with the
+  Full character set these two leave the least memory to spare; the other
+  themes are the lighter choice there.
 - A few Japanese games share a code with another region's game and can show
   its cover (for example Dezaemon 3D). A fix is planned.
 - Saves of 64DD disks are not backed up. Other flashcarts are not supported.

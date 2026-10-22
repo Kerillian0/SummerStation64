@@ -49,8 +49,8 @@ and a CRT television, with and without the Expansion Pak.
 | 🎮 **Cover row** | Your games as box covers that slide left and right; turn a box over to see its back. Japanese and 64DD boxes keep their own shape. |
 | 🗂️ **Tabs** | Games, Favorites, Folders and Recent, in the order you choose. Games gathers games from as many folders as you like. |
 | 🔎 **Find a game** | Filter by region, 64DD or hacks; sort by name, recently played, release date or developer; or press Z for a random game. |
-| 🏷️ **Badges** | Players, Expansion Pak, save found, Controller / Rumble / Transfer Pak, and a Hack badge for ROM hacks. |
-| 📖 **Game info** | The cover over a blurred copy of itself, a big title, times played, the description, and a ring tinted to match the box. |
+| 🏷️ **Badges** | Players, Expansion Pak, save found, Controller / Rumble / Transfer Pak, a Hack badge, and a ✓ for known good dumps (checked with [Card Prep](https://kerillian0.github.io/SummerStation64/companion/#prep)). |
+| 📖 **Game info** | The cover over a blurred copy of itself, a big title, genre, players and co-op/versus, times played, and the full description, scrolling. |
 | 🎨 **Themes** | Six built-in themes, or your own made with the [Theme Maker](https://kerillian0.github.io/SummerStation64/companion/#themes) and shared with a short code. |
 | 💾 **Save backups** | Each start keeps the game's save from before, dated, five per game; "Restore save" brings one back. |
 | 🛡️ **Safe by design** | Safe mode (hold Z at power-on), safe settings saves, a friendly crash screen, and it leaves extras out instead of stopping when memory is short. |
@@ -70,7 +70,8 @@ built in.
 
 ## 📚 Documentation
 
-- **[Release notes and install guide](docs/RELEASE_NOTES_v0.1.md)**: what's
+- **[Release notes and install guide](docs/RELEASE_NOTES_v0.2.md)**
+  ([v0.1](docs/RELEASE_NOTES_v0.1.md)): what's
   new, installing, first steps, controls, settings and known limitations.
 - **[SummerStation64 Companion](https://kerillian0.github.io/SummerStation64/companion/)**:
   the Theme Maker, Card Prep (checks your games against known good dumps) and
@@ -82,8 +83,10 @@ built in.
 
 - **v0.1** ✅ released: the cover row, tabs, themes, badges, save backups,
   tested on 4MB and 8MB.
-- **v0.2** smooth and safe: angled side covers, a lighter background for 4MB,
-  a PC prep tool.
+- **v0.2** ✅ released: the Companion (Theme Maker, Card Prep, Guide),
+  dump check marks, full descriptions, players and co-op/versus, new themes,
+  angled side covers, 300 KB more free memory.
+- **Next:** 3D boxes with a hover, and cartridges.
 - **v0.3** organizing: one cover per game with a version picker for hacks,
   collections, search, screenshots.
 - **v0.4** themes: theme picker, sound and font packs, more seasonal themes.
