@@ -963,7 +963,7 @@ static const char *carousel_kind_label (entry_type_t type) {
 static void carousel_ring (int x0, int y0, int x1, int y1, int thickness, color_t color) {
     rdpq_set_mode_fill(color);
     if (options_get(OPTION_SELECTION) == SELECTION_CORNERS) {
-        int arm = ((x1 - x0) < (y1 - y0) ? (x1 - x0) : (y1 - y0)) / 4;    // each bracket's arms, along its two sides
+        int arm = ((x1 - x0) < (y1 - y0) ? (x1 - x0) : (y1 - y0)) / 7;    // each bracket's arms, along its two sides
         thickness += 1;                                                     // a little bolder, as there is less of it
         rdpq_fill_rectangle(x0, y0, x0 + arm, y0 + thickness);              // top left
         rdpq_fill_rectangle(x0, y0 + thickness, x0 + thickness, y0 + arm);
@@ -1357,15 +1357,17 @@ void carousel_draw (menu_t *menu) {
     carousel_ring_size(menu, covers->selected, &ring_w, &ring_h);
     bool ring_hidden;
     color_t ring_color = carousel_ring_color(menu, covers->selected, t->accent, &ring_hidden);
+    // Corner brackets stand a little further above and below the cover than the ring.
+    const int ring_pad_y = (options_get(OPTION_SELECTION) == SELECTION_CORNERS) ? 9 : 5;
     if (!ring_hidden) {
         carousel_ring(
-            cx - ring_w / 2 - 5, CAROUSEL_CENTER_Y - ring_h / 2 - 5,
-            cx + ring_w / 2 + 5, CAROUSEL_CENTER_Y + ring_h / 2 + 5,
+            cx - ring_w / 2 - 5, CAROUSEL_CENTER_Y - ring_h / 2 - ring_pad_y,
+            cx + ring_w / 2 + 5, CAROUSEL_CENTER_Y + ring_h / 2 + ring_pad_y,
             3, carousel_dimmed(ring_color, center_dimmed ? bright : 255)
         );
     }
     if (!center_dimmed) {
-        carousel_box_add(&drawn_center, cx - ring_w / 2 - 5, CAROUSEL_CENTER_Y - ring_h / 2 - 5, cx + ring_w / 2 + 5, CAROUSEL_CENTER_Y + ring_h / 2 + 5);
+        carousel_box_add(&drawn_center, cx - ring_w / 2 - 5, CAROUSEL_CENTER_Y - ring_h / 2 - ring_pad_y, cx + ring_w / 2 + 5, CAROUSEL_CENTER_Y + ring_h / 2 + ring_pad_y);
     }
 
     // Safe mode reminder, centered between the tabs and the cover.
