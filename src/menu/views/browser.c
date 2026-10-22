@@ -27,6 +27,7 @@
 #include "../menu_options.h"
 #include "../display_name.h"
 #include "../games_ui.h"
+#include "../box_motion.h"
 #include "../cover_list.h"
 #include "../carousel.h"
 #include "../tabs.h"
@@ -1272,6 +1273,13 @@ void carousel_draw (menu_t *menu) {
             float mid = (away < 1.0f) ? (pos * first) : ((pos < 0.0f ? -1.0f : 1.0f) * (first + (away - 1.0f) * step));
             int x0 = cx + tab_shift + (int) mid - w / 2;
             int y0 = CAROUSEL_CENTER_Y - h / 2;
+            // Box Hover's float: the side covers bob too, each in its own time,
+            // less and less toward the middle, where the 3D Box has its own.
+            // In 1-pixel steps for art, 2 for a cover showing text (which
+            // would shimmer on 240p).
+            float art_shape;
+            float lift = box_motion_side_lift(i, (away < 1.0f) ? away : 1.0f);
+            y0 += carousel_art_aspect(menu, i, &art_shape) ? (int) lroundf(lift) : ((int) lroundf(lift / 2.0f)) * 2;
             if (x0 < 0 || (x0 + w) > screen_w) {
                 continue; // still off the edge of the screen
             }

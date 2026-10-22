@@ -47,6 +47,13 @@ bool box_motion_process (menu_t *menu);
  */
 void box_motion_pose (float *yaw, float *pitch, float *lift);
 
+/**
+ * Box Hover's float for a cover at the side, list entry `index` (each has
+ * its own timing), in pixels to move it down (negative: up).
+ * @param weight 1 at the side, down to 0 in the middle.
+ */
+float box_motion_side_lift (int index, float weight);
+
 /** The box was drawn this frame (B only inspects a box that is showing). */
 void box_motion_shown (void);
 

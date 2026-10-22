@@ -115,6 +115,19 @@ bool box_motion_process (menu_t *menu) {
     return holding;
 }
 
+float box_motion_side_lift (int index, float weight) {
+    int choice = options_get(OPTION_BOX_HOVER);
+    if (choice != BOX_HOVER_FLOAT && choice != BOX_HOVER_BOTH) {
+        return 0.0f;
+    }
+    /* A different starting point and a slightly different pace for each
+       cover, so the row doesn't bob together. */
+    float phase = (index % 7) * 0.9f;
+    float period = FLOAT_PERIOD_MS * (1.0f + (index % 3) * 0.12f);
+    float t = (float) get_ticks_ms();
+    return weight * FLOAT_PX * sinf(2.0f * (float) M_PI * t / period + phase);
+}
+
 void box_motion_pose (float *yaw, float *pitch, float *lift) {
     rest_yaw = *yaw;
     rest_pitch = *pitch;
