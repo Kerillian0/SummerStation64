@@ -13,6 +13,7 @@
 #include "../debug_stats.h"
 #include "../tabs.h"
 #include "../games_ui.h"
+#include "../games_filter.h"
 #include "../box_motion.h"
 #include "../carousel_art.h"
 #include "../memory_note.h"
@@ -219,6 +220,8 @@ static void forget_games_folders (menu_t *menu) {
 static const item_t library_items[] = {
     INFO("Game Folders", games_folders_info, "Where the Games tab finds games: the start folder, plus folders added from the Folders tab (Z, \"Add this folder to Games\")."),
     ACTION("Forget Added Folders", forget_games_folders, "The Games tab goes back to showing the start folder only, and no folder stays marked as hacks. No files are touched."),
+    CHOICES("Game Versions", OPTION_GAME_VERSIONS, GAME_VERSIONS_COUNT, games_filter_versions_name, resort_browser,
+        "Separate shows every file as its own cover. Grouped shows one cover per game: its hacks and other copies go under it, and A lists them to choose from. The Hacks filter still shows every hack."),
     CHOICES("Sort By", OPTION_SORT_ORDER, SORT_COUNT, sort_order_name, resort_browser,
         "Type: folders, then each kind of file. Name: by name. Recently Played: games you played come first. Release Date, Developer: oldest first, or by who made the game; the menu looks these up while the Games tab is left alone."),
     FEATURE("Hide Game Extensions", FEATURE_HIDE_EXTENSIONS, "Show games without the ending of the file name, such as .z64. Other files keep theirs."),

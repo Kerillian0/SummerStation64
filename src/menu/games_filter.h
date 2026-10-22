@@ -57,6 +57,28 @@ int games_filter_all_entries (int shown);
 /** The filter's name for the screen, or NULL while it is All. */
 const char *games_filter_label (void);
 
+/** Game Versions (option `game_versions`, Settings > Library). */
+typedef enum {
+    GAME_VERSIONS_SEPARATE,     /**< every file its own cover (the default) */
+    GAME_VERSIONS_GROUPED,      /**< one cover per game code: the original, its hacks and copies */
+    GAME_VERSIONS_COUNT
+} game_versions_t;
+
+/** Name of a game_versions_t choice, for Settings. */
+const char *games_filter_versions_name (int choice);
+
+/**
+ * With Game Versions grouped: how many files this cover stands for (1 when
+ * it stands for itself only, or grouping is off or the Hacks step shows).
+ */
+int games_filter_versions (menu_t *menu, const entry_t *e);
+
+/**
+ * The files a cover stands for, its own first in list order, at most `most`.
+ * @return how many were put in `out`.
+ */
+int games_filter_version_list (menu_t *menu, const entry_t *e, entry_t **out, int most);
+
 /** Forget the hidden entries (the list was freed or is another folder's). */
 void games_filter_forget (void);
 

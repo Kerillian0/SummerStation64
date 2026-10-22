@@ -14,6 +14,7 @@
 #include "games_filter.h"
 #include "games_folders.h"
 #include "path.h"
+#include "menu_options.h"
 #include "rom_hacks.h"
 #include "sort_order.h"
 
@@ -33,6 +34,22 @@ static const char *names[FILTER_COUNT] = { "All", "USA", "Japan", "Europe", "64D
 static uint8_t *marks = NULL;   /* indexed by entry->index, the order the folder was read in */
 static int marks_count = 0;
 static int total = 0;           /* entries in the list, shown and hidden */
+
+/* Game Versions: Grouped. Files sharing a game code (an original, its hacks
+   and copies of it) show as one cover; the others are folded under it. */
+#define MARK_FOLDED     (1 << 7)    /* in marks: folded under another file's cover */
+static int16_t *group = NULL;       /* by entry->index: the index of its cover's file, or -1 */
+
+const char *games_filter_versions_name (int choice) {
+    static const char *versions_names[GAME_VERSIONS_COUNT] = { "Separate", "Grouped" };
+    return (choice >= 0 && choice < GAME_VERSIONS_COUNT) ? versions_names[choice] : "";
+}
+
+/* Whether folded files are left out for this filter: with Grouped on, except
+   on the Hacks step, which shows every hack. */
+static bool folding (filter_t f) {
+    return f != FILTER_HACKS && options_get(OPTION_GAME_VERSIONS) == GAME_VERSIONS_GROUPED;
+}
 static filter_t current = FILTER_ALL;
 static int (*stock_compare) (const void *, const void *) = NULL;   /* the browser's own sort, for the Type order */
 
@@ -103,7 +120,8 @@ static uint8_t classify (menu_t *menu, entry_t *e) {
 }
 
 static bool matches (const entry_t *e, filter_t f) {
-    return e->index >= 0 && e->index < marks_count && (marks[e->index] & (1 << f));
+    return e->index >= 0 && e->index < marks_count && (marks[e->index] & (1 << f))
+        && !((marks[e->index] & MARK_FOLDED) && folding(f));
 }
 
 static int count_for (menu_t *menu, filter_t f) {
@@ -175,6 +193,37 @@ static void mark_hacks (menu_t *menu) {
                 found++;
             }
         }
+        /* Versions: the files of each game code, under one cover. The cover
+           is the original's (a file that isn't a hack, a "[!]" good dump
+           first), or the first file if all of them are hacks. */
+        if (group) {
+            for (int i = 0; i < total; i++) {
+                group[menu->browser.list[i].index] = -1;
+            }
+            for (int i = 0; i < total; i++) {
+                if (!is_rom[i] || memcmp(codes[i], "\0\0\0\0", 4) == 0 || group[menu->browser.list[i].index] >= 0) {
+                    continue;
+                }
+                int cover = i, best = -1;
+                for (int j = i; j < total; j++) {
+                    if (is_rom[j] && memcmp(codes[i], codes[j], 4) == 0) {
+                        int score = (hack[j] ? 0 : 2) + (strstr(names[j], "[!]") ? 1 : 0);
+                        if (score > best) {
+                            best = score;
+                            cover = j;
+                        }
+                    }
+                }
+                for (int j = i; j < total; j++) {
+                    if (is_rom[j] && memcmp(codes[i], codes[j], 4) == 0) {
+                        group[menu->browser.list[j].index] = menu->browser.list[cover].index;
+                        if (j != cover) {
+                            marks[menu->browser.list[j].index] |= MARK_FOLDED;
+                        }
+                    }
+                }
+            }
+        }
         /* For checking the rules: every game code more than one file shares,
            with each file's size and what it was taken for. */
         for (int i = 0; i < total; i++) {
@@ -214,12 +263,14 @@ void games_filter_recheck_hacks (menu_t *menu) {
         return;
     }
     for (int i = 0; i < marks_count; i++) {
-        marks[i] &= ~(1 << FILTER_HACKS);
+        marks[i] &= ~((1 << FILTER_HACKS) | MARK_FOLDED);
     }
     mark_hacks(menu);   /* the whole list, hidden games included */
     if (current == FILTER_HACKS) {
         apply(menu, true);      /* the Hacks step is showing: show the new set */
     }
+    /* With Game Versions grouped, newly learned codes fold more files: done
+       at the next load, so the row doesn't change under the player. */
 }
 
 bool games_filter_is_hack (const entry_t *e) {
@@ -242,6 +293,8 @@ bool games_filter_is_hack_path (menu_t *menu, const char *path) {
 void games_filter_forget (void) {
     free(marks);
     marks = NULL;
+    free(group);
+    group = NULL;
     marks_count = 0;
     total = 0;
 }
@@ -258,6 +311,7 @@ void games_filter_after_load (menu_t *menu, int (*compare) (const void *, const 
         total = 0;
         return;
     }
+    group = malloc(total * sizeof(int16_t));   /* without it, versions simply aren't grouped */
     marks_count = total;
     for (int i = 0; i < total; i++) {
         entry_t *e = &menu->browser.list[i];
@@ -268,7 +322,7 @@ void games_filter_after_load (menu_t *menu, int (*compare) (const void *, const 
     if (current != FILTER_ALL && count_for(menu, current) == 0) {
         current = FILTER_ALL;   /* nothing of that kind any more */
     }
-    if (current != FILTER_ALL) {
+    if (current != FILTER_ALL || folding(current)) {
         apply(menu, false); /* the caller sorts next */
     }
 }
@@ -321,4 +375,32 @@ int games_filter_all_entries (int shown) {
 
 const char *games_filter_label (void) {
     return (current == FILTER_ALL) ? NULL : names[current];
+}
+
+int games_filter_versions (menu_t *menu, const entry_t *e) {
+    if (!group || !e || e->index < 0 || e->index >= marks_count || !folding(current)) {
+        return 1;
+    }
+    int n = 0;
+    int all = games_filter_all_entries(menu->browser.entries);
+    for (int i = 0; i < all; i++) {
+        int k = menu->browser.list[i].index;
+        n += (k >= 0 && k < marks_count && group[k] == e->index) ? 1 : 0;
+    }
+    return (n > 0) ? n : 1;
+}
+
+int games_filter_version_list (menu_t *menu, const entry_t *e, entry_t **out, int most) {
+    int n = 0;
+    if (!group || !e || e->index < 0 || e->index >= marks_count) {
+        return 0;
+    }
+    int all = games_filter_all_entries(menu->browser.entries);
+    for (int i = 0; i < all && n < most; i++) {
+        int k = menu->browser.list[i].index;
+        if (k >= 0 && k < marks_count && group[k] == e->index) {
+            out[n++] = &menu->browser.list[i];
+        }
+    }
+    return n;
 }

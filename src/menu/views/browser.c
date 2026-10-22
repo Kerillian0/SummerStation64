@@ -16,6 +16,7 @@
 #include "../sound.h"
 #include "../theme.h"
 #include "../controls.h"
+#include "../play_stats.h"
 #include "../carousel_art.h"
 #include "../safe_mode.h"
 #include "../folder_memory.h"
@@ -674,6 +675,64 @@ static void unmark_hacks_folder (menu_t *menu, void *arg) {
     }
 }
 
+// Game Versions: Grouped. A on a cover that stands for several files (an
+// original, its hacks, copies) lists them; the one played last is picked
+// already. Choosing one carries on as A would have (info, or starting it).
+#define VERSIONS_MAX    (12)
+static entry_t *version_entries[VERSIONS_MAX];
+static char version_names[VERSIONS_MAX][64];
+static int version_default = 0;
+static bool version_launch = false;     // the A press asked to start the game straight away
+
+static void pick_version (menu_t *menu, void *arg) {
+    menu->browser.entry = (entry_t *) arg;
+    menu->next_mode = MENU_MODE_LOAD_ROM;
+    controls_request_launch(version_launch);
+}
+
+static int versions_default_row (menu_t *menu) {
+    (void) menu;
+    return version_default;
+}
+
+static component_context_menu_t versions_menu = {
+    .row_selected = -1,     // hidden until versions_open() shows it (0 would draw an empty list)
+    .get_default_selection = versions_default_row,
+    .list = {
+        {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0},
+        COMPONENT_CONTEXT_MENU_LIST_END,
+    }
+};
+
+// Opens the list if this cover stands for several files. @return true if it did.
+static bool versions_open (menu_t *menu, entry_t *cover) {
+    if (folders_tab || cover->type != ENTRY_TYPE_ROM || games_filter_versions(menu, cover) < 2) {
+        return false;
+    }
+    int n = games_filter_version_list(menu, cover, version_entries, VERSIONS_MAX);
+    time_t latest = 0;
+    version_default = 0;
+    for (int i = 0; i < n; i++) {
+        bool hack = games_filter_is_hack(version_entries[i]);
+        snprintf(version_names[i], sizeof(version_names[i]), "%s%s", entry_file_name(version_entries[i]->name), hack ? "  (hack)" : "");
+        versions_menu.list[i].text = version_names[i];
+        versions_menu.list[i].action = pick_version;
+        versions_menu.list[i].arg = version_entries[i];
+        path_t *path = path_clone_push(menu->browser.directory, version_entries[i]->name);
+        time_t last = 0;
+        if (play_stats_get(path_get(path), &last) > 0 && last > latest) {
+            latest = last;
+            version_default = i;
+        }
+        path_free(path);
+    }
+    versions_menu.list[n].text = NULL;
+    version_launch = controls_consume_launch_request();
+    ui_components_context_menu_init(&versions_menu);
+    ui_components_context_menu_show(&versions_menu);
+    return true;
+}
+
 // Options > "Random game" on the Games tab: jump to any other game in the row
 // (within the filter in use). The row is a few dozen to a few hundred games,
 // so the console's own random numbers are plenty.
@@ -821,6 +880,9 @@ static void process (menu_t *menu) {
     if (ui_components_context_menu_process(menu, menu->browser.archive ? &archive_context_menu : &entry_context_menu)) {
         return;
     }
+    if (ui_components_context_menu_process(menu, &versions_menu)) {
+        return;     // choosing which version of a game
+    }
 
     if (settings_context_menu.row_selected >= 0 && menu->actions.settings) menu->actions.back = true; // START again closes the START menu, like B
     if (ui_components_context_menu_process(menu, &settings_context_menu)) {
@@ -906,7 +968,9 @@ static void process (menu_t *menu) {
                 menu->next_mode = MENU_MODE_MUSIC_PLAYER;
                 break;
             case ENTRY_TYPE_ROM:
-                menu->next_mode = MENU_MODE_LOAD_ROM;
+                if (!versions_open(menu, menu->browser.entry)) {
+                    menu->next_mode = MENU_MODE_LOAD_ROM;
+                }
                 break;
             case ENTRY_TYPE_ROM_CHEAT:
                 menu->next_mode = MENU_MODE_FILE_INFO; // FIXME: Implement MENU_MODE_LOAD_ROM_CHEAT.
@@ -1446,13 +1510,24 @@ void carousel_draw (menu_t *menu) {
     const char *title = display_name(selected_entry);
     // Sorted by developer or date: the line under the name starts with which, ahead of the badges.
     const char *detail = (covers->list == menu->browser.list) ? sort_order_detail(menu->browser.directory, selected_entry) : NULL;
+    // Game Versions: Grouped. A cover standing for several files says how many.
+    int versions = (covers->list == menu->browser.list) ? games_filter_versions(menu, selected_entry) : 1;
+    static char lead_text[64];
+    if (versions > 1) {
+        if (detail) {
+            snprintf(lead_text, sizeof(lead_text), "%s  %d versions", detail, versions);
+        } else {
+            snprintf(lead_text, sizeof(lead_text), "%d versions", versions);
+        }
+    }
+    const char *lead = (versions > 1) ? lead_text : detail;
     bool hack = (covers->list == menu->browser.list) && games_filter_is_hack(selected_entry); // a changed copy of another game
     if (covers->list != menu->browser.list) { // Recent and Favorites: ask the Games list by path
         path_t *selected_path = covers->path(menu, covers->selected);
         hack = games_filter_is_hack_path(menu, path_get(selected_path));
         path_free(selected_path);
     }
-    games_ui_title_panel_draw(title, carousel_kind_label(selected_entry->type), detail, hack, game_facts_update(menu));
+    games_ui_title_panel_draw(title, carousel_kind_label(selected_entry->type), lead, hack, game_facts_update(menu));
     const char *letter_from = !detail ? entry_file_name(selected_entry->name) : (options_get(OPTION_SORT_ORDER) == SORT_DEVELOPER) ? detail : " "; // the letter of what the list is sorted by; none for dates
     games_ui_position_draw(letter_from, covers->selected, covers->entries, (covers->list == menu->browser.list) ? games_filter_label() : NULL); // the file name: that is what the list is sorted by
 }
@@ -1599,6 +1674,7 @@ static void draw (menu_t *menu, surface_t *d) {
 #endif
 
     ui_components_context_menu_draw(menu->browser.archive ? &archive_context_menu : &entry_context_menu);
+    ui_components_context_menu_draw(&versions_menu);
 
     ui_components_context_menu_draw(&settings_context_menu);
 
@@ -1629,6 +1705,7 @@ void view_browser_init (menu_t *menu) {
         ui_components_context_menu_init(&entry_context_menu);
         ui_components_context_menu_init(&archive_context_menu);
         ui_components_context_menu_init(&settings_context_menu);
+        ui_components_context_menu_init(&versions_menu);       // empty, so hidden
         if (load_directory(menu)) {
             path_free(menu->browser.directory);
             menu->browser.directory = path_init(menu->storage_prefix, "");

@@ -117,6 +117,10 @@ void controls_rom_actions (const char **tap, const char **hold) {
     }
 }
 
+void controls_request_launch (bool launch) {
+    launch_request = launch;
+}
+
 bool controls_consume_launch_request (void) {
     bool request = launch_request;
     launch_request = false;

@@ -52,4 +52,7 @@ void controls_rom_actions (const char **tap, const char **hold);
  */
 bool controls_consume_launch_request (void);
 
+/** Ask again for what a consumed request asked for (the versions picker passes it on). */
+void controls_request_launch (bool launch);
+
 #endif /* CONTROLS_H__ */

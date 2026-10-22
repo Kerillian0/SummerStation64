@@ -33,6 +33,7 @@ static const option_info_t option_info[OPTION_COUNT] = {
     [OPTION_SELECTION] = { "selection", 1 },    /* corners */
     [OPTION_BOX_HOVER] = { "box_hover", 3 },    /* float and sway */
     [OPTION_COVER_STYLE] = { "cover_style", 0 }, /* boxes */
+    [OPTION_GAME_VERSIONS] = { "game_versions", 0 }, /* separate */
 };
 
 static int values[OPTION_COUNT];
