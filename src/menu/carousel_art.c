@@ -310,18 +310,45 @@ static component_boxart_t *art_load (menu_t *menu, int index, file_image_type_t 
 /* ---------- the back of a cartridge ---------- */
 
 /* Every cartridge's back is the same picture (rom:/cart_back.sprite, drawn
-   by assets/images/make_icons.py), tinted to its plastic. Loaded the first
-   time a cartridge is turned over; let go when the covers are left. */
+   by assets/images/make_icons.py) in grey plastic. When a cartridge is
+   turned over, the plastic round the label is colored once to match that
+   cartridge (a gold Zelda gets a gold back); the label keeps its own grey.
+   Loaded the first time a cartridge is turned over, loaded again for one
+   of another color, let go when the covers are left. */
 #define CART_BACK_PATH      "rom:/cart_back.sprite"
 #define CART_BACK_PLASTIC   (176)           /* the picture's own plastic grey */
 #define CART_BACK_MIN_FREE  (160 * 1024)
+/* The label and its rim, across the picture (make_icons.py draws it there). */
+#define CART_LABEL_X0       (0.14f)
+#define CART_LABEL_X1       (0.86f)
+#define CART_LABEL_Y0       (0.28f)
+#define CART_LABEL_Y1       (0.84f)
 static sprite_t *cart_back_sprite = NULL;
 static surface_t cart_back_surface;
+static color_t cart_back_color;     /* the plastic color it was given */
 
-static bool cart_back_load (void) {
+/* The color of this cartridge's plastic, against the picture's grey. */
+static color_t cart_back_tint (slot_t *slot) {
+    int r = slot->body.r * 255 / CART_BACK_PLASTIC;
+    int g = slot->body.g * 255 / CART_BACK_PLASTIC;
+    int b = slot->body.b * 255 / CART_BACK_PLASTIC;
+    return RGBA32(r > 255 ? 255 : r, g > 255 ? 255 : g, b > 255 ? 255 : b, 0xFF);
+}
+
+static void cart_back_unload (void) {
     if (cart_back_sprite) {
+        rspq_wait();    /* nothing may still be drawing from it */
+        sprite_free(cart_back_sprite);
+        cart_back_sprite = NULL;
+    }
+}
+
+static bool cart_back_load (slot_t *slot) {
+    color_t tint = cart_back_tint(slot);
+    if (cart_back_sprite && tint.r == cart_back_color.r && tint.g == cart_back_color.g && tint.b == cart_back_color.b) {
         return true;
     }
+    cart_back_unload();     /* colored for another cartridge: start again from the grey */
     if (!memory_free_for(CART_BACK_MIN_FREE)) {
         return false;   /* sprite_load stops the menu if memory runs out */
     }
@@ -332,15 +359,65 @@ static bool cart_back_load (void) {
     fclose(f);
     cart_back_sprite = sprite_load(CART_BACK_PATH);
     cart_back_surface = sprite_get_pixels(cart_back_sprite);
+    cart_back_color = tint;
+
+    surface_t *image = &cart_back_surface;
+    if (surface_get_format(image) == FMT_RGBA16) {
+        int w = image->width, h = image->height;
+        int lx0 = (int) (w * CART_LABEL_X0), lx1 = (int) (w * CART_LABEL_X1);
+        int ly0 = (int) (h * CART_LABEL_Y0), ly1 = (int) (h * CART_LABEL_Y1);
+        uint16_t *px = image->buffer;
+        int stride = image->stride / 2;
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                if (x >= lx0 && x < lx1 && y >= ly0 && y < ly1) {
+                    continue;   /* the label keeps its colors */
+                }
+                uint16_t p = px[y * stride + x];
+                if (!(p & 1)) {
+                    continue;
+                }
+                int r = (((p >> 11) & 31) * tint.r) / 255;
+                int g = (((p >> 6) & 31) * tint.g) / 255;
+                int b = (((p >> 1) & 31) * tint.b) / 255;
+                px[y * stride + x] = (r << 11) | (g << 6) | (b << 1) | 1;
+            }
+        }
+        data_cache_hit_writeback(image->buffer, image->stride * h);
+    }
     return true;
 }
 
-static void cart_back_free (void) {
-    if (cart_back_sprite) {
-        rspq_wait();    /* nothing may still be drawing from it */
-        sprite_free(cart_back_sprite);
-        cart_back_sprite = NULL;
+/* A cartridge's bottom with its circuit board (rom:/cart_bottom.sprite, 2 KB),
+   loaded the first time a 3D cartridge is drawn. */
+#define CART_BOTTOM_PATH    "rom:/cart_bottom.sprite"
+static sprite_t *cart_bottom_sprite = NULL;
+static surface_t cart_bottom_surface;
+static bool cart_bottom_tried = false;
+
+static surface_t *cart_bottom (void) {
+    if (!cart_bottom_sprite && !cart_bottom_tried) {
+        cart_bottom_tried = true;
+        FILE *f = fopen(CART_BOTTOM_PATH, "rb");
+        if (f && memory_free_for(CART_BACK_MIN_FREE)) {
+            cart_bottom_sprite = sprite_load(CART_BOTTOM_PATH);
+            cart_bottom_surface = sprite_get_pixels(cart_bottom_sprite);
+        }
+        if (f) {
+            fclose(f);
+        }
     }
+    return cart_bottom_sprite ? &cart_bottom_surface : NULL;
+}
+
+static void cart_back_free (void) {
+    cart_back_unload();
+    if (cart_bottom_sprite) {
+        rspq_wait();
+        sprite_free(cart_bottom_sprite);
+        cart_bottom_sprite = NULL;
+    }
+    cart_bottom_tried = false;
 }
 
 /* The picture a cover shows right now: a turned-over cartridge shows the shared back. */
@@ -352,14 +429,6 @@ static surface_t *slot_image (slot_t *slot) {
     return shows_cart_back(slot) ? &cart_back_surface : slot->art->image;
 }
 
-/* The back's grey made the color of this cartridge's plastic. */
-static color_t cart_back_tint (slot_t *slot) {
-    int r = slot->body.r * 255 / CART_BACK_PLASTIC;
-    int g = slot->body.g * 255 / CART_BACK_PLASTIC;
-    int b = slot->body.b * 255 / CART_BACK_PLASTIC;
-    return RGBA32(r > 255 ? 255 : r, g > 255 ? 255 : g, b > 255 ? 255 : b, 0xFF);
-}
-
 /* ---------- flipping the selected box ---------- */
 
 bool carousel_art_flip (void) {
@@ -367,7 +436,7 @@ bool carousel_art_flip (void) {
         return false;
     }
     slot_t *center = slot_find(art_menu, center_index);
-    if (!center || !art_ready(center->art) || (center->cart && !cart_back_load())) {
+    if (!center || !art_ready(center->art) || (center->cart && !cart_back_load(center))) {
         return false;
     }
     flip = FLIP_CLOSING;
@@ -568,9 +637,7 @@ bool carousel_art_draw_box (menu_t *menu, int index, int x0, int y0, int w, int 
         art.cartridge = true;
         art.top = art.left = art.right = NULL;
         art.side = slot->body;
-        if (ready && shows_cart_back(slot)) {
-            art.front_tint = cart_back_tint(slot);
-        }
+        art.bottom = cart_bottom();
     }
     color_t tint;
     if (slot->cart) {
@@ -632,6 +699,7 @@ bool carousel_art_draw_side_box (menu_t *menu, int index, int x0, int y0, int w,
         art.cartridge = true;
         art.top = NULL;
         art.side = slot->body;
+        art.bottom = cart_bottom();
     } else if (carousel_art_tint_state(menu, index, &tint) == ART_TINT_KNOWN) {
         art.side = tint;
     }
@@ -843,7 +911,6 @@ bool carousel_art_draw (menu_t *menu, int index, int x0, int y0, int w, int h, i
     }
 
     surface_t *image = slot_image(slot);
-    color_t tint = shows_cart_back(slot) ? cart_back_tint(slot) : RGBA32(0xFF, 0xFF, 0xFF, 0xFF);
 
     /* Fit the art to the cover at its full width, then squash it sideways
        by the same amount the cover itself is squashed during a flip. */
@@ -866,15 +933,15 @@ bool carousel_art_draw (menu_t *menu, int index, int x0, int y0, int w, int h, i
         if (slot->cart) {
             rdpq_mode_alphacompare(128);    /* a cartridge's see-through edges */
         }
-        if (alpha >= 255 && art_bright >= 255 && tint.r == 255 && tint.g == 255 && tint.b == 255) {
+        if (alpha >= 255 && art_bright >= 255) {
             rdpq_mode_combiner(RDPQ_COMBINER_TEX);
         } else if (alpha >= 255) {
             /* Darkened as it is drawn (the fade-in): costs the chip nothing extra. */
-            rdpq_set_prim_color(RGBA32(tint.r * art_bright / 255, tint.g * art_bright / 255, tint.b * art_bright / 255, 0xFF));
+            rdpq_set_prim_color(RGBA32(art_bright, art_bright, art_bright, 0xFF));
             rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);
         } else {
             /* See-through, like the placeholder covers at the sides. */
-            rdpq_set_prim_color(RGBA32(tint.r * art_bright / 255, tint.g * art_bright / 255, tint.b * art_bright / 255, alpha));
+            rdpq_set_prim_color(RGBA32(art_bright, art_bright, art_bright, alpha));
             rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);
             rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
         }

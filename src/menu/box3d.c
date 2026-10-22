@@ -44,13 +44,14 @@ static bool draw_cutout = false;
 
 /* The outline every N64 cartridge shares, across its picture from (0, 0) at
    the top left to (1, 1): straight sides, a flat bottom, an arched top.
-   Traced from the pack's cartridge pictures (all alike), clockwise. */
+   Clockwise; the last stretch, back to the first point, is the bottom,
+   where the circuit board shows. */
 static const float cart_outline[][2] = {
-    { 0.0f, 1.0f }, { 0.0f, 0.16f },
-    { 0.083f, 0.094f }, { 0.166f, 0.066f }, { 0.248f, 0.038f }, { 0.331f, 0.019f }, { 0.414f, 0.009f },
-    { 0.497f, 0.0f },
-    { 0.586f, 0.009f }, { 0.669f, 0.019f }, { 0.752f, 0.038f }, { 0.834f, 0.066f }, { 0.917f, 0.094f },
-    { 1.0f, 0.16f }, { 1.0f, 1.0f },
+/* 15 points, made by assets/images/cart_outline.py */
+    { 0.0000f, 1.0000f }, { 0.0000f, 0.1600f }, { 0.0830f, 0.0940f }, { 0.1660f, 0.0660f },
+    { 0.2480f, 0.0380f }, { 0.3310f, 0.0190f }, { 0.4140f, 0.0090f }, { 0.4970f, 0.0000f },
+    { 0.5860f, 0.0090f }, { 0.6690f, 0.0190f }, { 0.7520f, 0.0380f }, { 0.8340f, 0.0660f },
+    { 0.9170f, 0.0940f }, { 1.0000f, 0.1600f }, { 1.0000f, 1.0000f },
 };
 #define CART_POINTS     ((int) (sizeof(cart_outline) / sizeof(cart_outline[0])))
 
@@ -109,9 +110,6 @@ static void vertex (float *v, point_t p, float s, float t) {
 /* A face with its picture. The picture is far larger than the chip's 4 KB
    texture memory, so it goes in bands of rows, as for Angled Side Covers.
    @return false if the picture is in a format this can't draw. */
-/* A color the front picture is multiplied by (a cartridge's back, tinted to its plastic). */
-static color_t draw_tint = { 255, 255, 255, 255 };
-
 static bool face_picture (const int *face, surface_t *image, float shade, int bright) {
     tex_format_t format = surface_get_format(image);
     if (format != FMT_RGBA16 && format != FMT_RGBA32) {
@@ -138,11 +136,10 @@ static bool face_picture (const int *face, surface_t *image, float shade, int br
     if (k > 255) {
         k = 255;
     }
-    bool tinted = (draw_tint.r & draw_tint.g & draw_tint.b) != 255;
-    if (k >= 255 && draw_alpha >= 255 && !tinted) {
+    if (k >= 255 && draw_alpha >= 255) {
         rdpq_mode_combiner(RDPQ_COMBINER_TEX);
     } else {
-        rdpq_set_prim_color(RGBA32(draw_tint.r * k / 255, draw_tint.g * k / 255, draw_tint.b * k / 255, draw_alpha));
+        rdpq_set_prim_color(RGBA32(k, k, k, draw_alpha));
         rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);
         if (draw_alpha < 255) {
             rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
@@ -176,9 +173,16 @@ static point_t turn_point (float x, float y, float z, float yaw, float pitch) {
 }
 
 /* A cartridge's edges: its outline pushed back to its thickness, one wall
-   per stretch of the outline, each shaded by which way it faces (lit from
-   above). Drawn furthest first, so nearer walls cover further ones. */
-static void cartridge_walls (float bw, float bh, float bd, float yaw, float pitch, color_t color, int bright) {
+   per stretch of the outline. Every wall is textured with a patch of
+   plastic from the picture on its front, so it is the same material, and
+   keeps one shade whichever way the cartridge turns: the top as bright as
+   the front, the sides a little darker, the bottom a little more. The
+   bottom shows the circuit board (art->bottom). Drawn furthest first, so
+   nearer walls cover further ones. */
+#define CART_SIDE_SHADE     (0.90f)
+#define CART_BOTTOM_SHADE   (0.80f)
+
+static void cartridge_walls (const box3d_art_t *art, float bw, float bh, float bd, float yaw, float pitch) {
     point_t saved[8];       /* the walls borrow the corner list; the front is drawn from it afterwards */
     memcpy(saved, corners, sizeof(saved));
     point_t front[CART_POINTS], back[CART_POINTS];
@@ -188,20 +192,21 @@ static void cartridge_walls (float bw, float bh, float bd, float yaw, float pitc
         front[i] = turn_point(x, y, -bd / 2, yaw, pitch);
         back[i] = turn_point(x, y, bd / 2, yaw, pitch);
     }
+
+    /* The walls facing the viewer, furthest first. */
+    static const int quad[4] = { 0, 1, 2, 3 };
     int order[CART_POINTS];
     float depth[CART_POINTS];
     int count = 0;
     for (int i = 0; i < CART_POINTS; i++) {
         int j = (i + 1) % CART_POINTS;
-        /* Seen from outside: the same corner order as the box's faces. */
         corners[0] = front[i]; corners[1] = back[i]; corners[2] = back[j]; corners[3] = front[j];
-        static const int wall[4] = { 0, 1, 2, 3 };
-        if (!facing(wall)) {
+        if (!facing(quad)) {
             continue;
         }
         float z = front[i].z + front[j].z + back[i].z + back[j].z;
         int k = count++;
-        while (k > 0 && depth[k - 1] < z) {     /* furthest first */
+        while (k > 0 && depth[k - 1] < z) {
             order[k] = order[k - 1];
             depth[k] = depth[k - 1];
             k--;
@@ -209,20 +214,65 @@ static void cartridge_walls (float bw, float bh, float bd, float yaw, float pitc
         order[k] = i;
         depth[k] = z;
     }
+
+    /* The plastic patch: a little of the picture's left grip. */
+    surface_t *plastic = art->front;
+    bool textured = plastic && (surface_get_format(plastic) == FMT_RGBA16);
+    int s0 = 0, s1 = 0, t0 = 0, t1 = 0;
+    if (textured) {
+        s0 = plastic->width * 3 / 100; s1 = plastic->width * 8 / 100;
+        t0 = plastic->height * 42 / 100; t1 = plastic->height * 58 / 100;
+    }
+    bool pcb = textured && art->bottom && surface_get_format(art->bottom) == FMT_RGBA16;
+    int loaded = 0;     /* which texture the chip holds: 0 none, 1 plastic, 2 circuit board */
+
+    rdpq_set_mode_standard();
+    rdpq_mode_filter(FILTER_BILINEAR);
+    rdpq_mode_persp(true);
+    rdpq_mode_combiner(textured ? RDPQ_COMBINER_TEX_FLAT : RDPQ_COMBINER_FLAT);
+    if (draw_alpha < 255) {
+        rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+    }
     for (int n = 0; n < count; n++) {
         int i = order[n];
         int j = (i + 1) % CART_POINTS;
-        /* Which way the wall faces, across the picture: up is lit, down is dark. */
+        /* Which way the wall faces, across the picture: up, sideways or down. */
         float dx = cart_outline[j][0] - cart_outline[i][0];
         float dy = cart_outline[j][1] - cart_outline[i][1];
-        float length = sqrtf(dx * dx + dy * dy);
-        float nx = dy / length, ny = -dx / length;
-        float light = -0.45f * nx - 0.89f * ny;
-        float shade = 0.5f + 0.4f * ((light > 0.0f) ? light : 0.0f);
-        corners[0] = front[i]; corners[1] = back[i]; corners[2] = back[j]; corners[3] = front[j];
-        static const int wall[4] = { 0, 1, 2, 3 };
-        face_plain(wall, shaded(color, shade, bright));
+        float shade = (dx > 0.0f) ? 1.0f : (dx < 0.0f) ? CART_BOTTOM_SHADE : CART_SIDE_SHADE;
+        (void) dy;
+        int k = (int) (shade * art->bright);
+
+        bool board = pcb && (i == CART_POINTS - 1);
+        if (!textured) {
+            rdpq_set_prim_color(RGBA32(art->side.r * k / 255, art->side.g * k / 255, art->side.b * k / 255, draw_alpha));
+        } else {
+            if (board && loaded != 2) {
+                rdpq_tex_upload(TILE0, art->bottom, NULL);
+                loaded = 2;
+            } else if (!board && loaded != 1) {
+                rdpq_tex_upload_sub(TILE0, plastic, NULL, s0, t0, s1, t1);
+                loaded = 1;
+            }
+            rdpq_set_prim_color(RGBA32(k, k, k, draw_alpha));
+        }
+        float ss0 = board ? 0 : s0, ss1 = board ? art->bottom->width : s1;
+        float tt0 = board ? 0 : t0, tt1 = board ? art->bottom->height : t1;
+        float v0[5], v1[5], v2[5], v3[5];
+        vertex(v0, front[i], ss0, tt0);
+        vertex(v1, back[i], ss0, tt1);
+        vertex(v2, back[j], ss1, tt1);
+        vertex(v3, front[j], ss1, tt0);
+        if (textured) {
+            rdpq_triangle(&TRIFMT_TEX, v0, v1, v2);
+            rdpq_triangle(&TRIFMT_TEX, v0, v2, v3);
+        } else {
+            float f0[2] = { v0[0], v0[1] }, f1[2] = { v1[0], v1[1] }, f2[2] = { v2[0], v2[1] }, f3[2] = { v3[0], v3[1] };
+            rdpq_triangle(&TRIFMT_FILL, f0, f1, f2);
+            rdpq_triangle(&TRIFMT_FILL, f0, f2, f3);
+        }
     }
+    rdpq_mode_persp(false);
     memcpy(corners, saved, sizeof(saved));
 }
 
@@ -303,7 +353,7 @@ void box3d_draw (const box3d_art_t *art, int x0, int y0, int w, int h, const box
 
     rdpq_mode_push();
         if (amount > 0.0f && art->cartridge) {
-            cartridge_walls(bw, bh, bd, pose->yaw * amount, pose->pitch * amount, art->side, art->bright);
+            cartridge_walls(art, bw, bh, bd, pose->yaw * amount, pose->pitch * amount);
         } else if (amount > 0.0f) {
             /* The bottom carries the same label as the top. */
             face(faces[FACE_TOP], art->top, art->side, TOP_SHADE, art->bright);
@@ -313,12 +363,8 @@ void box3d_draw (const box3d_art_t *art, int x0, int y0, int w, int h, const box
         }
         if (art->front && facing(faces[FACE_FRONT])) {
             draw_cutout = art->cartridge;
-            if (art->front_tint.a) {
-                draw_tint = art->front_tint;
-            }
             face_picture(faces[FACE_FRONT], art->front, 1.0f, art->bright);
             draw_cutout = false;
-            draw_tint = (color_t) { 255, 255, 255, 255 };
         }
     rdpq_mode_pop();
 }

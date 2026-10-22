@@ -27,7 +27,7 @@ typedef struct {
     int alpha;          /**< 255 (or 0) solid, lower lets the background show through */
     bool cartridge;     /**< a cartridge: its outline pushed back to its thickness, and its
                              front picture has see-through edges */
-    color_t front_tint; /**< multiplies the front picture, if its alpha is not 0 */
+    surface_t *bottom;  /**< a cartridge's bottom with its circuit board, or NULL */
     bool back;          /**< the back of the box is showing: the side pictures change places (the top
                              and bottom labels stay as they are, reading the right way up) */
 } box3d_art_t;

@@ -21,7 +21,10 @@ The icons are kept as small as the console allows:
 - heart.png: 16 x 14, white in 16 shades (112 bytes), tinted by the menu.
 - cart_back.png: 158 x 107, the back of a game cartridge in light grey
   (thousands of colors, 34 KB in memory while a cartridge shows its back).
-  The menu tints it to each cartridge's plastic.
+  The menu tints it to each cartridge's plastic. Its outline comes from
+  cart_outline.py.
+- cart_bottom.png: 64 x 16, a cartridge's bottom with the circuit board's
+  edge (2 KB, while cartridges are shown in 3D).
 - button.png: a 20 x 20 white disc in 16 shades (4 bits a pixel: 200 bytes).
   The menu tints it for each button and stretches it into the longer
   shapes, so one picture serves every button.
@@ -178,59 +181,106 @@ corner.save("corner.png")
 print(f"corner.png: {CORNER} x {CORNER}")
 
 # The back of a game cartridge, for the 3D cartridges (Show Games As:
-# Cartridges). Drawn from shapes only, after a scan the project owner gave as
-# a reference: plastic, two screws, a raised oval, a dark label panel with
-# lines standing in for its small print, the seams and the notches at the
-# bottom. No lettering or logos. Light neutral grey, so the menu can tint it
-# to each cartridge's own plastic. Its outline is the cartridges' shared one
-# (box3d.c traces the same arch).
-CART_W, CART_H = 158, 107
-ARCH = [(0.0, 0.16), (0.083, 0.094), (0.166, 0.066), (0.248, 0.038), (0.331, 0.019),
-        (0.414, 0.009), (0.497, 0.0), (0.586, 0.009), (0.669, 0.019), (0.752, 0.038),
-        (0.834, 0.066), (0.917, 0.094), (1.0, 0.16)]
+# Cartridges), redrawn after a scan the project owner supplied: plastic, two
+# screws, the raised "Nintendo" oval, the seams and notches, and the label
+# with the N64 logo, NINTENDO 64 and GAME PAK (the owner's choice to keep
+# those). The small print is made-up letters: at this size it can't be read.
+# Light neutral grey plastic, so the menu can tint it to each cartridge's own.
+# Its outline is the shared one in cart_outline.py.
+import random
+from PIL import ImageFont
+from cart_outline import outline as cart_outline, WIDTH as CART_W, HEIGHT as CART_H
+
 S = SCALE
 W, H = CART_W * S, CART_H * S
+FONT = "../fonts/Firple-Bold.ttf"
+def font(height):
+    return ImageFont.truetype(FONT, max(1, round(height * H)))
 def at(x, y):
     return (x * (W - 1), y * (H - 1))
 back = Image.new("RGBA", (W, H), (0, 0, 0, 0))
 d = ImageDraw.Draw(back)
-PLASTIC = (176, 176, 180, 255)
-SHADE = (140, 140, 146, 255)
-LIGHT = (204, 204, 208, 255)
-outline = [at(x, y) for x, y in ARCH] + [at(1, 1), at(0, 1)]
-d.polygon(outline, fill=PLASTIC)
+PLASTIC = (176, 176, 182, 255)
+SHADE = (138, 138, 146, 255)
+LIGHT = (206, 206, 212, 255)
+LABEL = (86, 88, 106, 255)
+INK = (236, 236, 240, 255)
+d.polygon([at(x, y) for x, y in cart_outline()], fill=PLASTIC)
 # the seams between the middle and the grips
 for x in (0.198, 0.802):
-    d.line([at(x, 0.04), at(x, 0.30)], fill=SHADE, width=S)
+    d.line([at(x, 0.05), at(x, 0.30)], fill=SHADE, width=S)
     d.line([at(x, 0.82), at(x, 1.0)], fill=SHADE, width=S)
 # the notches at the bottom
-for x0, x1 in ((0.06, 0.16), (0.84, 0.94)):
-    d.rectangle([at(x0, 0.87), at(x1, 1.0)], fill=SHADE)
-    d.line([at(x0, 0.87), at(x1, 0.87)], fill=LIGHT, width=S)
+for x0, x1 in ((0.063, 0.159), (0.841, 0.937)):
+    d.rounded_rectangle([at(x0, 0.87), at(x1, 1.02)], radius=0.02 * H, fill=SHADE)
+    d.line([at(x0 + 0.01, 0.875), at(x1 - 0.01, 0.875)], fill=LIGHT, width=S)
 # the screws
-for x in (0.2, 0.8):
-    cx, cy = at(x, 0.13)
-    r = 0.022 * W
-    d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(150, 130, 70, 255), outline=(100, 90, 60, 255), width=S)
-# the raised oval at the top, empty
-d.rounded_rectangle([at(0.37, 0.10), at(0.63, 0.20)], radius=0.05 * H, outline=LIGHT, width=2 * S)
-d.rounded_rectangle([at(0.375, 0.115), at(0.625, 0.19)], radius=0.04 * H, outline=SHADE, width=S)
-# the label panel: a raised rim, then the dark label
-d.rounded_rectangle([at(0.145, 0.295), at(0.855, 0.83)], radius=0.03 * H, fill=LIGHT)
-d.rounded_rectangle([at(0.155, 0.31), at(0.845, 0.815)], radius=0.025 * H, fill=(78, 80, 96, 255))
-INK = (210, 212, 220, 255)
-d.rectangle([at(0.18, 0.35), at(0.23, 0.42)], fill=INK)          # a mark at the top left
-d.rectangle([at(0.25, 0.35), at(0.40, 0.375)], fill=INK)         # a heading beside it
-d.rectangle([at(0.25, 0.395), at(0.36, 0.42)], fill=INK)
-d.rectangle([at(0.43, 0.35), at(0.62, 0.365)], fill=INK)         # a line of small print
-d.rectangle([at(0.43, 0.38), at(0.58, 0.395)], fill=INK)
-d.rectangle([at(0.70, 0.35), at(0.80, 0.37)], fill=INK)
-rows = [0.46, 0.50, 0.535, 0.60, 0.635, 0.67, 0.735, 0.77]
-for i, y in enumerate(rows):
-    right = 0.82 if i % 3 != 2 else 0.6
-    d.rectangle([at(0.18, y), at(right, y + 0.012)], fill=(170, 172, 184, 255))
-for y in (0.575, 0.71):
-    d.line([at(0.18, y), at(0.82, y)], fill=(150, 152, 166, 255), width=S)
+for x in (0.198, 0.802):
+    cx, cy = at(x, 0.131)
+    r = 0.019 * W
+    d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(160, 140, 80, 255), outline=(96, 86, 56, 255), width=S)
+    d.line([cx - r * 0.6, cy, cx + r * 0.6, cy], fill=(96, 86, 56, 255), width=S)
+    d.line([cx, cy - r * 0.6, cx, cy + r * 0.6], fill=(96, 86, 56, 255), width=S)
+# the raised oval with "Nintendo" pressed into the plastic
+d.rounded_rectangle([at(0.37, 0.10), at(0.63, 0.197)], radius=0.048 * H, outline=LIGHT, width=2 * S)
+d.rounded_rectangle([at(0.374, 0.108), at(0.626, 0.19)], radius=0.04 * H, outline=SHADE, width=S)
+f = font(0.07)
+cx, cy = at(0.5, 0.149)
+d.text((cx + S, cy + S), "Nintendo", font=f, fill=LIGHT, anchor="mm")
+d.text((cx, cy), "Nintendo", font=f, fill=SHADE, anchor="mm")
+# the label: a raised rim, then the dark label
+d.rounded_rectangle([at(0.145, 0.288), at(0.855, 0.83)], radius=0.03 * H, fill=LIGHT)
+d.rounded_rectangle([at(0.152, 0.298), at(0.848, 0.821)], radius=0.025 * H, fill=LABEL)
+# the N64 logo: four blocks making an N, seen a little from the side
+def quad(points):
+    d.polygon([at(x, y) for x, y in points], fill=INK)
+quad([(0.178, 0.345), (0.192, 0.335), (0.192, 0.41), (0.178, 0.418)])        # left pillar
+quad([(0.194, 0.335), (0.204, 0.342), (0.204, 0.41), (0.194, 0.41)])
+quad([(0.216, 0.338), (0.226, 0.331), (0.226, 0.405), (0.216, 0.413)])        # right pillar
+quad([(0.204, 0.342), (0.216, 0.338), (0.216, 0.37), (0.204, 0.374)])         # the slant between
+quad([(0.204, 0.374), (0.216, 0.37), (0.216, 0.4), (0.204, 0.37)])
+# NINTENDO 64, a rule, GAME PAK
+d.text(at(0.245, 0.333), "NINTENDO", font=font(0.04), fill=INK)
+d.text(at(0.375, 0.326), "64", font=font(0.022), fill=INK)
+d.line([at(0.245, 0.378), at(0.40, 0.378)], fill=INK, width=S)
+d.text(at(0.245, 0.385), "GAME PAK", font=font(0.04), fill=INK)
+# the small print, in made-up letters
+random.seed(64)
+def gibberish(n):
+    return " ".join("".join(random.choice("ABCDEFGHIKLMNOPRSTUVW") for _ in range(random.randint(2, 8))) for _ in range(n))
+small = font(0.02)
+for i, y in enumerate((0.333, 0.358, 0.383)):
+    d.text(at(0.425, y), gibberish(3 if i else 4), font=small, fill=INK)
+d.text(at(0.70, 0.333), "NUS-EUR-1", font=font(0.03), fill=INK)
+d.text(at(0.645, 0.365), "CE", font=font(0.10), fill=INK)
+d.text(at(0.75, 0.43), "D-63760", font=small, fill=INK)
+d.text(at(0.75, 0.455), gibberish(1), font=small, fill=INK)
+heading = font(0.026)
+for title, y0, lines in (("CAUTION", 0.43, 4), ("ATTENTION", 0.565, 4), ("WICHTIG", 0.698, 4)):
+    d.text(at(0.177, y0), title, font=heading, fill=INK)
+    for n in range(lines):
+        y = y0 + 0.03 + n * 0.022
+        words = 4 if (title == "CAUTION" and n == 0) else (9 if n % 2 == 0 else 7)    # the first line stops short of the CE mark
+        d.text(at(0.177, y), "\u2022 " + gibberish(words), font=small, fill=INK)
+for y in (0.557, 0.69):
+    d.line([at(0.177, y), at(0.83, y)], fill=INK, width=max(1, S // 2))
 back = shrink(back, CART_W, CART_H)
 back.save("cart_back.png")
 print(f"cart_back.png: {CART_W} x {CART_H}")
+
+# The bottom of a cartridge, for the 3D cartridges tipped up: the plastic
+# rim, the dark slot, and the green circuit board's edge with its gold
+# contacts. 64 x 16, the slot's length across, the cartridge's thickness down.
+BOTTOM_W, BOTTOM_H = 64, 16
+bottom = Image.new("RGB", (BOTTOM_W * S, BOTTOM_H * S), PLASTIC[:3])
+d = ImageDraw.Draw(bottom)
+def bt(x, y):
+    return (x * (BOTTOM_W * S - 1), y * (BOTTOM_H * S - 1))
+d.rectangle([bt(0.13, 0.22), bt(0.87, 0.82)], fill=(30, 30, 34))                   # the slot
+d.rectangle([bt(0.15, 0.40), bt(0.85, 0.66)], fill=(34, 110, 60))                  # the board's edge
+for i in range(25):                                                                 # gold contacts
+    x = 0.165 + i * 0.0275
+    d.rectangle([bt(x, 0.42), bt(x + 0.016, 0.64)], fill=(214, 176, 72))
+bottom = shrink(bottom, BOTTOM_W, BOTTOM_H)
+bottom.save("cart_bottom.png")
+print(f"cart_bottom.png: {BOTTOM_W} x {BOTTOM_H}")
