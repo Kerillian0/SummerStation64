@@ -86,11 +86,15 @@ built in.
 - **v0.2** ✅ released: the Companion (Theme Maker, Card Prep, Guide),
   dump check marks, full descriptions, players and co-op/versus, new themes,
   angled side covers, 300 KB more free memory.
-- **Next:** 3D boxes with a hover, and cartridges.
+- **Next release** (built, being tested): 3D boxes and cartridges that hover,
+  turn over, and can be turned by hand with B, with 3D side covers too.
 - **v0.3** organizing: one cover per game with a version picker for hacks,
-  collections, search, screenshots.
+  collections, search, screenshots and animated GIF captures.
 - **v0.4** themes: theme picker, sound and font packs, more seasonal themes.
 - **v0.5** polish: setup wizard, CRT test patterns, accessibility.
+- **After v0.5:** extra support for the **ModRetro M64** and **Analogue 3D**:
+  32-bit color, 60 frames a second, a layout that uses the safe area of HDMI
+  displays, and widescreen if needed.
 
 ## 🔧 Building from source
 
