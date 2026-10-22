@@ -163,7 +163,12 @@ static void face (const int *corners_of, surface_t *image, color_t color, float 
 }
 
 void box3d_draw (const box3d_art_t *art, int x0, int y0, int w, int h, const box3d_pose_t *pose) {
-    if (!art || !pose || !art->front || art->front->width <= 0 || art->front->height <= 0 || w < 2 || h < 2) {
+    if (!art || !pose) {
+        return;
+    }
+    float bw = art->front ? art->front->width : art->front_w;
+    float bh = art->front ? art->front->height : art->front_h;
+    if (bw <= 0 || bh <= 0 || w < 2 || h < 2) {
         return;
     }
     float amount = pose->amount;
@@ -173,8 +178,6 @@ void box3d_draw (const box3d_art_t *art, int x0, int y0, int w, int h, const box
 
     /* The box in its own units: the front picture's size, and its depth from
        the top strip's shape, or a guess. */
-    float bw = art->front->width;
-    float bh = art->front->height;
     float longest = (bw > bh) ? bw : bh;
     float bd = (art->top && art->top->width > 0)
         ? bw * art->top->height / art->top->width
@@ -218,6 +221,8 @@ void box3d_draw (const box3d_art_t *art, int x0, int y0, int w, int h, const box
             face(faces[FACE_LEFT], art->back ? art->right : art->left, art->side, SIDE_SHADE, art->bright);
             face(faces[FACE_RIGHT], art->back ? art->left : art->right, art->side, SIDE_SHADE, art->bright);
         }
-        face_picture(faces[FACE_FRONT], art->front, 1.0f, art->bright);
+        if (art->front && facing(faces[FACE_FRONT])) {
+            face_picture(faces[FACE_FRONT], art->front, 1.0f, art->bright);
+        }
     rdpq_mode_pop();
 }

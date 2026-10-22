@@ -17,7 +17,8 @@
 #include <libdragon.h>
 
 typedef struct {
-    surface_t *front;   /**< the cover (required) */
+    surface_t *front;   /**< the cover; NULL for a moment in a flip: then front_w x front_h gives its size */
+    int front_w, front_h;
     surface_t *top;     /**< the top strip, or NULL for plain color */
     surface_t *left;    /**< the left side, or NULL for plain color */
     surface_t *right;   /**< the right side, or NULL for plain color */

@@ -40,6 +40,8 @@
 
 /* Half of a flip: the time to squash the box flat, and again to open it. */
 #define FLIP_HALF_MS        (110)
+/* With the 3D Box the box spins round instead: a little slower, so the turn reads. */
+#define BOX_FLIP_HALF_MS    (180)
 
 #define ROM_TITLE_LENGTH    (GAME_INDEX_TITLE_LENGTH)
 
@@ -262,8 +264,10 @@ bool carousel_art_flip (void) {
     }
     flip = FLIP_CLOSING;
     flip_at = get_ticks_ms();
-    box_since = 0;          /* turned over flat, then opens out into a box again */
-    box_from_flat = true;
+    if (!features_enabled(FEATURE_BOX_3D)) {
+        box_since = 0;      /* turned over flat, then opens out into a box again */
+        box_from_flat = true;
+    }
     return true;
 }
 
@@ -273,7 +277,7 @@ static void flip_update (menu_t *menu) {
         return;
     }
 
-    uint64_t half = features_enabled(FEATURE_CAROUSEL_ANIMATION) ? FLIP_HALF_MS : 0;
+    uint64_t half = !features_enabled(FEATURE_CAROUSEL_ANIMATION) ? 0 : (features_enabled(FEATURE_BOX_3D) ? BOX_FLIP_HALF_MS : FLIP_HALF_MS);
     uint64_t now = get_ticks_ms();
     slot_t *center = slot_find(menu, center_index);
 
@@ -314,7 +318,7 @@ static void flip_update (menu_t *menu) {
 }
 
 float carousel_art_flip_width (void) {
-    float t = (float) (get_ticks_ms() - flip_at) / FLIP_HALF_MS;
+    float t = (float) (get_ticks_ms() - flip_at) / (features_enabled(FEATURE_BOX_3D) ? BOX_FLIP_HALF_MS : FLIP_HALF_MS);
     if (t > 1.0f) {
         t = 1.0f;
     }
@@ -402,9 +406,21 @@ static void edges_update (menu_t *menu, uint64_t now) {
     }
 }
 
+/* The selected box's front picture size, kept for the moment in a 3D flip
+   when one side has been let go and the other isn't in yet. */
+static int box_front_w = 0, box_front_h = 0;
+
 bool carousel_art_draw_box (menu_t *menu, int index, int x0, int y0, int w, int h) {
     slot_t *slot = slot_find(menu, index);
-    if (index != center_index || !slot || !art_ready(slot->art) || flip != FLIP_NONE) {
+    bool flipping = (flip != FLIP_NONE);
+    if (index != center_index || !slot) {
+        return false;
+    }
+    bool ready = art_ready(slot->art);
+    if (ready) {
+        box_front_w = slot->art->image->width;
+        box_front_h = slot->art->image->height;
+    } else if (!flipping || box_front_w <= 0) {
         return false;
     }
 
@@ -420,7 +436,9 @@ bool carousel_art_draw_box (menu_t *menu, int index, int x0, int y0, int w, int 
     float amount = 1.0f - (1.0f - t) * (1.0f - t);     /* eases out */
 
     box3d_art_t art = {
-        .front = slot->art->image,
+        .front = ready ? slot->art->image : NULL,
+        .front_w = box_front_w,
+        .front_h = box_front_h,
         .side = theme_get()->panel,
         .bright = art_bright,
     };
@@ -429,7 +447,9 @@ bool carousel_art_draw_box (menu_t *menu, int index, int x0, int y0, int w, int 
     art.right = art_ready(edges[2]) ? edges[2]->image : NULL;
     art.back = (side != IMAGE_BOXART_FRONT);
     color_t tint;
-    if (carousel_art_tint_state(menu, index, &tint) == ART_TINT_KNOWN) {
+    if (slot->tint_state == 2) {
+        art.side = slot->tint;      /* worked out already: keeps its color through a flip */
+    } else if (carousel_art_tint_state(menu, index, &tint) == ART_TINT_KNOWN) {
         art.side = tint;
     }
     box3d_pose_t pose = { .yaw = BOX_YAW, .pitch = BOX_PITCH, .amount = amount, .fit_yaw = BOX_YAW, .fit_pitch = BOX_PITCH };
@@ -440,6 +460,23 @@ bool carousel_art_draw_box (menu_t *menu, int index, int x0, int y0, int w, int 
     pose.yaw = BOX_YAW + (pose.yaw - BOX_YAW) * settle;
     pose.pitch = BOX_PITCH + (pose.pitch - BOX_PITCH) * settle;
     pose.lift *= amount * settle;
+
+    /* Turning over: the box spins on the way it already leans until it is
+       edge-on, the other side comes in, and it carries on round into place. */
+    if (flipping) {
+        float f = (float) (now - flip_at) / BOX_FLIP_HALF_MS;
+        f = (f > 1.0f) ? 1.0f : ((f < 0.0f) ? 0.0f : f);
+        f = f * f * (3.0f - 2.0f * f);      /* eases in and out */
+        float rest = pose.yaw;
+        pose.yaw = (flip == FLIP_CLOSING) ? rest + (90.0f - rest) * f
+                 : (flip == FLIP_LOADING) ? 90.0f
+                 : -90.0f + (rest + 90.0f) * f;
+        pose.fit_yaw = BOX_YAW;
+        if (!features_enabled(FEATURE_CAROUSEL_ANIMATION)) {
+            pose.yaw = rest;
+        }
+        pose.amount = 1.0f;     /* the amount scales the angles: keep the spin whole */
+    }
     box3d_draw(&art, x0, y0, w, h, &pose);
     box_motion_shown();
     return true;
