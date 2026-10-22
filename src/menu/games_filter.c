@@ -157,6 +157,17 @@ static void mark_hacks (menu_t *menu) {
             }
         }
         rom_hacks_find(names, codes, is_rom, total, hack);
+        /* Every game in a folder the player marked as holding hacks. */
+        int in_folders = 0;
+        for (int i = 0; i < total; i++) {
+            if (is_rom[i] && games_folders_entry_in_hacks(menu->browser.list[i].name)) {
+                in_folders += hack[i] ? 0 : 1;
+                hack[i] = true;
+            }
+        }
+        if (in_folders > 0) {
+            debugf("games filter: %d more hacks from folders marked as hacks\n", in_folders);
+        }
         int found = 0;
         for (int i = 0; i < total; i++) {
             if (hack[i]) {

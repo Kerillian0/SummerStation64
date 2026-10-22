@@ -42,8 +42,23 @@ bool games_folders_remove (const char *path);
 /** How many folders were added. */
 int games_folders_count (void);
 
-/** Forget every added folder (Settings > Library). */
+/** Forget every added folder, and every folder marked as hacks (Settings > Library). */
 void games_folders_clear (void);
+
+/**
+ * Folders the player has marked as holding hacks (Folders tab, Z, "Mark
+ * this folder as hacks"), kept in sd:/menu/hackfolders.txt. Every game in
+ * one is a hack: the Hack badge and the Hacks filter step, whatever its
+ * name says. The start folder or any added folder can be marked; marking
+ * another folder adds it to the Games tab too.
+ */
+bool games_folders_is_hacks (const char *path);
+
+/** Mark or unmark a folder (a full path) as holding hacks. @return false if nothing changed. */
+bool games_folders_mark_hacks (const char *path, bool marked);
+
+/** Whether a Games tab entry ("N64 Hacks/Game.z64") sits in a folder marked as hacks. */
+bool games_folders_entry_in_hacks (const char *name);
 
 /** The file's own name, without the folder in front of it. */
 const char *entry_file_name (const char *name);

@@ -647,6 +647,33 @@ static void remove_games_folder (menu_t *menu, void *arg) {
     }
 }
 
+// Folders tab, Options: mark the folder shown as holding hacks (games_folders.h).
+static void mark_hacks_folder (menu_t *menu, void *arg) {
+    const char *here = path_get(menu->browser.directory);
+    if (!folders_tab) {
+        note_show("Go to the folder in the Folders tab first.");
+    } else if (games_folders_is_hacks(here)) {
+        note_show("This folder is already marked as hacks.");
+    } else if (!games_folders_has(here) && !path_is_root(menu->browser.directory)
+               && strcasecmp(here + 3, menu->settings.default_directory ? menu->settings.default_directory : "") != 0
+               && !games_folders_add(here)) {
+        note_show("The Games tab already shows the most folders it can.");
+    } else {
+        games_folders_mark_hacks(here, true);
+        note_show("Marked. Its games are hacks in the Games tab.");
+    }
+}
+
+static void unmark_hacks_folder (menu_t *menu, void *arg) {
+    if (!folders_tab) {
+        note_show("Go to the folder in the Folders tab first.");
+    } else if (games_folders_mark_hacks(path_get(menu->browser.directory), false)) {
+        note_show("No longer marked as hacks.");
+    } else {
+        note_show("This folder was not marked as hacks.");
+    }
+}
+
 // Options > "Random game" on the Games tab: jump to any other game in the row
 // (within the filter in use). The row is a few dozen to a few hundred games,
 // so the console's own random numbers are plenty.
@@ -673,6 +700,8 @@ static component_context_menu_t entry_menu_rows = {
         { .text = "Set current directory as default", .action = set_default_directory },
         { .text = "Add this folder to Games", .action = add_games_folder },
         { .text = "Remove this folder from Games", .action = remove_games_folder },
+        { .text = "Mark this folder as hacks", .action = mark_hacks_folder },
+        { .text = "Unmark this folder as hacks", .action = unmark_hacks_folder },
         COMPONENT_CONTEXT_MENU_LIST_END,
     }
 };
@@ -686,6 +715,8 @@ static component_context_menu_t entry_context_menu = {
         { .text = "Set current directory as default", .action = set_default_directory },
         { .text = "Add this folder to Games", .action = add_games_folder },
         { .text = "Remove this folder from Games", .action = remove_games_folder },
+        { .text = "Mark this folder as hacks", .action = mark_hacks_folder },
+        { .text = "Unmark this folder as hacks", .action = unmark_hacks_folder },
         COMPONENT_CONTEXT_MENU_LIST_END,
     }
 };
