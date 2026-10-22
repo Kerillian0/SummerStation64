@@ -37,6 +37,9 @@
 /* Side covers only get art while at least this much memory stays free:
    the 256 KB reserve from the memory budget plus room to decode a picture. */
 #define SIDE_ART_MIN_FREE   (384 * 1024)
+/* Baked art needs no room to unpack a picture, only the cover itself
+   (about 35 KB), so it can go on down to the reserve plus one cover. */
+#define BAKED_SIDE_ART_MIN_FREE (288 * 1024)
 
 /* Half of a flip: the time to squash the box flat, and again to open it. */
 #define FLIP_HALF_MS        (110)
@@ -166,14 +169,10 @@ static void edges_clear (void) {
     box_since = 0;
 }
 
-static bool memory_for_side_art (void) {
+static bool memory_free_for (int bytes) {
     heap_stats_t heap;
     sys_get_heap_stats(&heap);
-    if ((heap.total - heap.used) < SIDE_ART_MIN_FREE) {
-        memory_note_cut(MEMORY_CUT_SIDE_ART);
-        return false;
-    }
-    return true;
+    return (heap.total - heap.used) >= bytes;
 }
 
 /* This menu carries baked art (one cover has come from it), so covers use
@@ -387,6 +386,9 @@ static void edges_update (menu_t *menu, uint64_t now) {
             continue;
         }
         edge_tried[i] = true;
+        if (edge_kinds[i] == IMAGE_BOXART_TOP && baked && side_boxes_on()) {
+            continue;   /* 3D Side Covers fetches every cover's top label already */
+        }
 
         const cover_list_t *covers = cover_list_current(menu);
         path_t *path = covers->path(menu, center_index);
@@ -600,10 +602,14 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
             if (index != selected && (now - changed_at) < side_settle) {
                 break; /* the side covers wait until the selection has really come to rest */
             }
+            bool side_cover = (index != selected);
             slot_t *slot = slot_find(menu, index);
             if (slot) {
                 if (!slot->card_pending || !decoder_free) {
                     continue; /* already loaded, known to have no art, or still waiting for the decoder */
+                }
+                if (side_cover && !memory_free_for(SIDE_ART_MIN_FREE)) {
+                    continue; /* its picture on the card waits until there is room to unpack it */
                 }
             } else {
                 slot = slot_free();
@@ -618,10 +624,19 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
                 slot->art = NULL;
             }
             slot->card_pending = false;
-            if (slot->entry->type == ENTRY_TYPE_ROM && (index == selected || memory_for_side_art())) {
+            if (slot->entry->type == ENTRY_TYPE_ROM) {
+                if (side_cover && !memory_free_for(BAKED_SIDE_ART_MIN_FREE)) {
+                    /* Not even room for a baked cover: leave it untried, so it
+                       is tried again once memory has been freed. */
+                    memory_note_cut(MEMORY_CUT_SIDE_ART);
+                    slot->used = false;
+                    continue;
+                }
+                /* A picture from the card needs room to unpack as well. */
+                bool card = decoder_free && (!side_cover || memory_free_for(SIDE_ART_MIN_FREE));
                 file_image_type_t which = IMAGE_BOXART_FRONT;
                 uint64_t began = get_ticks_ms();
-                slot->art = art_load(menu, index, &which, decoder_free, &slot->card_pending);
+                slot->art = art_load(menu, index, &which, card, &slot->card_pending);
                 debugf("cover: starting one took %d ms\n", (int) (get_ticks_ms() - began));
             }
             if (slot->art) {

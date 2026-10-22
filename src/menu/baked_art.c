@@ -11,7 +11,7 @@
 #include "memory_note.h"
 #include "baked_art.h"
 
-#define MAX_LOADED      (12)            /* more than the cover row and the selected box's edges ever hold at once */
+#define MAX_LOADED      (16)            /* more than the cover row and the selected box's edges ever hold at once */
 #define MIN_FREE        (160 * 1024)    /* don't load one when memory is this short */
 
 /* Which covers came from here, and the picture each one's pixels belong to. */
