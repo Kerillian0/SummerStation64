@@ -159,8 +159,12 @@ void cover_row_draw (menu_t *menu, const char *empty_message, const char *z_acti
     if (hold) {
         games_ui_hint_draw(x, 0, "Hold", hold);
     }
+    x = GAMES_UI_HINTS_X;
+    if (row_entries[row.selected].type == ENTRY_TYPE_ROM && features_enabled(FEATURE_BOX_3D)) {
+        x = games_ui_hint_draw(x, 1, "B", "Inspect");   // hold B to turn the 3D Box (box_motion.h)
+    }
     if (z_action) {
-        games_ui_hint_draw(GAMES_UI_HINTS_X, 1, "Z", z_action);
+        games_ui_hint_draw(x, 1, "Z", z_action);
     }
 }
 

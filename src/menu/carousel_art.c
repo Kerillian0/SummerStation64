@@ -9,6 +9,7 @@
 #include "game_learn.h"
 #include "baked_art.h"
 #include "box3d.h"
+#include "box_motion.h"
 #include "theme.h"
 #include "game_index.h"
 #include "cover_list.h"
@@ -380,17 +381,19 @@ bool carousel_art_draw_box (menu_t *menu, int index, int x0, int y0, int w, int 
         .side = theme_get()->panel,
         .bright = art_bright,
     };
-    /* The edges belong to the front: the back of the box is shown with plain ones. */
-    if (side == IMAGE_BOXART_FRONT) {
-        art.top = art_ready(edges[0]) ? edges[0]->image : NULL;
-        art.left = art_ready(edges[1]) ? edges[1]->image : NULL;
-        art.right = art_ready(edges[2]) ? edges[2]->image : NULL;
-    }
+    art.top = art_ready(edges[0]) ? edges[0]->image : NULL;
+    art.left = art_ready(edges[1]) ? edges[1]->image : NULL;
+    art.right = art_ready(edges[2]) ? edges[2]->image : NULL;
+    art.back = (side != IMAGE_BOXART_FRONT);
     color_t tint;
     if (carousel_art_tint_state(menu, index, &tint) == ART_TINT_KNOWN) {
         art.side = tint;
     }
-    box3d_draw(&art, x0, y0, w, h, BOX_YAW, BOX_PITCH, amount);
+    box3d_pose_t pose = { .yaw = BOX_YAW, .pitch = BOX_PITCH, .amount = amount, .fit_yaw = BOX_YAW, .fit_pitch = BOX_PITCH };
+    box_motion_pose(&pose.yaw, &pose.pitch, &pose.lift);
+    pose.lift *= amount;    /* the hover starts as the box opens out */
+    box3d_draw(&art, x0, y0, w, h, &pose);
+    box_motion_shown();
     return true;
 }
 
@@ -434,6 +437,7 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
         side = IMAGE_BOXART_FRONT;
         flip = FLIP_NONE;
         edges_clear();
+        box_motion_reset();
         center_index = selected;
         center_entry = entry;
         center_hash = hash;

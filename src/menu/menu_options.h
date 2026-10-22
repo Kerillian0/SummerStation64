@@ -25,6 +25,7 @@ typedef enum {
     OPTION_PERF_OVERLAY, /**< 1: show frame time and free memory on screen (see debug_stats.h) */
     OPTION_PAK_BADGES,  /**< a pak_badges_t value (see games_ui.h) */
     OPTION_SELECTION,   /**< a selection_style_t value (see games_ui.h) */
+    OPTION_BOX_HOVER,   /**< a box_hover_t value (see box_motion.h) */
     OPTION_COUNT
 } option_t;
 

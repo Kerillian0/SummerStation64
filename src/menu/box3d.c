@@ -16,6 +16,7 @@
 /* How much darker the top and the sides are than the front. */
 #define TOP_SHADE           (0.85f)
 #define SIDE_SHADE          (0.62f)
+#define BOTTOM_SHADE        (0.45f)
 
 typedef struct { float x, y, z; } point_t;
 
@@ -24,10 +25,11 @@ static point_t corners[8];
 
 /* Each face's corners as seen from outside it: top left, top right,
    bottom right, bottom left. */
-enum { FACE_FRONT, FACE_TOP, FACE_LEFT, FACE_RIGHT, FACE_COUNT };
+enum { FACE_FRONT, FACE_TOP, FACE_BOTTOM, FACE_LEFT, FACE_RIGHT, FACE_COUNT };
 static const int faces[FACE_COUNT][4] = {
     [FACE_FRONT] = { 0, 1, 3, 2 },
     [FACE_TOP]   = { 4, 5, 1, 0 },  /* back edge at the top of the strip */
+    [FACE_BOTTOM] = { 2, 3, 7, 6 }, /* front edge at the top, so the label reads when the box is tipped up */
     [FACE_LEFT]  = { 4, 0, 2, 6 },  /* back edge at the left */
     [FACE_RIGHT] = { 1, 5, 7, 3 },  /* front edge at the left */
 };
@@ -127,10 +129,35 @@ static bool face_picture (const int *face, surface_t *image, float shade, int br
     return true;
 }
 
-void box3d_draw (const box3d_art_t *art, int x0, int y0, int w, int h, float yaw, float pitch, float amount) {
-    if (!art || !art->front || art->front->width <= 0 || art->front->height <= 0 || w < 2 || h < 2) {
+/* Work out the box's corners at the given angles. */
+static void place (float bw, float bh, float bd, float yaw, float pitch) {
+    float turn = yaw * (float) M_PI / 180.0f;
+    float tip = pitch * (float) M_PI / 180.0f;
+    float cy = cosf(turn), sy = sinf(turn), cp = cosf(tip), sp = sinf(tip);
+    for (int i = 0; i < 8; i++) {
+        float x = (i & 1) ? bw / 2 : -bw / 2;
+        float y = (i & 2) ? bh / 2 : -bh / 2;
+        float z = (i & 4) ? bd / 2 : -bd / 2;
+        float x1 = x * cy - z * sy;     /* turned: the right edge goes back */
+        float z1 = x * sy + z * cy;
+        float y2 = y * cp - z1 * sp;    /* tipped: the top comes toward the viewer */
+        float z2 = y * sp + z1 * cp;
+        corners[i] = (point_t) { x1, y2, z2 };
+    }
+}
+
+/* Draw a face with its picture, or in plain color when it has none. */
+static void face (const int *corners_of, surface_t *image, color_t color, float shade, int bright) {
+    if (facing(corners_of) && !(image && face_picture(corners_of, image, shade, bright))) {
+        face_plain(corners_of, shaded(color, shade, bright));
+    }
+}
+
+void box3d_draw (const box3d_art_t *art, int x0, int y0, int w, int h, const box3d_pose_t *pose) {
+    if (!art || !pose || !art->front || art->front->width <= 0 || art->front->height <= 0 || w < 2 || h < 2) {
         return;
     }
+    float amount = pose->amount;
     if (amount < 0.0f) amount = 0.0f;
     if (amount > 1.0f) amount = 1.0f;
 
@@ -144,27 +171,14 @@ void box3d_draw (const box3d_art_t *art, int x0, int y0, int w, int h, float yaw
         : longest * DEPTH_GUESS;
     bd *= amount;
 
-    /* Turned and tipped toward the viewer. */
-    float turn = yaw * amount * (float) M_PI / 180.0f;
-    float tip = pitch * amount * (float) M_PI / 180.0f;
-    float cy = cosf(turn), sy = sinf(turn), cp = cosf(tip), sp = sinf(tip);
-    for (int i = 0; i < 8; i++) {
-        float x = (i & 1) ? bw / 2 : -bw / 2;
-        float y = (i & 2) ? bh / 2 : -bh / 2;
-        float z = (i & 4) ? bd / 2 : -bd / 2;
-        float x1 = x * cy - z * sy;     /* turned: the right edge goes back */
-        float z1 = x * sy + z * cy;
-        float y2 = y * cp - z1 * sp;    /* tipped: the top comes toward the viewer */
-        float z2 = y * sp + z1 * cp;
-        corners[i] = (point_t) { x1, y2, z2 };
-    }
-
-    /* Fit the whole box in the space given. */
+    /* Its size is worked out at the resting angles, so it keeps that size
+       while it sways or is turned by hand, and turns round its middle. */
     camera = longest * CAMERA_DISTANCE;
     scale = 1.0f;
     offset_x = offset_y = 0.0f;
     nearest = 1.0f;
-    float min_x = 1e9f, max_x = -1e9f, min_y = 1e9f, max_y = -1e9f, min_z = 1e9f;
+    place(bw, bh, bd, pose->fit_yaw * amount, pose->fit_pitch * amount);
+    float min_x = 1e9f, max_x = -1e9f, min_y = 1e9f, max_y = -1e9f;
     for (int i = 0; i < 8; i++) {
         float x, y, near;
         project(corners[i], &x, &y, &near);
@@ -172,26 +186,27 @@ void box3d_draw (const box3d_art_t *art, int x0, int y0, int w, int h, float yaw
         if (x > max_x) max_x = x;
         if (y < min_y) min_y = y;
         if (y > max_y) max_y = y;
-        if (corners[i].z < min_z) min_z = corners[i].z;
     }
     float fit_x = w / (max_x - min_x);
     float fit_y = h / (max_y - min_y);
     scale = (fit_x < fit_y) ? fit_x : fit_y;
     offset_x = x0 + w / 2.0f - (min_x + max_x) / 2.0f * scale;
-    offset_y = y0 + h / 2.0f - (min_y + max_y) / 2.0f * scale;
+    offset_y = y0 + h / 2.0f - (min_y + max_y) / 2.0f * scale + pose->lift;
+
+    place(bw, bh, bd, pose->yaw * amount, pose->pitch * amount);
+    float min_z = 1e9f;
+    for (int i = 0; i < 8; i++) {
+        if (corners[i].z < min_z) min_z = corners[i].z;
+    }
     nearest = min_z + camera;
 
     rdpq_mode_push();
         if (amount > 0.0f) {
-            if (facing(faces[FACE_TOP]) && !(art->top && face_picture(faces[FACE_TOP], art->top, TOP_SHADE, art->bright))) {
-                face_plain(faces[FACE_TOP], shaded(art->side, TOP_SHADE, art->bright));
-            }
-            if (facing(faces[FACE_LEFT]) && !(art->left && face_picture(faces[FACE_LEFT], art->left, SIDE_SHADE, art->bright))) {
-                face_plain(faces[FACE_LEFT], shaded(art->side, SIDE_SHADE, art->bright));
-            }
-            if (facing(faces[FACE_RIGHT]) && !(art->right && face_picture(faces[FACE_RIGHT], art->right, SIDE_SHADE, art->bright))) {
-                face_plain(faces[FACE_RIGHT], shaded(art->side, SIDE_SHADE, art->bright));
-            }
+            /* The bottom carries the same label as the top. */
+            face(faces[FACE_TOP], art->top, art->side, TOP_SHADE, art->bright);
+            face(faces[FACE_BOTTOM], art->top, art->side, BOTTOM_SHADE, art->bright);
+            face(faces[FACE_LEFT], art->back ? art->right : art->left, art->side, SIDE_SHADE, art->bright);
+            face(faces[FACE_RIGHT], art->back ? art->left : art->right, art->side, SIDE_SHADE, art->bright);
         }
         face_picture(faces[FACE_FRONT], art->front, 1.0f, art->bright);
     rdpq_mode_pop();

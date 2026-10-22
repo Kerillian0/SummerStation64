@@ -1430,6 +1430,8 @@ static void carousel_hints_draw (menu_t *menu) {
     x = GAMES_UI_HINTS_X;
     if (folders_tab && !path_is_root(menu->browser.directory)) {
         x = games_ui_hint_draw(x, 1, "B", "Back");
+    } else if (!folders_tab && menu->browser.entry && menu->browser.entry->type == ENTRY_TYPE_ROM && features_enabled(FEATURE_BOX_3D)) {
+        x = games_ui_hint_draw(x, 1, "B", "Inspect");   // hold B to turn the 3D Box (box_motion.h)
     }
     if (menu->browser.entry) {
         games_ui_hint_draw(x, 1, "Z", "Options");

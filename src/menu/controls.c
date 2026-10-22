@@ -1,7 +1,9 @@
+#include <string.h>
 #include <libdragon.h>
 
 #include "controls.h"
 #include "menu_features.h"
+#include "box_motion.h"
 
 #define HOLD_TIME_MS    (500)
 
@@ -122,6 +124,15 @@ bool controls_consume_launch_request (void) {
 }
 
 void controls_remap_tabs (menu_t *menu, bool horizontal) {
+    if (horizontal && box_motion_process(menu)) {
+        /* B is held: the stick turns the 3D Box, and nothing else happens.
+           Up still held when B is let go doesn't turn the box over. */
+        memset(&menu->actions, 0, sizeof(menu->actions));
+        filter_request = 0;
+        flip_request = false;
+        was_vertical = vertical_is_held();
+        return;
+    }
     joypad_buttons_t pressed = {0};
 
     JOYPAD_PORT_FOREACH (i) {

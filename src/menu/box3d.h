@@ -23,15 +23,20 @@ typedef struct {
     surface_t *right;   /**< the right side, or NULL for plain color */
     color_t side;       /**< the color of faces without a picture */
     int bright;         /**< 255 as it is, lower is darker (the fade-in) */
+    bool back;          /**< the back of the box is showing: the side pictures change places (the top
+                             and bottom labels stay as they are, reading the right way up) */
 } box3d_art_t;
 
-/**
- * Draw the box fitted inside x0, y0, w, h (keeping its shape, centered).
- * @param yaw    Turn in degrees: above 0 shows the left side, below 0 the right.
- * @param pitch  Degrees seen from above: above 0 shows the top.
- * @param amount 0 draws the plain flat cover, 1 the full box; in between
- *               eases from one to the other.
- */
-void box3d_draw (const box3d_art_t *art, int x0, int y0, int w, int h, float yaw, float pitch, float amount);
+typedef struct {
+    float yaw;          /**< turn in degrees: above 0 shows the left side, below 0 the right */
+    float pitch;        /**< degrees seen from above: above 0 shows the top, below 0 the bottom */
+    float amount;       /**< 0 the plain flat cover, 1 the full box; in between eases from one to the other */
+    float fit_yaw;      /**< the angles the box's size is worked out at, so it keeps */
+    float fit_pitch;    /**< one size while it turns (the resting angles) */
+    float lift;         /**< pixels to move it down (negative: up); between pixels is fine */
+} box3d_pose_t;
+
+/** Draw the box fitted inside x0, y0, w, h (keeping its shape, centered), at the given pose. */
+void box3d_draw (const box3d_art_t *art, int x0, int y0, int w, int h, const box3d_pose_t *pose);
 
 #endif /* BOX3D_H__ */

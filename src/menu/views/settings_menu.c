@@ -13,6 +13,7 @@
 #include "../debug_stats.h"
 #include "../tabs.h"
 #include "../games_ui.h"
+#include "../box_motion.h"
 #include "../memory_note.h"
 #include "../menu_features.h"
 #include "../menu_options.h"
@@ -153,6 +154,8 @@ static const item_t display_items[] = {
         "The menu's colors and background. From SD Card uses your own theme file (menu/theme/theme.ini), or Midnight if there is none. The others are built in."),
     FEATURE("Cover Art", FEATURE_COVER_ART, "Show box art on the selected cover."),
     FEATURE("3D Box", FEATURE_BOX_3D, "Show the selected cover as a box with depth, turned slightly, with the top of the box from its box art where there is one."),
+    CHOICES("Box Hover", OPTION_BOX_HOVER, BOX_HOVER_COUNT, box_motion_hover_name, NULL,
+        "How the 3D Box moves while it waits: Float bobs it up and down, Sway turns it gently from side to side. Hold B and use the stick or D-Pad to turn it yourself."),
     CHOICES("Selection Marker", OPTION_SELECTION, SELECTION_COUNT, games_ui_selection_name, NULL,
         "How the selected cover is marked on the rows of covers: Corners puts a bracket at each corner, Ring a frame all round it."),
     FEATURE("Previous/Next Covers", FEATURE_SIDE_COVERS, "Show smaller covers either side of the selected one."),
