@@ -14,6 +14,7 @@
 #include "../tabs.h"
 #include "../games_ui.h"
 #include "../box_motion.h"
+#include "../carousel_art.h"
 #include "../memory_note.h"
 #include "../menu_features.h"
 #include "../menu_options.h"
@@ -153,6 +154,8 @@ static const item_t display_items[] = {
     CHOICES("Theme", OPTION_THEME, BUILTIN_THEME_COUNT, builtin_theme_name, apply_theme,
         "The menu's colors and background. From SD Card uses your own theme file (menu/theme/theme.ini), or Midnight if there is none. The others are built in."),
     FEATURE("Cover Art", FEATURE_COVER_ART, "Show box art on the selected cover."),
+    CHOICES("Show Games As", OPTION_COVER_STYLE, COVER_STYLE_COUNT, carousel_art_style_name, NULL,
+        "Boxes shows each game's box art. Cartridges shows its cartridge instead, for games the box art pack has one for; the others keep their box."),
     FEATURE("3D Box", FEATURE_BOX_3D, "Show the selected cover as a box with depth, turned slightly, with the top of the box from its box art where there is one."),
     FEATURE("3D Side Covers", FEATURE_SIDE_BOXES, "Draw the previous and next covers as boxes too, turned toward the middle when Angled Side Covers is on. Needs 3D Box and Previous/Next Covers on."),
     CHOICES("Box Hover", OPTION_BOX_HOVER, BOX_HOVER_COUNT, box_motion_hover_name, NULL,

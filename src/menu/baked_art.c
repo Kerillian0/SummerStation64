@@ -49,6 +49,7 @@ component_boxart_t *baked_art_load (const char *game_code, file_image_type_t whi
         case IMAGE_BOXART_TOP: side = 't'; break;
         case IMAGE_BOXART_LEFT: side = 'l'; break;
         case IMAGE_BOXART_RIGHT: side = 'r'; break;
+        case IMAGE_GAMEPAK_FRONT: side = 'p'; break;
         default: return NULL;
     }
 

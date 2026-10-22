@@ -11,6 +11,7 @@
 #include "box3d.h"
 #include "box_motion.h"
 #include "theme.h"
+#include "menu_options.h"
 #include "game_index.h"
 #include "cover_list.h"
 #include "menu_features.h"
@@ -59,6 +60,9 @@ typedef struct {
     color_t tint;
     component_boxart_t *top;    /* the box's top label, for 3D Side Covers (baked art only) */
     bool top_tried;
+    bool cart;                  /* the art is a cartridge (Show Games As: Cartridges), with see-through edges */
+    bool cart_ready;            /* its edges are see-through and its plastic color is known */
+    color_t body;               /* the cartridge's plastic color, for its 3D edges */
 } slot_t;
 
 typedef enum {
@@ -108,6 +112,58 @@ static uint32_t name_hash (const char *name) {
 
 static bool art_ready (component_boxart_t *art) {
     return art && art->image && art->image->width > 0 && art->image->height > 0;
+}
+
+const char *carousel_art_style_name (int choice) {
+    static const char *names[COVER_STYLE_COUNT] = { "Boxes", "Cartridges" };
+    return (choice >= 0 && choice < COVER_STYLE_COUNT) ? names[choice] : "";
+}
+
+/* Which picture a cover starts from: the box's front, or the cartridge. */
+static file_image_type_t front_kind (void) {
+    return (options_get(OPTION_COVER_STYLE) == COVER_STYLE_CARTRIDGES) ? IMAGE_GAMEPAK_FRONT : IMAGE_BOXART_FRONT;
+}
+
+/* A cartridge read from the card comes out solid: the unpacker drops the
+   picture's see-through parts, which become black. Clear the black that
+   reaches the edges (the corners and notches round the cartridge). Then
+   take the plastic's color from the cartridge's left grip, for its 3D
+   edges. Baked cartridges keep their own see-through edges. */
+static void cart_prepare (slot_t *slot) {
+    surface_t *image = slot->art->image;
+    slot->cart_ready = true;
+    slot->body = RGBA32(0x80, 0x80, 0x84, 0xFF);    /* grey plastic, if the picture says nothing */
+    if (surface_get_format(image) != FMT_RGBA16) {
+        return;
+    }
+    int w = image->width, h = image->height;
+    uint16_t *px = image->buffer;
+    int stride = image->stride / 2;
+    #define DARK(p) ((((p) >> 11) & 31) <= 1 && (((p) >> 6) & 31) <= 1 && (((p) >> 1) & 31) <= 1)
+    if (!baked_art_owns(slot->art)) {
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w && DARK(px[y * stride + x]); x++) px[y * stride + x] = 0;
+            for (int x = w - 1; x >= 0 && DARK(px[y * stride + x]); x--) px[y * stride + x] = 0;
+        }
+        for (int x = 0; x < w; x++) {
+            for (int y = 0; y < h && (px[y * stride + x] == 0 || DARK(px[y * stride + x])); y++) px[y * stride + x] = 0;
+            for (int y = h - 1; y >= 0 && (px[y * stride + x] == 0 || DARK(px[y * stride + x])); y--) px[y * stride + x] = 0;
+        }
+        data_cache_hit_writeback(image->buffer, image->stride * h);
+    }
+    #undef DARK
+    int r = 0, g = 0, b = 0, n = 0;
+    for (int y = h * 35 / 100; y < h * 65 / 100; y += 2) {
+        for (int x = w * 2 / 100; x < w * 10 / 100; x++) {
+            uint16_t p = px[y * stride + x];
+            if (p & 1) {
+                r += (p >> 11) & 31; g += (p >> 6) & 31; b += (p >> 1) & 31; n++;
+            }
+        }
+    }
+    if (n > 0) {
+        slot->body = RGBA32(r * 255 / (31 * n), g * 255 / (31 * n), b * 255 / (31 * n), 0xFF);
+    }
 }
 
 static void slot_clear (slot_t *slot) {
@@ -251,6 +307,59 @@ static component_boxart_t *art_load (menu_t *menu, int index, file_image_type_t 
     return art;
 }
 
+/* ---------- the back of a cartridge ---------- */
+
+/* Every cartridge's back is the same picture (rom:/cart_back.sprite, drawn
+   by assets/images/make_icons.py), tinted to its plastic. Loaded the first
+   time a cartridge is turned over; let go when the covers are left. */
+#define CART_BACK_PATH      "rom:/cart_back.sprite"
+#define CART_BACK_PLASTIC   (176)           /* the picture's own plastic grey */
+#define CART_BACK_MIN_FREE  (160 * 1024)
+static sprite_t *cart_back_sprite = NULL;
+static surface_t cart_back_surface;
+
+static bool cart_back_load (void) {
+    if (cart_back_sprite) {
+        return true;
+    }
+    if (!memory_free_for(CART_BACK_MIN_FREE)) {
+        return false;   /* sprite_load stops the menu if memory runs out */
+    }
+    FILE *f = fopen(CART_BACK_PATH, "rb");
+    if (!f) {
+        return false;
+    }
+    fclose(f);
+    cart_back_sprite = sprite_load(CART_BACK_PATH);
+    cart_back_surface = sprite_get_pixels(cart_back_sprite);
+    return true;
+}
+
+static void cart_back_free (void) {
+    if (cart_back_sprite) {
+        rspq_wait();    /* nothing may still be drawing from it */
+        sprite_free(cart_back_sprite);
+        cart_back_sprite = NULL;
+    }
+}
+
+/* The picture a cover shows right now: a turned-over cartridge shows the shared back. */
+static bool shows_cart_back (slot_t *slot) {
+    return slot->cart && slot->index == center_index && side != IMAGE_BOXART_FRONT && cart_back_sprite;
+}
+
+static surface_t *slot_image (slot_t *slot) {
+    return shows_cart_back(slot) ? &cart_back_surface : slot->art->image;
+}
+
+/* The back's grey made the color of this cartridge's plastic. */
+static color_t cart_back_tint (slot_t *slot) {
+    int r = slot->body.r * 255 / CART_BACK_PLASTIC;
+    int g = slot->body.g * 255 / CART_BACK_PLASTIC;
+    int b = slot->body.b * 255 / CART_BACK_PLASTIC;
+    return RGBA32(r > 255 ? 255 : r, g > 255 ? 255 : g, b > 255 ? 255 : b, 0xFF);
+}
+
 /* ---------- flipping the selected box ---------- */
 
 bool carousel_art_flip (void) {
@@ -258,7 +367,7 @@ bool carousel_art_flip (void) {
         return false;
     }
     slot_t *center = slot_find(art_menu, center_index);
-    if (!center || !art_ready(center->art)) {
+    if (!center || !art_ready(center->art) || (center->cart && !cart_back_load())) {
         return false;
     }
     flip = FLIP_CLOSING;
@@ -283,6 +392,13 @@ static void flip_update (menu_t *menu) {
     if (!center) {
         flip = FLIP_NONE;
         return;
+    }
+
+    if (flip == FLIP_CLOSING && (now - flip_at) >= half && center->cart) {
+        /* A cartridge keeps its front: the shared back is shown in its place. */
+        side = (side == IMAGE_BOXART_FRONT) ? IMAGE_BOXART_BACK : IMAGE_BOXART_FRONT;
+        flip = FLIP_OPENING;
+        flip_at = now;
     }
 
     if (flip == FLIP_CLOSING && (now - flip_at) >= half) {
@@ -343,7 +459,7 @@ static void slot_tops_update (menu_t *menu) {
     }
     for (int i = 0; i < SLOT_COUNT; i++) {
         slot_t *slot = &slots[i];
-        if (!slot->used || slot->top_tried || !art_ready(slot->art)) {
+        if (!slot->used || slot->top_tried || slot->cart || !art_ready(slot->art)) {
             continue;
         }
         slot->top_tried = true;
@@ -374,8 +490,8 @@ static void edges_update (menu_t *menu, uint64_t now) {
         return;
     }
     slot_t *center = slot_find(menu, center_index);
-    if (!center || !art_ready(center->art) || any_loading()) {
-        return;
+    if (!center || !art_ready(center->art) || center->cart || any_loading()) {
+        return;     /* a cartridge has no top label or side pictures */
     }
     bool baked = baked_art_owns(center->art);
     if (!baked && (now - changed_at) < SIDE_SETTLE_TIME_MS) {
@@ -438,7 +554,7 @@ bool carousel_art_draw_box (menu_t *menu, int index, int x0, int y0, int w, int 
     float amount = 1.0f - (1.0f - t) * (1.0f - t);     /* eases out */
 
     box3d_art_t art = {
-        .front = ready ? slot->art->image : NULL,
+        .front = ready ? slot_image(slot) : NULL,
         .front_w = box_front_w,
         .front_h = box_front_h,
         .side = theme_get()->panel,
@@ -448,8 +564,18 @@ bool carousel_art_draw_box (menu_t *menu, int index, int x0, int y0, int w, int 
     art.left = art_ready(edges[1]) ? edges[1]->image : NULL;
     art.right = art_ready(edges[2]) ? edges[2]->image : NULL;
     art.back = (side != IMAGE_BOXART_FRONT);
+    if (slot->cart) {
+        art.cartridge = true;
+        art.top = art.left = art.right = NULL;
+        art.side = slot->body;
+        if (ready && shows_cart_back(slot)) {
+            art.front_tint = cart_back_tint(slot);
+        }
+    }
     color_t tint;
-    if (slot->tint_state == 2) {
+    if (slot->cart) {
+        /* the plastic's own color, set above */
+    } else if (slot->tint_state == 2) {
         art.side = slot->tint;      /* worked out already: keeps its color through a flip */
     } else if (carousel_art_tint_state(menu, index, &tint) == ART_TINT_KNOWN) {
         art.side = tint;
@@ -502,7 +628,11 @@ bool carousel_art_draw_side_box (menu_t *menu, int index, int x0, int y0, int w,
         art.top = slot->top->image;
     }
     color_t tint;
-    if (carousel_art_tint_state(menu, index, &tint) == ART_TINT_KNOWN) {
+    if (slot->cart) {
+        art.cartridge = true;
+        art.top = NULL;
+        art.side = slot->body;
+    } else if (carousel_art_tint_state(menu, index, &tint) == ART_TINT_KNOWN) {
         art.side = tint;
     }
     /* Sized at the selected box's resting angles, so a box turned further
@@ -516,6 +646,7 @@ bool carousel_art_draw_side_box (menu_t *menu, int index, int x0, int y0, int w,
 
 void carousel_art_reset (void) {
     edges_clear();
+    cart_back_free();
     for (int i = 0; i < SLOT_COUNT; i++) {
         slot_clear(&slots[i]);
     }
@@ -634,14 +765,21 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
                 }
                 /* A picture from the card needs room to unpack as well. */
                 bool card = decoder_free && (!side_cover || memory_free_for(SIDE_ART_MIN_FREE));
-                file_image_type_t which = IMAGE_BOXART_FRONT;
+                file_image_type_t which = front_kind();
                 uint64_t began = get_ticks_ms();
                 slot->art = art_load(menu, index, &which, card, &slot->card_pending);
+                slot->cart = (which == IMAGE_GAMEPAK_FRONT);
                 debugf("cover: starting one took %d ms\n", (int) (get_ticks_ms() - began));
             }
             if (slot->art) {
                 break;
             }
+        }
+    }
+
+    for (int i = 0; i < SLOT_COUNT; i++) {
+        if (slots[i].used && slots[i].cart && !slots[i].cart_ready && art_ready(slots[i].art)) {
+            cart_prepare(&slots[i]);
         }
     }
 
@@ -704,7 +842,8 @@ bool carousel_art_draw (menu_t *menu, int index, int x0, int y0, int w, int h, i
         return true; /* squashed flat */
     }
 
-    surface_t *image = slot->art->image;
+    surface_t *image = slot_image(slot);
+    color_t tint = shows_cart_back(slot) ? cart_back_tint(slot) : RGBA32(0xFF, 0xFF, 0xFF, 0xFF);
 
     /* Fit the art to the cover at its full width, then squash it sideways
        by the same amount the cover itself is squashed during a flip. */
@@ -724,15 +863,18 @@ bool carousel_art_draw (menu_t *menu, int index, int x0, int y0, int w, int h, i
     rdpq_mode_push();
         rdpq_set_mode_standard();
         rdpq_mode_filter(FILTER_BILINEAR);
-        if (alpha >= 255 && art_bright >= 255) {
+        if (slot->cart) {
+            rdpq_mode_alphacompare(128);    /* a cartridge's see-through edges */
+        }
+        if (alpha >= 255 && art_bright >= 255 && tint.r == 255 && tint.g == 255 && tint.b == 255) {
             rdpq_mode_combiner(RDPQ_COMBINER_TEX);
         } else if (alpha >= 255) {
             /* Darkened as it is drawn (the fade-in): costs the chip nothing extra. */
-            rdpq_set_prim_color(RGBA32(art_bright, art_bright, art_bright, 0xFF));
+            rdpq_set_prim_color(RGBA32(tint.r * art_bright / 255, tint.g * art_bright / 255, tint.b * art_bright / 255, 0xFF));
             rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);
         } else {
             /* See-through, like the placeholder covers at the sides. */
-            rdpq_set_prim_color(RGBA32(art_bright, art_bright, art_bright, alpha));
+            rdpq_set_prim_color(RGBA32(tint.r * art_bright / 255, tint.g * art_bright / 255, tint.b * art_bright / 255, alpha));
             rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);
             rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
         }
@@ -792,6 +934,9 @@ bool carousel_art_draw_angled (menu_t *menu, int index, int x0, int y0, int w, i
         rdpq_set_mode_standard();
         rdpq_mode_filter(FILTER_BILINEAR);
         rdpq_mode_persp(true);
+        if (slot->cart) {
+            rdpq_mode_alphacompare(128);
+        }
         if (alpha >= 255 && art_bright >= 255) {
             rdpq_mode_combiner(RDPQ_COMBINER_TEX);
         } else if (alpha >= 255) {
@@ -817,4 +962,9 @@ bool carousel_art_draw_angled (menu_t *menu, int index, int x0, int y0, int w, i
         }
     rdpq_mode_pop();
     return true;
+}
+
+bool carousel_art_cutout (menu_t *menu, int index) {
+    slot_t *slot = slot_find(menu, index);
+    return slot && slot->cart && art_ready(slot->art);
 }

@@ -25,7 +25,9 @@ OUT = "filesystem/art"
 MAX_SIDE = 158          # BOXART_WIDTH_MAX / BOXART_HEIGHT_MAX in the menu
 SIDES = {"boxart_front.png": "f", "boxart_back.png": "b",
          # the edges of the 3D Box (the top strip is 158 x 22 in the pack)
-         "boxart_top.png": "t", "boxart_left.png": "l", "boxart_right.png": "r"}
+         "boxart_top.png": "t", "boxart_left.png": "l", "boxart_right.png": "r",
+         # the cartridge, cut out (its see-through edges are kept)
+         "gamepak_front.png": "p"}
 MKSPRITE = os.path.join(os.environ.get("N64_INST", "/opt/libdragon"), "bin", "mksprite")
 
 if not os.path.isdir(SOURCE):
@@ -53,7 +55,10 @@ with tempfile.TemporaryDirectory() as work:
             if name not in files:
                 continue
             try:
-                picture = Image.open(os.path.join(folder, name)).convert("RGB")
+                picture = Image.open(os.path.join(folder, name)).convert("RGBA" if side == "p" else "RGB")
+                if side == "p":
+                    # trim the see-through margin, so the 3D cartridge's edges meet its front
+                    picture = picture.crop(picture.getchannel("A").getbbox() or (0, 0, picture.width, picture.height))
             except Exception as error:
                 skipped.append(f"{code} {name}: {error}")
                 continue

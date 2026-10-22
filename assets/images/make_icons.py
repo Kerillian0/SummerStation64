@@ -19,6 +19,9 @@ The icons are kept as small as the console allows:
 - corner.png: a 16 x 16 white disc in 16 shades (128 bytes). Its four
   quarters are the rounded corners of the tabs, panels and badges.
 - heart.png: 16 x 14, white in 16 shades (112 bytes), tinted by the menu.
+- cart_back.png: 158 x 107, the back of a game cartridge in light grey
+  (thousands of colors, 34 KB in memory while a cartridge shows its back).
+  The menu tints it to each cartridge's plastic.
 - button.png: a 20 x 20 white disc in 16 shades (4 bits a pixel: 200 bytes).
   The menu tints it for each button and stretches it into the longer
   shapes, so one picture serves every button.
@@ -173,3 +176,61 @@ ImageDraw.Draw(corner).ellipse([0, 0, CORNER * SCALE - 1, CORNER * SCALE - 1], f
 corner = shrink(corner, CORNER, CORNER).point(lambda v: (v // 17) * 17)
 corner.save("corner.png")
 print(f"corner.png: {CORNER} x {CORNER}")
+
+# The back of a game cartridge, for the 3D cartridges (Show Games As:
+# Cartridges). Drawn from shapes only, after a scan the project owner gave as
+# a reference: plastic, two screws, a raised oval, a dark label panel with
+# lines standing in for its small print, the seams and the notches at the
+# bottom. No lettering or logos. Light neutral grey, so the menu can tint it
+# to each cartridge's own plastic. Its outline is the cartridges' shared one
+# (box3d.c traces the same arch).
+CART_W, CART_H = 158, 107
+ARCH = [(0.0, 0.16), (0.083, 0.094), (0.166, 0.066), (0.248, 0.038), (0.331, 0.019),
+        (0.414, 0.009), (0.497, 0.0), (0.586, 0.009), (0.669, 0.019), (0.752, 0.038),
+        (0.834, 0.066), (0.917, 0.094), (1.0, 0.16)]
+S = SCALE
+W, H = CART_W * S, CART_H * S
+def at(x, y):
+    return (x * (W - 1), y * (H - 1))
+back = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+d = ImageDraw.Draw(back)
+PLASTIC = (176, 176, 180, 255)
+SHADE = (140, 140, 146, 255)
+LIGHT = (204, 204, 208, 255)
+outline = [at(x, y) for x, y in ARCH] + [at(1, 1), at(0, 1)]
+d.polygon(outline, fill=PLASTIC)
+# the seams between the middle and the grips
+for x in (0.198, 0.802):
+    d.line([at(x, 0.04), at(x, 0.30)], fill=SHADE, width=S)
+    d.line([at(x, 0.82), at(x, 1.0)], fill=SHADE, width=S)
+# the notches at the bottom
+for x0, x1 in ((0.06, 0.16), (0.84, 0.94)):
+    d.rectangle([at(x0, 0.87), at(x1, 1.0)], fill=SHADE)
+    d.line([at(x0, 0.87), at(x1, 0.87)], fill=LIGHT, width=S)
+# the screws
+for x in (0.2, 0.8):
+    cx, cy = at(x, 0.13)
+    r = 0.022 * W
+    d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(150, 130, 70, 255), outline=(100, 90, 60, 255), width=S)
+# the raised oval at the top, empty
+d.rounded_rectangle([at(0.37, 0.10), at(0.63, 0.20)], radius=0.05 * H, outline=LIGHT, width=2 * S)
+d.rounded_rectangle([at(0.375, 0.115), at(0.625, 0.19)], radius=0.04 * H, outline=SHADE, width=S)
+# the label panel: a raised rim, then the dark label
+d.rounded_rectangle([at(0.145, 0.295), at(0.855, 0.83)], radius=0.03 * H, fill=LIGHT)
+d.rounded_rectangle([at(0.155, 0.31), at(0.845, 0.815)], radius=0.025 * H, fill=(78, 80, 96, 255))
+INK = (210, 212, 220, 255)
+d.rectangle([at(0.18, 0.35), at(0.23, 0.42)], fill=INK)          # a mark at the top left
+d.rectangle([at(0.25, 0.35), at(0.40, 0.375)], fill=INK)         # a heading beside it
+d.rectangle([at(0.25, 0.395), at(0.36, 0.42)], fill=INK)
+d.rectangle([at(0.43, 0.35), at(0.62, 0.365)], fill=INK)         # a line of small print
+d.rectangle([at(0.43, 0.38), at(0.58, 0.395)], fill=INK)
+d.rectangle([at(0.70, 0.35), at(0.80, 0.37)], fill=INK)
+rows = [0.46, 0.50, 0.535, 0.60, 0.635, 0.67, 0.735, 0.77]
+for i, y in enumerate(rows):
+    right = 0.82 if i % 3 != 2 else 0.6
+    d.rectangle([at(0.18, y), at(right, y + 0.012)], fill=(170, 172, 184, 255))
+for y in (0.575, 0.71):
+    d.line([at(0.18, y), at(0.82, y)], fill=(150, 152, 166, 255), width=S)
+back = shrink(back, CART_W, CART_H)
+back.save("cart_back.png")
+print(f"cart_back.png: {CART_W} x {CART_H}")

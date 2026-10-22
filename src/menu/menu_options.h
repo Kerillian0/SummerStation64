@@ -26,6 +26,7 @@ typedef enum {
     OPTION_PAK_BADGES,  /**< a pak_badges_t value (see games_ui.h) */
     OPTION_SELECTION,   /**< a selection_style_t value (see games_ui.h) */
     OPTION_BOX_HOVER,   /**< a box_hover_t value (see box_motion.h) */
+    OPTION_COVER_STYLE, /**< a cover_style_t value (see carousel_art.h) */
     OPTION_COUNT
 } option_t;
 

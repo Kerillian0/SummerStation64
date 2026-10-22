@@ -93,6 +93,19 @@ bool carousel_art_draw_box (menu_t *menu, int index, int x0, int y0, int w, int 
  */
 bool carousel_art_draw_side_box (menu_t *menu, int index, int x0, int y0, int w, int h, float yaw, int alpha);
 
+/** What the covers show (option `cover_style`). */
+typedef enum {
+    COVER_STYLE_BOXES,      /**< the box art (the default) */
+    COVER_STYLE_CARTRIDGES, /**< the cartridge, where the pack has one; a box otherwise */
+    COVER_STYLE_COUNT
+} cover_style_t;
+
+/** Name of a cover_style_t choice, for Settings. */
+const char *carousel_art_style_name (int choice);
+
+/** True if list entry `index` is showing a cartridge, whose picture has see-through edges. */
+bool carousel_art_cutout (menu_t *menu, int index);
+
 /** The selected box's resting turn, in degrees (3D Box). */
 #define CAROUSEL_BOX_YAW        (24.0f)
 

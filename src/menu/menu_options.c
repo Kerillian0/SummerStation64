@@ -32,6 +32,7 @@ static const option_info_t option_info[OPTION_COUNT] = {
     [OPTION_PAK_BADGES] = { "pak_badges", 2 },  /* colored */
     [OPTION_SELECTION] = { "selection", 1 },    /* corners */
     [OPTION_BOX_HOVER] = { "box_hover", 3 },    /* float and sway */
+    [OPTION_COVER_STYLE] = { "cover_style", 0 }, /* boxes */
 };
 
 static int values[OPTION_COUNT];

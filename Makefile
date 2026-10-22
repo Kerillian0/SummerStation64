@@ -169,6 +169,7 @@ IMAGES = \
 	corner.png \
 	logo_holo.png \
 	logo_stripes.png \
+	cart_back.png \
 	wordmark.png
 
 # The smallest formats that hold them: 16 colors for the paks, 16 shades for the button disc.
@@ -181,6 +182,7 @@ $(FILESYSTEM_DIR)/mark_question.sprite: MKSPRITE_FLAGS=--format I4
 $(FILESYSTEM_DIR)/corner.sprite: MKSPRITE_FLAGS=--format I4
 $(FILESYSTEM_DIR)/logo_holo.sprite: MKSPRITE_FLAGS=--format RGBA16
 $(FILESYSTEM_DIR)/logo_stripes.sprite: MKSPRITE_FLAGS=--format RGBA16
+$(FILESYSTEM_DIR)/cart_back.sprite: MKSPRITE_FLAGS=--format RGBA16
 # The intro's title needs soft edges for its glow, so it keeps full color.
 $(FILESYSTEM_DIR)/wordmark.sprite: MKSPRITE_FLAGS=--format RGBA32
 

@@ -17,7 +17,7 @@
 /**
  * The baked cover for a game, loaded and ready to draw.
  * @param game_code The four-character code from the ROM's header.
- * @param which IMAGE_BOXART_FRONT, _BACK, _TOP, _LEFT or _RIGHT.
+ * @param which IMAGE_BOXART_FRONT, _BACK, _TOP, _LEFT, _RIGHT or IMAGE_GAMEPAK_FRONT.
  * @return NULL if there is none baked in (or no memory for it).
  */
 component_boxart_t *baked_art_load (const char *game_code, file_image_type_t which);

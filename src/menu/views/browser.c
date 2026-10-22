@@ -1334,18 +1334,22 @@ void carousel_draw (menu_t *menu) {
                 // While the box turns over, the cover is squashed sideways.
                 int fw = resting_center ? (int) (w * carousel_art_flip_width()) : w;
                 int fx0 = x0 + (w - fw) / 2;
-                rdpq_set_mode_fill(panel);
-                rdpq_fill_rectangle(fx0, y0, fx0 + fw, y0 + h);
+                if (!carousel_art_cutout(menu, i)) {   // a cartridge stands on its own, without a box behind it
+                    rdpq_set_mode_fill(panel);
+                    rdpq_fill_rectangle(fx0, y0, fx0 + fw, y0 + h);
+                }
                 if (carousel_art_draw(menu, i, fx0, y0, fw, h, 255, resting_center)) {
                     carousel_art_brightness(255);
                     continue; // box art replaces the placeholder text
                 }
             } else {
-                rdpq_set_mode_standard();
-                rdpq_set_prim_color(RGBA32(panel.r, panel.g, panel.b, (int) alpha));
-                rdpq_mode_combiner(RDPQ_COMBINER_FLAT);
-                rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
-                rdpq_fill_rectangle(x0, y0, x0 + w, y0 + h);
+                if (!carousel_art_cutout(menu, i)) {
+                    rdpq_set_mode_standard();
+                    rdpq_set_prim_color(RGBA32(panel.r, panel.g, panel.b, (int) alpha));
+                    rdpq_mode_combiner(RDPQ_COMBINER_FLAT);
+                    rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+                    rdpq_fill_rectangle(x0, y0, x0 + w, y0 + h);
+                }
                 if (carousel_art_draw(menu, i, x0, y0, w, h, (int) alpha, false)) {
                     carousel_art_brightness(255);
                     continue; // box art replaces the placeholder text
