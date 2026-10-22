@@ -32,6 +32,16 @@ bool baked_art_owns (component_boxart_t *art);
 bool baked_art_free (component_boxart_t *art);
 
 /**
+ * False if the SD card's box art pack has no cover of this game's own: no
+ * folder for its region, and the folder without the region letter sits
+ * beside folders for single regions, so its cover is another region's
+ * (in the pack, the European one: Dezaemon 3D, NDZJ, would get Duke Nukem:
+ * Zero Hour's). European games may use it. Reads the card only when the
+ * game has no folder of its own.
+ */
+bool baked_art_card_ok (const char *storage_prefix, const char *game_code);
+
+/**
  * A game's picture from wherever it can be had: baked art first, then the
  * SD card (ui_components_boxart_init). Free it with baked_art_release().
  */

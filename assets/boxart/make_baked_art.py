@@ -9,6 +9,9 @@ Writes  filesystem/art/Z/S/NZSE_f.sprite, NZSE_b, _t, _l and _r. The two
         walking through a folder's list, and a thousand files in one folder
         would make that walk slow.
 
+A folder without the region letter that sits beside folders with one is
+baked as the European (P) version: that is whose cover it is.
+
 Each picture is shrunk to the size the menu shows it at (to fit 158 x 158)
 and stored in the console's own 16-bit format, so the console only has to
 copy it in. Run from the project's top folder. See README.md here.
@@ -51,6 +54,14 @@ with tempfile.TemporaryDirectory() as work:
         if len(parts) not in (3, 4) or any(len(p) != 1 for p in parts):
             continue
         code = "".join(parts)
+        # A folder without the region letter beside ones with it holds the
+        # European cover (all 29 in the pack do): bake it as the P (Europe)
+        # version, so a Japanese or US game sharing the code (Dezaemon 3D,
+        # NDZJ, beside Duke Nukem: Zero Hour) doesn't take it for its own.
+        if len(parts) == 3 and any(len(d) == 1 and os.path.isfile(os.path.join(folder, d, "boxart_front.png")) for d in os.listdir(folder)):
+            if os.path.isdir(os.path.join(folder, "P")):
+                continue    # the pack has a European folder already
+            code += "P"
         for name, side in SIDES.items():
             if name not in files:
                 continue

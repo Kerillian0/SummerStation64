@@ -6,9 +6,11 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <libdragon.h>
 
 #include "memory_note.h"
+#include "utils/fs.h"
 #include "baked_art.h"
 
 #define MAX_LOADED      (16)            /* more than the cover row and the selected box's edges ever hold at once */
@@ -27,6 +29,11 @@ static bool code_is_plain (const char *code, int length) {
         }
     }
     return true;
+}
+
+/* A European country's letter in a game code. */
+static bool is_europe (char letter) {
+    return strchr("PDFISUXYHWL", toupper((unsigned char) letter)) != NULL;
 }
 
 static bool exists (const char *path) {
@@ -55,10 +62,17 @@ component_boxart_t *baked_art_load (const char *game_code, file_image_type_t whi
 
     /* The files sit in folders named after the code's two middle letters,
        so no folder holds more than a few dozen entries to look through.
-       With the region letter first, then without it. */
+       With the region letter first, then (in Europe) the European one,
+       then without it: a cover without the letter is baked only for codes
+       that have no covers for single regions. */
     char path[48];
     snprintf(path, sizeof(path), "rom:/art/%c/%c/%c%c%c%c_%c.sprite", game_code[1], game_code[2],
         game_code[0], game_code[1], game_code[2], game_code[3], side);
+    if (!exists(path) && is_europe(game_code[3])) {
+        /* Another European country: the pack's European cover. */
+        snprintf(path, sizeof(path), "rom:/art/%c/%c/%c%c%cP_%c.sprite", game_code[1], game_code[2],
+            game_code[0], game_code[1], game_code[2], side);
+    }
     if (!exists(path)) {
         snprintf(path, sizeof(path), "rom:/art/%c/%c/%c%c%c_%c.sprite", game_code[1], game_code[2],
             game_code[0], game_code[1], game_code[2], side);
@@ -134,9 +148,36 @@ bool baked_art_free (component_boxart_t *art) {
     return false;
 }
 
+bool baked_art_card_ok (const char *storage_prefix, const char *game_code) {
+    if (!game_code || (game_code[1] == 'E' && game_code[2] == 'D') || is_europe(game_code[3])) {
+        return true;    /* homebrew goes by its title; Europe may use the cover without a letter */
+    }
+    char folder[64];
+    snprintf(folder, sizeof(folder), "%smenu/metadata/%c/%c/%c/%c", storage_prefix, game_code[0], game_code[1], game_code[2], game_code[3]);
+    if (directory_exists(folder)) {
+        return true;    /* the game has its own */
+    }
+    folder[strlen(folder) - 2] = '\0';  /* the folder without the region letter */
+    if (!directory_exists(folder)) {
+        return true;
+    }
+    /* Covers for single regions beside it: then it is another region's cover. */
+    bool ok = true;
+    dir_t info;
+    int result = dir_findfirst(folder, &info);
+    while (result == 0) {
+        if (info.d_type == DT_DIR && strlen(info.d_name) == 1) {
+            ok = false;
+            break;
+        }
+        result = dir_findnext(folder, &info);
+    }
+    return ok;
+}
+
 component_boxart_t *baked_art_open (const char *storage_prefix, const char *game_code, const char *title, file_image_type_t which) {
     component_boxart_t *art = baked_art_load(game_code, which);
-    if (!art) {
+    if (!art && baked_art_card_ok(storage_prefix, game_code)) {
         art = ui_components_boxart_init(storage_prefix, game_code, title, which);
     }
     return art;

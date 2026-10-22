@@ -293,6 +293,9 @@ static component_boxart_t *art_load (menu_t *menu, int index, file_image_type_t 
         return NULL;
     }
 
+    if (!baked_art_card_ok(menu->storage_prefix, code)) {
+        return NULL;    /* only another region's cover on the card */
+    }
     art = ui_components_boxart_init(menu->storage_prefix, code, title, *which);
 
     /* No picture of the back for this game: show the front again. */
@@ -586,7 +589,7 @@ static void edges_update (menu_t *menu, uint64_t now) {
         memcpy(code, known->code, 4);
 
         edges[i] = baked_art_load(code, edge_kinds[i]);
-        if (!edges[i] && !baked) {
+        if (!edges[i] && !baked && baked_art_card_ok(menu->storage_prefix, code)) {
             edges[i] = ui_components_boxart_init(menu->storage_prefix, code, "", edge_kinds[i]);
         }
         return;     /* one a frame */

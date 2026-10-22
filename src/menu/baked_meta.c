@@ -10,6 +10,7 @@
 #include <libdragon.h>
 
 #include "baked_meta.h"
+#include "baked_art.h"
 
 bool baked_meta_path (const char *game_code, char *path, size_t size) {
     if (!game_code) {
@@ -76,7 +77,7 @@ const char *baked_meta_description (const char *game_code) {
         snprintf(path, sizeof(path), "sd:/menu/metadata/%c/%c/%c/%c/description.txt", game_code[0], game_code[1], game_code[2], game_code[3]);
         text = read_text(path);
     }
-    if (!text) {
+    if (!text && baked_art_card_ok("sd:/", game_code)) {   /* not another region's game sharing the code */
         snprintf(path, sizeof(path), "sd:/menu/metadata/%c/%c/%c/description.txt", game_code[0], game_code[1], game_code[2]);
         text = read_text(path);
     }
