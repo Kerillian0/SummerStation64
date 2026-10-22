@@ -30,6 +30,7 @@ static const option_info_t option_info[OPTION_COUNT] = {
     [OPTION_RING_TINT] = { "ring_tint", 1 },    /* on the Game info screen */
     [OPTION_PERF_OVERLAY] = { "perf_overlay", 0 },
     [OPTION_PAK_BADGES] = { "pak_badges", 2 },  /* colored */
+    [OPTION_SELECTION] = { "selection", 1 },    /* corners */
 };
 
 static int values[OPTION_COUNT];

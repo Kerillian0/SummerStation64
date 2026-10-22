@@ -958,9 +958,23 @@ static const char *carousel_kind_label (entry_type_t type) {
     }
 }
 
-// Hollow frame: four thin bars, so whatever is behind stays visible.
+// Hollow frame: four thin bars, so whatever is behind stays visible. With
+// Selection Marker on Corners, only a bracket at each corner.
 static void carousel_ring (int x0, int y0, int x1, int y1, int thickness, color_t color) {
     rdpq_set_mode_fill(color);
+    if (options_get(OPTION_SELECTION) == SELECTION_CORNERS) {
+        int arm = ((x1 - x0) < (y1 - y0) ? (x1 - x0) : (y1 - y0)) / 4;    // each bracket's arms, along its two sides
+        thickness += 1;                                                     // a little bolder, as there is less of it
+        rdpq_fill_rectangle(x0, y0, x0 + arm, y0 + thickness);              // top left
+        rdpq_fill_rectangle(x0, y0 + thickness, x0 + thickness, y0 + arm);
+        rdpq_fill_rectangle(x1 - arm, y0, x1, y0 + thickness);              // top right
+        rdpq_fill_rectangle(x1 - thickness, y0 + thickness, x1, y0 + arm);
+        rdpq_fill_rectangle(x0, y1 - thickness, x0 + arm, y1);              // bottom left
+        rdpq_fill_rectangle(x0, y1 - arm, x0 + thickness, y1 - thickness);
+        rdpq_fill_rectangle(x1 - arm, y1 - thickness, x1, y1);              // bottom right
+        rdpq_fill_rectangle(x1 - thickness, y1 - arm, x1, y1 - thickness);
+        return;
+    }
     rdpq_fill_rectangle(x0, y0, x1, y0 + thickness);
     rdpq_fill_rectangle(x0, y1 - thickness, x1, y1);
     rdpq_fill_rectangle(x0, y0 + thickness, x0 + thickness, y1 - thickness);

@@ -43,6 +43,16 @@ typedef enum {
 /** Name of a pak_badges_t choice, for Settings. */
 const char *games_ui_pak_badges_name (int choice);
 
+/** How the selected cover is marked on the cover rows (option `selection`). */
+typedef enum {
+    SELECTION_RING,         /**< a frame all round it */
+    SELECTION_CORNERS,      /**< a bracket at each corner (the default) */
+    SELECTION_COUNT
+} selection_style_t;
+
+/** Name of a selection_style_t choice, for Settings. */
+const char *games_ui_selection_name (int choice);
+
 /**
  * Dark panel with the selected entry's name. Under it: badges for a game
  * whose facts are known, otherwise the plain line of detail.

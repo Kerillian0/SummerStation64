@@ -279,6 +279,11 @@ const char *games_ui_pak_badges_name (int choice) {
     return (choice >= 0 && choice < PAK_BADGES_COUNT) ? names[choice] : "";
 }
 
+const char *games_ui_selection_name (int choice) {
+    static const char *names[SELECTION_COUNT] = { "Ring", "Corners" };
+    return (choice >= 0 && choice < SELECTION_COUNT) ? names[choice] : "";
+}
+
 void games_ui_title_panel_draw (const char *title, const char *detail, const char *lead, bool hack, const game_facts_t *facts) {
     const theme_t *t = theme_get();
     int x0 = GAMES_UI_CONTENT_X0;
