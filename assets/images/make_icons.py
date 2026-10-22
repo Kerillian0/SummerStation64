@@ -23,8 +23,8 @@ The icons are kept as small as the console allows:
   (thousands of colors, 34 KB in memory while a cartridge shows its back).
   The menu tints it to each cartridge's plastic. Its outline comes from
   cart_outline.py.
-- cart_bottom.png: 64 x 16, a cartridge's bottom with the circuit board's
-  edge (2 KB, while cartridges are shown in 3D).
+- cart_bottom.png: 64 x 16, the slot in a cartridge's bottom with the
+  circuit board's edge (2 KB, while cartridges are shown in 3D).
 - button.png: a 20 x 20 white disc in 16 shades (4 bits a pixel: 200 bytes).
   The menu tints it for each button and stretches it into the longer
   shapes, so one picture serves every button.
@@ -268,19 +268,18 @@ back = shrink(back, CART_W, CART_H)
 back.save("cart_back.png")
 print(f"cart_back.png: {CART_W} x {CART_H}")
 
-# The bottom of a cartridge, for the 3D cartridges tipped up: the plastic
-# rim, the dark slot, and the green circuit board's edge with its gold
-# contacts. 64 x 16, the slot's length across, the cartridge's thickness down.
+# The slot in the bottom of a cartridge, for the 3D cartridges tipped up: dark,
+# with the green circuit board's edge and its gold contacts. The menu lays it
+# on the cartridge's own plastic. 64 x 16, the slot's length across.
 BOTTOM_W, BOTTOM_H = 64, 16
-bottom = Image.new("RGB", (BOTTOM_W * S, BOTTOM_H * S), PLASTIC[:3])
+bottom = Image.new("RGB", (BOTTOM_W * S, BOTTOM_H * S), (30, 30, 34))
 d = ImageDraw.Draw(bottom)
 def bt(x, y):
     return (x * (BOTTOM_W * S - 1), y * (BOTTOM_H * S - 1))
-d.rectangle([bt(0.13, 0.22), bt(0.87, 0.82)], fill=(30, 30, 34))                   # the slot
-d.rectangle([bt(0.15, 0.40), bt(0.85, 0.66)], fill=(34, 110, 60))                  # the board's edge
+d.rectangle([bt(0.03, 0.30), bt(0.97, 0.74)], fill=(34, 110, 60))                  # the board's edge
 for i in range(25):                                                                 # gold contacts
-    x = 0.165 + i * 0.0275
-    d.rectangle([bt(x, 0.42), bt(x + 0.016, 0.64)], fill=(214, 176, 72))
+    x = 0.05 + i * 0.0365
+    d.rectangle([bt(x, 0.34), bt(x + 0.021, 0.70)], fill=(214, 176, 72))
 bottom = shrink(bottom, BOTTOM_W, BOTTOM_H)
 bottom.save("cart_bottom.png")
 print(f"cart_bottom.png: {BOTTOM_W} x {BOTTOM_H}")

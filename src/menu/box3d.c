@@ -177,8 +177,8 @@ static point_t turn_point (float x, float y, float z, float yaw, float pitch) {
    plastic from the picture on its front, so it is the same material, and
    keeps one shade whichever way the cartridge turns: the top as bright as
    the front, the sides a little darker, the bottom a little more. The
-   bottom shows the circuit board (art->bottom). Drawn furthest first, so
-   nearer walls cover further ones. */
+   slot with the circuit board (art->bottom) is laid on the bottom's
+   plastic. Drawn furthest first, so nearer walls cover further ones. */
 #define CART_SIDE_SHADE     (0.90f)
 #define CART_BOTTOM_SHADE   (0.80f)
 
@@ -243,26 +243,20 @@ static void cartridge_walls (const box3d_art_t *art, float bw, float bh, float b
         (void) dy;
         int k = (int) (shade * art->bright);
 
-        bool board = pcb && (i == CART_POINTS - 1);
         if (!textured) {
             rdpq_set_prim_color(RGBA32(art->side.r * k / 255, art->side.g * k / 255, art->side.b * k / 255, draw_alpha));
         } else {
-            if (board && loaded != 2) {
-                rdpq_tex_upload(TILE0, art->bottom, NULL);
-                loaded = 2;
-            } else if (!board && loaded != 1) {
+            if (loaded != 1) {
                 rdpq_tex_upload_sub(TILE0, plastic, NULL, s0, t0, s1, t1);
                 loaded = 1;
             }
             rdpq_set_prim_color(RGBA32(k, k, k, draw_alpha));
         }
-        float ss0 = board ? 0 : s0, ss1 = board ? art->bottom->width : s1;
-        float tt0 = board ? 0 : t0, tt1 = board ? art->bottom->height : t1;
         float v0[5], v1[5], v2[5], v3[5];
-        vertex(v0, front[i], ss0, tt0);
-        vertex(v1, back[i], ss0, tt1);
-        vertex(v2, back[j], ss1, tt1);
-        vertex(v3, front[j], ss1, tt0);
+        vertex(v0, front[i], s0, t0);
+        vertex(v1, back[i], s0, t1);
+        vertex(v2, back[j], s1, t1);
+        vertex(v3, front[j], s1, t0);
         if (textured) {
             rdpq_triangle(&TRIFMT_TEX, v0, v1, v2);
             rdpq_triangle(&TRIFMT_TEX, v0, v2, v3);
@@ -270,6 +264,22 @@ static void cartridge_walls (const box3d_art_t *art, float bw, float bh, float b
             float f0[2] = { v0[0], v0[1] }, f1[2] = { v1[0], v1[1] }, f2[2] = { v2[0], v2[1] }, f3[2] = { v3[0], v3[1] };
             rdpq_triangle(&TRIFMT_FILL, f0, f1, f2);
             rdpq_triangle(&TRIFMT_FILL, f0, f2, f3);
+        }
+
+        /* The bottom: the slot with the circuit board, in the middle of its plastic. */
+        if (pcb && i == CART_POINTS - 1) {
+            const float u0 = 0.13f, u1 = 0.87f, w0 = 0.22f, w1 = 0.82f;  /* along the bottom, and front to back */
+            point_t near0 = mix(front[i], front[j], u0), near1 = mix(front[i], front[j], u1);
+            point_t far0 = mix(back[i], back[j], u0), far1 = mix(back[i], back[j], u1);
+            rdpq_tex_upload(TILE0, art->bottom, NULL);
+            loaded = 2;
+            float bw_ = art->bottom->width, bh_ = art->bottom->height;
+            vertex(v0, mix(near0, far0, w0), 0, 0);
+            vertex(v1, mix(near0, far0, w1), 0, bh_);
+            vertex(v2, mix(near1, far1, w1), bw_, bh_);
+            vertex(v3, mix(near1, far1, w0), bw_, 0);
+            rdpq_triangle(&TRIFMT_TEX, v0, v1, v2);
+            rdpq_triangle(&TRIFMT_TEX, v0, v2, v3);
         }
     }
     rdpq_mode_persp(false);
