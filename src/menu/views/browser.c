@@ -932,6 +932,7 @@ static void process (menu_t *menu) {
 #define CAROUSEL_GAP        16
 #define CAROUSEL_ANGLED_W   (0.80f) // Angled Side Covers: a side cover's width when turned away...
 #define CAROUSEL_ANGLED_FAR (0.90f) // ...and the height of its far edge, against the near one
+#define CAROUSEL_SIDE_BOX_YAW (40.0f) // 3D Side Covers with Angled Side Covers on: degrees each box turns toward the middle
 
 static const char *carousel_type_label (entry_type_t type) {
     switch (type) {
@@ -1267,6 +1268,7 @@ void carousel_draw (menu_t *menu) {
             // its far edge (toward the screen's side) shorter than its near one.
             float turn = angled ? ((away < 1.0f) ? away : 1.0f) : 0.0f;
             float far = carousel_lerp(1.0f, CAROUSEL_ANGLED_FAR, turn);
+            const int box_w = w;    // 3D Side Covers: a box narrows itself as it turns
             w = (int) (w * carousel_lerp(1.0f, CAROUSEL_ANGLED_W, turn));
 
             // Horizontal center of this cover.
@@ -1299,6 +1301,20 @@ void carousel_draw (menu_t *menu) {
                 drawn_covers[drawn_count++] = (carousel_box_t) { x0, y0, x0 + w, y0 + h };
             }
             carousel_art_brightness(cover_bright);
+
+            // 3D Side Covers: every cover but the selected one at rest is a box
+            // too, turned to face the middle with Angled Side Covers on. A cover
+            // sliding into the middle turns round to the selected box's angle.
+            if (!resting_center) {
+                float edge_turn = (away < 1.0f) ? away : 1.0f;
+                float side_yaw = angled ? ((pos < 0.0f) ? -CAROUSEL_SIDE_BOX_YAW : CAROUSEL_SIDE_BOX_YAW) : CAROUSEL_BOX_YAW;
+                float yaw = carousel_lerp(CAROUSEL_BOX_YAW, side_yaw, edge_turn);
+                int bx0 = x0 + w / 2 - box_w / 2;
+                if (carousel_art_draw_side_box(menu, i, bx0, y0, box_w, h, yaw, (int) alpha)) {
+                    carousel_art_brightness(255);
+                    continue;
+                }
+            }
 
             if (turn > 0.0f) {
                 float left = (pos < 0.0f) ? far : 1.0f;
@@ -1367,7 +1383,7 @@ void carousel_draw (menu_t *menu) {
     color_t ring_color = carousel_ring_color(menu, covers->selected, t->accent, &ring_hidden);
     // Corner brackets stand a little further above and below the cover than the ring.
     const int ring_pad_y = (options_get(OPTION_SELECTION) == SELECTION_CORNERS) ? 9 : 5;
-    if (!ring_hidden) {
+    if (!ring_hidden && options_get(OPTION_SELECTION) != SELECTION_OFF) {
         carousel_ring(
             cx - ring_w / 2 - 5, CAROUSEL_CENTER_Y - ring_h / 2 - ring_pad_y,
             cx + ring_w / 2 + 5, CAROUSEL_CENTER_Y + ring_h / 2 + ring_pad_y,

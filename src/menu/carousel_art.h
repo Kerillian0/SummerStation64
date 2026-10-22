@@ -86,6 +86,17 @@ bool carousel_art_draw_angled (menu_t *menu, int index, int x0, int y0, int w, i
 bool carousel_art_draw_box (menu_t *menu, int index, int x0, int y0, int w, int h);
 
 /**
+ * Draw a cover that is not the selected one at rest as a box (3D Side
+ * Covers), fitted inside the given area and turned `yaw` degrees (above 0
+ * shows its left side). `alpha` below 255 lets the background show through.
+ * @return false if there is no art (yet), or 3D Side Covers is off.
+ */
+bool carousel_art_draw_side_box (menu_t *menu, int index, int x0, int y0, int w, int h, float yaw, int alpha);
+
+/** The selected box's resting turn, in degrees (3D Box). */
+#define CAROUSEL_BOX_YAW        (24.0f)
+
+/**
  * Turn the selected box over (front <-> back). Does nothing if no art is showing.
  * @return True if a flip started.
  */

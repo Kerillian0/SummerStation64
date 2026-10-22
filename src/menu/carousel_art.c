@@ -52,6 +52,8 @@ typedef struct {
     bool card_pending;          /* no baked art; its picture on the card is still to be tried, once the decoder is free */
     uint8_t tint_state;         /* ring color: 0 not worked out yet, 1 the cover has none, 2 in `tint` */
     color_t tint;
+    component_boxart_t *top;    /* the box's top label, for 3D Side Covers (baked art only) */
+    bool top_tried;
 } slot_t;
 
 typedef enum {
@@ -74,12 +76,14 @@ static uint64_t changed_at;
    selection moves. */
 #define EDGE_COUNT          (3)
 #define BOX_EASE_MS         (250)   /* how long a flat cover takes to become a box */
-#define BOX_YAW             (24.0f) /* degrees turned, showing the left side */
+#define HOVER_EASE_MS       (500)   /* how long the hover takes to start once the box has come to rest */
+#define BOX_YAW             (CAROUSEL_BOX_YAW) /* degrees turned, showing the left side */
 #define BOX_PITCH           (14.0f) /* degrees seen from above, showing the top */
 static const file_image_type_t edge_kinds[EDGE_COUNT] = { IMAGE_BOXART_TOP, IMAGE_BOXART_LEFT, IMAGE_BOXART_RIGHT };
 static component_boxart_t *edges[EDGE_COUNT];
 static bool edge_tried[EDGE_COUNT];
 static uint64_t box_since = 0;      /* when the box started to open out (0: not yet) */
+static bool box_from_flat = false;  /* it was flat (turned over): open out again even with 3D Side Covers */
 
 static int art_bright = 255;      /* see carousel_art_brightness() */
 
@@ -102,6 +106,9 @@ static bool art_ready (component_boxart_t *art) {
 }
 
 static void slot_clear (slot_t *slot) {
+    if (slot->top) {
+        baked_art_free(slot->top);
+    }
     if (slot->art) {
         if (!baked_art_free(slot->art)) ui_components_boxart_free(slot->art); /* also stops a decode in progress */
     }
@@ -256,6 +263,7 @@ bool carousel_art_flip (void) {
     flip = FLIP_CLOSING;
     flip_at = get_ticks_ms();
     box_since = 0;          /* turned over flat, then opens out into a box again */
+    box_from_flat = true;
     return true;
 }
 
@@ -318,6 +326,40 @@ float carousel_art_flip_width (void) {
     }
 }
 
+/* ---------- the side covers' top labels (3D Side Covers) ---------- */
+
+static bool side_boxes_on (void) {
+    return features_enabled(FEATURE_BOX_3D) && features_enabled(FEATURE_SIDE_BOXES) && features_enabled(FEATURE_SIDE_COVERS);
+}
+
+/* Fetch one side cover's top label a frame, once its cover is in. Only
+   from baked art: searching the card for each one would be slow. */
+static void slot_tops_update (menu_t *menu) {
+    if (!side_boxes_on()) {
+        return;
+    }
+    for (int i = 0; i < SLOT_COUNT; i++) {
+        slot_t *slot = &slots[i];
+        if (!slot->used || slot->top_tried || !art_ready(slot->art)) {
+            continue;
+        }
+        slot->top_tried = true;
+        if (!baked_art_owns(slot->art)) {
+            continue;
+        }
+        const cover_list_t *covers = cover_list_current(menu);
+        path_t *path = covers->path(menu, slot->index);
+        const game_index_entry_t *known = game_index_find(path_get(path), covers->list[slot->index].size);
+        path_free(path);
+        if (known) {
+            char code[5] = "";
+            memcpy(code, known->code, 4);
+            slot->top = baked_art_load(code, IMAGE_BOXART_TOP);
+            return;     /* one a frame */
+        }
+    }
+}
+
 /* ---------- the selected box's edges (3D Box) ---------- */
 
 /* Fetch the next edge picture of the selected box, once its cover is in and
@@ -371,7 +413,8 @@ bool carousel_art_draw_box (menu_t *menu, int index, int x0, int y0, int w, int 
         box_since = now;
     }
     float t = (float) (now - box_since) / BOX_EASE_MS;
-    if (!features_enabled(FEATURE_CAROUSEL_ANIMATION) || t > 1.0f) {
+    /* With 3D Side Covers it slid in as a box already: no opening out. */
+    if (!features_enabled(FEATURE_CAROUSEL_ANIMATION) || t > 1.0f || (side_boxes_on() && !box_from_flat)) {
         t = 1.0f;
     }
     float amount = 1.0f - (1.0f - t) * (1.0f - t);     /* eases out */
@@ -381,7 +424,7 @@ bool carousel_art_draw_box (menu_t *menu, int index, int x0, int y0, int w, int 
         .side = theme_get()->panel,
         .bright = art_bright,
     };
-    art.top = art_ready(edges[0]) ? edges[0]->image : NULL;
+    art.top = art_ready(edges[0]) ? edges[0]->image : (art_ready(slot->top) ? slot->top->image : NULL);
     art.left = art_ready(edges[1]) ? edges[1]->image : NULL;
     art.right = art_ready(edges[2]) ? edges[2]->image : NULL;
     art.back = (side != IMAGE_BOXART_FRONT);
@@ -391,9 +434,42 @@ bool carousel_art_draw_box (menu_t *menu, int index, int x0, int y0, int w, int 
     }
     box3d_pose_t pose = { .yaw = BOX_YAW, .pitch = BOX_PITCH, .amount = amount, .fit_yaw = BOX_YAW, .fit_pitch = BOX_PITCH };
     box_motion_pose(&pose.yaw, &pose.pitch, &pose.lift);
-    pose.lift *= amount;    /* the hover starts as the box opens out */
+    /* The hover eases in once the box has come to rest, so it doesn't jump. */
+    float settle = (float) (now - box_since) / HOVER_EASE_MS;
+    settle = (settle > 1.0f) ? 1.0f : settle * (2.0f - settle);
+    pose.yaw = BOX_YAW + (pose.yaw - BOX_YAW) * settle;
+    pose.pitch = BOX_PITCH + (pose.pitch - BOX_PITCH) * settle;
+    pose.lift *= amount * settle;
     box3d_draw(&art, x0, y0, w, h, &pose);
     box_motion_shown();
+    return true;
+}
+
+bool carousel_art_draw_side_box (menu_t *menu, int index, int x0, int y0, int w, int h, float yaw, int alpha) {
+    slot_t *slot = slot_find(menu, index);
+    if (!side_boxes_on() || !slot || !art_ready(slot->art) || (index == center_index && flip != FLIP_NONE)) {
+        return false;
+    }
+    box3d_art_t art = {
+        .front = slot->art->image,
+        .side = theme_get()->panel,
+        .bright = art_bright,
+        .alpha = alpha,
+        .back = (index == center_index && side != IMAGE_BOXART_FRONT),
+    };
+    if (index == center_index && art_ready(edges[0])) {
+        art.top = edges[0]->image;
+    } else if (art_ready(slot->top)) {
+        art.top = slot->top->image;
+    }
+    color_t tint;
+    if (carousel_art_tint_state(menu, index, &tint) == ART_TINT_KNOWN) {
+        art.side = tint;
+    }
+    /* Sized at the selected box's resting angles, so a box turned further
+       comes out narrower, as it should. */
+    box3d_pose_t pose = { .yaw = yaw, .pitch = BOX_PITCH, .amount = 1.0f, .fit_yaw = BOX_YAW, .fit_pitch = BOX_PITCH };
+    box3d_draw(&art, x0, y0, w, h, &pose);
     return true;
 }
 
@@ -438,6 +514,7 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
         flip = FLIP_NONE;
         edges_clear();
         box_motion_reset();
+        box_from_flat = false;
         center_index = selected;
         center_entry = entry;
         center_hash = hash;
@@ -518,6 +595,7 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
 
     flip_update(menu);
     edges_update(menu, now);
+    slot_tops_update(menu);
 
     /* Also saved once the selection has rested a while, in case the console
        is switched off without leaving this screen. */

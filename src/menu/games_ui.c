@@ -280,7 +280,7 @@ const char *games_ui_pak_badges_name (int choice) {
 }
 
 const char *games_ui_selection_name (int choice) {
-    static const char *names[SELECTION_COUNT] = { "Ring", "Corners" };
+    static const char *names[SELECTION_COUNT] = { "Ring", "Corners", "Off" };
     return (choice >= 0 && choice < SELECTION_COUNT) ? names[choice] : "";
 }
 

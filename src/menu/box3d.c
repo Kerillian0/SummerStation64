@@ -34,6 +34,9 @@ static const int faces[FACE_COUNT][4] = {
     [FACE_RIGHT] = { 1, 5, 7, 3 },  /* front edge at the left */
 };
 
+/* How see-through the box being drawn is (255: solid). */
+static int draw_alpha = 255;
+
 /* From the box to the screen. */
 static float camera;                /* the camera's distance */
 static float scale, offset_x, offset_y;
@@ -71,8 +74,11 @@ static void face_plain (const int *face, color_t color) {
         project(corners[face[i]], &v[i][0], &v[i][1], &near);
     }
     rdpq_set_mode_standard();
-    rdpq_set_prim_color(color);
+    rdpq_set_prim_color(RGBA32(color.r, color.g, color.b, draw_alpha));
     rdpq_mode_combiner(RDPQ_COMBINER_FLAT);
+    if (draw_alpha < 255) {
+        rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+    }
     rdpq_triangle(&TRIFMT_FILL, v[0], v[1], v[2]);
     rdpq_triangle(&TRIFMT_FILL, v[0], v[2], v[3]);
 }
@@ -106,11 +112,14 @@ static bool face_picture (const int *face, surface_t *image, float shade, int br
     rdpq_set_mode_standard();
     rdpq_mode_filter(FILTER_BILINEAR);
     rdpq_mode_persp(true);
-    if (k >= 255) {
+    if (k >= 255 && draw_alpha >= 255) {
         rdpq_mode_combiner(RDPQ_COMBINER_TEX);
     } else {
-        rdpq_set_prim_color(RGBA32(k, k, k, 0xFF));
+        rdpq_set_prim_color(RGBA32(k > 255 ? 255 : k, k > 255 ? 255 : k, k > 255 ? 255 : k, draw_alpha));
         rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);
+        if (draw_alpha < 255) {
+            rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+        }
     }
     for (int t0 = 0; t0 < ih; t0 += band) {
         int t1 = (t0 + band < ih) ? (t0 + band) : ih;
@@ -160,6 +169,7 @@ void box3d_draw (const box3d_art_t *art, int x0, int y0, int w, int h, const box
     float amount = pose->amount;
     if (amount < 0.0f) amount = 0.0f;
     if (amount > 1.0f) amount = 1.0f;
+    draw_alpha = (art->alpha <= 0 || art->alpha > 255) ? 255 : art->alpha;
 
     /* The box in its own units: the front picture's size, and its depth from
        the top strip's shape, or a guess. */
