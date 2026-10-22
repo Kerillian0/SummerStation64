@@ -8,6 +8,8 @@
 #include "art_tint.h"
 #include "game_learn.h"
 #include "baked_art.h"
+#include "box3d.h"
+#include "theme.h"
 #include "game_index.h"
 #include "cover_list.h"
 #include "menu_features.h"
@@ -66,6 +68,20 @@ static entry_t *center_entry = NULL;
 static uint32_t center_hash = 0;
 static uint64_t changed_at;
 
+/* The selected box's edges for the 3D Box: top strip, left and right side.
+   Fetched one at a time once its cover is in, and let go when the
+   selection moves. */
+#define EDGE_COUNT          (3)
+#define BOX_EASE_MS         (250)   /* how long a flat cover takes to become a box */
+#define BOX_YAW             (24.0f) /* degrees turned, showing the left side */
+#define BOX_PITCH           (14.0f) /* degrees seen from above, showing the top */
+static const file_image_type_t edge_kinds[EDGE_COUNT] = { IMAGE_BOXART_TOP, IMAGE_BOXART_LEFT, IMAGE_BOXART_RIGHT };
+static component_boxart_t *edges[EDGE_COUNT];
+static bool edge_tried[EDGE_COUNT];
+static uint64_t box_since = 0;      /* when the box started to open out (0: not yet) */
+
+static int art_bright = 255;      /* see carousel_art_brightness() */
+
 static file_image_type_t side = IMAGE_BOXART_FRONT;
 static flip_state_t flip = FLIP_NONE;
 static uint64_t flip_at;
@@ -121,7 +137,23 @@ static bool any_loading (void) {
             return true;
         }
     }
+    for (int i = 0; i < EDGE_COUNT; i++) {
+        if (edges[i] && edges[i]->loading) {
+            return true;
+        }
+    }
     return false;
+}
+
+static void edges_clear (void) {
+    for (int i = 0; i < EDGE_COUNT; i++) {
+        if (edges[i] && !baked_art_free(edges[i])) {
+            ui_components_boxart_free(edges[i]);    /* also stops a decode in progress */
+        }
+        edges[i] = NULL;
+        edge_tried[i] = false;
+    }
+    box_since = 0;
 }
 
 static bool memory_for_side_art (void) {
@@ -222,6 +254,7 @@ bool carousel_art_flip (void) {
     }
     flip = FLIP_CLOSING;
     flip_at = get_ticks_ms();
+    box_since = 0;          /* turned over flat, then opens out into a box again */
     return true;
 }
 
@@ -284,9 +317,87 @@ float carousel_art_flip_width (void) {
     }
 }
 
+/* ---------- the selected box's edges (3D Box) ---------- */
+
+/* Fetch the next edge picture of the selected box, once its cover is in and
+   nothing else is loading. A game whose cover is baked had all its pictures
+   baked with it, so the card is only searched for games whose cover came
+   from the card. */
+static void edges_update (menu_t *menu, uint64_t now) {
+    if (!features_enabled(FEATURE_BOX_3D) || flip != FLIP_NONE) {
+        return;
+    }
+    slot_t *center = slot_find(menu, center_index);
+    if (!center || !art_ready(center->art) || any_loading()) {
+        return;
+    }
+    bool baked = baked_art_owns(center->art);
+    if (!baked && (now - changed_at) < SIDE_SETTLE_TIME_MS) {
+        return;     /* the card is slow to search: wait until the selection has really come to rest */
+    }
+    for (int i = 0; i < EDGE_COUNT; i++) {
+        if (edge_tried[i]) {
+            continue;
+        }
+        edge_tried[i] = true;
+
+        const cover_list_t *covers = cover_list_current(menu);
+        path_t *path = covers->path(menu, center_index);
+        const game_index_entry_t *known = game_index_find(path_get(path), covers->list[center_index].size);
+        path_free(path);
+        if (!known) {
+            return;     /* homebrew, found by title: no edges */
+        }
+        char code[5] = "";
+        memcpy(code, known->code, 4);
+
+        edges[i] = baked_art_load(code, edge_kinds[i]);
+        if (!edges[i] && !baked) {
+            edges[i] = ui_components_boxart_init(menu->storage_prefix, code, "", edge_kinds[i]);
+        }
+        return;     /* one a frame */
+    }
+}
+
+bool carousel_art_draw_box (menu_t *menu, int index, int x0, int y0, int w, int h) {
+    slot_t *slot = slot_find(menu, index);
+    if (index != center_index || !slot || !art_ready(slot->art) || flip != FLIP_NONE) {
+        return false;
+    }
+
+    uint64_t now = get_ticks_ms();
+    if (box_since == 0) {
+        box_since = now;
+    }
+    float t = (float) (now - box_since) / BOX_EASE_MS;
+    if (!features_enabled(FEATURE_CAROUSEL_ANIMATION) || t > 1.0f) {
+        t = 1.0f;
+    }
+    float amount = 1.0f - (1.0f - t) * (1.0f - t);     /* eases out */
+
+    box3d_art_t art = {
+        .front = slot->art->image,
+        .side = theme_get()->panel,
+        .bright = art_bright,
+    };
+    /* The edges belong to the front: the back of the box is shown with plain ones. */
+    if (side == IMAGE_BOXART_FRONT) {
+        art.top = art_ready(edges[0]) ? edges[0]->image : NULL;
+        art.left = art_ready(edges[1]) ? edges[1]->image : NULL;
+        art.right = art_ready(edges[2]) ? edges[2]->image : NULL;
+    }
+    color_t tint;
+    if (carousel_art_tint_state(menu, index, &tint) == ART_TINT_KNOWN) {
+        art.side = tint;
+    }
+    box3d_draw(&art, x0, y0, w, h, BOX_YAW, BOX_PITCH, amount);
+    return true;
+}
+
 /* ---------- the cache ---------- */
 
 void carousel_art_reset (void) {
+    edges_clear();
     for (int i = 0; i < SLOT_COUNT; i++) {
         slot_clear(&slots[i]);
     }
@@ -322,6 +433,7 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
         }
         side = IMAGE_BOXART_FRONT;
         flip = FLIP_NONE;
+        edges_clear();
         center_index = selected;
         center_entry = entry;
         center_hash = hash;
@@ -401,6 +513,7 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
     }
 
     flip_update(menu);
+    edges_update(menu, now);
 
     /* Also saved once the selection has rested a while, in case the console
        is switched off without leaving this screen. */
@@ -440,8 +553,6 @@ art_tint_state_t carousel_art_tint_state (menu_t *menu, int index, color_t *out)
     *out = slot->tint;
     return ART_TINT_KNOWN;
 }
-
-static int art_bright = 255;
 
 void carousel_art_brightness (int bright) {
     art_bright = (bright < 0) ? 0 : ((bright > 255) ? 255 : bright);

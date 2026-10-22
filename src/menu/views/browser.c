@@ -1288,6 +1288,10 @@ void carousel_draw (menu_t *menu) {
                 continue;
             }
 
+            if (resting_center && features_enabled(FEATURE_BOX_3D) && carousel_art_draw_box(menu, i, x0, y0, w, h)) {
+                carousel_art_brightness(255);
+                continue; // 3D Box: the cover as a box with depth
+            }
             if (alpha >= 255.0f) {
                 // While the box turns over, the cover is squashed sideways.
                 int fw = resting_center ? (int) (w * carousel_art_flip_width()) : w;

@@ -82,6 +82,7 @@ SRCS = \
 	menu/rom_info.c \
 	menu/settings.c \
 	menu/sound.c \
+	menu/box3d.c \
 	menu/dump_check.c \
 	menu/game_data.c \
 	menu/memory_note.c \

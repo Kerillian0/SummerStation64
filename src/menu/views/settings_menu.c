@@ -152,6 +152,7 @@ static const item_t display_items[] = {
     CHOICES("Theme", OPTION_THEME, BUILTIN_THEME_COUNT, builtin_theme_name, apply_theme,
         "The menu's colors and background. From SD Card uses your own theme file (menu/theme/theme.ini), or Midnight if there is none. The others are built in."),
     FEATURE("Cover Art", FEATURE_COVER_ART, "Show box art on the selected cover."),
+    FEATURE("3D Box", FEATURE_BOX_3D, "Show the selected cover as a box with depth, turned slightly, with the top of the box from its box art where there is one."),
     FEATURE("Previous/Next Covers", FEATURE_SIDE_COVERS, "Show smaller covers either side of the selected one."),
     FEATURE("See-through Side Covers", FEATURE_SEE_THROUGH_COVERS, "Let the background show through the previous and next covers. Off draws them solid."),
     FEATURE("Scroll Descriptions", FEATURE_DESC_SCROLL, "On Game info, a long description drifts up slowly after 10 seconds; the D-Pad or stick scrolls it by hand. Off cuts it short with ..."),

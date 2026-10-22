@@ -76,6 +76,16 @@ bool carousel_art_draw (menu_t *menu, int index, int x0, int y0, int w, int h, i
 bool carousel_art_draw_angled (menu_t *menu, int index, int x0, int y0, int w, int h, float left, float right, int alpha);
 
 /**
+ * Draw the selected cover as a box with depth (3D Box), fitted inside the
+ * given area: it opens out from a flat cover over a quarter of a second
+ * once it has come to rest, with the top and sides from the box art when
+ * they have arrived, plain color until then.
+ * @return false if there is no art (yet), or the box is turning over: draw
+ *         the flat cover instead.
+ */
+bool carousel_art_draw_box (menu_t *menu, int index, int x0, int y0, int w, int h);
+
+/**
  * Turn the selected box over (front <-> back). Does nothing if no art is showing.
  * @return True if a flip started.
  */

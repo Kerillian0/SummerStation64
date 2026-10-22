@@ -2,8 +2,9 @@
 """Turns a folder of box art PNGs into the small files the menu bakes in.
 
 Reads   assets/boxart/source/<N>/<Z>/<S>/<E>/boxart_front.png  (and
-        boxart_back.png), the layout of the SD card's menu/metadata folder.
-Writes  filesystem/art/Z/S/NZSE_f.sprite  and  NZSE_b.sprite. The two
+        boxart_back, _top, _left and _right.png where there are any), the
+        layout of the SD card's menu/metadata folder.
+Writes  filesystem/art/Z/S/NZSE_f.sprite, NZSE_b, _t, _l and _r. The two
         folders are the code's middle letters: the console finds a file by
         walking through a folder's list, and a thousand files in one folder
         would make that walk slow.
@@ -22,7 +23,9 @@ from PIL import Image
 SOURCE = "assets/boxart/source"
 OUT = "filesystem/art"
 MAX_SIDE = 158          # BOXART_WIDTH_MAX / BOXART_HEIGHT_MAX in the menu
-SIDES = {"boxart_front.png": "f", "boxart_back.png": "b"}
+SIDES = {"boxart_front.png": "f", "boxart_back.png": "b",
+         # the edges of the 3D Box (the top strip is 158 x 22 in the pack)
+         "boxart_top.png": "t", "boxart_left.png": "l", "boxart_right.png": "r"}
 MKSPRITE = os.path.join(os.environ.get("N64_INST", "/opt/libdragon"), "bin", "mksprite")
 
 if not os.path.isdir(SOURCE):

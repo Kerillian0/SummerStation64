@@ -11,7 +11,7 @@
 #include "memory_note.h"
 #include "baked_art.h"
 
-#define MAX_LOADED      (8)             /* more than the cover row ever holds at once */
+#define MAX_LOADED      (12)            /* more than the cover row and the selected box's edges ever hold at once */
 #define MIN_FREE        (160 * 1024)    /* don't load one when memory is this short */
 
 /* Which covers came from here, and the picture each one's pixels belong to. */
@@ -42,9 +42,14 @@ component_boxart_t *baked_art_load (const char *game_code, file_image_type_t whi
     if (!game_code || !code_is_plain(game_code, 4)) {
         return NULL;
     }
-    char side = (which == IMAGE_BOXART_BACK) ? 'b' : 'f';
-    if (which != IMAGE_BOXART_BACK && which != IMAGE_BOXART_FRONT) {
-        return NULL;
+    char side;
+    switch (which) {
+        case IMAGE_BOXART_FRONT: side = 'f'; break;
+        case IMAGE_BOXART_BACK: side = 'b'; break;
+        case IMAGE_BOXART_TOP: side = 't'; break;
+        case IMAGE_BOXART_LEFT: side = 'l'; break;
+        case IMAGE_BOXART_RIGHT: side = 'r'; break;
+        default: return NULL;
     }
 
     /* The files sit in folders named after the code's two middle letters,
@@ -99,6 +104,15 @@ component_boxart_t *baked_art_load (const char *game_code, file_image_type_t whi
     loaded[slot].art = art;
     loaded[slot].sprite = sprite;
     return art;
+}
+
+bool baked_art_owns (component_boxart_t *art) {
+    for (int i = 0; art && i < MAX_LOADED; i++) {
+        if (loaded[i].art == art) {
+            return true;
+        }
+    }
+    return false;
 }
 
 bool baked_art_free (component_boxart_t *art) {
