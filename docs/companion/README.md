@@ -1,10 +1,10 @@
 # SummerStation64 Companion
 
-One web page, `index.html`, with three tabs: **Theme Maker**, **Card Prep**
-and **Guide**. Published with GitHub Pages from this folder
+One web page, `index.html`, with four tabs: **Theme Maker**, **Card Prep**,
+**Hacks** and **Guide**. Published with GitHub Pages from this folder
 (Settings > Pages: branch `summerstation`, folder `/docs`), at
 `https://kerillian0.github.io/SummerStation64/companion/`. Each tab has its
-own address: `#themes`, `#prep`, `#guide` (and `#guide-setup`,
+own address: `#themes`, `#prep`, `#hacks`, `#guide` (and `#guide-setup`,
 `#guide-hardware`, `#guide-tools`, `#guide-help`).
 
 Markup, styles and scripts are all in the one file, with no build step. It
@@ -64,6 +64,34 @@ writes `menu/verified.txt`, which the menu reads for its dump check marks
 
 A second run reuses the CRC of every file whose path and size are unchanged.
 
+## Hacks
+
+Gives a hack a game code of its own, so the menu shows it with its own name,
+cover and description instead of those of the game it was made from (see
+`src/menu/hack_games.h`).
+
+1. The player picks the card's top folder. Each game's code is read from its
+   header; `menu/hacks.txt`, `menu/verified.txt` and the hack folders already
+   on the card (`menu/metadata/X/...`) are read too.
+2. Games that share a code with another file are listed (or every game).
+3. For the chosen file: name, maker, release date, players, short and full
+   description, a code (suggested: X, two letters from the name, E; codes
+   already on the card are refused) and a cover, cut in the browser to the
+   pack's size (158x112, or 112x158 for a tall box).
+4. Saving writes each hack's folder (`metadata.ini`, `description.txt`,
+   `boxart_front.png`), then `menu/hacks.txt`:
+
+```
+hacks 1
+; size crc32 code file name   (a CRC of 0: match by file name and size)
+16777216 3b780fd0 XMLE Legend of Zelda, The Missing Link (U) (V1.3).z64
+```
+
+The CRC is the same as Card Prep's (the console's byte order), taken from
+`verified.txt` when it has the file, otherwise worked out. Browsers that
+can't write to the card get a `.zip` (stored, no packing) to unzip onto it.
+Removing a hack takes its line out of `hacks.txt` and leaves its folder.
+
 ## Guide
 
 Plain HTML in the `#guide` tab: SD card setup, hardware, tools and
@@ -73,7 +101,7 @@ and settings are named exactly as on the console).
 ## Tests
 
 There is no browser in the dev container. `sh tests/run.sh` runs the Theme
-Maker's share codes and Card Prep's working code (between `// --- logic` and
-`// --- end logic ---`) in Node.js, taken straight out of this page. The parts
+Maker's share codes, Card Prep's working code (between `// --- logic` and
+`// --- end logic ---`) and the Hacks tab's (`// --- hacks logic`) in Node.js, taken straight out of this page. The parts
 that need a browser (the preview, picking a folder, saving) are checked by
 opening the page.

@@ -67,7 +67,7 @@ h2 i{width:14px;height:14px;border-radius:50%;display:inline-block;flex-shrink:0
 .row.wide{grid-template-columns:150px minmax(0,1fr)}
 @media (max-width:420px){.row,.row.wide{grid-template-columns:minmax(0,1fr);gap:4px}}
 .l{color:var(--ink-2);font-size:14px}
-select,input[type=text],input[type=number]{width:100%;font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:8px;padding:7px 9px;min-width:0}
+select,textarea,input[type=text],input[type=number],input[type=date]{width:100%;font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:8px;padding:7px 9px;min-width:0}
 .color{display:flex;gap:8px;align-items:center}
 .color input[type=color]{width:42px;height:36px;padding:2px;border:1px solid var(--line);border-radius:8px;background:var(--field);cursor:pointer;flex-shrink:0}
 .color input[type=text]{font-family:inherit;text-transform:uppercase;max-width:120px}
@@ -108,28 +108,43 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
 .foot{max-width:1180px;margin:0 auto;padding:0 16px 32px;color:var(--ink-2);font-size:13px}
 .foot a{color:inherit}
 
-/* ---------- Card Prep ---------- */
-#prep .wrap{max-width:960px;display:grid;grid-template-columns:minmax(0,1fr)}
-#prep h2 .n{width:26px;height:26px;border-radius:50%;background:var(--n-blue);color:var(--on-accent);display:inline-grid;place-items:center;font-size:14px;flex-shrink:0}
-#prep section p{margin:0 0 10px;color:var(--ink-2);max-width:72ch}
-#prep .go{font:inherit;font-weight:700;border:0;border-radius:999px;padding:9px 18px;background:var(--n-blue);color:var(--on-accent);cursor:pointer}
-#prep .go.quiet{background:transparent;color:var(--ink);border:2px solid var(--line);padding:7px 16px}
-#prep .go:disabled{opacity:.45;cursor:not-allowed}
-#prep .line{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
-#prep .status{margin-top:0}
-#prep .status b{color:var(--ink)}
-#prep .bad{color:var(--n-red)}
-#prep progress{width:100%;height:12px;margin-top:10px;accent-color:var(--n-blue)}
-#prep .counts{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
-#prep .chip{border-radius:999px;padding:3px 12px;font-weight:700;font-size:14px;border:2px solid currentColor}
-#prep .V{color:var(--n-green)} #prep .M{color:var(--n-yellow)} #prep .U{color:var(--ink-2)}
-#prep .tablewrap{overflow-x:auto}
-#prep table{border-collapse:collapse;width:100%;font-size:14px}
-#prep th,#prep td{text-align:left;padding:6px 8px;border-top:1px solid var(--line);vertical-align:top}
-#prep th{font-weight:700;color:var(--ink-2);border-top:0}
-#prep td.code{font-family:ui-monospace,Consolas,monospace}
-#prep td.file{overflow-wrap:anywhere}
-#prep .hidden{display:none}
+/* ---------- Card Prep and Hacks (class tool) ---------- */
+.tool .wrap{max-width:960px;display:grid;grid-template-columns:minmax(0,1fr)}
+.tool h2 .n{width:26px;height:26px;border-radius:50%;background:var(--n-blue);color:var(--on-accent);display:inline-grid;place-items:center;font-size:14px;flex-shrink:0}
+.tool section p{margin:0 0 10px;color:var(--ink-2);max-width:72ch}
+.tool .go{font:inherit;font-weight:700;border:0;border-radius:999px;padding:9px 18px;background:var(--n-blue);color:var(--on-accent);cursor:pointer}
+.tool .go.quiet{background:transparent;color:var(--ink);border:2px solid var(--line);padding:7px 16px}
+.tool .go.small{padding:5px 12px;font-size:14px}
+.tool .go.quiet.small{padding:3px 10px}
+.tool .go:disabled{opacity:.45;cursor:not-allowed}
+.tool .line{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.tool .status{margin-top:0}
+.tool .status b{color:var(--ink)}
+.tool .bad{color:var(--n-red)}
+.tool progress{width:100%;height:12px;margin-top:10px;accent-color:var(--n-blue)}
+.tool .counts{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.tool .chip{border-radius:999px;padding:3px 12px;font-weight:700;font-size:14px;border:2px solid currentColor}
+.tool .V{color:var(--n-green)} .tool .M{color:var(--n-yellow)} .tool .U{color:var(--ink-2)}
+.tool .tablewrap{overflow-x:auto}
+.tool table{border-collapse:collapse;width:100%;font-size:14px}
+.tool th,.tool td{text-align:left;padding:6px 8px;border-top:1px solid var(--line);vertical-align:top}
+.tool th{font-weight:700;color:var(--ink-2);border-top:0}
+.tool td.code{font-family:ui-monospace,Consolas,monospace}
+.tool td.file{overflow-wrap:anywhere}
+.tool .hidden{display:none}
+
+/* ---------- Hacks ---------- */
+#hacks textarea{resize:vertical;min-height:96px;line-height:1.4}
+#hacks .row{grid-template-columns:130px minmax(0,1fr)}
+#hacks .cover{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
+#hacks canvas#hackCover{display:block;width:158px;height:112px;background:var(--field);border:1px solid var(--line);border-radius:6px;image-rendering:pixelated}
+#hacks .codebox{display:flex;gap:8px;align-items:center}
+#hacks .codebox input{max-width:90px;font-family:ui-monospace,Consolas,monospace;text-transform:uppercase}
+#hacks td.act{white-space:nowrap;text-align:right}
+#hacks .own{color:var(--n-green);font-weight:700}
+#hacks .tablewrap{max-height:420px;overflow-y:auto}
+#hacks .listed{margin:0;padding-left:20px}
+#hacks .listed li{margin-bottom:6px}
 
 /* ---------- Guide ---------- */
 #guide .wrap{max-width:960px;display:grid;grid-template-columns:minmax(0,1fr)}
@@ -156,6 +171,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
   <nav class="tabs" aria-label="Tools">
     <a href="#themes" data-tab="themes">Theme Maker</a>
     <a href="#prep" data-tab="prep">Card Prep</a>
+    <a href="#hacks" data-tab="hacks">Hacks</a>
     <a href="#guide" data-tab="guide">Guide</a>
   </nav>
 </div></div>
@@ -291,7 +307,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
 </div>
 </div>
 
-<div class="tabpane" id="prep" hidden>
+<div class="tabpane tool" id="prep" hidden>
 <div class="wrap">
   <header>
     <h1 class="page-title">Card Prep</h1>
@@ -354,6 +370,82 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
         <thead><tr><th>File</th><th>Code</th><th>Result</th><th>Known as</th></tr></thead>
         <tbody id="rows"></tbody>
       </table></div>
+    </section>
+  </div>
+</div>
+</div>
+
+<div class="tabpane tool" id="hacks" hidden>
+<div class="wrap">
+  <header>
+    <h1 class="page-title">Hacks</h1>
+    <p>Give a hack a game of its own on the menu: its own name, cover and description, kept apart from the game it
+      was made from. Everything happens in this browser: no game is uploaded anywhere.</p>
+  </header>
+
+  <div class="panel">
+    <section>
+      <h2><span class="n">1</span>Pick your SD card</h2>
+      <p>Choose the top folder of the card (the one with <code>sc64menu.n64</code> in it). Running <a href="#prep">Card Prep</a>
+        first is worth it: the menu then finds a hack by its contents, even after it is renamed.</p>
+      <div class="line">
+        <button class="go" id="hackPick">Choose SD card</button>
+        <input type="file" id="hackPickOld" webkitdirectory class="hidden">
+        <span class="status" id="hackCardStatus">No card chosen yet.</span>
+      </div>
+    </section>
+
+    <section>
+      <h2><span class="n">2</span>Choose a hack</h2>
+      <p>A hack carries the game code of the game it was made from, so the menu shows it with that game's cover and
+        name. Games that share a code with another file are listed here.</p>
+      <div class="line">
+        <input type="text" id="hackSearch" placeholder="Search file names" aria-label="Search file names" style="max-width:280px">
+        <label class="check"><input type="checkbox" id="hackAll"> Show every game</label>
+      </div>
+      <div class="tablewrap" style="margin-top:10px"><table>
+        <thead><tr><th>File</th><th>Code</th><th></th></tr></thead>
+        <tbody id="hackRows"><tr><td colspan="3" class="U">Pick the card first.</td></tr></tbody>
+      </table></div>
+    </section>
+
+    <section id="hackEdit" class="hidden">
+      <h2><span class="n">3</span>Describe it</h2>
+      <p id="hackFile"></p>
+      <div class="row"><label class="l" for="hackName">Name</label><input type="text" id="hackName" maxlength="90"></div>
+      <div class="row"><label class="l" for="hackDev">Made by</label><input type="text" id="hackDev" maxlength="60"></div>
+      <div class="row"><label class="l" for="hackDate">Released</label><input type="date" id="hackDate"></div>
+      <div class="row"><label class="l" for="hackPlayers">Players</label>
+        <select id="hackPlayers"><option value="">Not set</option><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
+      <div class="row"><label class="l" for="hackShort">Short description</label><input type="text" id="hackShort" maxlength="120"></div>
+      <div class="row"><label class="l" for="hackDesc">Description</label><textarea id="hackDesc" maxlength="4000"></textarea></div>
+      <div class="row"><label class="l" for="hackCode">Game code</label>
+        <div><div class="codebox"><input type="text" id="hackCode" maxlength="4" autocomplete="off" spellcheck="false">
+          <button class="go quiet" type="button" id="hackSuggest">Suggest</button></div>
+          <p class="hint" id="hackCodeNote"></p></div></div>
+      <div class="row"><span class="l">Cover</span>
+        <div class="cover"><canvas id="hackCover" width="158" height="112" aria-label="The cover as the menu will show it"></canvas>
+          <div><div class="line"><button class="go quiet" type="button" id="hackCoverBtn">Choose a picture</button>
+            <select id="hackShape" aria-label="Cover shape" style="width:auto"><option value="auto">Shape from the picture</option>
+              <option value="wide">Wide box</option><option value="tall">Tall box</option></select></div>
+            <input type="file" id="hackCoverFile" accept="image/*" class="hidden">
+            <p class="hint">Any picture; it is cut to the menu's cover size (158 × 112, or 112 × 158 for a tall box).</p></div></div></div>
+      <div class="actions">
+        <button class="go" type="button" id="hackKeep">Add to the list</button>
+        <button class="go quiet" type="button" id="hackCancel">Cancel</button>
+        <span class="status" id="hackEditStatus"></span>
+      </div>
+    </section>
+
+    <section>
+      <h2><span class="n">4</span>Save to the card</h2>
+      <p>Writes <code>menu/hacks.txt</code> and a folder for each hack under <code>menu/metadata/</code>. The menu reads
+        them at start-up.</p>
+      <ul class="listed" id="hackListed"></ul>
+      <div class="line">
+        <button class="go" id="hackSave" disabled>Save to card</button>
+        <span class="status" id="hackSaveStatus"></span>
+      </div>
     </section>
   </div>
 </div>
@@ -1464,6 +1556,9 @@ function skipFolder(name) {
   return name.charAt(0) === '.' || SKIP_FOLDERS.indexOf(name.toLowerCase()) >= 0;
 }
 // --- end logic ---
+// The Hacks tab reads the card the same way.
+window.cardPrep = { crcAdd: crcAdd, crcEnd: crcEnd, hex8: hex8, byteOrder: byteOrder, toZ64: toZ64, gameCode: gameCode,
+                    pathKey: pathKey, parseVerified: parseVerified, isRom: isRom, skipFolder: skipFolder };
 
 var card = null;        // { root: directory handle or null, files: [{path, file}] }
 var db = null;
@@ -1674,10 +1769,517 @@ $('save').addEventListener('click', async function () {
 </script>
 
 <script>
-/* Tabs: one per address (#themes, #prep, #guide, or a Guide section such as
+(function(){
+'use strict';
+// --- hacks logic (also run by tests/hacks_tab_test.js) ---
+var HACKS_PATH = 'menu/hacks.txt';
+var HACKS_HEADER = 'hacks 1';
+var HACKS_COMMENT = '; size crc32 code file name   (a CRC of 0: match by file name and size)';
+var HACKS_MAX = 64;             // MAX_HACKS in src/menu/hack_games.c
+var HACK_NAME_MAX = 95;         // longer file names are cut by the menu, so only the CRC can match them
+var COVER_WIDE = { w: 158, h: 112 }, COVER_TALL = { w: 112, h: 158 };     // the metadata pack's sizes
+var LITTLE_WORDS = ['the', 'a', 'an', 'of', 'and', 'in', 'to', 'for', 'on'];
+
+// hacks.txt: the header, then "size crc32 code file name" per hack (see src/menu/hack_games.h).
+// null when the file is not one the menu would read.
+function parseHacks(text) {
+  var lines = text.split(/\r?\n/), out = [];
+  if (lines[0].trim().indexOf(HACKS_HEADER) !== 0) return null;
+  for (var i = 1; i < lines.length; i++) {
+    var m = /^(\d+) ([0-9A-Fa-f]{1,8}) ([A-Za-z0-9]{4}) (.+)$/.exec(lines[i].trim());
+    if (m) out.push({ size: Number(m[1]), crc: parseInt(m[2], 16) >>> 0, code: m[3].toUpperCase(), name: m[4] });
+  }
+  return out;
+}
+function formatHacks(entries) {
+  return [HACKS_HEADER, HACKS_COMMENT].concat(entries.map(function (e) {
+    return e.size + ' ' + (e.crc ? ('0000000' + (e.crc >>> 0).toString(16)).slice(-8) : '0') + ' ' + e.code + ' ' + e.name;
+  })).join('\n') + '\n';
+}
+function nameTooLong(name) { return new TextEncoder().encode(name).length > HACK_NAME_MAX; }
+
+// A game name from a file name: no extension, no (..) or [..] tags, a
+// trailing article moved to the front ("Legend of Zelda, The" -> "The Legend of Zelda").
+function tidyName(fileName) {
+  var s = fileName.replace(/\.[^.]+$/, '').replace(/[_]+/g, ' ').replace(/\s*[\(\[][^\)\]]*[\)\]]/g, '');
+  s = s.replace(/^(.*?), (The|A|An)\b/, '$2 $1');
+  return s.replace(/\s+/g, ' ').trim();
+}
+
+function codeOk(code) { return /^[A-Z0-9]{4}$/.test(code); }
+function codeFolder(code) { return 'menu/metadata/' + code.split('').join('/'); }
+
+// A free code: X, two letters from the name (the part after a colon or
+// dash: "The Legend of Zelda: The Missing Link" -> ML), E.
+function suggestCode(name, taken) {
+  var part = String(name), cut = Math.max(part.lastIndexOf(':'), part.lastIndexOf(' - '));
+  if (cut >= 0 && /[A-Za-z0-9]/.test(part.slice(cut + 1))) part = part.slice(cut + 1);
+  var words = part.toUpperCase().split(/[^A-Z0-9]+/).filter(function (w) {
+    return w && LITTLE_WORDS.indexOf(w.toLowerCase()) < 0;
+  });
+  var all = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', tries = [], i, j;
+  if (words.length >= 2) tries.push(words[0][0] + words[1][0]);
+  if (words.length) for (i = 1; i < words[0].length; i++) tries.push(words[0][0] + words[0][i]);
+  for (i = 2; i < words.length; i++) tries.push(words[0][0] + words[i][0]);
+  for (i = 0; i < all.length; i++) tries.push((words.length ? words[0][0] : 'A') + all[i]);
+  for (i = 0; i < all.length; i++) for (j = 0; j < all.length; j++) tries.push(all[i] + all[j]);
+  for (i = 0; i < tries.length; i++) {
+    var code = 'X' + tries[i] + 'E';
+    if (!taken.has(code)) return code;
+  }
+  return '';
+}
+
+// A value the menu's ini reader keeps whole: one line, no ; or # (they
+// start a comment), not starting with a quote.
+function iniValue(v, max) {
+  var s = String(v || '').replace(/\s+/g, ' ').replace(/;/g, ',').replace(/#/g, '').replace(/^["']+/, '').trim();
+  return max ? s.slice(0, max).trim() : s;
+}
+function metadataIni(m) {
+  var lines = ['[meta]', 'name = ' + iniValue(m.name, 90)];
+  if (iniValue(m.author)) lines.push('author = ' + iniValue(m.author, 60));
+  if (/^\d{4}-\d{2}-\d{2}$/.test(m.date || '')) lines.push('release-date = ' + m.date);
+  if (/^[1-4]$/.test(String(m.players || ''))) lines.push('num-players = ' + m.players);
+  if (iniValue(m.short)) lines.push('short-desc = ' + iniValue(m.short, 120));
+  return lines.join('\n') + '\n';
+}
+function parseMetaIni(text) {
+  var out = {};
+  text.split(/\r?\n/).forEach(function (l) {
+    var m = /^\s*([a-z-]+)\s*=\s*(.*?)\s*$/.exec(l);
+    if (m && !(m[1] in out)) out[m[1]] = m[2];
+  });
+  return { name: out.name || '', author: out.author || '', date: out['release-date'] || '',
+           players: out['num-players'] || '', short: out['short-desc'] || '' };
+}
+
+// How a picture of w x h is cut to a cover: the box size, and the part of
+// the picture that fills it (the middle, keeping its proportions).
+function coverCut(w, h, shape) {
+  var size = (shape === 'tall' || (shape !== 'wide' && h > w)) ? COVER_TALL : COVER_WIDE;
+  var scale = Math.max(size.w / w, size.h / h), sw = size.w / scale, sh = size.h / scale;
+  return { w: size.w, h: size.h, sx: (w - sw) / 2, sy: (h - sh) / 2, sw: sw, sh: sh };
+}
+
+// A .zip with the files stored as they are (no packing), for browsers that
+// can't write to the card. crc32(bytes) gives each file's CRC-32.
+function zipStore(files, crc32, when) {
+  var d = when || new Date();
+  var time = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+  var date = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  var parts = [], central = [], offset = 0, enc = new TextEncoder();
+  function header(sig, size) { var b = new DataView(new ArrayBuffer(size)); b.setUint32(0, sig, true); return b; }
+  files.forEach(function (f) {
+    var name = enc.encode(f.path), crc = crc32(f.bytes), n = f.bytes.length;
+    var h = header(0x04034b50, 30);
+    h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, 0, true);
+    h.setUint16(10, time, true); h.setUint16(12, date, true); h.setUint32(14, crc, true);
+    h.setUint32(18, n, true); h.setUint32(22, n, true); h.setUint16(26, name.length, true);
+    var c = header(0x02014b50, 46);
+    c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true);
+    c.setUint16(12, time, true); c.setUint16(14, date, true); c.setUint32(16, crc, true);
+    c.setUint32(20, n, true); c.setUint32(24, n, true); c.setUint16(28, name.length, true);
+    c.setUint32(42, offset, true);
+    parts.push(new Uint8Array(h.buffer), name, f.bytes);
+    central.push(new Uint8Array(c.buffer), name);
+    offset += 30 + name.length + n;
+  });
+  var size = central.reduce(function (s, p) { return s + p.length; }, 0);
+  var e = header(0x06054b50, 22);
+  e.setUint16(8, files.length, true); e.setUint16(10, files.length, true);
+  e.setUint32(12, size, true); e.setUint32(16, offset, true);
+  var all = parts.concat(central, [new Uint8Array(e.buffer)]);
+  var out = new Uint8Array(all.reduce(function (s, p) { return s + p.length; }, 0)), at = 0;
+  all.forEach(function (p) { out.set(p, at); at += p.length; });
+  return out;
+}
+// --- end hacks logic ---
+
+var P = window.cardPrep;
+var $ = function (id) { return document.getElementById(id); };
+var hk = null;          // the card: { root, menuFiles, files: [{path, file, code}], verified, entries, folders }
+var changes = new Map();    // code -> { meta, desc, cover }: folders to write
+var dirty = false;
+var editing = null;         // { item: the card file, listed: its hacks.txt entry or null }
+var cover = { image: null, blob: null, pending: Promise.resolve() };
+var codeTouched = false;
+
+function baseName(path) { return path.slice(path.lastIndexOf('/') + 1); }
+function crcOf(bytes) { return P.crcEnd(P.crcAdd(0xFFFFFFFF, bytes)); }
+
+async function listGames(dir, prefix, out) {
+  for await (var [name, handle] of dir.entries()) {
+    if (handle.kind === 'directory') {
+      if (!P.skipFolder(name)) await listGames(handle, prefix + name + '/', out);
+    } else if (P.isRom(name)) {
+      out.push({ path: prefix + name, file: await handle.getFile() });
+    }
+  }
+  return out;
+}
+
+// A file under the card's top folder, or null.
+async function cardFile(path) {
+  if (!hk.root) return hk.menuFiles.get(path.toLowerCase()) || null;
+  try {
+    var parts = path.split('/'), dir = hk.root;
+    for (var i = 0; i < parts.length - 1; i++) dir = await dir.getDirectoryHandle(parts[i]);
+    return await (await dir.getFileHandle(parts[parts.length - 1])).getFile();
+  } catch (e) {
+    return null;
+  }
+}
+async function cardText(path) { var f = await cardFile(path); return f ? f.text() : null; }
+
+// Codes of hack folders already on the card (menu/metadata/X/?/?/?).
+async function hackFolders() {
+  var out = new Set();
+  if (!hk.root) {
+    hk.menuFiles.forEach(function (f, path) {
+      var m = /^menu\/metadata\/x\/([a-z0-9])\/([a-z0-9])\/([a-z0-9])\//.exec(path);
+      if (m) out.add(('X' + m[1] + m[2] + m[3]).toUpperCase());
+    });
+    return out;
+  }
+  async function dirs(dir) { var l = []; for await (var [n, h] of dir.entries()) if (h.kind === 'directory') l.push([n, h]); return l; }
+  try {
+    var x = await (await (await hk.root.getDirectoryHandle('menu')).getDirectoryHandle('metadata')).getDirectoryHandle('X');
+    for (var [a, ha] of await dirs(x)) for (var [b, hb] of await dirs(ha)) for (var [c] of await dirs(hb)) {
+      out.add(('X' + a + b + c).toUpperCase());
+    }
+  } catch (e) { /* no hack folders yet */ }
+  return out;
+}
+
+async function cardChosen(root, files, menuFiles) {
+  hk = { root: root, menuFiles: menuFiles, files: files, verified: new Map(), entries: [], folders: new Set() };
+  changes.clear();
+  dirty = false;
+  $('hackCardStatus').textContent = 'Reading the games…';
+  for (var i = 0; i < files.length; i++) {
+    var head = new Uint8Array(await files[i].file.slice(0, 64).arrayBuffer());
+    var order = P.byteOrder(head);
+    files[i].code = order ? P.gameCode(P.toZ64(head, order)) : '';
+  }
+  var verified = await cardText('menu/verified.txt');
+  if (verified) hk.verified = P.parseVerified(verified);
+  var text = await cardText(HACKS_PATH), note = '';
+  if (text !== null) {
+    var parsed = parseHacks(text);
+    if (parsed) hk.entries = parsed;
+    else note = ' <span class="bad">menu/hacks.txt doesn\'t start with "' + HACKS_HEADER + '"; saving will replace it.</span>';
+  }
+  hk.folders = await hackFolders();
+  $('hackCardStatus').innerHTML = '<b>' + files.length + '</b> game' + (files.length === 1 ? '' : 's') + ' found, <b>' +
+    hk.entries.length + '</b> hack' + (hk.entries.length === 1 ? '' : 's') + ' already set up.' +
+    (hk.verified.size ? '' : ' Card Prep hasn\'t been run: hacks are found by file name and size.') +
+    (root ? '' : ' This browser can\'t write to the card: you\'ll get a .zip to copy.') + note;
+  closeEditor();
+  renderRows();
+  renderListed();
+}
+
+$('hackPick').addEventListener('click', async function () {
+  if (!window.showDirectoryPicker) { $('hackPickOld').click(); return; }
+  try {
+    var root = await window.showDirectoryPicker({ mode: 'readwrite' });
+    $('hackCardStatus').textContent = 'Looking for games…';
+    await cardChosen(root, await listGames(root, '', []), null);
+  } catch (e) {
+    if (e.name !== 'AbortError') $('hackCardStatus').innerHTML = '<span class="bad">Could not open that folder: ' + e.message + '</span>';
+  }
+});
+$('hackPickOld').addEventListener('change', function () {
+  var files = [], menuFiles = new Map();
+  Array.prototype.forEach.call(this.files, function (f) {
+    var parts = f.webkitRelativePath.split('/').slice(1);
+    var path = parts.join('/');
+    if (/^menu\//i.test(path)) menuFiles.set(path.toLowerCase(), f);
+    if (parts.slice(0, -1).some(P.skipFolder) || !P.isRom(f.name)) return;
+    files.push({ path: path, file: f });
+  });
+  cardChosen(null, files, menuFiles);
+});
+
+function knownCrc(item) {
+  var k = hk.verified.get(P.hex8(P.pathKey('sd:/' + item.path)) + ' ' + item.file.size);
+  return k ? k.crc : 0;
+}
+// The hacks.txt entry for a file on the card: as the menu matches it.
+function listedFor(item) {
+  var crc = knownCrc(item), name = baseName(item.path);
+  return hk.entries.find(function (e) {
+    var sizeOk = e.size === item.file.size;
+    return (crc && e.crc) ? (e.crc === crc && sizeOk) : (sizeOk && e.name.toLowerCase() === name.toLowerCase());
+  }) || null;
+}
+function takenCodes(except) {
+  var t = new Set(hk.folders);
+  hk.files.forEach(function (f) { if (f.code) t.add(f.code); });
+  hk.entries.forEach(function (e) { t.add(e.code); });
+  if (except) t.delete(except);
+  return t;
+}
+
+function button(text, quiet, onClick) {
+  var b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'go small' + (quiet ? ' quiet' : '');
+  b.textContent = text;
+  b.addEventListener('click', onClick);
+  return b;
+}
+function cell(tr, text, cls) {
+  var td = document.createElement('td');
+  if (typeof text === 'string') td.textContent = text; else if (text) td.appendChild(text);
+  if (cls) td.className = cls;
+  tr.appendChild(td);
+  return td;
+}
+
+function renderRows() {
+  var body = $('hackRows');
+  body.textContent = '';
+  if (!hk) return;
+  var per = new Map();
+  hk.files.forEach(function (f) { if (f.code) per.set(f.code, (per.get(f.code) || 0) + 1); });
+  var all = $('hackAll').checked, search = $('hackSearch').value.trim().toLowerCase();
+  var shown = hk.files.filter(function (f) {
+    if (search && f.path.toLowerCase().indexOf(search) < 0) return false;
+    return all || per.get(f.code) > 1 || listedFor(f);
+  }).sort(function (a, b) { return a.code.localeCompare(b.code) || a.path.localeCompare(b.path); });
+  shown.forEach(function (f) {
+    var tr = document.createElement('tr'), listed = listedFor(f);
+    cell(tr, f.path, 'file');
+    var code = cell(tr, f.code || '?', 'code');
+    if (listed) {
+      var own = document.createElement('span');
+      own.className = 'own';
+      own.textContent = ' → ' + listed.code;
+      code.appendChild(own);
+    }
+    cell(tr, button(listed ? 'Edit' : 'Set up', !!listed, function () { openEditor(f); }), 'act');
+    body.appendChild(tr);
+  });
+  if (!shown.length) {
+    var tr = document.createElement('tr');
+    cell(tr, all || search ? 'No game matches.' : 'No two games share a code. Tick "Show every game" to set up a hack that is alone on the card.', 'U').colSpan = 3;
+    body.appendChild(tr);
+  }
+}
+$('hackSearch').addEventListener('input', renderRows);
+$('hackAll').addEventListener('change', renderRows);
+
+function renderListed() {
+  var ul = $('hackListed');
+  ul.textContent = '';
+  (hk ? hk.entries : []).forEach(function (e, i) {
+    var li = document.createElement('li'), b = document.createElement('b');
+    b.textContent = e.code;
+    li.appendChild(b);
+    var onCard = hk.files.some(function (f) { return listedFor(f) === e; });
+    li.appendChild(document.createTextNode(' ' + e.name + (changes.has(e.code) ? ' (to save)' : '') + (onCard ? ' ' : ' (not on this card) ')));
+    li.appendChild(button('Remove', true, function () {
+      hk.entries.splice(i, 1);
+      changes.delete(e.code);
+      dirty = true;
+      $('hackSaveStatus').textContent = 'Its folder, ' + codeFolder(e.code) + ', is left on the card; the menu no longer uses it.';
+      renderRows();
+      renderListed();
+    }));
+    ul.appendChild(li);
+  });
+  $('hackSave').disabled = !(hk && dirty);
+}
+
+function drawCover() {
+  var c = $('hackCover'), ctx = c.getContext('2d');
+  var cut = cover.image ? coverCut(cover.image.width, cover.image.height, $('hackShape').value)
+                        : ($('hackShape').value === 'tall' ? COVER_TALL : COVER_WIDE);
+  c.width = cut.w; c.height = cut.h;
+  c.style.width = cut.w + 'px'; c.style.height = cut.h + 'px';
+  if (!cover.image) {
+    ctx.fillStyle = '#888'; ctx.font = '14px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('No cover', cut.w / 2, cut.h / 2 + 5);
+    cover.blob = null;
+    cover.pending = Promise.resolve();
+    return;
+  }
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(cover.image, cut.sx, cut.sy, cut.sw, cut.sh, 0, 0, cut.w, cut.h);
+  cover.pending = new Promise(function (done) { c.toBlob(function (b) { cover.blob = b; done(); }, 'image/png'); });
+}
+async function useCoverFile(file) {
+  try {
+    cover.image = file ? await createImageBitmap(file) : null;
+  } catch (e) {
+    cover.image = null;
+    $('hackEditStatus').innerHTML = '<span class="bad">That picture could not be read.</span>';
+  }
+  drawCover();
+}
+$('hackCoverBtn').addEventListener('click', function () { $('hackCoverFile').click(); });
+$('hackCoverFile').addEventListener('change', function () { if (this.files[0]) useCoverFile(this.files[0]); this.value = ''; });
+$('hackShape').addEventListener('change', drawCover);
+
+function checkCode() {
+  var code = $('hackCode').value.toUpperCase();
+  $('hackCode').value = code;
+  var own = editing && editing.listed ? editing.listed.code : null, note = '';
+  if (!codeOk(code)) note = '<span class="bad">Four letters or digits.</span>';
+  else if (takenCodes(own).has(code)) note = '<span class="bad">' + code + ' is already used on this card.</span>';
+  else if (code[0] !== 'X') note = 'Codes starting with X stay clear of real games.';
+  else note = 'Its cover and details go in ' + codeFolder(code) + '/.';
+  $('hackCodeNote').innerHTML = note;
+  return codeOk(code) && !takenCodes(own).has(code);
+}
+$('hackCode').addEventListener('input', function () { codeTouched = true; checkCode(); });
+$('hackSuggest').addEventListener('click', function () {
+  codeTouched = false;
+  $('hackCode').value = suggestCode($('hackName').value, takenCodes(editing && editing.listed ? editing.listed.code : null));
+  checkCode();
+});
+$('hackName').addEventListener('input', function () {
+  if (codeTouched || (editing && editing.listed)) return;
+  $('hackCode').value = suggestCode(this.value, takenCodes(null));
+  checkCode();
+});
+
+async function openEditor(item) {
+  var listed = listedFor(item);
+  editing = { item: item, listed: listed };
+  codeTouched = false;
+  var meta = { name: tidyName(baseName(item.path)), author: '', date: '', players: '', short: '' }, desc = '', art = null;
+  if (listed) {
+    var saved = changes.get(listed.code);
+    if (saved) {
+      meta = saved.meta; desc = saved.desc; art = saved.cover;
+    } else {
+      var ini = await cardText(codeFolder(listed.code) + '/metadata.ini');
+      if (ini) meta = parseMetaIni(ini);
+      desc = ((await cardText(codeFolder(listed.code) + '/description.txt')) || '').trim();
+      art = await cardFile(codeFolder(listed.code) + '/boxart_front.png');
+    }
+  }
+  $('hackFile').innerHTML = 'File: <b></b>';
+  $('hackFile').querySelector('b').textContent = item.path + (item.code ? ' (' + item.code + ')' : '');
+  $('hackName').value = meta.name; $('hackDev').value = meta.author; $('hackDate').value = meta.date;
+  $('hackPlayers').value = meta.players; $('hackShort').value = meta.short; $('hackDesc').value = desc;
+  $('hackCode').value = listed ? listed.code : suggestCode(meta.name, takenCodes(null));
+  $('hackShape').value = 'auto';
+  $('hackKeep').textContent = listed ? 'Keep the changes' : 'Add to the list';
+  $('hackEditStatus').textContent = nameTooLong(baseName(item.path)) && !hk.verified.size
+    ? 'This file\'s name is too long for the menu to match: run Card Prep, or shorten the name.' : '';
+  checkCode();
+  await useCoverFile(art);
+  $('hackEdit').classList.remove('hidden');
+  $('hackEdit').scrollIntoView({ block: 'start' });
+  $('hackName').focus({ preventScroll: true });
+}
+function closeEditor() {
+  editing = null;
+  $('hackEdit').classList.add('hidden');
+}
+$('hackCancel').addEventListener('click', closeEditor);
+
+$('hackKeep').addEventListener('click', async function () {
+  if (!editing) return;
+  var item = editing.item, listed = editing.listed;
+  if (!$('hackName').value.trim()) { $('hackEditStatus').innerHTML = '<span class="bad">Give it a name.</span>'; return; }
+  if (!checkCode()) { $('hackEditStatus').innerHTML = '<span class="bad">Choose another game code.</span>'; return; }
+  if (!listed && hk.entries.length >= HACKS_MAX) {
+    $('hackEditStatus').innerHTML = '<span class="bad">The menu reads up to ' + HACKS_MAX + ' hacks.</span>';
+    return;
+  }
+  var crc = knownCrc(item);
+  if (!crc) {     // read the whole file, so the menu can match it by contents once Card Prep has run
+    $('hackKeep').disabled = true;
+    var head = new Uint8Array(await item.file.slice(0, 64).arrayBuffer()), order = P.byteOrder(head), CHUNK = 8 << 20;
+    crc = 0xFFFFFFFF;
+    for (var at = 0; at < item.file.size; at += CHUNK) {
+      $('hackEditStatus').textContent = 'Reading the file… ' + Math.round(100 * at / item.file.size) + '%';
+      var piece = new Uint8Array(await item.file.slice(at, at + CHUNK).arrayBuffer());
+      crc = P.crcAdd(crc, order ? P.toZ64(piece, order) : piece);
+    }
+    crc = P.crcEnd(crc);
+    $('hackKeep').disabled = false;
+  }
+  await cover.pending;
+  var code = $('hackCode').value;
+  var entry = { size: item.file.size, crc: crc, code: code, name: baseName(item.path) };
+  if (listed) {
+    hk.entries[hk.entries.indexOf(listed)] = entry;
+    if (listed.code !== code) changes.delete(listed.code);
+  } else {
+    hk.entries.push(entry);
+  }
+  changes.set(code, {
+    meta: { name: $('hackName').value, author: $('hackDev').value, date: $('hackDate').value,
+            players: $('hackPlayers').value, short: $('hackShort').value },
+    desc: $('hackDesc').value.trim(),
+    cover: cover.blob
+  });
+  dirty = true;
+  $('hackSaveStatus').textContent = listed && listed.code !== code
+    ? 'Its old folder, ' + codeFolder(listed.code) + ', is left on the card; the menu no longer uses it.' : '';
+  closeEditor();
+  renderRows();
+  renderListed();
+  $('hackSave').scrollIntoView({ block: 'center' });
+});
+
+// Every file to write: each changed hack's folder, then hacks.txt (last, so
+// the menu never points to a folder that isn't there yet).
+async function filesToWrite() {
+  var enc = new TextEncoder(), out = [];
+  for (var [code, c] of changes) {
+    if (!hk.entries.some(function (e) { return e.code === code; })) continue;
+    var dir = codeFolder(code) + '/';
+    out.push({ path: dir + 'metadata.ini', bytes: enc.encode(metadataIni(c.meta)) });
+    if (c.desc) out.push({ path: dir + 'description.txt', bytes: enc.encode(c.desc + '\n') });
+    if (c.cover) out.push({ path: dir + 'boxart_front.png', bytes: new Uint8Array(await c.cover.arrayBuffer()) });
+  }
+  out.push({ path: HACKS_PATH, bytes: enc.encode(formatHacks(hk.entries)) });
+  return out;
+}
+
+$('hackSave').addEventListener('click', async function () {
+  var files = await filesToWrite();
+  if (hk.root) {
+    try {
+      for (var f of files) {
+        var parts = f.path.split('/'), dir = hk.root;
+        for (var i = 0; i < parts.length - 1; i++) dir = await dir.getDirectoryHandle(parts[i], { create: true });
+        var w = await (await dir.getFileHandle(parts[parts.length - 1], { create: true })).createWritable();
+        await w.write(f.bytes);
+        await w.close();
+      }
+      files.forEach(function (f) { var m = /^menu\/metadata\/(.)\/(.)\/(.)\/(.)\//.exec(f.path); if (m) hk.folders.add(m.slice(1).join('')); });
+      changes.clear();
+      dirty = false;
+      $('hackSaveStatus').innerHTML = 'Saved <b>' + files.length + '</b> file' + (files.length === 1 ? '' : 's') + ' on the card.';
+      renderListed();
+      return;
+    } catch (e) {
+      $('hackSaveStatus').innerHTML = '<span class="bad">Could not write to the card (' + e.message + ').</span> Here is a .zip instead.';
+    }
+  }
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([zipStore(files, crcOf)], { type: 'application/zip' }));
+  a.download = 'hacks-for-sd-card.zip';
+  a.click();
+  if (!hk.root) $('hackSaveStatus').innerHTML = 'Unzip <b>hacks-for-sd-card.zip</b> into the card\'s top folder (it holds a <b>menu</b> folder).';
+});
+})();
+</script>
+
+<script>
+/* Tabs: one per address (#themes, #prep, #hacks, #guide, or a Guide section such as
    #guide-tools), so each can be linked to directly. */
 (function () {
-  var panes = ['themes', 'prep', 'guide'];
+  var panes = ['themes', 'prep', 'hacks', 'guide'];
   function show() {
     var hash = (location.hash || '#themes').slice(1);
     var tab = hash.indexOf('guide') === 0 ? 'guide' : (panes.indexOf(hash) >= 0 ? hash : 'themes');
