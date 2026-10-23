@@ -17,6 +17,7 @@
 #ifndef GAME_INDEX_H__
 #define GAME_INDEX_H__
 
+#include <ctype.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -64,12 +65,22 @@ const game_index_entry_t *game_index_find (const char *path, int64_t size);
 bool game_index_read_header (const char *path, char *code, char *title);
 
 /**
- * Whether a game code is the one homebrew tools write ("ED" in the middle,
- * e.g. NEDE). Many unrelated homebrew games share it, and their art is
- * found by title, not by code.
+ * Whether a game code is homebrew's: the one homebrew tools write ("ED" in
+ * the middle, e.g. NEDE), or, as a fallback, no proper code at all (blanks
+ * or symbols where four letters or digits should be). Many unrelated
+ * homebrew games share these, and their art is found by title, not by code.
+ * The list keeps the second kind as NED0 (game_index_set_code()).
  */
 static inline bool game_index_is_homebrew (const char *code) {
-    return code[1] == 'E' && code[2] == 'D';
+    if (code[1] == 'E' && code[2] == 'D') {
+        return true;
+    }
+    for (int i = 0; i < 4; i++) {
+        if (!isalnum((unsigned char) code[i])) {
+            return true;
+        }
+    }
+    return false;
 }
 
 /** Note a file's game code. */

@@ -107,12 +107,17 @@ static bool code_ok (const char *code) {
     return true;
 }
 
-/* Homebrew tools often leave the code's last place blank ("NED "), which
-   the list can't keep: such a code is kept with a 0 there. It still reads as
-   homebrew, whose art goes by title. */
+/* Homebrew tools often leave the code's last place blank ("NED "), and some
+   homebrew has no proper code at all, which the list can't keep: the first
+   is kept with a 0 there, the second as NED0. Both still read as homebrew,
+   whose art goes by title. */
 static const char *kept_code (const char *code, char *fixed) {
     if (!game_index_is_homebrew(code)) {
         return code;
+    }
+    if (!(code[1] == 'E' && code[2] == 'D')) {
+        memcpy(fixed, "NED0", 4);
+        return fixed;
     }
     for (int i = 0; i < 4; i++) {
         fixed[i] = isalnum((unsigned char) code[i]) ? code[i] : '0';
