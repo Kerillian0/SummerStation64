@@ -141,7 +141,7 @@ Code.
   N64FlashcartMenu and libdragon, which this is built on. The icons, the
   title picture and the intro logo are drawn by small programs Claude
   wrote, not by an image-generating AI.
-- There are a few placeholder elements, such as the Intro Logo that are AI generated. If this makes you uncomfortable, please contact me and I will rectify it asap. I am looking to commission or create these elements in the next few releases. If you are willing to contribute to this and create some assets for this frontend menu. Please contact my Discord at "Kerillian." And we may work something out.
+- There are a few placeholder elements, such as the Intro Logo that are AI generated. If this makes you uncomfortable, please contact me and I will rectify it asap. I am looking to commission or create these elements in the next few releases. If you are willing to contribute to this and create some assets for this frontend menu. Please contact my Discord at "kerillian." And we may work something out.
 - If you do not want to use this menu due to AI usage, I completely understand and accept this. Please use the stock menu or N64ever. I do not believe either of these utilize or at the very least disclose AI usage. They are far more talented than me. Please support them as this fork uses their code. They are the reason why this was possible in the first place.
 - If something seems wrong, please open an issue.
 
