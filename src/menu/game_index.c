@@ -10,6 +10,7 @@
 #include <libdragon.h>
 
 #include "game_index.h"
+#include "hack_games.h"
 #include "safe_file.h"
 
 #define INDEX_PATH      "sd:/menu/gameindex.txt"
@@ -193,6 +194,14 @@ const game_index_entry_t *game_index_find (const char *path, int64_t size) {
     if (!n || !code_ok(n->code)) {
         return NULL;
     }
+    /* A hack given a code of its own since it was noted: learn it again under that code. */
+    char own[4];
+    if (hack_games_code(path, size, own) && memcmp(own, n->code, 4) != 0) {
+        memcpy(n->code, own, 4);
+        n->flags &= ~(FLAG_FACTS | FLAG_DETAILS | FLAG_MAKER);
+        n->paks &= ~PAKS_KNOWN;
+        dirty = true;
+    }
     memcpy(answer.code, n->code, 4);
     answer.has_facts = (n->flags & FLAG_FACTS) && (n->paks & PAKS_KNOWN);
     answer.players = n->players;
@@ -345,6 +354,7 @@ bool game_index_read_header (const char *path, char *code, char *title) {
     memcpy(title, &header[ROM_TITLE_OFFSET], GAME_INDEX_TITLE_LENGTH);
     title[GAME_INDEX_TITLE_LENGTH] = '\0';
     memcpy(code, &header[ROM_CODE_OFFSET], 4);
+    hack_games_code(path, 0, code);     /* a hack with a code of its own (hacks.txt) */
     return true;
 }
 

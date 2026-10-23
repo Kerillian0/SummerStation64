@@ -13,6 +13,7 @@
 #include <miniz.h>
 
 #include "baked_meta.h"
+#include "hack_games.h"
 #include "ini_parser.h"
 
 #include "boot/cic.h"
@@ -1369,6 +1370,7 @@ rom_err_t rom_info_load_basic (path_t *path, rom_info_t *rom_info) {
     match_t match = find_rom_in_database(&rom_header);
 
     extract_rom_info(&match, &rom_header, rom_info);
+    hack_games_code(path_get(path), 0, rom_info->game_code);    // SummerStation64: see rom_config_load
 
     return ROM_OK;
 }
@@ -1396,6 +1398,7 @@ rom_err_t rom_config_load (path_t *path, rom_info_t *rom_info) {
     match_t match = find_rom_in_database(&rom_header);
 
     extract_rom_info(&match, &rom_header, rom_info);
+    hack_games_code(path_get(path), 0, rom_info->game_code);    // SummerStation64: a hack with a code of its own (hacks.txt); after the database, so how it runs is unchanged
     debugf("[META] rom_config_load: game_code='%c%c%c%c', CIC type=%d\\n", 
            rom_info->game_code[0], rom_info->game_code[1], rom_info->game_code[2], rom_info->game_code[3],
            rom_info->cic_type);

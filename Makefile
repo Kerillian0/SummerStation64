@@ -84,6 +84,7 @@ SRCS = \
 	menu/sound.c \
 	menu/box3d.c \
 	menu/box_motion.c \
+	menu/hack_games.c \
 	menu/dump_check.c \
 	menu/game_data.c \
 	menu/memory_note.c \

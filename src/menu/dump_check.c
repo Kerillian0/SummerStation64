@@ -14,10 +14,11 @@
 
 #define VERIFIED_PATH   "sd:/menu/verified.txt"
 #define VERIFIED_HEADER "verified 1"
-#define MAX_FILES       (768)       /* 9 bytes each: about 7 KB */
+#define MAX_FILES       (768)       /* 13 bytes each: about 10 KB */
 
 static uint32_t keys[MAX_FILES];
 static uint32_t sizes[MAX_FILES];
+static uint32_t crcs[MAX_FILES];    /* the file's CRC-32, for hacks.txt (hack_games.c) */
 static char results[MAX_FILES];     /* 'V', 'M' or 'U', as Card Prep wrote them */
 static int count = 0;
 static bool loaded = false;
@@ -49,6 +50,7 @@ static void load (void) {
             if (sscanf(line, "%lx %lu %lx %c", &key, &size, &crc, &result) == 4 && (result == 'V' || result == 'M' || result == 'U')) {
                 keys[count] = (uint32_t) key;
                 sizes[count] = (uint32_t) size;
+                crcs[count] = (uint32_t) crc;
                 results[count] = result;
                 count++;
             }
@@ -56,6 +58,21 @@ static void load (void) {
     }
     fclose(f);
     debugf("dump check: %d files from verified.txt\n", count);
+}
+
+bool dump_check_crc (const char *path, int64_t size, uint32_t *crc) {
+    if (!path) {
+        return false;
+    }
+    load();
+    uint32_t key = path_key(path);
+    for (int i = 0; i < count; i++) {
+        if (keys[i] == key && (size <= 0 || sizes[i] == (uint32_t) size)) {
+            *crc = crcs[i];
+            return true;
+        }
+    }
+    return false;
 }
 
 /* Does the file name (any case) hold this? */

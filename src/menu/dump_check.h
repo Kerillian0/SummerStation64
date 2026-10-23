@@ -30,6 +30,12 @@ typedef enum {
  */
 dump_state_t dump_check (const char *path, int64_t size, bool hack);
 
+/**
+ * The file's CRC-32 as Card Prep noted it in verified.txt, if it did (also
+ * with Dump Check Marks off). @return false if the file isn't listed there.
+ */
+bool dump_check_crc (const char *path, int64_t size, uint32_t *crc);
+
 /** A short word for the state ("Verified", ...), or NULL for DUMP_NONE. */
 const char *dump_check_label (dump_state_t state);
 
