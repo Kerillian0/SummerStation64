@@ -83,6 +83,18 @@ static inline bool game_index_is_homebrew (const char *code) {
     return false;
 }
 
+/**
+ * Give homebrew without a proper code the homebrew code's shape ("ED" in the
+ * middle), so the stock screens look its art up by its title too. For a
+ * game's details after they are loaded (how it runs is settled by then).
+ */
+static inline void game_index_homebrew_by_title (char *code) {
+    if (game_index_is_homebrew(code)) {
+        code[1] = 'E';
+        code[2] = 'D';
+    }
+}
+
 /** Note a file's game code. */
 void game_index_set_code (const char *path, int64_t size, const char *code);
 

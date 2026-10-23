@@ -264,10 +264,7 @@ static component_boxart_t *art_load (menu_t *menu, int index, file_image_type_t 
         if (!known) {
             game_index_set_code(path_get(path), size, code);
         }
-        if (game_index_is_homebrew(code)) {
-            code[1] = 'E';      /* homebrew without a proper code: look its art up by title too */
-            code[2] = 'D';
-        }
+        game_index_homebrew_by_title(code);    /* homebrew without a proper code: look its art up by title too */
     }
     path_free(path);
 

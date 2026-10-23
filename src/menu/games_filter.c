@@ -128,6 +128,9 @@ static uint8_t classify (menu_t *menu, entry_t *e) {
 }
 
 static bool matches (const entry_t *e, filter_t f) {
+    if (f == FILTER_HOMEBREW && e->index >= 0 && e->index < marks_count && (marks[e->index] & (1 << FILTER_HACKS))) {
+        return false;   /* a hack without a proper code is still a hack, not homebrew */
+    }
     return e->index >= 0 && e->index < marks_count && (marks[e->index] & (1 << f))
         && !((marks[e->index] & MARK_FOLDED) && folding(f));
 }

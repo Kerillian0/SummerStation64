@@ -15,6 +15,7 @@
 #include "../save_backup.h"
 #include "../baked_art.h" // the cover comes from art baked into the menu when there is some
 #include "../baked_meta.h" // the full description, baked into the menu or from the card
+#include "../game_index.h"
 #include <string.h>
 
 static bool show_extra_info_message = false;
@@ -928,6 +929,7 @@ void view_load_rom_init (menu_t *menu) {
         menu_show_error(menu, convert_error_message(err));
         return;
     }
+    game_index_homebrew_by_title(menu->load.rom_info.game_code); // SummerStation64: homebrew without a proper code finds its art by title
 
     if (!is_memory_expanded()) {
         menu->load.rom_info.settings.cheats_enabled = false;
