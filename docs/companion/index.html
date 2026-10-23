@@ -412,6 +412,9 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
     <section id="hackEdit" class="hidden">
       <h2><span class="n">3</span>Describe it</h2>
       <p id="hackFile"></p>
+      <div class="row"><label class="l" for="hackKnown">Known hack</label>
+        <div><select id="hackKnown"><option value="">Not on the list</option></select>
+          <p class="hint" id="hackKnownNote"></p></div></div>
       <div class="row"><label class="l" for="hackName">Name</label><input type="text" id="hackName" maxlength="90"></div>
       <div class="row"><label class="l" for="hackDev">Made by</label><input type="text" id="hackDev" maxlength="60"></div>
       <div class="row"><label class="l" for="hackDate">Released</label><input type="date" id="hackDate"></div>
@@ -1768,6 +1771,1307 @@ $('save').addEventListener('click', async function () {
 })();
 </script>
 
+<!-- The popular hacks list: a copy of assets/data/popular_hacks.txt, made by scripts/embed_popular_hacks.py. -->
+<script type="text/plain" id="popularHacksList">
+; Popular N64 hacks: draft for the Companion's Hacks tab (step 3)
+;
+; Fill in the blanks (?) and change anything that's wrong. Lines starting
+; with ; are notes and are ignored. One block per hack, starting with its
+; name in [brackets].
+;
+;   keep          yes / no   (no = leave it out of the list)
+;   base          the game it was made from, and that game's code (US)
+;   code          the code the menu will know it by (X + two letters + E),
+;                 the same on every card; change it if you like, but keep
+;                 each one different
+;   made_by       the person or team
+;   year          the year it came out (or of the version people play)
+;   players       1-4
+;   expansion_pak needed / not needed / ?
+;   real_n64      yes / no / which version works / ?  ("collection": the
+;                 version in the archive.org "n-64-hacks-onism" set you sent)
+;   file_words    words that are usually in the file's name, so the page
+;                 can suggest the match (you still confirm it)
+;   notes         anything else worth knowing (optional)
+;
+; Descriptions: I'll write a short one for each hack you keep, in our own
+; words. If you want to give one yourself, add a line: description = ...
+;
+; Covers stay yours: the list never includes pictures.
+
+; ---------- Super Mario 64 ----------
+
+[Super Mario Star Road]
+keep = yes
+base = Super Mario 64 (NSME)
+code = XSRE
+made_by = Skelux; console port by Nintendo 64 Wizard
+year = 2011
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: Enhanced Console Port v1.0)
+file_words = star road
+notes = use the Enhanced Console Port; the original release is emulator-only
+
+[Super Mario 64: Last Impact]
+keep = yes
+base = Super Mario 64 (NSME)
+code = XLIE
+made_by = Kaze Emanuar
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = ? (not in the collection)
+file_words = last impact
+notes =
+
+[Super Mario 64: Beyond the Cursed Mirror]
+keep = yes
+base = Super Mario 64 (NSME)
+code = XCME
+made_by = Rovertronic
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.0)
+file_words = cursed mirror
+notes =
+
+[Super Mario 74]
+keep = yes
+base = Super Mario 64 (NSME)
+code = XS7E
+made_by = Lugmillord
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = ? (not in the collection)
+file_words = 74
+notes =
+
+[Super Mario 64: The Missing Stars]
+keep = yes
+base = Super Mario 64 (NSME)
+code = XMSE
+made_by = Kaze Emanuar
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = ? (not in the collection)
+file_words = missing stars
+notes =
+
+[Super Mario Odyssey 64]
+keep = yes
+base = Super Mario 64 (NSME)
+code = XODE
+made_by = Kaze Emanuar
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = ? (not in the collection)
+file_words = odyssey
+notes =
+
+[Super Mario 64: Sonic Edition]
+keep = yes
+base = Super Mario 64 (NSME)
+code = XSNE
+made_by = ?
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = ? (not in the collection)
+file_words = sonic
+notes =
+
+[Elise]
+keep = yes
+base = Super Mario 64 (NSME)
+code = XELE
+made_by = Team Cornersoft
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.0)
+file_words = elise
+notes =
+
+[Lucy's Levitation]
+keep = yes
+base = Super Mario 64 (NSME)
+code = XLLE
+made_by = thecozies
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v2.0)
+file_words = lucy
+notes =
+
+[Kek 64: Illuminati of Time]
+keep = yes
+base = Super Mario 64 (NSME)
+code = XKKE
+made_by = Kek64ofTime
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v2.66)
+file_words = kek 64
+notes =
+
+[The Magical Lands]
+keep = yes
+base = Super Mario 64 (NSME)
+code = XMGE
+made_by = Papra Mayro 46
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: the only version)
+file_words = magical lands
+notes =
+
+[WarioWare 64: Mario vs WarioWare]
+keep = yes
+base = Super Mario 64 (NSME)
+code = XWWE
+made_by = Team Cornersoft
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.0.1)
+file_words = warioware
+notes =
+
+[B3313]
+keep = yes
+base = Super Mario 64 (NSME)
+code = XB3E
+made_by = ChrisRLillo, Chlorobyte
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: a2 anniversary edition)
+file_words = b3313
+notes =
+
+[Super Mario 64 Multiplayer Splitscreen]
+keep = yes
+base = Super Mario 64 (NSME)
+code = XSME
+made_by = Kaze Emanuar
+year = ?
+players = 2
+expansion_pak = ?
+real_n64 = yes (collection: v1.2)
+file_words = splitscreen
+notes =
+
+; ---------- Zelda: Ocarina of Time ----------
+
+[The Legend of Zelda: The Missing Link]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XMLE
+made_by = Kaze Emanuar, CDi-Fails, /Zel/
+year = 2020
+players = 1
+expansion_pak = yes
+real_n64 = yes (collection: v2.0)
+file_words = missing link
+notes = Nintendo had it taken down in 2020
+
+[The Legend of Zelda: The Sealed Palace]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XSPE
+made_by = Jinnosuke9, Col0Korn, Shoopey
+year = 2023
+players = 1
+expansion_pak = yes
+real_n64 = yes (collection: v1.3)
+file_words = sealed palace
+notes =
+
+[The Legend of Zelda: Voyager of Time]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XVTE
+made_by = Brynna Giadrosich
+year = 2013
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.0)
+file_words = voyager
+notes =
+
+[Zelda's Birthday]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XZBE
+made_by = ?; hardware fix by Shank380, z64me
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: Hardware Fix)
+file_words = birthday
+notes = use the Hardware Fix version
+
+[Star Fox 64: Survival]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XSVE
+made_by = Kaze Emanuar, /Zel/
+year = 2021
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.4)
+file_words = survival
+notes = built on Ocarina of Time, not on Star Fox 64
+
+[Ocarina of Time: Four Swords]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XFSE
+made_by = ?
+year = ?
+players = 4
+expansion_pak = ?
+real_n64 = ? (not in the collection)
+file_words = four swords
+notes =
+
+[A Link Between Rooms]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XLRE
+made_by = Fidgetbear
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.1)
+file_words = between rooms
+notes =
+
+[Bedtime Story]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XBSE
+made_by = Pontius Stone
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: the only version)
+file_words = bedtime story
+notes =
+
+[Burger Quest]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XBQE
+made_by = Skip
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: Final)
+file_words = burger quest
+notes =
+
+[Child Quest]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XCQE
+made_by = Admentus
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v3.0.0 Final (also Master Quest and Ura Quest editions))
+file_words = child quest
+notes = the whole game played as young Link
+
+[Conspiracy]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XCSE
+made_by = T_Nyrto_T
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: the only version)
+file_words = conspiracy
+notes =
+
+[Cosmic Goddess]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XCGE
+made_by = Aria Hiro 64
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: Fixed)
+file_words = cosmic goddess
+notes =
+
+[Crystal Clocks]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XCCE
+made_by = SuperZambezi
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v2.0)
+file_words = crystal clocks
+notes =
+
+[Curse of Moonlight]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XCOE
+made_by = Curse of Moonlight Team
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.1.1)
+file_words = moonlight
+notes =
+
+[Dampe's Quest]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XDQE
+made_by = Delvian, Picasso
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: the only version)
+file_words = dampe s quest
+notes =
+
+[Dampe's Hut]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XDHE
+made_by = dragorn421
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: the only version)
+file_words = dampes hut
+notes =
+
+[Dawn & Dusk Redux]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XDDE
+made_by = Captain Seedy-Eye
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.2)
+file_words = dawn
+notes =
+
+[Demon's Quest]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XDME
+made_by = thinedave, Aegiker
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.4 Final)
+file_words = demons quest
+notes =
+
+[Escape Eventide]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XEVE
+made_by = Polish Salad
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: the only version)
+file_words = eventide
+notes =
+
+[Escape Room]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XERE
+made_by = Jerm
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: the only version)
+file_words = escape room
+notes =
+
+[Escape from the Facility]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XEFE
+made_by = CDi-Fails
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.5)
+file_words = facility
+notes =
+
+[Escaping Souls]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XESE
+made_by = Picasso
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: the only version)
+file_words = escaping souls
+notes =
+
+[Fortress of Agony]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XFAE
+made_by = Hadahlia
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: the only version)
+file_words = fortress of agony
+notes =
+
+[Ganon's Resurrection]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XGRE
+made_by = Nokaubure
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.3)
+file_words = ressurection
+notes = the file names spell it "Ressurection"
+
+[Gold Quest]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XGQE
+made_by = AndiiSyn
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v2.1a)
+file_words = gold quest
+notes =
+
+[Hazy Maze Temple]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XHME
+made_by = Kaze Emanuar
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: File size fix)
+file_words = hazy maze
+notes =
+
+[Master of Time]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XMTE
+made_by = Don Camilo
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.0, Remastered v1.0 and redux v1.1)
+file_words = master of time
+notes =
+
+[New Master Quest Redux]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XNME
+made_by = Euler
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v2.8.5 (Normal and Master Mode editions))
+file_words = new master quest
+notes =
+
+[Nightmare]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XNIE
+made_by = Punk7890
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v4.0d (Kokiri Forest hardware crash fix))
+file_words = nightmare
+notes = use v4.0d: it fixes a crash on hardware
+
+[Nimpize Adventure]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XNAE
+made_by = Ostrealava02
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: the only version)
+file_words = nimpize
+notes =
+
+[Petrie's Challenge]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XPCE
+made_by = petrie911
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.3)
+file_words = petrie
+notes =
+
+[Rom Hack Thing]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XRHE
+made_by = Aegiker
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: the only version)
+file_words = rom hack thing
+notes =
+
+[Ruinous Shards]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XRSE
+made_by = Haddockd
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v2.0)
+file_words = ruinous shards
+notes =
+
+[Sands of Time]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XSTE
+made_by = Debuglog, Woon
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.19)
+file_words = sands of time
+notes =
+
+[Spooky Murder House]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XSUE
+made_by = Spooky Murder House Team
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: the only version)
+file_words = spooky murder
+notes =
+
+[Sunken Tower]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XSKE
+made_by = Rankaisija
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.0 (Abandoned Archives and Spider Mansion) and Build B)
+file_words = sunken tower
+notes =
+
+[The Cursed Mansion]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XCUE
+made_by = Recardo
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: the only version)
+file_words = cursed mansion
+notes =
+
+[The Fate of the Bombiwa Redux]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XFBE
+made_by = DezZival
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.0.3)
+file_words = bombiwa
+notes =
+
+[The Legend of Peach]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XLPE
+made_by = MelonSpeedruns
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: the only version)
+file_words = legend of peach
+notes =
+
+[The Masca Festival]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XMFE
+made_by = Asahi64
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: hotfix1c)
+file_words = masca
+notes =
+
+[The Puzzling]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XPZE
+made_by = DezZival
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.1.2)
+file_words = puzzling
+notes =
+
+[The Withering Mind]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XWME
+made_by = Asahi
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.2)
+file_words = withering mind
+notes =
+
+[The Worst Torture]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XWTE
+made_by = ShuggyTheBuggy
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: File size fix)
+file_words = worst torture
+notes =
+
+[Time Lost]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XTLE
+made_by = Stonee Bad Luck
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.05)
+file_words = time lost
+notes =
+
+[Trails and Tribulations]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XTTE
+made_by = The Sour OG
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: the only version)
+file_words = tribulations
+notes =
+
+[Ultimate Trial]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XUTE
+made_by = Ultimate Trial Team
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.12)
+file_words = ultimate trial
+notes =
+
+[Spaceworld '97 Beta Experience]
+keep = yes
+base = Ocarina of Time (CZLE)
+code = XSWE
+made_by = /Zel/
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: sw97_r2)
+file_words = spaceworld
+notes =
+
+; ---------- Zelda: Majora's Mask ----------
+
+[Majora's Mask: Masked Quest]
+keep = yes
+base = Majora's Mask (NZSE)
+code = XMQE
+made_by = ?
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v4.3 (and Masked Quest Redux v4.4))
+file_words = masked quest
+notes = Majora's Mask always needs the Expansion Pak
+
+[Pumpkin Tower]
+keep = yes
+base = Majora's Mask (NZSE)
+code = XPTE
+made_by = ?
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.1.1)
+file_words = pumpkin tower
+notes = Majora's Mask always needs the Expansion Pak
+
+[Zelda's Revival]
+keep = yes
+base = Majora's Mask (NZSE)
+code = XZRE
+made_by = ?
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.1)
+file_words = revival
+notes = Majora's Mask always needs the Expansion Pak
+
+[Majora's Mask: Master Quest Redux]
+keep = yes
+base = Majora's Mask (NZSE)
+code = XMME
+made_by = ?
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: the only version)
+file_words = master quest redux
+notes = Majora's Mask always needs the Expansion Pak
+
+[Majora's Mask: Adult Mask Edition]
+keep = yes
+base = Majora's Mask (NZSE)
+code = XAME
+made_by = Wishing Star
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: Update #01-#03 (and the Restoration editions))
+file_words = adult mask
+notes = several editions; pick one; Majora's Mask always needs the Expansion Pak
+
+; ---------- Banjo-Kazooie ----------
+
+[Banjo-Kazooie: Gruntilda's Mask]
+keep = yes
+base = Banjo-Kazooie (NBKE)
+code = XGME
+made_by = Kurko Mods
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.2)
+file_words = gruntildas mask
+notes =
+
+[Banjo-Kazooie: Stay at Home]
+keep = yes
+base = Banjo-Kazooie (NBKE)
+code = XSHE
+made_by = Kurko Mods
+year = 2020
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.9)
+file_words = stay at home
+notes =
+
+[The Legend of Banjo-Kazooie: The Jiggies of Time]
+keep = yes
+base = Banjo-Kazooie (NBKE)
+code = XJTE
+made_by = Kurko Mods
+year = 2020
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.3)
+file_words = jiggies of time
+notes = the collection files it under Banjo-Kazooie, not Ocarina of Time: check which game it was made from
+
+[BK Nostalgia 64]
+keep = yes
+base = Banjo-Kazooie (NBKE)
+code = XBNE
+made_by = ?
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.1)
+file_words = nostalgia
+notes =
+
+[Bear Waker DX]
+keep = yes
+base = Banjo-Kazooie (NBKE)
+code = XBWE
+made_by = ?
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.1)
+file_words = bear waker
+notes =
+
+[The Cave of Dreams]
+keep = yes
+base = Banjo-Kazooie (NBKE)
+code = XCDE
+made_by = ?
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.1)
+file_words = cave of dreams
+notes =
+
+[Cheato's Challenges]
+keep = yes
+base = Banjo-Kazooie (NBKE)
+code = XCHE
+made_by = ?
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.0)
+file_words = cheatos
+notes =
+
+[Cut-Throat Coast]
+keep = yes
+base = Banjo-Kazooie (NBKE)
+code = XCTE
+made_by = ?
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.4)
+file_words = cut throat
+notes =
+
+[Dreamie]
+keep = yes
+base = Banjo-Kazooie (NBKE)
+code = XDRE
+made_by = ?
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.0)
+file_words = dreamie
+notes =
+
+[Final Mission]
+keep = yes
+base = Banjo-Kazooie (NBKE)
+code = XFME
+made_by = ?
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.1)
+file_words = final mission
+notes =
+
+[Fort Adventure]
+keep = yes
+base = Banjo-Kazooie (NBKE)
+code = XFOE
+made_by = ?
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.1)
+file_words = fort adventure
+notes =
+
+[Fort Fun]
+keep = yes
+base = Banjo-Kazooie (NBKE)
+code = XFFE
+made_by = ?
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.0)
+file_words = fort fun
+notes =
+
+[Grunty's Mansion]
+keep = yes
+base = Banjo-Kazooie (NBKE)
+code = XGUE
+made_by = ?
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.0)
+file_words = grunties mansion
+notes =
+
+[Legend of the Crystal Jiggy]
+keep = yes
+base = Banjo-Kazooie (NBKE)
+code = XCJE
+made_by = ?
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.0)
+file_words = crystal jiggy
+notes =
+
+[Mumbo Mountain X]
+keep = yes
+base = Banjo-Kazooie (NBKE)
+code = XMXE
+made_by = ?
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.0)
+file_words = mumbo mountain
+notes =
+
+[The Night Bear Before Christmas]
+keep = yes
+base = Banjo-Kazooie (NBKE)
+code = XNBE
+made_by = ?
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.0)
+file_words = night bear
+notes =
+
+[Quest for Cake]
+keep = yes
+base = Banjo-Kazooie (NBKE)
+code = XQCE
+made_by = ?
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v0.1)
+file_words = quest for cake
+notes =
+
+[Smash Bros Temple]
+keep = yes
+base = Banjo-Kazooie (NBKE)
+code = XSBE
+made_by = ?
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.0)
+file_words = smash bros temple
+notes =
+
+[Snacker Coral Bay]
+keep = yes
+base = Banjo-Kazooie (NBKE)
+code = XSCE
+made_by = ?
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.0)
+file_words = coral bay
+notes =
+
+[Snow Glow Village]
+keep = yes
+base = Banjo-Kazooie (NBKE)
+code = XSGE
+made_by = ?
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.0)
+file_words = snow glow
+notes =
+
+[Winter's Call]
+keep = yes
+base = Banjo-Kazooie (NBKE)
+code = XWCE
+made_by = ?
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.0)
+file_words = winters call
+notes =
+
+[Worlds Collide]
+keep = yes
+base = Banjo-Kazooie (NBKE)
+code = XWOE
+made_by = ?
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v2.0)
+file_words = worlds collide
+notes =
+
+; ---------- Donkey Kong 64 and Paper Mario ----------
+
+[Banjo-Kongzooie]
+keep = yes
+base = Donkey Kong 64 (NDOE)
+code = XBKE
+made_by = GloriousLiar
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.0)
+file_words = kongzooie
+notes =
+
+[KongQuest]
+keep = yes
+base = Donkey Kong 64 (NDOE)
+code = XKQE
+made_by = GloriousLiar
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.0)
+file_words = kongquest
+notes =
+
+[Paper Mario: Black Pit]
+keep = yes
+base = Paper Mario (NMQE)
+code = XBPE
+made_by = ?
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.4.0)
+file_words = blackpit
+notes =
+
+[Paper Mario: TTYD64]
+keep = yes
+base = Paper Mario (NMQE)
+code = XTYE
+made_by = ?
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v0.9.2)
+file_words = ttyd64
+notes = The Thousand-Year Door remade in Paper Mario; v0.9 is not finished
+
+[Paper Mario: Master Quest]
+keep = yes
+base = Paper Mario (NMQE)
+code = XPME
+made_by = ?
+year = ?
+players = 1
+expansion_pak = ?
+real_n64 = yes (collection: v1.3.0.2 (and Master Quest Jr v1.0.1))
+file_words = quest
+notes = the file names spell it "Mater Quest"
+
+[Paper Mario Multiplayer]
+keep = yes
+base = Paper Mario (NMQE)
+code = XPPE
+made_by = ?
+year = ?
+players = 2
+expansion_pak = ?
+real_n64 = yes (collection: v1.2)
+file_words = multiplayer
+notes =
+
+; ---------- Other games ----------
+
+[Smash Remix]
+keep = yes
+base = Super Smash Bros. (NALE)
+code = XRXE
+made_by = the Smash Remix team
+year = ?
+players = 4
+expansion_pak = ?
+real_n64 = yes (collection: 1.2.2 and 1.5.2)
+file_words = smash remix
+notes = newer versions (2.0.1 in 2026) also run on a real N64
+
+[GoldenEye X]
+keep = yes
+base = Perfect Dark (NPDE)
+code = XGXE
+made_by = ?
+year = ?
+players = 4
+expansion_pak = ?
+real_n64 = yes (collection: v5e)
+file_words = goldeneye x
+notes = GoldenEye's levels on the Perfect Dark engine
+
+[OverKart 64]
+keep = yes
+base = Mario Kart 64 (NKTE)
+code = XOKE
+made_by = ?
+year = ?
+players = 4
+expansion_pak = ?
+real_n64 = ? (not in the collection)
+file_words = overkart
+notes =
+
+[Mario Kart 64: Amped Up]
+keep = yes
+base = Mario Kart 64 (NKTE)
+code = XAUE
+made_by = ?
+year = ?
+players = 4
+expansion_pak = ?
+real_n64 = yes (collection: v2.91)
+file_words = amped
+notes =
+
+[F-Zero X Climax]
+keep = yes
+base = F-Zero X (CFZE)
+code = XFCE
+made_by = Philippe Brodier
+year = ?
+players = 4
+expansion_pak = ?
+real_n64 = yes (collection: v1.1)
+file_words = climax
+notes = the tracks of the Japan-only GBA game F-Zero Climax
+
+[F-Zero DXP]
+keep = yes
+base = F-Zero X (CFZE)
+code = XFDE
+made_by = ?
+year = ?
+players = 4
+expansion_pak = ?
+real_n64 = ? (not in the collection)
+file_words = dxp
+notes =
+
+[Pokemon Stadium Kaizo]
+keep = yes
+base = Pokemon Stadium (NPOE)
+code = XPKE
+made_by = SinisterHoodedFigure
+year = ?
+players = 4
+expansion_pak = ?
+real_n64 = yes (collection: R3R4 + Mewtwo v2.0 (and an Easy Mode))
+file_words = kaizo
+notes =
+
+[Pokemon Stadium 2: Mord's Moveset]
+keep = yes
+base = Pokemon Stadium 2 (NP3E?)
+code = XMOE
+made_by = Mord_Fustang
+year = ?
+players = 4
+expansion_pak = ?
+real_n64 = yes (collection: v1.01)
+file_words = mord
+notes =
+
+[Bomberman 64 Co-op]
+keep = yes
+base = Bomberman 64 (code ?)
+code = XBCE
+made_by = .Coockie
+year = ?
+players = 2
+expansion_pak = ?
+real_n64 = yes (collection: v1.0)
+file_words = co op
+notes = player 2 uses the 4th controller port
+
+; ---------- Left out of the list (from the collection) ----------
+;
+; Not separate games, so better as Game Versions under the original:
+;   cheat / unlock patches (Body Harvest, Clay Fighter, Robotron 64,
+;   Tetrisphere, Rakugakids, Perfect Dark Unlock Everything), quality-of-life
+;   patches (Ocarina and Majora's Mask Redux and Additional Redux Options,
+;   Fierce Deity Mask in OoT, Fierce Deity & Giant's Mask Anywhere, OoT Link
+;   in MM, Banjo-Tooie 60 fps, DK64 Tag Anywhere, SpaceStation Silicon Valley
+;   bug fixes, Doom 64 Complete Edition / XE / Ultra, Conker uncensored),
+;   randomizers, practice ROMs (gz, kz), OoT Chaos Mod.
+; Unfinished demos (add them if you like):
+;   Return to Yoshi's Island 64 demos 1-2, Banjo-Kazooie Returns, Angtherium,
+;   Dark Hyrule Fantasy, Eagle Dungeon, Indigo Chapters 1-2, Shadows of
+;   Eldoria, Shifting Sand Dungeon, The Helix Blade, Zelda's Eternal Youth,
+;   Zelda 64 Beta Recreation, Zelda 64 Beta Temple 96, Corruption's Embrace
+;   (v0.0.9).
+; Restorations and ports, not hacks of another game: Dinosaur Planet
+;   (Enhanced), DK64 kiosk restoration, Super Mario 64DD to Cart, Doom 64
+;   1996 beta, OoT and Master Quest GameCube-to-N64 ports, Master Quest debug.
+; Translations (a game of their own only if you also keep the Japanese
+;   original; say if you want them): Animal Forest, Cubivore 64, Densha de
+;   Go! 64, Last Legion UX.
+
+; ---------- Add your own below, in the same shape ----------
+</script>
 <script>
 (function(){
 'use strict';
@@ -1894,6 +3198,45 @@ function zipStore(files, crc32, when) {
   all.forEach(function (p) { out.set(p, at); at += p.length; });
   return out;
 }
+// The built-in list of popular hacks (assets/data/popular_hacks.txt): one
+// [Name] block each, "key = value" lines, ; for notes. Blocks with keep = no
+// are left out.
+function parsePopularHacks(text) {
+  var out = [], cur = null;
+  text.split(/\r?\n/).forEach(function (line) {
+    line = line.trim();
+    if (!line || line[0] === ';') return;
+    var head = /^\[(.+)\]$/.exec(line);
+    if (head) { cur = { name: head[1].trim() }; out.push(cur); return; }
+    var kv = /^([a-z0-9_]+)\s*=\s*(.*)$/.exec(line);
+    if (cur && kv) cur[kv[1]] = kv[2].trim();
+  });
+  return out.filter(function (h) {
+    return h.keep !== 'no' && codeOk(h.code || '');
+  }).map(function (h) {
+    var base = /\(([A-Z0-9]{4})\)\s*$/.exec(h.base || '');
+    var known = function (v) { return v && v !== '?' ? v : ''; };
+    return { name: h.name, base: (h.base || '').replace(/\s*\([^)]*\)\s*$/, ''), baseCode: base ? base[1] : '',
+             code: h.code, madeBy: known((h.made_by || '').replace(/^\?;\s*/, '')), year: known(h.year),
+             players: /^[1-4]$/.test(h.players || '') ? h.players : '', expansionPak: known(h.expansion_pak),
+             realN64: known(h.real_n64), words: (h.file_words || '').toLowerCase(), notes: h.notes || '',
+             description: h.description || '' };
+  });
+}
+// The list's hack for a file: every one of its file words in the file's name
+// (any case, punctuation ignored), made from the same game when both codes
+// are known; the most specific words win.
+function matchPopularHack(list, fileName, fileCode) {
+  var name = ' ' + fileName.toLowerCase().replace(/\.[^.]+$/, '').replace(/[^a-z0-9]+/g, ' ') + ' ';
+  var best = null, bestLength = 0;
+  list.forEach(function (h) {
+    var words = h.words.replace(/[^a-z0-9]+/g, ' ').trim();
+    if (!words || (fileCode && h.baseCode && h.baseCode !== fileCode)) return;
+    var all = words.split(' ').every(function (w) { return name.indexOf(' ' + w + ' ') >= 0; });
+    if (all && words.length > bestLength) { best = h; bestLength = words.length; }
+  });
+  return best;
+}
 // --- end hacks logic ---
 
 var P = window.cardPrep;
@@ -1904,6 +3247,50 @@ var dirty = false;
 var editing = null;         // { item: the card file, listed: its hacks.txt entry or null }
 var cover = { image: null, blob: null, pending: Promise.resolve() };
 var codeTouched = false;
+
+var popular = (function () {
+  var el = document.getElementById('popularHacksList');
+  return el ? parsePopularHacks(el.textContent) : [];
+})();
+(function () {
+  var groups = new Map();
+  popular.forEach(function (h, i) {
+    if (!groups.has(h.base)) {
+      var g = document.createElement('optgroup');
+      g.label = h.base || 'Other';
+      groups.set(h.base, g);
+      $('hackKnown').appendChild(g);
+    }
+    var o = document.createElement('option');
+    o.value = String(i);
+    o.textContent = h.name;
+    groups.get(h.base).appendChild(o);
+  });
+})();
+function knownNote() {
+  var h = popular[$('hackKnown').value], item = editing && editing.item;
+  if (!h) { $('hackKnownNote').textContent = ''; return; }
+  var bits = [];
+  if (h.base) bits.push('Made from ' + h.base + (h.baseCode ? ' (' + h.baseCode + ')' : ''));
+  if (h.year) bits.push('released ' + h.year);
+  bits.push('Real N64: ' + (h.realN64 || 'not checked yet'));
+  bits.push('Expansion Pak: ' + (h.expansionPak || 'not checked yet'));
+  var note = bits.join(' · ') + (h.notes ? '. ' + h.notes : '') + '.';
+  if (item && item.code && h.baseCode && item.code !== h.baseCode) note += ' This file\'s code is ' + item.code + ', not ' + h.baseCode + ': is it the right hack?';
+  $('hackKnownNote').textContent = note + ' (Compatibility notes are a work in progress.)';
+}
+// Fills the form from the list's entry: its name, maker, players and code.
+function useKnown(h) {
+  if (!h) return;
+  $('hackName').value = h.name;
+  if (h.madeBy) $('hackDev').value = h.madeBy;
+  if (h.players) $('hackPlayers').value = h.players;
+  if (h.description && !$('hackDesc').value.trim()) $('hackDesc').value = h.description;
+  $('hackCode').value = h.code;
+  codeTouched = true;
+  checkCode();
+}
+$('hackKnown').addEventListener('change', function () { useKnown(popular[this.value]); knownNote(); });
 
 function baseName(path) { return path.slice(path.lastIndexOf('/') + 1); }
 function crcOf(bytes) { return P.crcEnd(P.crcAdd(0xFFFFFFFF, bytes)); }
@@ -2169,6 +3556,11 @@ async function openEditor(item) {
   $('hackPlayers').value = meta.players; $('hackShort').value = meta.short; $('hackDesc').value = desc;
   $('hackCode').value = listed ? listed.code : suggestCode(meta.name, takenCodes(null));
   $('hackShape').value = 'auto';
+  var known = listed ? popular.find(function (h) { return h.code === listed.code; })
+                     : matchPopularHack(popular, baseName(item.path), item.code);
+  $('hackKnown').value = known ? String(popular.indexOf(known)) : '';
+  if (known && !listed) useKnown(known);
+  knownNote();
   $('hackKeep').textContent = listed ? 'Keep the changes' : 'Add to the list';
   $('hackEditStatus').textContent = nameTooLong(baseName(item.path)) && !hk.verified.size
     ? 'This file\'s name is too long for the menu to match: run Card Prep, or shorten the name.' : '';

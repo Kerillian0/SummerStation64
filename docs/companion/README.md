@@ -92,6 +92,16 @@ The CRC is the same as Card Prep's (the console's byte order), taken from
 can't write to the card get a `.zip` (stored, no packing) to unzip onto it.
 Removing a hack takes its line out of `hacks.txt` and leaves its folder.
 
+**Known hacks (work in progress).** Step 3 offers a list of popular hacks
+(`assets/data/popular_hacks.txt`: one `[Name]` block each with its base game,
+a fixed code, maker, year, players, Expansion Pak and real-N64 notes, and the
+words its file names usually hold). A file whose name holds an entry's words,
+made from the same game, gets that entry suggested; choosing one fills in the
+name, maker, players and code. The page holds a copy of the list (so it works
+opened from disk): after changing the list run
+`python3 scripts/embed_popular_hacks.py`; the tests check the two match. The
+compatibility notes are still being checked, and the page says so.
+
 ## Guide
 
 Plain HTML in the `#guide` tab: SD card setup, hardware, tools and

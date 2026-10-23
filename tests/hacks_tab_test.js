@@ -11,7 +11,7 @@ const html = fs.readFileSync(path.join(__dirname, '..', 'docs', 'companion', 'in
 const a = html.indexOf('// --- hacks logic'), b = html.indexOf('// --- end hacks logic ---');
 if (a < 0 || b < 0) throw new Error('Could not find the logic block in the Hacks tab; did it change?');
 const h = new Function(html.slice(a, b) +
-  'return {parseHacks, formatHacks, nameTooLong, tidyName, codeOk, codeFolder, suggestCode, iniValue, metadataIni, parseMetaIni, coverCut, zipStore};')();
+  'return {parseHacks, formatHacks, nameTooLong, tidyName, codeOk, codeFolder, suggestCode, iniValue, metadataIni, parseMetaIni, coverCut, zipStore, parsePopularHacks, matchPopularHack};')();
 
 let checks = 0, failures = 0;
 function check(cond, what) {
@@ -62,6 +62,30 @@ c = h.coverCut(400, 600, 'auto');
 check(c.w === 112 && c.h === 158 && Math.abs(c.sx) < 1e-6 && c.sy > 0, 'a tall picture makes a tall box, cut top and bottom');
 c = h.coverCut(1000, 500, 'wide');
 check(c.w === 158 && Math.abs(c.sy) < 1e-6 && c.sx > 0, 'a very wide picture is cut at the sides');
+
+
+console.log('Popular hacks list');
+const listFile = fs.readFileSync(path.join(__dirname, '..', 'assets', 'data', 'popular_hacks.txt'), 'utf8').replace(/\r\n/g, '\n');
+const tag = /<script type="text\/plain" id="popularHacksList">\n?([\s\S]*?)<\/script>/.exec(html);
+check(tag && tag[1].trimEnd() === listFile.trimEnd(), 'the page holds the same list as assets/data/popular_hacks.txt (run scripts/embed_popular_hacks.py)');
+const list = h.parsePopularHacks(listFile);
+check(list.length > 20, list.length + ' hacks read');
+const listCodes = list.map(x => x.code);
+check(new Set(listCodes).size === listCodes.length, 'every hack has its own code');
+check(list.every(x => /^X[A-Z0-9]{2}E$/.test(x.code)), 'codes are X + two + E');
+const ml = list.find(x => x.code === 'XMLE');
+check(ml && /^yes/.test(ml.realN64) && ml.baseCode === 'CZLE' && ml.base === 'Ocarina of Time' && ml.madeBy.includes('Kaze'), 'an entry\'s fields');
+check(list.every(x => !x.expansionPak || x.expansionPak !== '?'), 'a ? is read as not known');
+check(!h.parsePopularHacks('[A]\nkeep = no\ncode = XAAE\n').length, 'keep = no is left out');
+const m = (file, code) => (h.matchPopularHack(list, file, code) || {}).code;
+check(m('The Missing Link v2.0 (Kaze, CDi-Fails, Zel).z64', 'CZLE') === 'XMLE', 'The Missing Link found');
+check(m('Masked_Quest_v4.3.z64', 'NZSE') === 'XMQE', 'underscores count as spaces');
+check(m('gruntildas_mask_v1.2.z64', 'NBKE') === 'XGME', 'Gruntilda\'s Mask found');
+check(m('The Missing Link v2.0.z64', 'NSME') === undefined, 'not when the file is made from another game');
+check(m('Paper Mario Mater Quest v1.3.0.2.z64', 'NMQE') === 'XPME', 'Paper Mario Master Quest found');
+check(m('Legend of Zelda, The - Ocarina of Time (U) (V1.2) [!].z64', 'CZLE') === undefined, 'the original is not taken for a hack');
+check(m('Super Mario 74 (Lugmillord).z64', 'NSME') === 'XS7E', 'a short file word (74)');
+check(m('Super Mario 64 (U) [!].z64', 'NSME') === undefined, '"64" alone is not 74');
 
 console.log('.zip');
 const crcTable = new Uint32Array(256).map((_, n) => { let x = n; for (let k = 0; k < 8; k++) x = x & 1 ? 0xEDB88320 ^ (x >>> 1) : x >>> 1; return x >>> 0; });
