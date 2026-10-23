@@ -557,6 +557,34 @@ static void slot_tops_update (menu_t *menu) {
    nothing else is loading. A game whose cover is baked had all its pictures
    baked with it, so the card is only searched for games whose cover came
    from the card. */
+/* Games whose top or side pictures were looked for on the card and aren't
+   there, so coming back to them doesn't search again. Lasts while the
+   console is on; the oldest is forgotten first. */
+#define EDGES_MISSING_KEPT  (32)
+static struct { char code[4]; uint8_t missing; } edges_missing[EDGES_MISSING_KEPT];
+static int edges_missing_next = 0;
+
+static bool edge_known_missing (const char *code, int kind) {
+    for (int i = 0; i < EDGES_MISSING_KEPT; i++) {
+        if (memcmp(edges_missing[i].code, code, 4) == 0) {
+            return (edges_missing[i].missing & (1 << kind)) != 0;
+        }
+    }
+    return false;
+}
+
+static void edge_note_missing (const char *code, int kind) {
+    for (int i = 0; i < EDGES_MISSING_KEPT; i++) {
+        if (memcmp(edges_missing[i].code, code, 4) == 0) {
+            edges_missing[i].missing |= 1 << kind;
+            return;
+        }
+    }
+    memcpy(edges_missing[edges_missing_next].code, code, 4);
+    edges_missing[edges_missing_next].missing = 1 << kind;
+    edges_missing_next = (edges_missing_next + 1) % EDGES_MISSING_KEPT;
+}
+
 static void edges_update (menu_t *menu, uint64_t now) {
     if (!features_enabled(FEATURE_BOX_3D) || flip != FLIP_NONE) {
         return;
@@ -589,8 +617,11 @@ static void edges_update (menu_t *menu, uint64_t now) {
         memcpy(code, known->code, 4);
 
         edges[i] = baked_art_load(code, edge_kinds[i]);
-        if (!edges[i] && !baked && baked_art_card_ok(menu->storage_prefix, code)) {
+        if (!edges[i] && !baked && !edge_known_missing(code, i) && baked_art_card_ok(menu->storage_prefix, code)) {
             edges[i] = ui_components_boxart_init(menu->storage_prefix, code, "", edge_kinds[i]);
+            if (!edges[i]) {
+                edge_note_missing(code, i);     /* not on the card: don't search again (about 50 ms each) */
+            }
         }
         return;     /* one a frame */
     }
