@@ -3,11 +3,13 @@
  * @brief Which tabs are on the tab bar, and in what order.
  *
  * The bar has up to four places. The player picks what goes in each
- * (Settings > Tabs): Games, Favorites, Folders, Recent, or nothing. Out of
- * the box it is Games, Favorites, Folders. L and R step through them.
+ * (Settings > Tabs): Games, Favorites, Folders, Recent, Homebrew, or
+ * nothing. Out of the box it is Games, Favorites, Folders. L and R step
+ * through them.
  *
- * Games and Folders are the same screen (the file browser) showing two
- * different lists, so this also keeps track of which of the two is wanted.
+ * Games, Homebrew and Folders are the same screen (the file browser): Folders
+ * shows another list, Homebrew the Games list with only homebrew in it. So
+ * this also keeps track of which of the three is wanted.
  */
 
 #ifndef TABS_H__
@@ -24,6 +26,7 @@ typedef enum {
     TAB_CHOICE_FAVORITES,
     TAB_CHOICE_FOLDERS,
     TAB_CHOICE_RECENT,
+    TAB_CHOICE_HOMEBREW,
     TAB_CHOICE_COUNT
 } tab_choice_t;
 
@@ -44,7 +47,7 @@ games_tab_t tabs_first (void);
 /** The tab before (-1) or after (+1) `from`, going round at the ends. */
 games_tab_t tabs_step (games_tab_t from, int direction);
 
-/** Go to a tab: sets the next screen and, for Games/Folders, which list it shows. */
+/** Go to a tab: sets the next screen and, for Games/Folders/Homebrew, which list it shows. */
 void tabs_open (menu_t *menu, games_tab_t tab);
 
 /**
@@ -68,5 +71,8 @@ float tabs_slide_folders (void);
 /** Whether the browser screen should show Folders (true) or Games (false). */
 bool tabs_browser_shows_folders (void);
 void tabs_browser_show_folders (bool folders);
+
+/** Whether the browser screen's Games list should show only homebrew (the Homebrew tab). */
+bool tabs_browser_shows_homebrew (void);
 
 #endif /* TABS_H__ */

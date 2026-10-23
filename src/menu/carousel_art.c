@@ -253,16 +253,15 @@ static component_boxart_t *art_load (menu_t *menu, int index, file_image_type_t 
 
     /* A game seen before needs no look at its file: the list knows its code. */
     const game_index_entry_t *known = game_index_find(path_get(path), size);
-    if (known) {
+    if (known && !game_index_is_homebrew(known->code)) {
         memcpy(code, known->code, 4);
     } else {
+        /* Homebrew's art is found by its title, which only the file has. */
         if (!game_index_read_header(path_get(path), code, title)) {
             path_free(path);
             return NULL;
         }
-
-        /* Homebrew is found by its title instead of a code, so it is not noted. */
-        if (!(code[1] == 'E' && code[2] == 'D')) {
+        if (!known) {
             game_index_set_code(path_get(path), size, code);
         }
     }
@@ -610,7 +609,7 @@ static void edges_update (menu_t *menu, uint64_t now) {
         path_t *path = covers->path(menu, center_index);
         const game_index_entry_t *known = game_index_find(path_get(path), covers->list[center_index].size);
         path_free(path);
-        if (!known) {
+        if (!known || game_index_is_homebrew(known->code)) {
             return;     /* homebrew, found by title: no edges */
         }
         char code[5] = "";

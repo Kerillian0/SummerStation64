@@ -57,6 +57,15 @@ int games_filter_all_entries (int shown);
 /** The filter's name for the screen, or NULL while it is All. */
 const char *games_filter_label (void);
 
+/**
+ * The Homebrew tab: the Games list showing only homebrew (games whose code
+ * homebrew tools write, game_index_is_homebrew()). C-up / C-down do nothing
+ * there; the Games tab's own step comes back when it is left. Homebrew the
+ * idle reader finds while the shelf shows is added when it finishes.
+ * @param list_loaded The Games list is loaded now (else the next load applies it).
+ */
+void games_filter_shelf (menu_t *menu, bool homebrew, bool list_loaded);
+
 /** Game Versions (option `game_versions`, Settings > Library). */
 typedef enum {
     GAME_VERSIONS_SEPARATE,     /**< every file its own cover (the default) */

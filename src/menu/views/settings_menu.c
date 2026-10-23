@@ -253,7 +253,7 @@ static const item_t tab_items[] = {
     CHOICES("Third Tab", OPTION_TAB3, TAB_CHOICE_COUNT, tabs_choice_name, NULL,
         "What the third place on the tab bar holds. None leaves it out."),
     CHOICES("Fourth Tab", OPTION_TAB4, TAB_CHOICE_COUNT, tabs_choice_name, NULL,
-        "What the fourth place on the tab bar holds. Choose Recent here to add the games you played last."),
+        "What the fourth place on the tab bar holds. Choose Recent here to add the games you played last, or Homebrew for homebrew games."),
 };
 
 static const item_t system_items[] = {

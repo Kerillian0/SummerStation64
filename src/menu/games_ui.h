@@ -17,6 +17,7 @@ typedef enum {
     GAMES_TAB_RECENT,
     GAMES_TAB_FAVORITES,
     GAMES_TAB_FOLDERS,
+    GAMES_TAB_HOMEBREW,
     GAMES_TAB_COUNT
 } games_tab_t;
 

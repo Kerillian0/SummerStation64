@@ -86,8 +86,8 @@ void game_learn_update (menu_t *menu) {
         if (!known) {
             char code[4];
             char title[GAME_INDEX_TITLE_LENGTH + 1];
-            if (game_index_read_header(path_get(path), code, title) && !(code[1] == 'E' && code[2] == 'D')) {
-                game_index_set_code(path_get(path), e->size, code);   /* homebrew is found by title, so not noted */
+            if (game_index_read_header(path_get(path), code, title)) {
+                game_index_set_code(path_get(path), e->size, code);
                 games_filter_note_code(e, code);
                 learned++;
             }

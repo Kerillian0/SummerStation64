@@ -63,6 +63,15 @@ const game_index_entry_t *game_index_find (const char *path, int64_t size);
  */
 bool game_index_read_header (const char *path, char *code, char *title);
 
+/**
+ * Whether a game code is the one homebrew tools write ("ED" in the middle,
+ * e.g. NEDE). Many unrelated homebrew games share it, and their art is
+ * found by title, not by code.
+ */
+static inline bool game_index_is_homebrew (const char *code) {
+    return code[1] == 'E' && code[2] == 'D';
+}
+
 /** Note a file's game code. */
 void game_index_set_code (const char *path, int64_t size, const char *code);
 

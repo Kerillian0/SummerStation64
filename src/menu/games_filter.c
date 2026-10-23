@@ -1,6 +1,7 @@
 /**
  * @file games_filter.c
- * @brief Shows only one region's games, or only 64DD disks, on the Games tab.
+ * @brief Shows only one region's games, or only 64DD disks, on the Games tab,
+ *        and only homebrew on the Homebrew tab.
  */
 
 #include <ctype.h>
@@ -25,10 +26,12 @@ typedef enum {
     FILTER_EUROPE,
     FILTER_64DD,
     FILTER_HACKS,
+    FILTER_STEPS,               /* C-up / C-down step through the ones above */
+    FILTER_HOMEBREW = FILTER_STEPS,     /* the Homebrew tab's shelf */
     FILTER_COUNT
 } filter_t;
 
-static const char *names[FILTER_COUNT] = { "All", "USA", "Japan", "Europe", "64DD", "Hacks" };
+static const char *names[FILTER_COUNT] = { "All", "USA", "Japan", "Europe", "64DD", "Hacks", "Homebrew" };
 
 /* Which filters a game belongs to, one bit each (bit FILTER_ALL always set). */
 static uint8_t *marks = NULL;   /* indexed by entry->index, the order the folder was read in */
@@ -51,6 +54,8 @@ static bool folding (filter_t f) {
     return f != FILTER_HACKS && options_get(OPTION_GAME_VERSIONS) == GAME_VERSIONS_GROUPED;
 }
 static filter_t current = FILTER_ALL;
+static filter_t stepped = FILTER_ALL;   /* the Games tab's step, kept while the shelf shows */
+static bool shelf = false;              /* the Homebrew tab is showing */
 static int (*stock_compare) (const void *, const void *) = NULL;   /* the browser's own sort, for the Type order */
 
 static uint8_t from_code_letter (char c) {
@@ -112,6 +117,9 @@ static uint8_t classify (menu_t *menu, entry_t *e) {
     path_t *path = path_clone_push(menu->browser.directory, e->name);
     const game_index_entry_t *known = game_index_find(path_get(path), e->size);
     path_free(path);
+    if (known && game_index_is_homebrew(known->code)) {
+        return m | (1 << FILTER_HOMEBREW) | from_file_name(e->name);  /* its code's last letter says nothing */
+    }
     uint8_t region = known ? from_code_letter(known->code[3]) : 0;
     if (!region) {
         region = from_file_name(e->name);
@@ -168,8 +176,8 @@ static void mark_hacks (menu_t *menu) {
             if (is_rom[i]) {
                 path_t *path = path_clone_push(menu->browser.directory, e->name);
                 const game_index_entry_t *known = game_index_find(path_get(path), e->size);
-                if (known) {
-                    memcpy(codes[i], known->code, 4);
+                if (known && !game_index_is_homebrew(known->code)) {
+                    memcpy(codes[i], known->code, 4);   /* unrelated homebrew shares one code: no hacks or versions by it */
                 }
                 path_free(path);
             }
@@ -258,6 +266,23 @@ static void mark_hacks (menu_t *menu) {
     free(sizes);
 }
 
+/* Show the current set again, staying on the game that was selected when
+   it is still in the set. */
+static void reapply (menu_t *menu) {
+    const char *was = menu->browser.entry ? menu->browser.entry->name : NULL;
+    menu->browser.entries = total;
+    apply(menu, true);
+
+    menu->browser.selected = (menu->browser.entries > 0) ? 0 : -1;
+    for (int i = 0; was && i < menu->browser.entries; i++) {
+        if (menu->browser.list[i].name == was) {
+            menu->browser.selected = i;
+            break;
+        }
+    }
+    menu->browser.entry = (menu->browser.selected >= 0) ? &menu->browser.list[menu->browser.selected] : NULL;
+}
+
 void games_filter_recheck_hacks (menu_t *menu) {
     if (total <= 0 || !marks) {
         return;
@@ -266,8 +291,9 @@ void games_filter_recheck_hacks (menu_t *menu) {
         marks[i] &= ~((1 << FILTER_HACKS) | MARK_FOLDED);
     }
     mark_hacks(menu);   /* the whole list, hidden games included */
-    if (current == FILTER_HACKS) {
-        apply(menu, true);      /* the Hacks step is showing: show the new set */
+    debugf("games filter: %d homebrew games known\n", count_for(menu, FILTER_HOMEBREW));
+    if (current == FILTER_HACKS || current == FILTER_HOMEBREW) {
+        reapply(menu);          /* the Hacks step or the shelf is showing: show the new set */
     }
     /* With Game Versions grouped, newly learned codes fold more files: done
        at the next load, so the row doesn't change under the player. */
@@ -319,7 +345,8 @@ void games_filter_after_load (menu_t *menu, int (*compare) (const void *, const 
         marks[i] = classify(menu, e);
     }
     mark_hacks(menu);
-    if (current != FILTER_ALL && count_for(menu, current) == 0) {
+    debugf("games filter: %d homebrew games known\n", count_for(menu, FILTER_HOMEBREW));
+    if (!shelf && current != FILTER_ALL && count_for(menu, current) == 0) {
         current = FILTER_ALL;   /* nothing of that kind any more */
     }
     if (current != FILTER_ALL || folding(current)) {
@@ -328,12 +355,12 @@ void games_filter_after_load (menu_t *menu, int (*compare) (const void *, const 
 }
 
 bool games_filter_step (menu_t *menu, int direction) {
-    if (total <= 0) {
+    if (total <= 0 || shelf) {
         return false;
     }
     filter_t next = current;
-    for (int tries = 0; tries < FILTER_COUNT; tries++) {
-        next = (filter_t) ((next + direction + FILTER_COUNT) % FILTER_COUNT);
+    for (int tries = 0; tries < FILTER_STEPS; tries++) {
+        next = (filter_t) ((next + direction + FILTER_STEPS) % FILTER_STEPS);
         if (next == FILTER_ALL || count_for(menu, next) > 0) {
             break;
         }
@@ -342,25 +369,18 @@ bool games_filter_step (menu_t *menu, int direction) {
         return false;
     }
 
-    const char *was = menu->browser.entry ? menu->browser.entry->name : NULL;
     current = next;
-    menu->browser.entries = total;
-    apply(menu, true);
-
-    menu->browser.selected = (menu->browser.entries > 0) ? 0 : -1;
-    for (int i = 0; was && i < menu->browser.entries; i++) {
-        if (menu->browser.list[i].name == was) {
-            menu->browser.selected = i;
-            break;
-        }
-    }
-    menu->browser.entry = (menu->browser.selected >= 0) ? &menu->browser.list[menu->browser.selected] : NULL;
+    reapply(menu);
     debugf("games filter: %s, %d games\n", names[current], (int) menu->browser.entries);
     return true;
 }
 
 void games_filter_note_code (const entry_t *e, const char *code) {
     if (e->index < 0 || e->index >= marks_count) {
+        return;
+    }
+    if (game_index_is_homebrew(code)) {
+        marks[e->index] |= 1 << FILTER_HOMEBREW;    /* on the shelf once the reader finishes (games_filter_recheck_hacks) */
         return;
     }
     uint8_t region_bits = (1 << FILTER_USA) | (1 << FILTER_JAPAN) | (1 << FILTER_EUROPE);
@@ -374,7 +394,23 @@ int games_filter_all_entries (int shown) {
 }
 
 const char *games_filter_label (void) {
-    return (current == FILTER_ALL) ? NULL : names[current];
+    return (current == FILTER_ALL || shelf) ? NULL : names[current];
+}
+
+void games_filter_shelf (menu_t *menu, bool homebrew, bool list_loaded) {
+    if (homebrew == shelf) {
+        return;
+    }
+    shelf = homebrew;
+    if (homebrew) {
+        stepped = current;
+        current = FILTER_HOMEBREW;
+    } else {
+        current = stepped;
+    }
+    if (list_loaded && total > 0) {
+        reapply(menu);
+    }
 }
 
 int games_filter_versions (menu_t *menu, const entry_t *e) {

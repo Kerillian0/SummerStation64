@@ -52,11 +52,17 @@ static const char *rom_meta_extensions[] = { "meta", "metadata", NULL };
 // Fixed cap keeps memory use predictable on 4MB systems when scanning huge folders.
 #define DIRECTORY_MAX_ENTRIES_JUMPER_PAK 1024
 
-// The browser screen is two tabs: Games (the games of the start folder, as
-// covers) and Folders (everything, as a plain list). Each has its own place.
+// The browser screen is three tabs: Games (the games of the start folder, as
+// covers), Homebrew (the same list, homebrew only) and Folders (everything,
+// as a plain list). Each has its own place.
 static bool folders_tab = false;
+static bool homebrew_tab = false;           // the Games list on its homebrew shelf (games_filter_shelf)
 static path_t *folders_directory = NULL;    // where the Folders tab was left
-static char left_on[2][256] = { "", "" };   // the entry the Games tab [0] and the Folders tab [1] were left on, to go back to it (while the console is on)
+static char left_on[3][256] = { "", "", "" };   // the entry the Games [0], Folders [1] and Homebrew [2] tabs were left on, to go back to it (while the console is on)
+
+static int tab_slot (void) {
+    return folders_tab ? 1 : (homebrew_tab ? 2 : 0);
+}
 
 static bool archive_entry_limit_exceeded = false;
 static bool archive_entry_precheck_failed = false;
@@ -841,7 +847,7 @@ static void browser_show_tab (menu_t *menu, bool folders) {
         folders_directory = path_clone(menu->browser.directory);
     }
     // Remember the entry this tab was on.
-    snprintf(left_on[folders_tab ? 1 : 0], sizeof(left_on[0]), "%s", (menu->browser.entry && !menu->browser.archive) ? menu->browser.entry->name : "");
+    snprintf(left_on[tab_slot()], sizeof(left_on[0]), "%s", (menu->browser.entry && !menu->browser.archive) ? menu->browser.entry->name : "");
 
     folders_tab = folders;
 
@@ -861,9 +867,41 @@ static void browser_show_tab (menu_t *menu, bool folders) {
     menu->browser.valid = false;
 }
 
+// Put the selection back on the entry this tab was left on, if it is in the list.
+static void select_left_on (menu_t *menu) {
+    const char *left = left_on[tab_slot()];
+    for (int i = 0; left[0] && i < menu->browser.entries; i++) {
+        if (strcmp(menu->browser.list[i].name, left) == 0) {
+            menu->browser.selected = i;
+            menu->browser.entry = &menu->browser.list[i];
+            break;
+        }
+    }
+}
+
+// Switch the Games list between the Games and Homebrew tabs. The list stays;
+// only what it shows changes, so nothing is read from the card.
+static void browser_show_shelf (menu_t *menu, bool homebrew) {
+    if (homebrew == homebrew_tab) {
+        return;
+    }
+    bool loaded = menu->browser.valid && !folders_tab;
+    if (loaded) {
+        carousel_art_reset();
+        game_facts_reset();
+        folder_memory_flush();
+        snprintf(left_on[tab_slot()], sizeof(left_on[0]), "%s", menu->browser.entry ? menu->browser.entry->name : "");
+    }
+    homebrew_tab = homebrew;
+    games_filter_shelf(menu, homebrew, loaded);
+    if (loaded) {
+        select_left_on(menu);
+    }
+}
+
 // L or R: the tab before or after this one, in the player's order.
 static void browser_step_tab (menu_t *menu, int direction) {
-    games_tab_t here = folders_tab ? GAMES_TAB_FOLDERS : GAMES_TAB_GAMES;
+    games_tab_t here = folders_tab ? GAMES_TAB_FOLDERS : (homebrew_tab ? GAMES_TAB_HOMEBREW : GAMES_TAB_GAMES);
     games_tab_t next = tabs_step(here, direction);
     if (next == here) {
         return;
@@ -872,7 +910,7 @@ static void browser_step_tab (menu_t *menu, int direction) {
     tabs_open(menu, next);
     tabs_slide_begin(menu, direction); // the new tab's covers slide in from that side
     if (menu->next_mode == MENU_MODE_BROWSER) {
-        view_browser_init(menu); // Games <-> Folders: the same screen with the other list
+        view_browser_init(menu); // Games, Homebrew, Folders: the same screen with another list, or the same list on its shelf
     }
 }
 
@@ -1572,7 +1610,7 @@ static void carousel_hints_draw (menu_t *menu) {
     }
 
     games_ui_hint_right_draw(0, "START", "Settings");
-    games_ui_hint_right_draw(1, "C", "Scroll ◀▶ Filter ▲▼");
+    games_ui_hint_right_draw(1, "C", homebrew_tab ? "Scroll ◀▶" : "Scroll ◀▶ Filter ▲▼"); // the Homebrew tab has no filter steps
 }
 #endif
 
@@ -1606,8 +1644,24 @@ static void draw (menu_t *menu, surface_t *d) {
     if (folders_tab) {
         games_ui_topbar_draw(menu, GAMES_TAB_FOLDERS);
         folders_ui_draw(menu);
+    } else if (homebrew_tab && menu->browser.entries <= 0) {
+        games_ui_topbar_draw(menu, GAMES_TAB_HOMEBREW);
+        rdpq_text_printf(&(rdpq_textparms_t) {
+            .width = DISPLAY_WIDTH - (2 * GAMES_UI_CONTENT_X0),
+            .height = 200,
+            .align = ALIGN_CENTER,
+            .valign = VALIGN_CENTER,
+            .wrap = WRAP_WORD,
+            .style_id = STL_GRAY,
+        }, FNT_DEFAULT, GAMES_UI_CONTENT_X0, 100,
+            game_learn_busy()
+                ? "Looking for homebrew...\n\n"
+                  "The menu is reading the games it doesn't know yet. Homebrew shows here when it has finished."
+                : "No homebrew found.\n\n"
+                  "Homebrew games are found by the game code homebrew tools give them. "
+                  "Put them in a folder the Games tab reads.");
     } else {
-        games_ui_topbar_draw(menu, GAMES_TAB_GAMES);
+        games_ui_topbar_draw(menu, homebrew_tab ? GAMES_TAB_HOMEBREW : GAMES_TAB_GAMES);
         carousel_draw(menu);
         if (menu->browser.entries <= 0) {
             rdpq_text_printf(&(rdpq_textparms_t) {
@@ -1695,6 +1749,7 @@ void view_browser_init (menu_t *menu) {
     games_ui_set_origin(MENU_MODE_BROWSER); // where B on a game's info screen comes back to
     if (menu->browser.select_file) tabs_browser_show_folders(true); // being sent to a particular file: that is the Folders tab's job
     browser_show_tab(menu, tabs_browser_shows_folders());
+    browser_show_shelf(menu, tabs_browser_shows_homebrew()); // Games <-> Homebrew: the same list, shown differently
     if (!folders_tab && !path_is_root(menu->browser.directory)) {
         // The Games tab reads its folders from the top of the card (games_folders.h).
         path_free(menu->browser.directory);
@@ -1717,17 +1772,7 @@ void view_browser_init (menu_t *menu) {
             );
         } else {
             menu->browser.valid = true;
-            const char *left = left_on[folders_tab ? 1 : 0];
-            if (left[0]) {
-                // Back on this tab: the entry it was left on.
-                for (int i = 0; i < menu->browser.entries; i++) {
-                    if (strcmp(menu->browser.list[i].name, left) == 0) {
-                        menu->browser.selected = i;
-                        menu->browser.entry = &menu->browser.list[i];
-                        break;
-                    }
-                }
-            }
+            select_left_on(menu); // back on this tab: the entry it was left on
         }
     }
 
@@ -1761,7 +1806,7 @@ void view_browser_init (menu_t *menu) {
 
 void view_browser_display (menu_t *menu, surface_t *display) {
     process(menu);
-    folder_memory_use_key(folders_tab ? NULL : "games:"); // the Games tab keeps its own place
+    folder_memory_use_key(folders_tab ? NULL : (homebrew_tab ? "homebrew:" : "games:")); // the Games and Homebrew tabs keep their own places
     folder_memory_update(menu); // put the selection back where it was left in this folder
 
     draw(menu, display);
