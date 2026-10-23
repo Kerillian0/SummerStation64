@@ -51,11 +51,17 @@ static void load (void) {
         ini = ini_try_load(FOLDER_MEMORY_TMP_PATH);
     }
 
+    /* One [folders] section with path0, selected0, path1, ...: the settings
+       reader keeps at most 8 sections, so the older layout (a [folderN]
+       section each) lost every place after the eighth. Read as a fallback. */
+    bool one_section = ini_get_string(ini, "folders", "path0", "")[0] != '\0';
     for (int i = 0; i < MAX_FOLDERS; i++) {
-        char section[16];
-        snprintf(section, sizeof(section), "folder%d", i);
-        const char *path = ini_get_string(ini, section, "path", "");
-        const char *name = ini_get_string(ini, section, "selected", "");
+        char section[16], path_key[16], name_key[16];
+        snprintf(section, sizeof(section), one_section ? "folders" : "folder%d", i);
+        snprintf(path_key, sizeof(path_key), one_section ? "path%d" : "path", i);
+        snprintf(name_key, sizeof(name_key), one_section ? "selected%d" : "selected", i);
+        const char *path = ini_get_string(ini, section, path_key, "");
+        const char *name = ini_get_string(ini, section, name_key, "");
         if (path[0] != '\0' && name[0] != '\0') {
             copy_text(folders[folder_count].path, path);
             copy_text(folders[folder_count].name, name);
@@ -159,10 +165,11 @@ void folder_memory_flush (void) {
 
     ini_t *ini = ini_create();
     for (int i = 0; i < folder_count; i++) {
-        char section[16];
-        snprintf(section, sizeof(section), "folder%d", i);
-        ini_set_string(ini, section, "path", folders[i].path);
-        ini_set_string(ini, section, "selected", folders[i].name);
+        char path_key[16], name_key[16];
+        snprintf(path_key, sizeof(path_key), "path%d", i);
+        snprintf(name_key, sizeof(name_key), "selected%d", i);
+        ini_set_string(ini, "folders", path_key, folders[i].path);
+        ini_set_string(ini, "folders", name_key, folders[i].name);
     }
 
     if (ini_save(ini, FOLDER_MEMORY_TMP_PATH)) {

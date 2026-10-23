@@ -107,6 +107,19 @@ static bool code_ok (const char *code) {
     return true;
 }
 
+/* Homebrew tools often leave the code's last place blank ("NED "), which
+   the list can't keep: such a code is kept with a 0 there. It still reads as
+   homebrew, whose art goes by title. */
+static const char *kept_code (const char *code, char *fixed) {
+    if (!game_index_is_homebrew(code)) {
+        return code;
+    }
+    for (int i = 0; i < 4; i++) {
+        fixed[i] = isalnum((unsigned char) code[i]) ? code[i] : '0';
+    }
+    return fixed;
+}
+
 static void load (void) {
     if (loaded) {
         return;
@@ -216,6 +229,8 @@ const game_index_entry_t *game_index_find (const char *path, int64_t size) {
 }
 
 void game_index_set_code (const char *path, int64_t size, const char *code) {
+    char fixed[4];
+    code = kept_code(code, fixed);
     if (!code_ok(code)) {
         return;
     }
@@ -231,6 +246,8 @@ void game_index_set_code (const char *path, int64_t size, const char *code) {
 }
 
 void game_index_set_facts (const char *path, int64_t size, const char *code, int players, bool needs_expansion, bool likes_expansion, bool saves, uint8_t paks) {
+    char fixed[4];
+    code = kept_code(code, fixed);
     if (!code_ok(code)) {
         return;
     }
