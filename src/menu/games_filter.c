@@ -16,6 +16,7 @@
 #include "games_folders.h"
 #include "path.h"
 #include "menu_options.h"
+#include "region_pick.h"
 #include "rom_hacks.h"
 #include "sort_order.h"
 
@@ -34,7 +35,7 @@ typedef enum {
 static const char *names[FILTER_COUNT] = { "All", "USA", "Japan", "Europe", "64DD", "Hacks", "Homebrew" };
 
 /* Which filters a game belongs to, one bit each (bit FILTER_ALL always set). */
-static uint8_t *marks = NULL;   /* indexed by entry->index, the order the folder was read in */
+static uint16_t *marks = NULL;   /* indexed by entry->index, the order the folder was read in */
 static int marks_count = 0;
 static int total = 0;           /* entries in the list, shown and hidden */
 
@@ -42,6 +43,12 @@ static int total = 0;           /* entries in the list, shown and hidden */
    and copies of it) show as one cover; the others are folded under it. */
 #define MARK_FOLDED     (1 << 7)    /* in marks: folded under another file's cover */
 static int16_t *group = NULL;       /* by entry->index: the index of its cover's file, or -1 */
+
+/* Region Copies: One Cover. A game's copies from other regions (the same
+   first three letters of the code) show under All as one cover, chosen by
+   region_pick. Hacks are never folded this way. */
+#define MARK_REGION_FOLDED  (1 << 8)    /* in marks: folded under another region's cover */
+static int16_t *rgroup = NULL;      /* by entry->index: the index of its cover's file, or -1 */
 
 const char *games_filter_versions_name (int choice) {
     static const char *versions_names[GAME_VERSIONS_COUNT] = { "Separate", "Grouped" };
@@ -54,6 +61,11 @@ static bool folding (filter_t f) {
     return f != FILTER_HACKS && options_get(OPTION_GAME_VERSIONS) == GAME_VERSIONS_GROUPED;
 }
 static filter_t current = FILTER_ALL;
+
+/* Whether other regions' copies are left out for this filter: under All only. */
+static bool region_folding (filter_t f) {
+    return f == FILTER_ALL && options_get(OPTION_REGION_COPIES) == REGION_COPIES_ONE_COVER;
+}
 static filter_t stepped = FILTER_ALL;   /* the Games tab's step, kept while the shelf shows */
 static bool shelf = false;              /* the Homebrew tab is showing */
 static int (*stock_compare) (const void *, const void *) = NULL;   /* the browser's own sort, for the Type order */
@@ -106,8 +118,8 @@ static uint8_t from_file_name (const char *name) {
     return found;
 }
 
-static uint8_t classify (menu_t *menu, entry_t *e) {
-    uint8_t m = 1 << FILTER_ALL;
+static uint16_t classify (menu_t *menu, entry_t *e) {
+    uint16_t m = 1 << FILTER_ALL;
     if (e->type == ENTRY_TYPE_DISK) {
         return m | (1 << FILTER_64DD);
     }
@@ -132,7 +144,8 @@ static bool matches (const entry_t *e, filter_t f) {
         return false;   /* a hack without a proper code is still a hack, not homebrew */
     }
     return e->index >= 0 && e->index < marks_count && (marks[e->index] & (1 << f))
-        && !((marks[e->index] & MARK_FOLDED) && folding(f));
+        && !((marks[e->index] & MARK_FOLDED) && folding(f))
+        && !((marks[e->index] & MARK_REGION_FOLDED) && region_folding(f));
 }
 
 static int count_for (menu_t *menu, filter_t f) {
@@ -164,13 +177,28 @@ static void apply (menu_t *menu, bool sort) {
 /* Which games are hacks of others (rom_hacks.h): told from the file names
    and from games sharing a code in the remembered game list. The working
    lists are given back at once. */
+/* Two copies whose codes share their first three letters are one game
+   unless the game list knows both developers and they differ: Duke Nukem:
+   Zero Hour (NDZE, Eurocom) and Dezaemon 3D (NDZJ, Athena) are not. One
+   holding the other ("Nintendo", "Nintendo EAD") counts as the same. Names
+   can't tell, being in each region's own language. */
+static bool same_developer (const char *a, const char *b) {
+    if (!a || !b || !a[0] || !b[0]) {
+        return true;
+    }
+    size_t la = strlen(a), lb = strlen(b);
+    const char *shorter = (la <= lb) ? a : b, *longer = (la <= lb) ? b : a;
+    return strncasecmp(shorter, longer, strlen(shorter)) == 0;
+}
+
 static void mark_hacks (menu_t *menu) {
     const char **names = malloc(total * sizeof(char *));
+    const char **developers = calloc(total, sizeof(char *));
     char (*codes)[4] = calloc(total, 4);
     bool *is_rom = malloc(total * sizeof(bool));
     bool *hack = malloc(total * sizeof(bool));
     long long *sizes = malloc(total * sizeof(long long));
-    if (names && codes && is_rom && hack && sizes) {
+    if (names && developers && codes && is_rom && hack && sizes) {
         for (int i = 0; i < total; i++) {
             entry_t *e = &menu->browser.list[i];
             names[i] = entry_file_name(e->name);
@@ -181,6 +209,7 @@ static void mark_hacks (menu_t *menu) {
                 const game_index_entry_t *known = game_index_find(path_get(path), e->size);
                 if (known && !game_index_is_homebrew(known->code)) {
                     memcpy(codes[i], known->code, 4);   /* unrelated homebrew shares one code: no hacks or versions by it */
+                    developers[i] = known->developer;
                 }
                 path_free(path);
             }
@@ -235,6 +264,49 @@ static void mark_hacks (menu_t *menu) {
                 }
             }
         }
+        /* Region copies: the files that would each have a cover of their
+           own (not hacks; with versions grouped, only each group's cover),
+           gathered by the first three letters of their code. */
+        if (rgroup) {
+            bool versions = group && folding(FILTER_ALL);
+            for (int i = 0; i < total; i++) {
+                rgroup[menu->browser.list[i].index] = -1;
+            }
+            #define REGION_UNIT(k) (is_rom[k] && memcmp(codes[k], "\0\0\0\0", 4) != 0 && !hack[k] \
+                && !(versions && (marks[menu->browser.list[k].index] & MARK_FOLDED)))
+            int folded = 0;
+            for (int i = 0; i < total; i++) {
+                if (!REGION_UNIT(i) || rgroup[menu->browser.list[i].index] >= 0) {
+                    continue;
+                }
+                int cover = i, best = -1, copies = 0;
+                for (int j = i; j < total; j++) {
+                    if (REGION_UNIT(j) && memcmp(codes[i], codes[j], 3) == 0 && same_developer(developers[i], developers[j])) {
+                        copies++;
+                        int score = region_pick_score(codes[j]) * 2 + (strstr(names[j], "[!]") ? 1 : 0);
+                        if (score > best) {
+                            best = score;
+                            cover = j;
+                        }
+                    }
+                }
+                if (copies < 2) {
+                    continue;
+                }
+                for (int j = i; j < total; j++) {
+                    if (REGION_UNIT(j) && memcmp(codes[i], codes[j], 3) == 0 && same_developer(developers[i], developers[j])) {
+                        rgroup[menu->browser.list[j].index] = menu->browser.list[cover].index;
+                        if (j != cover) {
+                            marks[menu->browser.list[j].index] |= MARK_REGION_FOLDED;
+                            folded++;
+                        }
+                    }
+                }
+                debugf("games filter: %.3s in %d copies, cover %s\n", codes[i], copies, names[cover]);
+            }
+            #undef REGION_UNIT
+            debugf("games filter: %d region copies under another cover\n", folded);
+        }
         /* For checking the rules: every game code more than one file shares,
            with each file's size and what it was taken for. */
         for (int i = 0; i < total; i++) {
@@ -263,6 +335,7 @@ static void mark_hacks (menu_t *menu) {
         debugf("games filter: %d hacks among %d games\n", found, total);
     }
     free(names);
+    free(developers);
     free(codes);
     free(is_rom);
     free(hack);
@@ -291,7 +364,7 @@ void games_filter_recheck_hacks (menu_t *menu) {
         return;
     }
     for (int i = 0; i < marks_count; i++) {
-        marks[i] &= ~((1 << FILTER_HACKS) | MARK_FOLDED);
+        marks[i] &= ~((1 << FILTER_HACKS) | MARK_FOLDED | MARK_REGION_FOLDED);
     }
     mark_hacks(menu);   /* the whole list, hidden games included */
     debugf("games filter: %d homebrew games known\n", count_for(menu, FILTER_HOMEBREW));
@@ -306,17 +379,28 @@ bool games_filter_is_hack (const entry_t *e) {
     return matches(e, FILTER_HACKS);
 }
 
-bool games_filter_is_hack_path (menu_t *menu, const char *path) {
+/* The Games list's entry for a full path ("sd:/..."), or NULL. */
+static const entry_t *find_path (menu_t *menu, const char *path) {
     if (!marks || !path || strncmp(path, "sd:/", 4) != 0 || !menu->browser.list) {
-        return false;
+        return NULL;
     }
     int all = games_filter_all_entries(menu->browser.entries);
     for (int i = 0; i < all; i++) {
         if (strcmp(menu->browser.list[i].name, path + 4) == 0) {
-            return games_filter_is_hack(&menu->browser.list[i]);
+            return &menu->browser.list[i];
         }
     }
-    return false;
+    return NULL;
+}
+
+bool games_filter_is_hack_path (menu_t *menu, const char *path) {
+    const entry_t *e = find_path(menu, path);
+    return e && games_filter_is_hack(e);
+}
+
+bool games_filter_region_copies (menu_t *menu, const char *path) {
+    const entry_t *e = find_path(menu, path);
+    return e && rgroup && e->index >= 0 && e->index < marks_count && rgroup[e->index] >= 0;
 }
 
 void games_filter_forget (void) {
@@ -324,6 +408,8 @@ void games_filter_forget (void) {
     marks = NULL;
     free(group);
     group = NULL;
+    free(rgroup);
+    rgroup = NULL;
     marks_count = 0;
     total = 0;
 }
@@ -335,12 +421,13 @@ void games_filter_after_load (menu_t *menu, int (*compare) (const void *, const 
     if (total <= 0) {
         return;
     }
-    marks = malloc(total);
+    marks = malloc(total * sizeof(uint16_t));
     if (!marks) {
         total = 0;
         return;
     }
     group = malloc(total * sizeof(int16_t));   /* without it, versions simply aren't grouped */
+    rgroup = malloc(total * sizeof(int16_t));  /* nor region copies */
     marks_count = total;
     for (int i = 0; i < total; i++) {
         entry_t *e = &menu->browser.list[i];
@@ -352,7 +439,7 @@ void games_filter_after_load (menu_t *menu, int (*compare) (const void *, const 
     if (!shelf && current != FILTER_ALL && count_for(menu, current) == 0) {
         current = FILTER_ALL;   /* nothing of that kind any more */
     }
-    if (current != FILTER_ALL || folding(current)) {
+    if (current != FILTER_ALL || folding(current) || region_folding(current)) {
         apply(menu, false); /* the caller sorts next */
     }
 }
@@ -416,28 +503,41 @@ void games_filter_shelf (menu_t *menu, bool homebrew, bool list_loaded) {
     }
 }
 
+/* Which cover a file shows under, by entry->index: its version group's
+   cover, then that one's region cover, as far as the current filter folds. */
+static int cover_of (int k) {
+    if (k < 0 || k >= marks_count) {
+        return -1;
+    }
+    if (group && folding(current) && group[k] >= 0) {
+        k = group[k];
+    }
+    if (rgroup && region_folding(current) && rgroup[k] >= 0) {
+        k = rgroup[k];
+    }
+    return k;
+}
+
 int games_filter_versions (menu_t *menu, const entry_t *e) {
-    if (!group || !e || e->index < 0 || e->index >= marks_count || !folding(current)) {
+    if (!e || e->index < 0 || e->index >= marks_count || !(folding(current) || region_folding(current))) {
         return 1;
     }
     int n = 0;
     int all = games_filter_all_entries(menu->browser.entries);
     for (int i = 0; i < all; i++) {
-        int k = menu->browser.list[i].index;
-        n += (k >= 0 && k < marks_count && group[k] == e->index) ? 1 : 0;
+        n += (cover_of(menu->browser.list[i].index) == e->index) ? 1 : 0;
     }
     return (n > 0) ? n : 1;
 }
 
 int games_filter_version_list (menu_t *menu, const entry_t *e, entry_t **out, int most) {
     int n = 0;
-    if (!group || !e || e->index < 0 || e->index >= marks_count) {
+    if (!e || e->index < 0 || e->index >= marks_count) {
         return 0;
     }
     int all = games_filter_all_entries(menu->browser.entries);
     for (int i = 0; i < all && n < most; i++) {
-        int k = menu->browser.list[i].index;
-        if (k >= 0 && k < marks_count && group[k] == e->index) {
+        if (cover_of(menu->browser.list[i].index) == e->index) {
             out[n++] = &menu->browser.list[i];
         }
     }

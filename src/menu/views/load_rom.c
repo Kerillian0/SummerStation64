@@ -11,6 +11,7 @@
 #include "../controls.h"
 #include "../display_name.h"
 #include "../game_info_ui.h"
+#include "../region_pick.h"
 #include "../play_stats.h"
 #include "../save_backup.h"
 #include "../baked_art.h" // the cover comes from art baked into the menu when there is some
@@ -830,6 +831,7 @@ static void load (menu_t *menu) {
 
     bookkeeping_history_add(&menu->bookkeeping, menu->load.rom_path, NULL, BOOKKEEPING_TYPE_ROM);
     play_stats_record(path_get(menu->load.rom_path), menu->current_time); // times played, last played, the session for time played
+    region_pick_launched(menu, path_get(menu->load.rom_path), menu->load.rom_info.game_code); // SummerStation64: a region's copy started three times running becomes the game's cover
 
     menu->next_mode = MENU_MODE_BOOT;
 

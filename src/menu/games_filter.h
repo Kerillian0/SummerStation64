@@ -46,6 +46,12 @@ bool games_filter_is_hack (const entry_t *e);
 bool games_filter_is_hack_path (menu_t *menu, const char *path);
 
 /**
+ * True if this full path's game shares its cover with other regions' copies
+ * of it (Region Copies: One Cover, see region_pick.h).
+ */
+bool games_filter_region_copies (menu_t *menu, const char *path);
+
+/**
  * Work out which games are hacks again, now that more game codes are known
  * (called when the idle reader has learned some). Reads nothing from the card.
  */
@@ -77,8 +83,9 @@ typedef enum {
 const char *games_filter_versions_name (int choice);
 
 /**
- * With Game Versions grouped: how many files this cover stands for (1 when
- * it stands for itself only, or grouping is off or the Hacks step shows).
+ * With Game Versions grouped, or Region Copies on One Cover under All: how
+ * many files this cover stands for (1 when it stands for itself only, or
+ * nothing is folded for the filter shown).
  */
 int games_filter_versions (menu_t *menu, const entry_t *e);
 

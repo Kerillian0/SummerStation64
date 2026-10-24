@@ -28,6 +28,8 @@ typedef enum {
     OPTION_BOX_HOVER,   /**< a box_hover_t value (see box_motion.h) */
     OPTION_COVER_STYLE, /**< a cover_style_t value (see carousel_art.h) */
     OPTION_GAME_VERSIONS, /**< a game_versions_t value (see games_filter.h) */
+    OPTION_REGION_COPIES, /**< a region_copies_t value (see region_pick.h) */
+    OPTION_PREFERRED_REGION, /**< a preferred_region_t value (see region_pick.h) */
     OPTION_COUNT
 } option_t;
 

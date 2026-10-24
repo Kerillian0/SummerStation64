@@ -34,6 +34,8 @@ static const option_info_t option_info[OPTION_COUNT] = {
     [OPTION_BOX_HOVER] = { "box_hover", 3 },    /* float and sway */
     [OPTION_COVER_STYLE] = { "cover_style", 0 }, /* boxes */
     [OPTION_GAME_VERSIONS] = { "game_versions", 0 }, /* separate */
+    [OPTION_REGION_COPIES] = { "region_copies", 0 }, /* separate */
+    [OPTION_PREFERRED_REGION] = { "preferred_region", 0 }, /* USA */
 };
 
 static int values[OPTION_COUNT];

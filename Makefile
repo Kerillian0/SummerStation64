@@ -82,6 +82,7 @@ SRCS = \
 	menu/rom_info.c \
 	menu/settings.c \
 	menu/sound.c \
+	menu/region_pick.c \
 	menu/box3d.c \
 	menu/box_motion.c \
 	menu/hack_games.c \
