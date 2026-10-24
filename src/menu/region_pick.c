@@ -133,6 +133,15 @@ int region_pick_score (const char *code) {
     return (r == preferred() || r == 'A') ? 1 : 0;
 }
 
+int region_pick_list_order (const char *code) {
+    switch (code ? region_of(code[3]) : 0) {
+        case 'U': case 'A': return 0;
+        case 'E': return 1;
+        case 'J': return 2;
+        default: return 3;
+    }
+}
+
 void region_pick_launched (menu_t *menu, const char *rom_path, const char *code) {
     if (!code || options_get(OPTION_REGION_COPIES) != REGION_COPIES_ONE_COVER) {
         return;

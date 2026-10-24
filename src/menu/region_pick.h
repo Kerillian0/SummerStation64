@@ -46,6 +46,12 @@ const char *region_pick_preferred_name (int choice);
 int region_pick_score (const char *code);
 
 /**
+ * Where a copy goes among copies not played yet in the version list:
+ * 0 USA, 1 Europe, 2 Japan, 3 not known.
+ */
+int region_pick_list_order (const char *code);
+
+/**
  * A game is being started: count it towards that game's own choice. Only
  * while Region Copies is on One Cover and the Games list holds copies of
  * the game from more than one region. Saves when something changed.

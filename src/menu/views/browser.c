@@ -23,6 +23,8 @@
 #include "../art_tint.h"
 #include "../games_folders.h"
 #include "../games_filter.h"
+#include "../game_index.h"
+#include "../region_pick.h"
 #include "../game_learn.h"
 #include "../sort_order.h"
 #include "../menu_options.h"
@@ -683,9 +685,10 @@ static void unmark_hacks_folder (menu_t *menu, void *arg) {
 
 // Game Versions: Grouped, or Region Copies: One Cover. A on a cover that
 // stands for several files (an original, its other regions' copies, its
-// hacks) lists them: the copies first, then the hacks, each part with the
-// one played last on top, which is picked already. The cover itself stays
-// as Region Copies chose it. Choosing one carries on as A would have (info,
+// hacks) lists them: the cover's own copy first (as Region Copies chose
+// it), then the other copies, played last first, then those never played
+// (USA, Europe, Japan), then the hacks, played last first. The one played
+// last is picked already. Choosing one carries on as A would have (info,
 // or starting it).
 #define VERSIONS_MAX    (12)
 static entry_t *version_entries[VERSIONS_MAX];
@@ -713,39 +716,79 @@ static component_context_menu_t versions_menu = {
     }
 };
 
+// A row's name: the file name, and with Hide Region Tags on, without its
+// extension and the good-dump marks ("[!]", "(!)") and other [..] tags. The
+// region tags in round brackets stay: they tell the copies apart.
+static void version_name (char *out, size_t size, const char *name, bool hack) {
+    size_t at = 0;
+    const char *end = name + strlen(name);
+    bool tidy = features_enabled(FEATURE_HIDE_TAGS);
+    const char *dot = strrchr(name, '.');
+    if (tidy && dot && strlen(dot) <= 5) {
+        end = dot;
+    }
+    for (const char *c = name; c < end && at + 1 < size; c++) {
+        const char *close = NULL;
+        if (tidy && *c == '[') {
+            close = memchr(c, ']', end - c);
+        } else if (tidy && strncmp(c, "(!)", 3) == 0) {
+            close = c + 2;
+        }
+        if (close) {
+            c = close;
+            continue;
+        }
+        if (*c == ' ' && (at == 0 || out[at - 1] == ' ')) {
+            continue;   // no doubled spaces where a tag was
+        }
+        out[at++] = (tidy && *c == '_') ? ' ' : *c;
+    }
+    while (at > 0 && (out[at - 1] == ' ' || out[at - 1] == '_')) {
+        at--;
+    }
+    out[at] = '\0';
+    if (hack) {
+        snprintf(out + at, size - at, "  (hack)");
+    }
+}
+
 // Opens the list if this cover stands for several files. @return true if it did.
 static bool versions_open (menu_t *menu, entry_t *cover) {
     if (folders_tab || cover->type != ENTRY_TYPE_ROM || games_filter_versions(menu, cover) < 2) {
         return false;
     }
     int n = games_filter_version_list(menu, cover, version_entries, VERSIONS_MAX);
-    bool hacks[VERSIONS_MAX];
+    int rank[VERSIONS_MAX];     // 0 the cover, 1 copies, 2 hacks
     time_t played[VERSIONS_MAX];
+    int region[VERSIONS_MAX];
     for (int i = 0; i < n; i++) {
-        hacks[i] = games_filter_is_hack(version_entries[i]);
-        path_t *path = path_clone_push(menu->browser.directory, version_entries[i]->name);
+        entry_t *e = version_entries[i];
+        rank[i] = (e == cover) ? 0 : games_filter_is_hack(e) ? 2 : 1;
+        path_t *path = path_clone_push(menu->browser.directory, e->name);
         played[i] = 0;
         play_stats_get(path_get(path), &played[i]);
+        const game_index_entry_t *known = game_index_find(path_get(path), e->size);
+        region[i] = region_pick_list_order(known ? known->code : NULL);
         path_free(path);
     }
-    // Copies before hacks, then the one played last first; the rest keep the list's order.
     for (int i = 1; i < n; i++) {
-        for (int j = i; j > 0 && (hacks[j - 1] > hacks[j] || (hacks[j - 1] == hacks[j] && played[j - 1] < played[j])); j--) {
+        for (int j = i; j > 0; j--) {
+            bool before = rank[j] < rank[j - 1]
+                || (rank[j] == rank[j - 1] && played[j] > played[j - 1])
+                || (rank[j] == rank[j - 1] && played[j] == 0 && played[j - 1] == 0 && region[j] < region[j - 1]);
+            if (!before) {
+                break;
+            }
             entry_t *e = version_entries[j]; version_entries[j] = version_entries[j - 1]; version_entries[j - 1] = e;
-            bool h = hacks[j]; hacks[j] = hacks[j - 1]; hacks[j - 1] = h;
+            int r = rank[j]; rank[j] = rank[j - 1]; rank[j - 1] = r;
             time_t t = played[j]; played[j] = played[j - 1]; played[j - 1] = t;
+            int g = region[j]; region[j] = region[j - 1]; region[j - 1] = g;
         }
     }
     time_t latest = 0;
     version_default = 0;
     for (int i = 0; i < n; i++) {
-        const char *name = entry_file_name(version_entries[i]->name);
-        int length = (int) strlen(name);
-        const char *dot = strrchr(name, '.');
-        if (dot && features_enabled(FEATURE_HIDE_EXTENSIONS) && strlen(dot) <= 5) {
-            length = (int) (dot - name);    // the region tags stay: they tell the copies apart
-        }
-        snprintf(version_names[i], sizeof(version_names[i]), "%.*s%s", length, name, hacks[i] ? "  (hack)" : "");
+        version_name(version_names[i], sizeof(version_names[i]), entry_file_name(version_entries[i]->name), games_filter_is_hack(version_entries[i]));
         versions_menu.list[i].text = version_names[i];
         versions_menu.list[i].action = pick_version;
         versions_menu.list[i].arg = version_entries[i];

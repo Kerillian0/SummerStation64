@@ -237,7 +237,7 @@ static const item_t library_items[] = {
         "Type: folders, then each kind of file. Name: by name. Recently Played: games you played come first. Release Date, Developer: oldest first, or by who made the game; the menu looks these up while the Games tab is left alone."),
     FEATURE("Hide Game Extensions", FEATURE_HIDE_EXTENSIONS, "Show games without the ending of the file name, such as .z64. Other files keep theirs."),
     FEATURE("Tidy Game Titles", FEATURE_TIDY_TITLES, "Show names like \"Legend of Zelda, The\" as \"The Legend of Zelda\", and underscores as spaces. The files are not renamed."),
-    FEATURE("Hide Region Tags", FEATURE_HIDE_TAGS, "Hide the region and version tags in brackets, such as (U) (V1.2) [!]. Two versions of one game then look the same in the list."),
+    FEATURE("Hide Region Tags", FEATURE_HIDE_TAGS, "Hide the region and version tags in brackets, such as (U) (V1.2) [!]. Two versions of one game then look the same in the list. A game's list of versions keeps the region tags and hides the file endings and [!] marks."),
     FEATURE("Back Up Saves", FEATURE_SAVE_BACKUPS, "When you start a game, keep its save from before, by date. Up to five per game, never the same one twice. A game's Options has \"Restore save\" to go back to one."),
     FEATURE("Count Plays", FEATURE_PLAY_STATS, "Keep count of how often each game is started and when it was last played, shown on its info screen."),
     FEATURE("Remember Position", FEATURE_REMEMBER_SELECTION, "Going back into a folder returns to the game you had selected there, also after playing."),
