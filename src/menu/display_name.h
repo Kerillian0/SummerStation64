@@ -10,7 +10,8 @@
 
 /**
  * The name to show for a list entry, tidied according to the player's
- * settings: without the file extension ("hide_extensions"), without the
+ * settings: without the file extension and the good-dump marks "[!]" and
+ * "(!)" ("hide_extensions"), without the
  * region and version tags in brackets ("hide_tags"), and with a trailing
  * article moved to the front ("tidy_titles"), e.g.
  * "Legend of Zelda, The - Ocarina of Time.z64" becomes

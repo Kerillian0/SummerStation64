@@ -71,12 +71,16 @@ static void underscores_to_spaces (char *name) {
     *out = '\0';
 }
 
-static void strip_tags (char *name) {
+static void strip_tags (char *name, bool every_tag) {
     char kept[NAME_LENGTH];
     size_t length = 0;
 
     for (const char *c = name; *c; c++) {
-        if (*c == '(' || *c == '[') {
+        if (!every_tag && (strncmp(c, "[!]", 3) == 0 || strncmp(c, "(!)", 3) == 0)) {
+            c += 2; /* only the good-dump mark */
+            continue;
+        }
+        if (every_tag && (*c == '(' || *c == '[')) {
             const char *close = strchr(c, (*c == '(') ? ')' : ']');
             if (close) {
                 c = close; /* skip the whole group */
@@ -147,8 +151,8 @@ const char *display_name_file (const char *filename) {
         *dot = '\0';
     }
 
-    if (hide_tags) {
-        strip_tags(shown);
+    if (hide_tags || hide_extension) {
+        strip_tags(shown, hide_tags);   /* Hide Game Extensions takes the [!] marks too */
     }
 
     if (tidy) {

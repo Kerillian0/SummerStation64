@@ -235,7 +235,7 @@ static const item_t library_items[] = {
         "Whose copy gives a game's cover with Region Copies on One Cover. Changing it also forgets each game's own choice."),
     CHOICES("Sort By", OPTION_SORT_ORDER, SORT_COUNT, sort_order_name, resort_browser,
         "Type: folders, then each kind of file. Name: by name. Recently Played: games you played come first. Release Date, Developer: oldest first, or by who made the game; the menu looks these up while the Games tab is left alone."),
-    FEATURE("Hide Game Extensions", FEATURE_HIDE_EXTENSIONS, "Show games without the ending of the file name, such as .z64. A game's list of versions also hides the [!] marks. Other files keep theirs."),
+    FEATURE("Hide Game Extensions", FEATURE_HIDE_EXTENSIONS, "Show games without the ending of the file name, such as .z64, and without the [!] good-dump marks. Other files keep theirs."),
     FEATURE("Tidy Game Titles", FEATURE_TIDY_TITLES, "Show names like \"Legend of Zelda, The\" as \"The Legend of Zelda\", and underscores as spaces. The files are not renamed."),
     FEATURE("Hide Region Tags", FEATURE_HIDE_TAGS, "Hide the region and version tags in brackets, such as (U) (V1.2) [!]. Two versions of one game then look the same in the list. A game's list of versions keeps the region tags."),
     FEATURE("Back Up Saves", FEATURE_SAVE_BACKUPS, "When you start a game, keep its save from before, by date. Up to five per game, never the same one twice. A game's Options has \"Restore save\" to go back to one."),
