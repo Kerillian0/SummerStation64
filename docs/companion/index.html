@@ -589,7 +589,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
     // From here on (bit 8 and up) a feature needs a v3 share code.
     {key:'hide_extensions', label:'Hide Game Extensions', def:true,  hint:'Games are shown without the ending of the file name, such as .z64.'},
     {key:'tidy_titles',     label:'Tidy Game Titles',     def:true,  hint:'"Legend of Zelda, The" is shown as "The Legend of Zelda".'},
-    {key:'hide_tags',       label:'Hide Region Tags',     def:false, hint:'Hides the tags in brackets, such as (U) (V1.2) [!].'},
+    {key:'hide_tags',       label:'Hide Region Tags',     def:true , hint:'Hides the tags in brackets, such as (U) (V1.2) [!].'},
     {key:'memory_badge',    label:'Memory Badge',         def:true,  hint:'A small Expansion Pak or Jumper Pak under the clock, with 8MB or 4MB.'},
     {key:'button_icons',    label:'Button Icons',         def:true,  hint:'Colored button shapes in the hints. Off shows the button names in boxes.'},
     {key:'favorite_heart',  label:'Favorite Heart',       def:true,  hint:'A heart after a favorite game\'s name. Off shows the word Favorite.'},
@@ -925,6 +925,10 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
     if (featureOn('hide_tags')) {
       var bare = name.replace(/\s*(\([^)]*\)|\[[^\]]*\])/g, '').replace(/\s+/g, ' ').trim();
       if (bare) name = bare;
+    } else if (featureOn('hide_extensions')) {
+      // good-dump marks and revision numbers go with the extension
+      var plain = name.replace(/\s*(\(|\[)(!|[Vv]\d[^)\]]*|Rev[ \d][^)\]]*)(\)|\])/g, '').replace(/\s+/g, ' ').trim();
+      if (plain) name = plain;
     }
     if (featureOn('tidy_titles')) name = name.replace(/^(.*?), (The|An|A)(?=$| [-(\[])/i, '$2 $1').replace(/_/g, ' ');
     return featureOn('hide_extensions') ? name : name + ext;
