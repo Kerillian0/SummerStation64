@@ -32,6 +32,9 @@ if command -v node >/dev/null 2>&1; then
     echo
     echo "== hacks tab =="
     node "$here/hacks_tab_test.js" || status=1
+    echo
+    echo "== missing art tab =="
+    node "$here/art_tab_test.js" || status=1
 else
     echo "node not found: skipped (sudo apt-get install -y nodejs)"
     status=1

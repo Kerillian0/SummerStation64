@@ -6,7 +6,8 @@
  * Started from Settings > Library. It goes through every game on the
  * Games tab, one a frame, looking where the covers and Game info look:
  * art baked into the menu file first, then the SD card's metadata folder
- * (homebrew's by its title). Games that lack something are written to
+ * (homebrew's by its title; its details only from "Game.metadata.ini"
+ * beside the file, as Game info reads them). Games that lack something are written to
  * sd:/menu/missingart.txt, one per line, for the player or the Companion
  * to fill in. 64DD disks are not checked.
  *

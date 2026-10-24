@@ -200,19 +200,28 @@ static void check (menu_t *menu, const game_t *g) {
     bool top = (baked_code && baked_art_has(baked_code, IMAGE_BOXART_TOP)) || (art_folder[0] && on_card(art_folder, "boxart_top.png"));
     bool cartridge = (baked_code && baked_art_has(baked_code, IMAGE_GAMEPAK_FRONT)) || (art_folder[0] && on_card(art_folder, "gamepak_front.png"));
 
-    /* Details, where Game info reads them: baked in, else the game's metadata.ini. */
-    char ini[200];
-    if (!baked_code || !baked_meta_path(baked_code, ini, sizeof(ini))) {
+    /* Details, where Game info reads them: "Game.metadata.ini" beside the
+       file, else baked in, else the code's folder. Homebrew shares its code
+       with unrelated games, so only the file beside it is its own. */
+    char ini[320];
+    snprintf(ini, sizeof(ini), "%s", path);
+    char *dot = strrchr(ini, '.');
+    if (dot && dot > strrchr(ini, '/')) {
+        snprintf(dot, sizeof(ini) - (size_t) (dot - ini), ".metadata.ini");
+    }
+    bool have_ini = file_exists(ini);
+    if (!have_ini && baked_code && baked_meta_path(baked_code, ini, sizeof(ini))) {
+        have_ini = true;
+    } else if (!have_ini && !homebrew) {
         snprintf(ini, sizeof(ini), "%s/metadata.ini", folder);
+        have_ini = file_exists(ini);
     }
     uint16_t date = 0;
     char developer[GAME_INDEX_DEVELOPER_LENGTH + 1] = "";
-    bool have_ini = (strncmp(ini, "rom:/", 5) == 0) || file_exists(ini);
     if (have_ini) {
         game_index_read_details(ini, &date, developer);
     }
-    bool description = (have_ini && has_short_desc(ini)) || (baked_code && baked_meta_description(baked_code))
-        || (homebrew && on_card(folder, "description.txt"));
+    bool description = (have_ini && has_short_desc(ini)) || (baked_code && baked_meta_description(baked_code));
 
     char lacks[80] = "";
     #define LACKS(what) snprintf(lacks + strlen(lacks), sizeof(lacks) - strlen(lacks), "%s%s", lacks[0] ? "," : "", what)

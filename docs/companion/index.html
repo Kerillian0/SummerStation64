@@ -143,8 +143,18 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
 #hacks td.act{white-space:nowrap;text-align:right}
 #hacks .own{color:var(--n-green);font-weight:700}
 #hacks .tablewrap{max-height:420px;overflow-y:auto}
-#hacks .listed{margin:0;padding-left:20px}
-#hacks .listed li{margin-bottom:6px}
+#hacks .listed,#art .listed{margin:0;padding-left:20px}
+#hacks .listed li,#art .listed li{margin-bottom:6px}
+
+/* ---------- Missing Art ---------- */
+#art textarea{resize:vertical;min-height:96px;line-height:1.4}
+#art .row{grid-template-columns:130px minmax(0,1fr)}
+#art .pics{display:flex;flex-wrap:wrap;gap:16px}
+#art .pic{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+#art .pic canvas{display:block;background:var(--field);border:1px solid var(--line);border-radius:6px}
+#art td.act{white-space:nowrap;text-align:right}
+#art .done{color:var(--n-green);font-weight:700}
+#art .tablewrap{max-height:420px;overflow-y:auto}
 
 /* ---------- Guide ---------- */
 #guide .wrap{max-width:960px;display:grid;grid-template-columns:minmax(0,1fr)}
@@ -172,6 +182,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
     <a href="#themes" data-tab="themes">Theme Maker</a>
     <a href="#prep" data-tab="prep">Card Prep</a>
     <a href="#hacks" data-tab="hacks">Hacks</a>
+    <a href="#art" data-tab="art">Missing Art</a>
     <a href="#guide" data-tab="guide">Guide</a>
   </nav>
 </div></div>
@@ -448,6 +459,72 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
       <div class="line">
         <button class="go" id="hackSave" disabled>Save to card</button>
         <span class="status" id="hackSaveStatus"></span>
+      </div>
+    </section>
+  </div>
+</div>
+</div>
+
+<div class="tabpane tool" id="art" hidden>
+<div class="wrap">
+  <header>
+    <h1 class="page-title">Missing Art</h1>
+    <p>Fill in the covers, labels and details your games are missing, from your own pictures and notes. The menu
+      makes the list: on the console, open <b>Settings &gt; Library &gt; Find Missing Art</b> first. Everything
+      happens in this browser: nothing is uploaded anywhere.</p>
+  </header>
+
+  <div class="panel">
+    <section>
+      <h2><span class="n">1</span>Pick your SD card</h2>
+      <p>Choose the top folder of the card (the one with <code>sc64menu.n64</code> in it). The list is read from
+        <code>menu/missingart.txt</code>.</p>
+      <div class="line">
+        <button class="go" id="artPick">Choose SD card</button>
+        <input type="file" id="artPickOld" webkitdirectory class="hidden">
+        <span class="status" id="artCardStatus">No card chosen yet.</span>
+      </div>
+    </section>
+
+    <section>
+      <h2><span class="n">2</span>Choose a game</h2>
+      <p>Each game with what it is missing. Pictures and details baked into the menu file count as there already.</p>
+      <div class="line">
+        <input type="text" id="artSearch" placeholder="Search games" aria-label="Search games" style="max-width:280px">
+        <select id="artNeed" aria-label="Show games missing" style="width:auto">
+          <option value="">Missing anything</option><option value="front">Missing the front cover</option>
+          <option value="back">Missing the back</option><option value="top">Missing the top label</option>
+          <option value="cartridge">Missing the cartridge</option><option value="text">Missing text</option></select>
+      </div>
+      <div class="tablewrap" style="margin-top:10px"><table>
+        <thead><tr><th>Game</th><th>Missing</th><th></th></tr></thead>
+        <tbody id="artRows"><tr><td colspan="3" class="U">Pick the card first.</td></tr></tbody>
+      </table></div>
+    </section>
+
+    <section id="artEdit" class="hidden">
+      <h2><span class="n">3</span>Fill it in</h2>
+      <p id="artGame"></p>
+      <div class="pics" id="artPics"></div>
+      <div class="row hidden" id="artDevRow"><label class="l" for="artDev">Made by</label><input type="text" id="artDev" maxlength="60"></div>
+      <div class="row hidden" id="artDateRow"><label class="l" for="artDate">Released</label><input type="date" id="artDate"></div>
+      <div class="row hidden" id="artDescRow"><label class="l" for="artDesc">Description</label><textarea id="artDesc" maxlength="4000"></textarea></div>
+      <p class="hint">Leave out anything you don't have; it stays on the list.</p>
+      <div class="actions">
+        <button class="go" type="button" id="artKeep">Keep</button>
+        <button class="go quiet" type="button" id="artCancel">Cancel</button>
+        <span class="status" id="artEditStatus"></span>
+      </div>
+    </section>
+
+    <section>
+      <h2><span class="n">4</span>Save to the card</h2>
+      <p>Writes each game's pictures and details into its folder under <code>menu/metadata/</code>. Existing details
+        are kept; only what you filled in is added. Run Find Missing Art again on the console to see what is left.</p>
+      <ul class="listed" id="artListed"></ul>
+      <div class="line">
+        <button class="go" id="artSave" disabled>Save to card</button>
+        <span class="status" id="artSaveStatus"></span>
       </div>
     </section>
   </div>
@@ -3243,6 +3320,9 @@ function matchPopularHack(list, fileName, fileCode) {
 }
 // --- end hacks logic ---
 
+// Shared with the Missing Art tab.
+window.cardTools = { coverCut: coverCut, zipStore: zipStore, iniValue: iniValue, tidyName: tidyName, crcOf: crcOf };
+
 var P = window.cardPrep;
 var $ = function (id) { return document.getElementById(id); };
 var hk = null;          // the card: { root, menuFiles, files: [{path, file, code}], verified, entries, folders }
@@ -3672,10 +3752,424 @@ $('hackSave').addEventListener('click', async function () {
 </script>
 
 <script>
-/* Tabs: one per address (#themes, #prep, #hacks, #guide, or a Guide section such as
+(function(){
+'use strict';
+// --- art logic (also run by tests/art_tab_test.js) ---
+var ART_REPORT = 'menu/missingart.txt';
+var ART_HEADER = 'missingart 1';
+var ART_MAX = 158;              // BOXART_WIDTH_MAX / BOXART_HEIGHT_MAX in the menu
+var PICTURES = [
+  { key: 'front', file: 'boxart_front.png', label: 'Front cover', box: true },
+  { key: 'back', file: 'boxart_back.png', label: 'Back of the box', box: true },
+  { key: 'top', file: 'boxart_top.png', label: 'Top label' },
+  { key: 'cartridge', file: 'gamepak_front.png', label: 'Cartridge' }
+];
+var TEXT_LACKS = ['description', 'date', 'developer'];
+
+// missingart.txt (see src/menu/art_report.h): the header, # comments, then
+// "folder <tab> kind <tab> lacks,... <tab> file" per game. null when the
+// file is not one the menu wrote.
+function parseMissingArt(text) {
+  var lines = text.split(/\r?\n/), out = [];
+  if (lines[0].trim().indexOf(ART_HEADER) !== 0) return null;
+  for (var i = 1; i < lines.length; i++) {
+    if (!lines[i] || lines[i][0] === '#') continue;
+    var f = lines[i].split('\t');
+    if (f.length < 4 || !f[0]) continue;
+    out.push({ folder: f[0], kind: f[1], lacks: f[2].split(',').filter(Boolean), file: f.slice(3).join('\t') });
+  }
+  return out;
+}
+
+// A picture of w x h scaled to fit in the menu's largest picture, keeping its proportions.
+function fitInside(w, h, max) {
+  var s = Math.min((max || ART_MAX) / w, (max || ART_MAX) / h);
+  return { w: Math.max(1, Math.round(w * s)), h: Math.max(1, Math.round(h * s)) };
+}
+
+// The short description from a long one: up to max characters, cut at a word.
+function shortDesc(text, max) {
+  max = max || 120;
+  var t = String(text || '').replace(/\s+/g, ' ').trim();
+  if (t.length <= max) return t;
+  var cut = t.lastIndexOf(' ', max - 3);
+  return t.slice(0, cut > 40 ? cut : max - 3).replace(/[ ,.;:]+$/, '') + '...';
+}
+
+// "author" keeps "Developer | Publisher": a new developer keeps the publisher.
+function authorWith(existing, developer) {
+  var bar = String(existing || '').indexOf('|');
+  return bar >= 0 ? developer + ' | ' + String(existing).slice(bar + 1).trim() : developer;
+}
+
+// An existing metadata.ini with some [meta] keys set or added; everything
+// else in it is kept as it was. Empty values are left out.
+function mergeIni(text, values) {
+  var lines = text ? text.replace(/\r\n/g, '\n').replace(/\n+$/, '').split('\n') : [];
+  var meta = -1;
+  for (var i = 0; i < lines.length; i++) if (/^\s*\[meta\]\s*$/i.test(lines[i])) { meta = i; break; }
+  if (meta < 0) { lines.unshift('[meta]'); meta = 0; }
+  var end = meta + 1;
+  while (end < lines.length && !/^\s*\[/.test(lines[end])) end++;
+  Object.keys(values).forEach(function (key) {
+    if (!values[key]) return;
+    var line = key + ' = ' + values[key], at = -1;
+    for (var j = meta + 1; j < end; j++) if (new RegExp('^\\s*' + key + '\\s*=').test(lines[j])) { at = j; break; }
+    if (at >= 0) { lines[at] = line; return; }
+    var put = end;
+    while (put > meta + 1 && !lines[put - 1].trim()) put--;
+    lines.splice(put, 0, line);
+    end++;
+  });
+  return lines.join('\n') + '\n';
+}
+
+// Which folder to write a game's files to. The menu looks in the folder
+// with the region letter ("N/S/M/E"), else the one without it ("N/S/M")
+// when that one is this game's (it holds no folders for single regions).
+// Details are only read from the one with the letter, so that is where
+// everything goes; files from a folder without the letter that the game
+// was using are copied along, or the menu would stop finding them.
+function artTarget(folder, ownExists, sharedExists, sharedHasRegions) {
+  var shared = /^[^/]\/[^/]\/[^/]\/[^/]$/.test(folder) ? folder.slice(0, -2) : null;
+  return { write: folder, copyFrom: (!ownExists && shared && sharedExists && !sharedHasRegions) ? shared : null };
+}
+// Where a game's details go: its art folder's metadata.ini, except for
+// homebrew, which shares its game code with unrelated games, so Game info
+// only reads "Game.metadata.ini" beside its file.
+function detailsPath(item) {
+  if (item.kind !== 'homebrew') return 'menu/metadata/' + item.folder + '/metadata.ini';
+  var slash = item.file.lastIndexOf('/'), dot = item.file.lastIndexOf('.');
+  return (dot > slash ? item.file.slice(0, dot) : item.file) + '.metadata.ini';
+}
+// --- end art logic ---
+
+var T = window.cardTools;
+var $ = function (id) { return document.getElementById(id); };
+var card = null;            // { root, menuFiles, games: [report lines] }
+var changes = new Map();    // folder -> { item, pics: {key: blob}, desc, date, dev }
+var editing = null;         // { item, pics: {key: {image, blob, pending, shape}} }
+
+// A file under the card's top folder, or null.
+async function cardFile(path) {
+  if (!card.root) return card.menuFiles.get(path.toLowerCase()) || null;
+  try {
+    var parts = path.split('/'), dir = card.root;
+    for (var i = 0; i < parts.length - 1; i++) dir = await dir.getDirectoryHandle(parts[i]);
+    return await (await dir.getFileHandle(parts[parts.length - 1])).getFile();
+  } catch (e) {
+    return null;
+  }
+}
+async function cardText(path) { var f = await cardFile(path); return f ? f.text() : null; }
+// The names in a card folder ("menu/metadata/N/S/M"), or null if there is none.
+async function folderNames(path) {
+  if (!card.root) {
+    var pre = path.toLowerCase() + '/', names = new Set(), any = false;
+    card.menuFiles.forEach(function (f, p) {
+      if (p.indexOf(pre) === 0) { any = true; names.add(p.slice(pre.length).split('/')[0]); }
+    });
+    return any ? Array.from(names) : null;
+  }
+  try {
+    var dir = card.root;
+    for (var part of path.split('/')) dir = await dir.getDirectoryHandle(part);
+    var out = [];
+    for await (var [name] of dir.entries()) out.push(name);
+    return out;
+  } catch (e) {
+    return null;
+  }
+}
+
+function gameName(item) {
+  var base = item.file.slice(item.file.lastIndexOf('/') + 1);
+  return T.tidyName(base) || base;
+}
+function missingText(lacks) {
+  var words = { front: 'front', back: 'back', top: 'top label', cartridge: 'cartridge', description: 'description', date: 'date', developer: 'developer' };
+  return lacks.map(function (l) { return words[l] || l; }).join(', ');
+}
+
+async function cardChosen(root, menuFiles) {
+  card = { root: root, menuFiles: menuFiles, games: [] };
+  changes.clear();
+  closeEditor();
+  var text = await cardText(ART_REPORT);
+  if (text === null) {
+    $('artCardStatus').innerHTML = '<span class="bad">No menu/missingart.txt on this card.</span> On the console, open Settings &gt; Library &gt; Find Missing Art, then pick the card again.';
+  } else {
+    var parsed = parseMissingArt(text);
+    if (!parsed) {
+      $('artCardStatus').innerHTML = '<span class="bad">menu/missingart.txt doesn\'t start with "' + ART_HEADER + '".</span>';
+    } else {
+      card.games = parsed;
+      var made = (await cardFile(ART_REPORT)).lastModified;
+      $('artCardStatus').innerHTML = '<b>' + parsed.length + '</b> game' + (parsed.length === 1 ? '' : 's') + ' missing something' +
+        (made ? ', listed ' + new Date(made).toLocaleString() : '') + '.' +
+        (root ? '' : ' This browser can\'t write to the card: you\'ll get a .zip to copy.');
+    }
+  }
+  renderRows();
+  renderListed();
+}
+
+$('artPick').addEventListener('click', async function () {
+  if (!window.showDirectoryPicker) { $('artPickOld').click(); return; }
+  try {
+    var root = await window.showDirectoryPicker({ mode: 'readwrite' });
+    await cardChosen(root, null);
+  } catch (e) {
+    if (e.name !== 'AbortError') $('artCardStatus').innerHTML = '<span class="bad">Could not open that folder: ' + e.message + '</span>';
+  }
+});
+$('artPickOld').addEventListener('change', function () {
+  var menuFiles = new Map();
+  Array.prototype.forEach.call(this.files, function (f) {
+    var path = f.webkitRelativePath.split('/').slice(1).join('/');
+    if (/^menu\//i.test(path) || /\.metadata\.ini$/i.test(path)) menuFiles.set(path.toLowerCase(), f);
+  });
+  cardChosen(null, menuFiles);
+});
+
+function button(text, quiet, onClick) {
+  var b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'go small' + (quiet ? ' quiet' : '');
+  b.textContent = text;
+  b.addEventListener('click', onClick);
+  return b;
+}
+
+function renderRows() {
+  var body = $('artRows');
+  body.textContent = '';
+  if (!card || !card.games.length) {
+    body.innerHTML = '<tr><td colspan="3" class="U">' + (card ? 'Nothing to fill in.' : 'Pick the card first.') + '</td></tr>';
+    return;
+  }
+  var q = $('artSearch').value.trim().toLowerCase(), need = $('artNeed').value, shown = 0;
+  card.games.forEach(function (item) {
+    if (q && gameName(item).toLowerCase().indexOf(q) < 0 && item.file.toLowerCase().indexOf(q) < 0) return;
+    if (need === 'text' ? !item.lacks.some(function (l) { return TEXT_LACKS.indexOf(l) >= 0; }) : (need && item.lacks.indexOf(need) < 0)) return;
+    var tr = document.createElement('tr');
+    var name = document.createElement('td');
+    name.className = 'file';
+    name.textContent = gameName(item) + (item.kind && item.kind !== 'game' ? ' (' + item.kind + ')' : '');
+    var miss = document.createElement('td');
+    miss.textContent = missingText(item.lacks);
+    var act = document.createElement('td');
+    act.className = 'act';
+    if (changes.has(item.folder)) {
+      var done = document.createElement('span');
+      done.className = 'done';
+      done.textContent = 'Filled in ';
+      act.appendChild(done);
+    }
+    act.appendChild(button(changes.has(item.folder) ? 'Change' : 'Fill in', changes.has(item.folder), function () { openEditor(item); }));
+    tr.append(name, miss, act);
+    body.appendChild(tr);
+    shown++;
+  });
+  if (!shown) body.innerHTML = '<tr><td colspan="3" class="U">No game matches.</td></tr>';
+}
+$('artSearch').addEventListener('input', renderRows);
+$('artNeed').addEventListener('change', renderRows);
+
+function renderListed() {
+  var ul = $('artListed');
+  ul.textContent = '';
+  changes.forEach(function (c, folder) {
+    var li = document.createElement('li');
+    var what = Object.keys(c.pics).filter(function (k) { return c.pics[k]; }).map(function (k) { return PICTURES.find(function (p) { return p.key === k; }).label.toLowerCase(); });
+    if (c.desc) what.push('description');
+    if (c.date) what.push('date');
+    if (c.dev) what.push('developer');
+    li.textContent = gameName(c.item) + ': ' + what.join(', ') + ' ';
+    li.appendChild(button('Undo', true, function () { changes.delete(folder); renderRows(); renderListed(); }));
+    ul.appendChild(li);
+  });
+  $('artSave').disabled = !(card && changes.size);
+}
+
+// One picture's canvas: a box picture cut to the cover's shape, the others fitted inside 158 x 158.
+function drawPic(key) {
+  var p = editing.pics[key], spec = PICTURES.find(function (x) { return x.key === key; });
+  var c = $('artPic-' + key), ctx = c.getContext('2d');
+  var size = p.image ? (spec.box ? T.coverCut(p.image.width, p.image.height, p.shape) : fitInside(p.image.width, p.image.height))
+                     : { w: spec.key === 'top' ? 158 : 112, h: spec.key === 'top' ? 22 : 112 };
+  c.width = size.w; c.height = size.h;
+  c.style.width = size.w + 'px'; c.style.height = size.h + 'px';
+  ctx.clearRect(0, 0, size.w, size.h);
+  if (!p.image) {
+    p.blob = null;
+    p.pending = Promise.resolve();
+    return;
+  }
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  if (spec.box) ctx.drawImage(p.image, size.sx, size.sy, size.sw, size.sh, 0, 0, size.w, size.h);
+  else ctx.drawImage(p.image, 0, 0, size.w, size.h);
+  p.pending = new Promise(function (done) { c.toBlob(function (b) { p.blob = b; done(); }, 'image/png'); });
+}
+
+function picControl(key, blob) {
+  var spec = PICTURES.find(function (x) { return x.key === key; });
+  var p = editing.pics[key] = { image: null, blob: null, pending: Promise.resolve(), shape: 'auto' };
+  var box = document.createElement('div');
+  box.className = 'pic';
+  var label = document.createElement('b');
+  label.textContent = spec.label;
+  var canvas = document.createElement('canvas');
+  canvas.id = 'artPic-' + key;
+  canvas.setAttribute('aria-label', spec.label + ' as the menu will show it');
+  var input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*'; input.className = 'hidden';
+  var line = document.createElement('div');
+  line.className = 'line';
+  async function use(file) {
+    try {
+      p.image = file ? await createImageBitmap(file) : null;
+    } catch (e) {
+      p.image = null;
+      $('artEditStatus').innerHTML = '<span class="bad">That picture could not be read.</span>';
+    }
+    drawPic(key);
+  }
+  input.addEventListener('change', function () { if (this.files[0]) use(this.files[0]); this.value = ''; });
+  line.appendChild(button('Choose a picture', true, function () { input.click(); }));
+  if (spec.box) {
+    var shape = document.createElement('select');
+    shape.setAttribute('aria-label', spec.label + ' shape');
+    shape.style.width = 'auto';
+    shape.innerHTML = '<option value="auto">Shape from the picture</option><option value="wide">Wide box</option><option value="tall">Tall box</option>';
+    shape.addEventListener('change', function () { p.shape = this.value; drawPic(key); });
+    line.appendChild(shape);
+  }
+  line.appendChild(button('Clear', true, function () { use(null); }));
+  box.append(label, canvas, line, input);
+  $('artPics').appendChild(box);
+  return use(blob);
+}
+
+async function openEditor(item) {
+  var saved = changes.get(item.folder) || { pics: {} };
+  editing = { item: item, pics: {} };
+  $('artGame').innerHTML = '<b></b><br>File: <span></span>';
+  $('artGame').querySelector('b').textContent = gameName(item);
+  $('artGame').querySelector('span').textContent = item.file + '  (menu/metadata/' + item.folder + ')';
+  $('artPics').textContent = '';
+  for (var spec of PICTURES) {
+    if (item.lacks.indexOf(spec.key) >= 0) await picControl(spec.key, saved.pics[spec.key] || null);
+  }
+  $('artDevRow').classList.toggle('hidden', item.lacks.indexOf('developer') < 0);
+  $('artDateRow').classList.toggle('hidden', item.lacks.indexOf('date') < 0);
+  $('artDescRow').classList.toggle('hidden', item.lacks.indexOf('description') < 0);
+  $('artDev').value = saved.dev || ''; $('artDate').value = saved.date || ''; $('artDesc').value = saved.desc || '';
+  $('artEditStatus').textContent = '';
+  $('artEdit').classList.remove('hidden');
+  $('artEdit').scrollIntoView({ block: 'start' });
+}
+function closeEditor() {
+  editing = null;
+  $('artEdit').classList.add('hidden');
+}
+$('artCancel').addEventListener('click', closeEditor);
+
+$('artKeep').addEventListener('click', async function () {
+  if (!editing) return;
+  var pics = {}, any = false;
+  for (var key of Object.keys(editing.pics)) {
+    await editing.pics[key].pending;
+    if (editing.pics[key].blob) { pics[key] = editing.pics[key].blob; any = true; }
+  }
+  var c = { item: editing.item, pics: pics, desc: $('artDesc').value.trim(), date: $('artDate').value, dev: $('artDev').value.trim() };
+  if (!any && !c.desc && !c.date && !c.dev) { $('artEditStatus').innerHTML = '<span class="bad">Nothing filled in yet.</span>'; return; }
+  changes.set(editing.item.folder, c);
+  closeEditor();
+  renderRows();
+  renderListed();
+  $('artSave').scrollIntoView({ block: 'center' });
+});
+
+// Every file to write, game by game.
+async function filesToWrite() {
+  var enc = new TextEncoder(), out = [];
+  for (var [folder, c] of changes) {
+    var base = 'menu/metadata/' + folder;
+    var shared = /^[^/]\/[^/]\/[^/]\/[^/]$/.test(folder) ? base.slice(0, -2) : null;
+    var sharedNames = shared ? await folderNames(shared) : null;
+    var target = artTarget(folder, (await folderNames(base)) !== null, sharedNames !== null,
+      !!sharedNames && sharedNames.some(function (n) { return n.length === 1; }));
+    var written = new Set();
+    function add(name, bytes) { out.push({ path: base + '/' + name, bytes: bytes }); written.add(name.toLowerCase()); }
+    for (var key of Object.keys(c.pics)) {
+      add(PICTURES.find(function (p) { return p.key === key; }).file, new Uint8Array(await c.pics[key].arrayBuffer()));
+    }
+    var homebrew = c.item.kind === 'homebrew', iniPath = detailsPath(c.item);
+    var ini = (await cardText(iniPath)) ||
+      (target.copyFrom ? await cardText('menu/metadata/' + target.copyFrom + '/metadata.ini') : null);
+    if (c.desc || c.date || c.dev) {
+      var oldAuthor = ini ? (/^\s*author\s*=\s*(.*?)\s*$/m.exec(ini) || [])[1] : '';
+      var values = { 'release-date': c.date, author: c.dev ? T.iniValue(authorWith(oldAuthor, c.dev), 60) : '' };
+      // The menu keeps up to 255 characters of a value; homebrew has no description.txt, so it gets more here.
+      if (c.desc) values['short-desc'] = T.iniValue(shortDesc(c.desc, homebrew ? 250 : 120));
+      if (!ini) values.name = T.iniValue(gameName(c.item), 90);
+      var bytes = enc.encode(mergeIni(ini, values));
+      if (homebrew) out.push({ path: iniPath, bytes: bytes });
+      else add('metadata.ini', bytes);
+    }
+    if (c.desc && !homebrew) add('description.txt', enc.encode(c.desc + '\n'));
+    if (target.copyFrom) {
+      // The pictures and text it was using from the folder without the region letter.
+      for (var name of sharedNames) {
+        if (name.length === 1 || written.has(name.toLowerCase()) || !/\.(png|txt|ini)$/i.test(name)) continue;
+        var f = await cardFile('menu/metadata/' + target.copyFrom + '/' + name);
+        if (f) add(name, new Uint8Array(await f.arrayBuffer()));
+      }
+    }
+  }
+  return out;
+}
+
+$('artSave').addEventListener('click', async function () {
+  $('artSave').disabled = true;
+  var files = await filesToWrite();
+  if (card.root) {
+    try {
+      for (var f of files) {
+        var parts = f.path.split('/'), dir = card.root;
+        for (var i = 0; i < parts.length - 1; i++) dir = await dir.getDirectoryHandle(parts[i], { create: true });
+        var w = await (await dir.getFileHandle(parts[parts.length - 1], { create: true })).createWritable();
+        await w.write(f.bytes);
+        await w.close();
+      }
+      var games = changes.size;
+      changes.clear();
+      $('artSaveStatus').innerHTML = 'Saved <b>' + files.length + '</b> file' + (files.length === 1 ? '' : 's') + ' for ' + games +
+        ' game' + (games === 1 ? '' : 's') + '. Run Find Missing Art on the console to update the list.';
+      renderRows();
+      renderListed();
+      return;
+    } catch (e) {
+      $('artSaveStatus').innerHTML = '<span class="bad">Could not write to the card (' + e.message + ').</span> Here is a .zip instead.';
+    }
+  }
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([T.zipStore(files, T.crcOf)], { type: 'application/zip' }));
+  a.download = 'art-for-sd-card.zip';
+  a.click();
+  if (!card.root) $('artSaveStatus').innerHTML = 'Unzip <b>art-for-sd-card.zip</b> into the card\'s top folder (it holds a <b>menu</b> folder).';
+  $('artSave').disabled = false;
+});
+})();
+</script>
+
+<script>
+/* Tabs: one per address (#themes, #prep, #hacks, #art, #guide, or a Guide section such as
    #guide-tools), so each can be linked to directly. */
 (function () {
-  var panes = ['themes', 'prep', 'hacks', 'guide'];
+  var panes = ['themes', 'prep', 'hacks', 'art', 'guide'];
   function show() {
     var hash = (location.hash || '#themes').slice(1);
     var tab = hash.indexOf('guide') === 0 ? 'guide' : (panes.indexOf(hash) >= 0 ? hash : 'themes');
