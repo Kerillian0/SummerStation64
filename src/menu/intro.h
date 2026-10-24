@@ -27,6 +27,9 @@
  */
 void intro_begin (menu_t *menu);
 
+/** Whether this start of the menu was after the power switch (true) or RESET. Known once intro_begin() has run. */
+bool intro_power_on (void);
+
 /**
  * Draw one frame of the intro.
  * @return false if the intro is not playing (the caller draws as usual).

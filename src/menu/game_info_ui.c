@@ -542,10 +542,18 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
     int plays = menu->load.rom_path ? play_stats_get(path_get(menu->load.rom_path), &last) : 0;
 
     char played[24];
+    uint32_t seconds = menu->load.rom_path ? play_stats_seconds(path_get(menu->load.rom_path)) : 0;
+    int minutes = (int) (seconds / 60);
     if (plays <= 0) {
         snprintf(played, sizeof(played), "Never");
-    } else {
+    } else if (minutes <= 0) {
         snprintf(played, sizeof(played), (plays == 1) ? "1 time" : "%d times", plays);
+    } else if (minutes < 60) {
+        snprintf(played, sizeof(played), "%d\u00d7  %d min", plays, minutes);    /* times and time played */
+    } else if (minutes < 100 * 60) {
+        snprintf(played, sizeof(played), "%d\u00d7  %dh %02dm", plays, minutes / 60, minutes % 60);
+    } else {
+        snprintf(played, sizeof(played), "%d\u00d7  %d h", plays, minutes / 60);
     }
     char last_played[24];
     format_last_played(last_played, sizeof(last_played), last, menu->current_time, plays);

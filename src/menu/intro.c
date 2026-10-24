@@ -68,6 +68,7 @@
 #define MARK_B              (0x494E5452)    /* "INTR" */
 
 static bool playing = false;
+static bool power_on = true;    /* this start was after the power switch (intro_begin) */
 static bool started = false;
 static uint64_t started_at;
 static menu_mode_t after;       /* the screen to open when the intro ends */
@@ -135,8 +136,13 @@ static bool cart_stayed_on (void) {
     return (a == MARK_A) && (b == MARK_B);
 }
 
+bool intro_power_on (void) {
+    return power_on;
+}
+
 void intro_begin (menu_t *menu) {
     bool cold = !cart_stayed_on();
+    power_on = cold;
     int choice = options_get(OPTION_INTRO);
     bool wanted = !safe_mode_active() && ((choice == INTRO_BOTH) || ((choice == INTRO_ON) && cold));
 

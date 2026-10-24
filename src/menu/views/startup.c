@@ -1,3 +1,4 @@
+#include "../play_stats.h"
 #include "utils/fs.h"
 #include "../intro.h"
 #include "../tabs.h"
@@ -67,6 +68,7 @@ void view_startup_init (menu_t *menu) {
 
     if (menu->next_mode == MENU_MODE_BROWSER) tabs_open(menu, tabs_first()); // the menu opens on the player's first tab
     intro_begin(menu); // plays the intro first, if it is wanted
+    play_stats_settle(intro_power_on()); // time played: the session of the game played last
 }
 
 void view_startup_display (menu_t *menu, surface_t *display) {

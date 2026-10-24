@@ -46,6 +46,20 @@ static int found_count = 0;
 
 static const char *month_names[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
+bool save_backup_save_path (menu_t *menu, char *out, size_t size) {
+    if (!menu->load.rom_path) {
+        return false;
+    }
+    path_t *path = path_clone(menu->load.rom_path);
+    path_ext_replace(path, "sav");
+    if (menu->settings.use_saves_folder) {
+        path_push_subdir(path, SAVE_DIRECTORY_NAME);
+    }
+    int length = snprintf(out, size, "%s", path_get(path));
+    path_free(path);
+    return length > 0 && length < (int) size;
+}
+
 /* Works out where the game's save and its kept saves are. */
 static bool locate (menu_t *menu) {
     if (!menu->load.rom_path) {
