@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <strings.h>
+#include <time.h>
 #include <libdragon.h>
 
 #include "game_index.h"
@@ -15,7 +16,8 @@
 
 #define INDEX_PATH      "sd:/menu/gameindex.txt"
 #define INDEX_TMP_PATH  "sd:/menu/gameindex.tmp"
-#define INDEX_HEADER    "gameindex 1"
+#define INDEX_HEADER    "gameindex 2"   /* 2: each line has the day the game was first seen, after its date */
+#define INDEX_HEADER_1  "gameindex 1"
 #define MAX_GAMES       (768)       /* 15 KB of memory, plus 3.5 KB for developers' names; the oldest notes are written over after that */
 
 #define FLAG_FACTS      (1 << 0)
@@ -43,6 +45,7 @@ typedef struct {
     uint16_t date;      /* release date (see GAME_INDEX_DATE), 0 if not known */
     uint8_t maker;      /* which developer (1 = the first name kept), 0 if not known */
     uint8_t paks;       /* accessories (see PAKS_KNOWN); fits a spare byte, so a note is still 20 bytes */
+    uint16_t added;     /* the day it was first seen (see today()), 0 = before the menu noted that; fits the last spare bytes */
 } note_t;
 
 static char maker_text[MAKER_TEXT];
@@ -89,6 +92,19 @@ static int next = 0;        /* where the next new note goes once the list is ful
 static bool loaded = false;
 static bool dirty = false;
 static game_index_entry_t answer;
+
+/* No list on the card at start: the games noted now were there already,
+   so none of them counts as newly added. */
+static bool fresh = false;
+
+/* Today as days since 2000-01-01, 0 if the clock isn't set (before 2020). */
+static uint16_t today (void) {
+    time_t now = time(NULL);
+    if (now < 1577836800) {
+        return 0;
+    }
+    return (uint16_t) ((now - 946684800) / 86400);
+}
 
 static uint32_t path_key (const char *path) {
     uint32_t h = 2166136261u;
@@ -137,18 +153,25 @@ static void load (void) {
         f = fopen(INDEX_TMP_PATH, "r");
     }
     if (!f) {
+        fresh = true;
         return;
     }
 
     char line[128];
-    if (fgets(line, sizeof(line), f) && strncmp(line, INDEX_HEADER, strlen(INDEX_HEADER)) == 0) {
+    bool version_2 = false;
+    if (fgets(line, sizeof(line), f) && ((version_2 = (strncmp(line, INDEX_HEADER, strlen(INDEX_HEADER)) == 0))
+                                         || strncmp(line, INDEX_HEADER_1, strlen(INDEX_HEADER_1)) == 0)) {
         while (count < MAX_GAMES && fgets(line, sizeof(line), f)) {
             unsigned long key, size;
             char code[8];
             int players, flags;
             unsigned int date = 0;      /* lines saved before dates were noted have none */
+            unsigned int added = 0;     /* version 1 lines: from before the day was noted */
             int used = 0;               /* the developer's name, if any, is the rest of the line */
-            if (sscanf(line, "%lx %lu %4s %d %d %u%n", &key, &size, code, &players, &flags, &date, &used) >= 5 && key != 0 && strlen(code) == 4 && code_ok(code)) {
+            int got = version_2
+                ? sscanf(line, "%lx %lu %4s %d %d %u %u%n", &key, &size, code, &players, &flags, &date, &added, &used)
+                : sscanf(line, "%lx %lu %4s %d %d %u%n", &key, &size, code, &players, &flags, &date, &used);
+            if (got >= 5 && key != 0 && strlen(code) == 4 && code_ok(code)) {
                 note_t *n = &notes[count++];
                 n->key = (uint32_t) key;
                 n->size = (uint32_t) size;
@@ -157,6 +180,7 @@ static void load (void) {
                 n->flags = (uint8_t) flags;
                 n->paks = (uint8_t) (flags >> 8);     /* saved in the flags' second byte */
                 n->date = (uint16_t) date;
+                n->added = (uint16_t) added;
                 n->maker = (used > 0) ? maker_number(trimmed(line + used)) : 0;
             }
         }
@@ -189,6 +213,7 @@ static note_t *note_for (const char *path, int64_t size) {
             if (size > 0 && notes[i].size != 0 && notes[i].size != (uint32_t) size) {
                 memset(&notes[i], 0, sizeof(note_t));   /* replaced file: start again */
                 notes[i].key = key;
+                notes[i].added = fresh ? 0 : today();
             }
             return &notes[i];
         }
@@ -203,6 +228,7 @@ static note_t *note_for (const char *path, int64_t size) {
     }
     memset(n, 0, sizeof(note_t));
     n->key = key;
+    n->added = fresh ? 0 : today();     /* a game that wasn't on the card before */
     return n;
 }
 
@@ -231,6 +257,22 @@ const game_index_entry_t *game_index_find (const char *path, int64_t size) {
     answer.date = n->date;
     answer.developer = (n->maker > 0 && n->maker <= maker_count) ? &maker_text[maker_at[n->maker - 1]] : NULL;
     return &answer;
+}
+
+int game_index_added_days (const char *path, int64_t size) {
+    load();
+    uint16_t now = today();
+    if (!now) {
+        return -1;
+    }
+    note_t *n = find(path_key(path), size);
+    if (!n) {
+        return fresh ? -1 : 0;  /* not noted yet: it has only just turned up */
+    }
+    if (!n->added) {
+        return -1;
+    }
+    return (now > n->added) ? (now - n->added) : 0;
 }
 
 void game_index_set_code (const char *path, int64_t size, const char *code) {
@@ -402,8 +444,9 @@ void game_index_flush (void) {
         if (n->key == 0 || !code_ok(n->code)) {
             continue;
         }
-        fprintf(f, "%08lx %lu %c%c%c%c %d %d %u", (unsigned long) n->key, (unsigned long) n->size,
-            n->code[0], n->code[1], n->code[2], n->code[3], (int) n->players, (int) (n->flags | (n->paks << 8)), (unsigned int) n->date);
+        fprintf(f, "%08lx %lu %c%c%c%c %d %d %u %u", (unsigned long) n->key, (unsigned long) n->size,
+            n->code[0], n->code[1], n->code[2], n->code[3], (int) n->players, (int) (n->flags | (n->paks << 8)), (unsigned int) n->date,
+            (unsigned int) n->added);
         if (n->maker > 0 && n->maker <= maker_count) {
             fprintf(f, " %s", &maker_text[maker_at[n->maker - 1]]);
         }

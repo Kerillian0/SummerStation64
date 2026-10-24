@@ -15,6 +15,7 @@ typedef enum {
     SORT_RECENT_FIRST,  /**< recently played games first, then as SORT_NAME_AZ */
     SORT_RELEASE_DATE,  /**< games by release date, oldest first; unknown dates last, then as SORT_NAME_AZ */
     SORT_DEVELOPER,     /**< games by who made them, each developer's by date; unknown last */
+    SORT_RECENTLY_ADDED, /**< games newest first, by the day the menu first saw them; older ones last, by name */
     SORT_COUNT
 } sort_order_t;
 

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <time.h>
 
 #include "menu_options.h"
 #include "path.h"
@@ -23,6 +24,7 @@ const char *sort_order_name (int order) {
         case SORT_RECENT_FIRST: return "Recently Played";
         case SORT_RELEASE_DATE: return "Release Date";
         case SORT_DEVELOPER: return "Developer";
+        case SORT_RECENTLY_ADDED: return "Recently Added";
         default: return "Type";
     }
 }
@@ -117,9 +119,50 @@ static int compare_developer (const void *pa, const void *pb) {
     return order ? order : compare_release(pa, pb);
 }
 
+/* Days since a game was first seen (game_index_added_days()), or a large
+   number for games that count as old, which go last. */
+static int added_days (path_t *directory, const entry_t *e) {
+    if (e->type != ENTRY_TYPE_ROM || !directory) {
+        return 0x7FFFFFFF;
+    }
+    path_t *path = path_clone_push(directory, (char *) e->name);
+    int days = game_index_added_days(path_get(path), e->size);
+    path_free(path);
+    return (days < 0) ? 0x7FFFFFFF : days;
+}
+
+static int compare_added (const void *pa, const void *pb) {
+    int order = folders_first(pa, pb);
+    if (order) {
+        return order;
+    }
+    int a = added_days(detail_directory, pa);
+    int b = added_days(detail_directory, pb);
+    return (a != b) ? ((a < b) ? -1 : 1) : compare_name_az(pa, pb);
+}
+
 const char *sort_order_detail (path_t *directory, const entry_t *entry) {
-    static char text[20];
+    static char text[24];
     int order = options_get(OPTION_SORT_ORDER);
+    if (order == SORT_RECENTLY_ADDED) {
+        int days = added_days(directory, entry);
+        if (days == 0x7FFFFFFF) {
+            return NULL;
+        }
+        if (days < 2) {
+            return days ? "Added yesterday" : "Added today";
+        }
+        if (days < 60) {
+            snprintf(text, sizeof(text), "Added %d days ago", days);
+            return text;
+        }
+        /* Longer ago: the day itself. */
+        static const char *months[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+        time_t when = time(NULL) - (time_t) days * 86400;
+        struct tm *tm = gmtime(&when);
+        snprintf(text, sizeof(text), "Added %s %d, %d", months[tm->tm_mon], tm->tm_mday, tm->tm_year + 1900);
+        return text;
+    }
     if (order != SORT_RELEASE_DATE && order != SORT_DEVELOPER) {
         return NULL;
     }
@@ -184,6 +227,10 @@ void sort_order_apply (menu_t *menu, int (*stock_compare) (const void *, const v
         case SORT_DEVELOPER:
             detail_directory = menu->browser.directory;
             compare = compare_developer;
+            break;
+        case SORT_RECENTLY_ADDED:
+            detail_directory = menu->browser.directory;
+            compare = compare_added;
             break;
         default:
             break;

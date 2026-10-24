@@ -54,6 +54,15 @@ typedef struct {
  */
 const game_index_entry_t *game_index_find (const char *path, int64_t size);
 
+/**
+ * How many days ago this game was first seen (0: today), for Recently
+ * Added and the New badge. -1 when it counts as old: noted before the menu
+ * kept the day, on the card's first run (the list was new then), or the
+ * clock isn't set. A game the list doesn't know yet has only just turned
+ * up, so it counts as today.
+ */
+int game_index_added_days (const char *path, int64_t size);
+
 #define GAME_INDEX_TITLE_LENGTH (20)
 
 /**

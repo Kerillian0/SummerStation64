@@ -693,6 +693,7 @@ static void unmark_hacks_folder (menu_t *menu, void *arg) {
 // last is picked already. Choosing one carries on as A would have (info,
 // or starting it).
 #define VERSIONS_MAX    (12)
+#define NEW_BADGE_DAYS  (30)    // how long a newly added game has its New badge
 static entry_t *version_entries[VERSIONS_MAX];
 static char version_names[VERSIONS_MAX][64];
 static int version_default = 0;
@@ -1717,7 +1718,15 @@ void carousel_draw (menu_t *menu) {
         hack = games_filter_is_hack_path(menu, path_get(selected_path));
         path_free(selected_path);
     }
-    games_ui_title_panel_draw(title, carousel_kind_label(selected_entry->type), lead, hack, game_facts_update(menu));
+    // First seen in the last 30 days (game_index_added_days()): a New badge.
+    bool is_new = false;
+    if (selected_entry->type == ENTRY_TYPE_ROM) {
+        path_t *selected_path = covers->path(menu, covers->selected);
+        int days = game_index_added_days(path_get(selected_path), (covers->list == menu->browser.list) ? selected_entry->size : 0);
+        path_free(selected_path);
+        is_new = (days >= 0 && days < NEW_BADGE_DAYS);
+    }
+    games_ui_title_panel_draw(title, carousel_kind_label(selected_entry->type), lead, hack, is_new, game_facts_update(menu));
     const char *letter_from = !detail ? entry_file_name(selected_entry->name) : (options_get(OPTION_SORT_ORDER) == SORT_DEVELOPER) ? detail : " "; // the letter of what the list is sorted by; none for dates
     games_ui_position_draw(letter_from, covers->selected, covers->entries, (covers->list == menu->browser.list) ? games_filter_label() : NULL); // the file name: that is what the list is sorted by
 }

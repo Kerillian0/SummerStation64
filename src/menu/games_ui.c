@@ -284,7 +284,7 @@ const char *games_ui_selection_name (int choice) {
     return (choice >= 0 && choice < SELECTION_COUNT) ? names[choice] : "";
 }
 
-void games_ui_title_panel_draw (const char *title, const char *detail, const char *lead, bool hack, const game_facts_t *facts) {
+void games_ui_title_panel_draw (const char *title, const char *detail, const char *lead, bool hack, bool is_new, const game_facts_t *facts) {
     const theme_t *t = theme_get();
     int x0 = GAMES_UI_CONTENT_X0;
     int x1 = GAMES_UI_CONTENT_X1;
@@ -339,12 +339,17 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const cha
     int y = line2_y + (PANEL_LINE - BADGE_HEIGHT) / 2;
 
     if (!facts) {
-        /* Not looked up yet: what is known at once. A hack says so from the start. */
-        if (hack) {
+        /* Not looked up yet: what is known at once. A hack and a new game say so from the start. */
+        if (hack || is_new) {
             if (lead) {
                 x = games_ui_badge(x, y, lead, STL_DEFAULT, false);
             }
-            games_ui_badge(x, y, "Hack", STL_ORANGE, true);
+            if (hack) {
+                x = games_ui_badge(x, y, "Hack", STL_ORANGE, true);
+            }
+            if (is_new) {
+                games_ui_badge(x, y, "New", STL_YELLOW, true);
+            }
         } else {
             text(x0 + 12, line2_y, x1 - x0 - 24, PANEL_LINE, ALIGN_LEFT, STL_GRAY, lead ? lead : detail);
         }
@@ -365,6 +370,9 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const cha
     }
     if (hack) {
         PANEL_BADGE("Hack", STL_ORANGE, true);
+    }
+    if (is_new) {
+        PANEL_BADGE("New", STL_YELLOW, true);
     }
     if (facts->players > 0) {
         char players[24];
