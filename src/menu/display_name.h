@@ -10,8 +10,9 @@
 
 /**
  * The name to show for a list entry, tidied according to the player's
- * settings: without the file extension and the good-dump marks "[!]" and
- * "(!)" ("hide_extensions"), without the
+ * settings: without the file extension, the good-dump marks "[!]" and
+ * "(!)" and revision numbers such as "(V1.1)" and "(Rev 1)"
+ * ("hide_extensions"), without the
  * region and version tags in brackets ("hide_tags"), and with a trailing
  * article moved to the front ("tidy_titles"), e.g.
  * "Legend of Zelda, The - Ocarina of Time.z64" becomes
@@ -27,6 +28,13 @@ const char *display_name (const entry_t *entry);
  * the History and Favorites lists. Valid until the next call.
  */
 const char *display_name_file (const char *filename);
+
+/**
+ * The same for a game's list of versions: Hide Region Tags drops only the
+ * [...] groups there, so the region tags tell the copies apart. Valid until
+ * the next call.
+ */
+const char *display_name_version (const char *filename);
 
 /**
  * For the game info screens: the tidied name, or the real file name while

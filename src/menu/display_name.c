@@ -50,7 +50,6 @@ static void article_to_front (char *name) {
     }
 }
 
-/* "Name (U) (V1.2) [!]" -> "Name": drops every (...) and [...] group. */
 /* "Ocarina of Time _redux_patch" -> "Ocarina of Time redux patch": every
    underscore becomes a space, and runs of spaces become one. */
 static void underscores_to_spaces (char *name) {
@@ -71,18 +70,35 @@ static void underscores_to_spaces (char *name) {
     *out = '\0';
 }
 
-static void strip_tags (char *name, bool every_tag) {
+/* Which bracket groups strip_tags() drops. */
+typedef enum {
+    TAGS_MARKS,     /* the good-dump marks and revision numbers (Hide Game Extensions) */
+    TAGS_SQUARE,    /* those and every [...] group, region tags kept (a game's versions) */
+    TAGS_ALL,       /* every (...) and [...] group (Hide Region Tags) */
+} tags_t;
+
+/* "[!]", "(!)", "(V1.1)", "[v1.0]", "(Rev 1)", "(Rev A)": the group's inside. */
+static bool is_mark (const char *inside, size_t length) {
+    if (length == 1 && inside[0] == '!') {
+        return true;
+    }
+    if (length >= 2 && (inside[0] == 'V' || inside[0] == 'v') && inside[1] >= '0' && inside[1] <= '9') {
+        return true;
+    }
+    return length >= 4 && strncasecmp(inside, "Rev", 3) == 0 && (inside[3] == ' ' || (inside[3] >= '0' && inside[3] <= '9'));
+}
+
+/* "Name (U) (V1.2) [!]" -> "Name (U)" (TAGS_MARKS) or "Name" (TAGS_ALL). */
+static void strip_tags (char *name, tags_t which) {
     char kept[NAME_LENGTH];
     size_t length = 0;
 
     for (const char *c = name; *c; c++) {
-        if (!every_tag && (strncmp(c, "[!]", 3) == 0 || strncmp(c, "(!)", 3) == 0)) {
-            c += 2; /* only the good-dump mark */
-            continue;
-        }
-        if (every_tag && (*c == '(' || *c == '[')) {
+        if (*c == '(' || *c == '[') {
             const char *close = strchr(c, (*c == '(') ? ')' : ']');
-            if (close) {
+            bool drop = close && ((which == TAGS_ALL) || (which == TAGS_SQUARE && *c == '[')
+                || is_mark(c + 1, (size_t) (close - c - 1)));
+            if (drop) {
                 c = close; /* skip the whole group */
                 continue;
             }
@@ -102,6 +118,47 @@ static void strip_tags (char *name, bool every_tag) {
     if (length > 0) {
         strcpy(name, kept);
     }
+}
+
+/* The tidied name; `versions` keeps the region tags even with Hide Region
+   Tags on, for a game's list of versions, where they tell the copies apart. */
+static const char *tidy_name (const char *filename, bool versions) {
+    filename = entry_file_name(filename); // the Games tab's names carry their folder in front
+
+    bool hide_extension = features_enabled(FEATURE_HIDE_EXTENSIONS);
+    bool tidy = features_enabled(FEATURE_TIDY_TITLES);
+    bool hide_tags = features_enabled(FEATURE_HIDE_TAGS);
+    if (!hide_extension && !tidy && !hide_tags) {
+        return filename;
+    }
+
+    strncpy(shown, filename, sizeof(shown) - 1);
+    shown[sizeof(shown) - 1] = '\0';
+
+    /* Set the extension aside while the title is tidied. */
+    char extension[16] = "";
+    char *dot = strrchr(shown, '.');
+    if (dot && dot != shown && strlen(dot) < sizeof(extension)) {
+        strcpy(extension, dot);
+        *dot = '\0';
+    }
+
+    if (hide_tags) {
+        strip_tags(shown, versions ? TAGS_SQUARE : TAGS_ALL);
+    } else if (hide_extension) {
+        strip_tags(shown, TAGS_MARKS);  /* Hide Game Extensions takes the [!] marks and revisions too */
+    }
+
+    if (tidy) {
+        article_to_front(shown);
+        underscores_to_spaces(shown);
+    }
+
+    if (!hide_extension && (strlen(shown) + strlen(extension) < sizeof(shown))) {
+        strcat(shown, extension);
+    }
+
+    return shown;
 }
 
 const char *display_name (const entry_t *entry) {
@@ -128,41 +185,9 @@ void display_name_toggle_real (menu_t *menu, void *arg) {
 }
 
 const char *display_name_file (const char *filename) {
-    if (!filename) {
-        return "";
-    }
-    filename = entry_file_name(filename); // the Games tab's names carry their folder in front
+    return filename ? tidy_name(filename, false) : "";
+}
 
-    bool hide_extension = features_enabled(FEATURE_HIDE_EXTENSIONS);
-    bool tidy = features_enabled(FEATURE_TIDY_TITLES);
-    bool hide_tags = features_enabled(FEATURE_HIDE_TAGS);
-    if (!hide_extension && !tidy && !hide_tags) {
-        return filename;
-    }
-
-    strncpy(shown, filename, sizeof(shown) - 1);
-    shown[sizeof(shown) - 1] = '\0';
-
-    /* Set the extension aside while the title is tidied. */
-    char extension[16] = "";
-    char *dot = strrchr(shown, '.');
-    if (dot && dot != shown && strlen(dot) < sizeof(extension)) {
-        strcpy(extension, dot);
-        *dot = '\0';
-    }
-
-    if (hide_tags || hide_extension) {
-        strip_tags(shown, hide_tags);   /* Hide Game Extensions takes the [!] marks too */
-    }
-
-    if (tidy) {
-        article_to_front(shown);
-        underscores_to_spaces(shown);
-    }
-
-    if (!hide_extension && (strlen(shown) + strlen(extension) < sizeof(shown))) {
-        strcat(shown, extension);
-    }
-
-    return shown;
+const char *display_name_version (const char *filename) {
+    return filename ? tidy_name(filename, true) : "";
 }
