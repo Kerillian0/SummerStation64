@@ -259,7 +259,7 @@ static void draw(menu_t *menu, surface_t *display) {
                 "Hide from the cover tabs?\n\n"
                 "%s\n\n"
                 "A: Hide    B: Keep\n"
-                "Z in the Folders tab shows it again.",
+                "Z in the Folders tab unhides it.",
                 display_name_file(path_last_get(item_list[selected_item].primary_path))
             );
         }

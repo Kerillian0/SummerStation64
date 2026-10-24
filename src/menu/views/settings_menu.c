@@ -266,8 +266,8 @@ static const item_t library_items[] = {
     FEATURE("Back Up Saves", FEATURE_SAVE_BACKUPS, "When you start a game, keep its save from before, by date. Up to five per game, never the same one twice. A game's Options has \"Restore save\" to go back to one."),
     FEATURE("Count Plays", FEATURE_PLAY_STATS, "Keep count of how often each game is started and when it was last played, shown on its info screen."),
     FEATURE("Remember Position", FEATURE_REMEMBER_SELECTION, "Going back into a folder returns to the game you had selected there, also after playing."),
-    INFO("Hidden Games", hidden_info, "Games hidden from the cover tabs with Z, \"Hide this game\". They stay on the card and in the Folders tab, where Z shows one again."),
-    ACTION("Show All Hidden Games", show_hidden_games, "Bring every hidden game back to the cover tabs. No files are touched."),
+    INFO("Hidden Games", hidden_info, "Games hidden from the cover tabs with Z, \"Hide this game\". They stay on the card and in the Folders tab, where Z, \"Unhide this game\", brings one back."),
+    ACTION("Unhide All Games", show_hidden_games, "Bring every hidden game back to the cover tabs. No files are touched."),
     ACTION("Find Missing Art", make_art_report, "Check every game on the Games tab for its cover, the back of its box, top label, cartridge picture, description, release date and developer. Games lacking any are listed in menu/missingart.txt on the SD card. Stay on this page until it is done."),
     INFO("Missing Art", art_report_info, "How many games lack something, from the last check. Open menu/missingart.txt on a PC to see which, and what each one lacks."),
 };

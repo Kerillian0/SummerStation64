@@ -4,8 +4,8 @@
  *
  * A hidden game is left out of Games, Homebrew, Recent and Favorites (and so
  * of Random game, the filters, the version list and the idle reader). The
- * file stays on the card and the Folders tab still shows it, with Z to show
- * it again. Settings > Library counts them and can show them all again.
+ * file stays on the card and the Folders tab still shows it, with Z to unhide
+ * it. Settings > Library counts them and can show them all again.
  *
  * Kept in sd:/menu/hidden.txt: "hidden 1", then one file per line, from the
  * top of the card ("N64(US)/Game.z64"). A renamed or moved file shows again.

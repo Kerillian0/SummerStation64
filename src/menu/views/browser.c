@@ -853,7 +853,13 @@ static void hide_now (menu_t *menu) {
         path_free(path);
     }
     hide_count = 0;
-    menu->browser.reload = true;    // the next game takes its place
+    // Read the list again now, as deleting a file does (a reload request
+    // only counts when the screen opens); the next game takes its place.
+    carousel_art_reset();
+    if (reload_directory(menu)) {
+        menu->browser.valid = false;
+        menu_show_error(menu, "Couldn't refresh the list after hiding");
+    }
 }
 
 static void folders_hide (menu_t *menu, void *arg) {
@@ -862,7 +868,7 @@ static void folders_hide (menu_t *menu, void *arg) {
     if (!hidden_games_set(path_get(path), hide)) {
         note_show("The most games are hidden already.");
     } else {
-        note_show(hide ? "Hidden from the cover tabs.\nZ here shows it again." : "Shown on the cover tabs again.");
+        note_show(hide ? "Hidden from the cover tabs.\nZ here unhides it." : "Back on the cover tabs.");
     }
     path_free(path);
 }
@@ -874,7 +880,7 @@ static component_context_menu_t entry_menu_rows = {
         { .text = "Random game", .action = random_game },
         { .text = "Game info", .action = show_game_info },
         { .text = "Hide this game", .action = hide_game },
-        { .text = "Hide from the cover tabs", .action = folders_hide },
+        { .text = "Hide this game", .action = folders_hide },
         { .text = "Show entry properties", .action = show_properties },
         { .text = "Delete selected entry", .action = delete_entry },
         { .text = "Set current directory as default", .action = set_default_directory },
@@ -891,7 +897,7 @@ static component_context_menu_t entry_context_menu = {
         { .text = "Random game", .action = random_game },
         { .text = "Game info", .action = show_game_info },
         { .text = "Hide this game", .action = hide_game },
-        { .text = "Hide from the cover tabs", .action = folders_hide },
+        { .text = "Hide this game", .action = folders_hide },
         { .text = "Show entry properties", .action = show_properties },
         { .text = "Delete selected entry", .action = delete_entry },
         { .text = "Set current directory as default", .action = set_default_directory },
@@ -922,7 +928,7 @@ static void entry_menu_fill (menu_t *menu) {
             continue;   // hiding: from a cover, or a game in the Folders tab
         }
         if (row.action == folders_hide && hidden) {
-            row.text = "Show on the cover tabs";
+            row.text = "Unhide this game";
         }
         entry_context_menu.list[rows++] = row;
     }
@@ -1881,10 +1887,10 @@ static void draw (menu_t *menu, surface_t *d) {
     note_draw(); // "Added..." after a folder is added to Games
     ui_components_context_menu_draw(&hide_menu);
     if (hide_count == 1) {
-        ui_components_messagebox_draw("Hide from the cover tabs?\n\n%s\n\nA: Hide    B: Keep\nZ in the Folders tab shows it again.",
+        ui_components_messagebox_draw("Hide from the cover tabs?\n\n%s\n\nA: Hide    B: Keep\nZ in the Folders tab unhides it.",
                                       display_name_version(hide_names[0]));
     } else if (hide_count > 1) {
-        ui_components_messagebox_draw("Hide from the cover tabs?\n\n%s (%d versions)\n\nA: Hide    B: Keep\nZ in the Folders tab shows them again.",
+        ui_components_messagebox_draw("Hide from the cover tabs?\n\n%s (%d versions)\n\nA: Hide    B: Keep\nZ in the Folders tab unhides them.",
                                       display_name(menu->browser.entry), hide_count);
     }
     if (fade_parts) {
