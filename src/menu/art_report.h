@@ -1,7 +1,7 @@
 /**
  * @file art_report.h
- * @brief Missing art report: which games lack a cover, a top label, a
- *        cartridge picture, a description or details.
+ * @brief Missing art report: which games lack a cover, the back of the
+ *        box, a top label, a cartridge picture, a description or details.
  *
  * Started from Settings > Library. It goes through every game on the
  * Games tab, one a frame, looking where the covers and Game info look:
@@ -12,7 +12,7 @@
  *
  * Line format, tab-separated: the game's art folder under menu/metadata
  * ("N/Z/S/E", or "homebrew/<title>"), what kind of game it is (game,
- * hack, homebrew), what it lacks (front, top, cartridge, description,
+ * hack, homebrew), what it lacks (front, back, top, cartridge, description,
  * date, developer, comma-separated), and the game's file from the top of
  * the card.
  */

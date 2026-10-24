@@ -115,7 +115,7 @@ void art_report_start (menu_t *menu) {
     fprintf(out, "missingart 1\n");
     fprintf(out, "# Games that lack art or details, made by SummerStation64. One game per line,\n");
     fprintf(out, "# tab-separated: art folder under menu/metadata, kind, what it lacks, the game's file.\n");
-    fprintf(out, "# Lacks: front, top, cartridge, description, date, developer.\n");
+    fprintf(out, "# Lacks: front, back, top, cartridge, description, date, developer.\n");
     debugf("art report: %d games to check\n", game_count);
 }
 
@@ -196,6 +196,7 @@ static void check (menu_t *menu, const game_t *g) {
 
     const char *baked_code = homebrew ? NULL : code;
     bool front = (baked_code && baked_art_has(baked_code, IMAGE_BOXART_FRONT)) || (art_folder[0] && on_card(art_folder, "boxart_front.png"));
+    bool back = (baked_code && baked_art_has(baked_code, IMAGE_BOXART_BACK)) || (art_folder[0] && on_card(art_folder, "boxart_back.png"));
     bool top = (baked_code && baked_art_has(baked_code, IMAGE_BOXART_TOP)) || (art_folder[0] && on_card(art_folder, "boxart_top.png"));
     bool cartridge = (baked_code && baked_art_has(baked_code, IMAGE_GAMEPAK_FRONT)) || (art_folder[0] && on_card(art_folder, "gamepak_front.png"));
 
@@ -216,6 +217,7 @@ static void check (menu_t *menu, const game_t *g) {
     char lacks[80] = "";
     #define LACKS(what) snprintf(lacks + strlen(lacks), sizeof(lacks) - strlen(lacks), "%s%s", lacks[0] ? "," : "", what)
     if (!front) LACKS("front");
+    if (!back) LACKS("back");
     if (!top) LACKS("top");
     if (!cartridge) LACKS("cartridge");
     if (!description) LACKS("description");
