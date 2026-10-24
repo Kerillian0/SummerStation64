@@ -84,6 +84,7 @@ SRCS = \
 	menu/sound.c \
 	menu/region_pick.c \
 	menu/art_report.c \
+	menu/hidden_games.c \
 	menu/box3d.c \
 	menu/box_motion.c \
 	menu/hack_games.c \

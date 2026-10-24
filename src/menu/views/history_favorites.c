@@ -4,6 +4,7 @@
 #include "../fonts.h"
 #include "../ui_components/constants.h"
 #include "../sound.h"
+#include "../hidden_games.h"
 #include "views.h"
 #include "../controls.h"
 #include "../display_name.h"
@@ -24,6 +25,7 @@ typedef enum {
 #define COVER_ROWS  (1)
 
 static bool confirm_remove = false;  // "Remove this favorite?" is showing
+static bool confirm_hide = false;    // "Hide from the cover tabs?" is showing
 
 // Z on the cover rows: a short Options menu. Recent has the first row only.
 static void row_random (menu_t *menu, void *arg) {
@@ -32,13 +34,17 @@ static void row_random (menu_t *menu, void *arg) {
 static void row_ask_remove (menu_t *menu, void *arg) {
     confirm_remove = true;
 }
+static void row_ask_hide (menu_t *menu, void *arg) {
+    confirm_hide = true;
+}
 static component_context_menu_t row_context_menu = { .list = {
     { .text = "Random game", .action = row_random },
+    { .text = "Hide this game", .action = row_ask_hide },
     { .text = "Remove from Favorites", .action = row_ask_remove },
     COMPONENT_CONTEXT_MENU_LIST_END,
 }};
 static void row_menu_show (bool favorites) {
-    row_context_menu.list[1].text = favorites ? "Remove from Favorites" : NULL;   // the list ends at the first row without text
+    row_context_menu.list[2].text = favorites ? "Remove from Favorites" : NULL;   // the list ends at the first row without text
     ui_components_context_menu_init(&row_context_menu);     // counts the rows
     ui_components_context_menu_show(&row_context_menu);
 }
@@ -100,6 +106,21 @@ static void process(menu_t *menu) {
 
     if (COVER_ROWS && ui_components_context_menu_process(menu, &row_context_menu)) {
         return; // the Options menu is open
+    }
+
+    // Hiding a game asks first (hidden_games.h).
+    if (confirm_hide) {
+        if (menu->actions.enter && selected_item != -1) {
+            confirm_hide = false;
+            hidden_games_set(path_get(item_list[selected_item].primary_path), true);
+            menu->browser.reload = true;    // the Games list leaves it out too
+            if (COVER_ROWS) cover_row_open(menu, item_list, item_max); // the row changed: build it again
+            sound_play_effect(SFX_SETTING);
+        } else if (menu->actions.back || menu->actions.options) {
+            confirm_hide = false;
+            sound_play_effect(SFX_EXIT);
+        }
+        return;
     }
 
     // Removing a favorite asks first.
@@ -233,6 +254,15 @@ static void draw(menu_t *menu, surface_t *display) {
         games_ui_hint_right_draw(0, "START", "Settings");
         ui_components_context_menu_draw(&row_context_menu);
         start_menu_draw();
+        if (confirm_hide && selected_item != -1) {
+            ui_components_messagebox_draw(
+                "Hide from the cover tabs?\n\n"
+                "%s\n\n"
+                "A: Hide    B: Keep\n"
+                "Z in the Folders tab shows it again.",
+                display_name_file(path_last_get(item_list[selected_item].primary_path))
+            );
+        }
         if (confirm_remove && selected_item != -1) {
             ui_components_messagebox_draw(
                 "Remove from Favorites?\n\n"

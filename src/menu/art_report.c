@@ -9,6 +9,7 @@
 #include "game_index.h"
 #include "games_filter.h"
 #include "games_folders.h"
+#include "hidden_games.h"
 #include "safe_file.h"
 #include "utils/fs.h"
 
@@ -86,6 +87,11 @@ static void list_games (menu_t *menu) {
                 }
                 /* As the Games tab names them: the folder, then the file ("/" alone adds nothing). */
                 snprintf(name, length, "%s%s%s", folders[f] + 1, folders[f][1] ? "/" : "", info.d_name);
+                if (hidden_games_name(name)) {
+                    free(name);     /* hidden from the cover tabs: not wanted there */
+                    result = dir_findnext(folder, &info);
+                    continue;
+                }
                 games[game_count].name = name;
                 games[game_count].size = info.d_size;
                 game_count++;

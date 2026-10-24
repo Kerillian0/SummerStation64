@@ -25,6 +25,7 @@
 #include "../games_filter.h"
 #include "../game_index.h"
 #include "../region_pick.h"
+#include "../hidden_games.h"
 #include "../game_learn.h"
 #include "../sort_order.h"
 #include "../menu_options.h"
@@ -422,8 +423,9 @@ static int scan_folder (menu_t *menu, path_t *path, const char *prefix) {
                 entry->type = ENTRY_TYPE_OTHER;
             }
 
-            // The Games tab lists games only.
-            if (!folders_tab && entry->type != ENTRY_TYPE_ROM && entry->type != ENTRY_TYPE_DISK && entry->type != ENTRY_TYPE_EMULATOR) {
+            // The Games tab lists games only, and none the player hid (hidden_games.h).
+            if (!folders_tab && ((entry->type != ENTRY_TYPE_ROM && entry->type != ENTRY_TYPE_DISK && entry->type != ENTRY_TYPE_EMULATOR)
+                                 || hidden_games_name(entry->name))) {
                 free(entry->name);
                 entry->name = NULL;
                 result = dir_findnext(path_get(path), &info);
@@ -789,12 +791,90 @@ static void random_game (menu_t *menu, void *arg) {
     menu->browser.entry = &menu->browser.list[pick];
 }
 
+// Hide from the cover tabs (hidden_games.h). On a cover, Z Options asks
+// first; a cover standing for several versions asks which: all of them, or
+// one picked from the version list. The Folders tab hides and shows a game
+// again straight away (it stays in that list either way).
+static const char *hide_names[VERSIONS_MAX];    // the list's names, to hide once A is pressed
+static int hide_count = 0;
+
+static void hide_ask (entry_t **entries, int n) {
+    hide_count = 0;
+    for (int i = 0; i < n && i < VERSIONS_MAX; i++) {
+        hide_names[hide_count++] = entries[i]->name;
+    }
+}
+
+static void hide_pick_version (menu_t *menu, void *arg) {
+    entry_t *e = (entry_t *) arg;
+    hide_ask(&e, 1);
+}
+
+static void hide_all_versions (menu_t *menu, void *arg) {
+    hide_ask(version_entries, games_filter_version_list(menu, menu->browser.entry, version_entries, VERSIONS_MAX));
+}
+
+static void hide_one_version (menu_t *menu, void *arg) {
+    if (versions_open(menu, menu->browser.entry)) {
+        for (int i = 0; versions_menu.list[i].text; i++) {
+            versions_menu.list[i].action = hide_pick_version;   // this time choosing a row hides it
+        }
+    }
+}
+
+static char hide_all_text[32];
+static component_context_menu_t hide_menu = {
+    .row_selected = -1,     // hidden until shown
+    .list = {
+        { .text = hide_all_text, .action = hide_all_versions },
+        { .text = "Hide one version...", .action = hide_one_version },
+        COMPONENT_CONTEXT_MENU_LIST_END,
+    }
+};
+
+static void hide_game (menu_t *menu, void *arg) {
+    entry_t *e = menu->browser.entry;
+    int versions = games_filter_versions(menu, e);
+    if (versions > 1) {
+        snprintf(hide_all_text, sizeof(hide_all_text), "Hide all %d versions", versions);
+        ui_components_context_menu_init(&hide_menu);
+        ui_components_context_menu_show(&hide_menu);
+        return;
+    }
+    hide_ask(&e, 1);
+}
+
+static void hide_now (menu_t *menu) {
+    for (int i = 0; i < hide_count; i++) {
+        path_t *path = path_clone_push(menu->browser.directory, (char *) hide_names[i]);
+        if (!hidden_games_set(path_get(path), true)) {
+            note_show("The most games are hidden already.");
+        }
+        path_free(path);
+    }
+    hide_count = 0;
+    menu->browser.reload = true;    // the next game takes its place
+}
+
+static void folders_hide (menu_t *menu, void *arg) {
+    path_t *path = path_clone_push(menu->browser.directory, menu->browser.entry->name);
+    bool hide = !hidden_games_is(path_get(path));
+    if (!hidden_games_set(path_get(path), hide)) {
+        note_show("The most games are hidden already.");
+    } else {
+        note_show(hide ? "Hidden from the cover tabs.\nZ here shows it again." : "Shown on the cover tabs again.");
+    }
+    path_free(path);
+}
+
 // Every row the Options menu can have. entry_menu_fill() copies the ones
 // that suit the tab into entry_context_menu each time it is opened.
 static component_context_menu_t entry_menu_rows = {
     .list = {
         { .text = "Random game", .action = random_game },
         { .text = "Game info", .action = show_game_info },
+        { .text = "Hide this game", .action = hide_game },
+        { .text = "Hide from the cover tabs", .action = folders_hide },
         { .text = "Show entry properties", .action = show_properties },
         { .text = "Delete selected entry", .action = delete_entry },
         { .text = "Set current directory as default", .action = set_default_directory },
@@ -810,6 +890,8 @@ static component_context_menu_t entry_context_menu = {
     .list = {
         { .text = "Random game", .action = random_game },
         { .text = "Game info", .action = show_game_info },
+        { .text = "Hide this game", .action = hide_game },
+        { .text = "Hide from the cover tabs", .action = folders_hide },
         { .text = "Show entry properties", .action = show_properties },
         { .text = "Delete selected entry", .action = delete_entry },
         { .text = "Set current directory as default", .action = set_default_directory },
@@ -821,13 +903,28 @@ static component_context_menu_t entry_context_menu = {
     }
 };
 
-static void entry_menu_fill (void) {
+static void entry_menu_fill (menu_t *menu) {
     int rows = 0;
+    entry_t *e = menu->browser.entry;
+    bool game = e && (e->type == ENTRY_TYPE_ROM || e->type == ENTRY_TYPE_DISK || e->type == ENTRY_TYPE_EMULATOR);
+    bool hidden = false;
+    if (game && folders_tab) {
+        path_t *path = path_clone_push(menu->browser.directory, e->name);
+        hidden = hidden_games_is(path_get(path));
+        path_free(path);
+    }
     for (int i = 0; entry_menu_rows.list[i].text != NULL; i++) {
-        if (folders_tab && entry_menu_rows.list[i].action == random_game) {
+        __typeof__(entry_menu_rows.list[0]) row = entry_menu_rows.list[i];
+        if (folders_tab && row.action == random_game) {
             continue;   // a random pick is for the row of games
         }
-        entry_context_menu.list[rows++] = entry_menu_rows.list[i];
+        if ((row.action == hide_game && (folders_tab || !game)) || (row.action == folders_hide && (!folders_tab || !game))) {
+            continue;   // hiding: from a cover, or a game in the Folders tab
+        }
+        if (row.action == folders_hide && hidden) {
+            row.text = "Show on the cover tabs";
+        }
+        entry_context_menu.list[rows++] = row;
     }
     entry_context_menu.list[rows].text = NULL;
     ui_components_context_menu_init(&entry_context_menu);   // counts the rows again
@@ -956,6 +1053,20 @@ static void process (menu_t *menu) {
     if (ui_components_context_menu_process(menu, &versions_menu)) {
         return;     // choosing which version of a game
     }
+    if (ui_components_context_menu_process(menu, &hide_menu)) {
+        return;     // hiding all versions or one
+    }
+    if (hide_count > 0) {
+        // "Hide from the cover tabs?" is showing.
+        if (menu->actions.enter) {
+            hide_now(menu);
+            sound_play_effect(SFX_SETTING);
+        } else if (menu->actions.back || menu->actions.options) {
+            hide_count = 0;
+            sound_play_effect(SFX_EXIT);
+        }
+        return;
+    }
 
     if (settings_context_menu.row_selected >= 0 && menu->actions.settings) menu->actions.back = true; // START again closes the START menu, like B
     if (ui_components_context_menu_process(menu, &settings_context_menu)) {
@@ -1074,7 +1185,7 @@ static void process (menu_t *menu) {
         }
         sound_play_effect(SFX_EXIT);
     } else if (menu->actions.options && menu->browser.entry) {
-        entry_menu_fill(); // "Random game" on the Games tab only
+        entry_menu_fill(menu); // "Random game" on the Games tab only; hiding as it suits the tab
         ui_components_context_menu_show(menu->browser.archive ? &archive_context_menu : &entry_context_menu);
         sound_play_effect(SFX_SETTING);
     } else if (menu->actions.settings) {
@@ -1768,6 +1879,14 @@ static void draw (menu_t *menu, surface_t *d) {
     ui_components_context_menu_draw(&settings_context_menu);
 
     note_draw(); // "Added..." after a folder is added to Games
+    ui_components_context_menu_draw(&hide_menu);
+    if (hide_count == 1) {
+        ui_components_messagebox_draw("Hide from the cover tabs?\n\n%s\n\nA: Hide    B: Keep\nZ in the Folders tab shows it again.",
+                                      display_name_version(hide_names[0]));
+    } else if (hide_count > 1) {
+        ui_components_messagebox_draw("Hide from the cover tabs?\n\n%s (%d versions)\n\nA: Hide    B: Keep\nZ in the Folders tab shows them again.",
+                                      display_name(menu->browser.entry), hide_count);
+    }
     if (fade_parts) {
         carousel_fade_rects(intro_fade_rect);
         games_ui_fade_rects(intro_fade_rect, false);
@@ -1796,6 +1915,8 @@ void view_browser_init (menu_t *menu) {
         ui_components_context_menu_init(&archive_context_menu);
         ui_components_context_menu_init(&settings_context_menu);
         ui_components_context_menu_init(&versions_menu);       // empty, so hidden
+        ui_components_context_menu_init(&hide_menu);
+        hide_count = 0;
         if (load_directory(menu)) {
             path_free(menu->browser.directory);
             menu->browser.directory = path_init(menu->storage_prefix, "");

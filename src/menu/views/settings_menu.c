@@ -16,6 +16,7 @@
 #include "../games_filter.h"
 #include "../region_pick.h"
 #include "../art_report.h"
+#include "../hidden_games.h"
 #include "../box_motion.h"
 #include "../carousel_art.h"
 #include "../memory_note.h"
@@ -219,6 +220,20 @@ static void forget_games_folders (menu_t *menu) {
     sound_play_effect(SFX_SETTING);
 }
 
+static char hidden_text[16];
+
+static const char *hidden_info (menu_t *menu) {
+    (void) menu;
+    int n = hidden_games_count();
+    snprintf(hidden_text, sizeof(hidden_text), n == 0 ? "None" : "%d", n);
+    return hidden_text;
+}
+
+static void show_hidden_games (menu_t *menu) {
+    hidden_games_clear();
+    menu->browser.reload = true;    // the Games list reads them again
+}
+
 static const char *art_report_info (menu_t *menu) {
     (void) menu;
     return art_report_status();
@@ -251,6 +266,8 @@ static const item_t library_items[] = {
     FEATURE("Back Up Saves", FEATURE_SAVE_BACKUPS, "When you start a game, keep its save from before, by date. Up to five per game, never the same one twice. A game's Options has \"Restore save\" to go back to one."),
     FEATURE("Count Plays", FEATURE_PLAY_STATS, "Keep count of how often each game is started and when it was last played, shown on its info screen."),
     FEATURE("Remember Position", FEATURE_REMEMBER_SELECTION, "Going back into a folder returns to the game you had selected there, also after playing."),
+    INFO("Hidden Games", hidden_info, "Games hidden from the cover tabs with Z, \"Hide this game\". They stay on the card and in the Folders tab, where Z shows one again."),
+    ACTION("Show All Hidden Games", show_hidden_games, "Bring every hidden game back to the cover tabs. No files are touched."),
     ACTION("Find Missing Art", make_art_report, "Check every game on the Games tab for its cover, the back of its box, top label, cartridge picture, description, release date and developer. Games lacking any are listed in menu/missingart.txt on the SD card. Stay on this page until it is done."),
     INFO("Missing Art", art_report_info, "How many games lack something, from the last check. Open menu/missingart.txt on a PC to see which, and what each one lacks."),
 };

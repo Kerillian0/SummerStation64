@@ -9,6 +9,7 @@
 #include "carousel_art.h"
 #include "controls.h"
 #include "cover_list.h"
+#include "hidden_games.h"
 #include "cover_row.h"
 #include "fonts.h"
 #include "game_facts.h"
@@ -66,8 +67,9 @@ void cover_row_open (menu_t *menu, bookkeeping_item_t *items, int count) {
 
     for (int i = 0; i < count && row.entries < ROW_MAX; i++) {
         bookkeeping_item_t *item = &items[i];
-        if (item->bookkeeping_type == BOOKKEEPING_TYPE_EMPTY || !path_has_value(item->primary_path)) {
-            continue;
+        if (item->bookkeeping_type == BOOKKEEPING_TYPE_EMPTY || !path_has_value(item->primary_path)
+            || hidden_games_is(path_get(item->primary_path))) {
+            continue;   /* nothing there, or hidden from the cover tabs (hidden_games.h) */
         }
         entry_t *entry = &row_entries[row.entries];
         entry->name = path_last_get(item->primary_path);
