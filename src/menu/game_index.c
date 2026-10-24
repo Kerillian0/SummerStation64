@@ -187,7 +187,12 @@ static void load (void) {
     }
     fclose(f);
     next = count % MAX_GAMES;
-    debugf("game index: %d games remembered\n", count);
+    int dated = 0;
+    for (int i = 0; i < count; i++) {
+        dated += notes[i].added ? 1 : 0;
+    }
+    debugf("game index: %d games remembered (%s), %d with the day first seen, today is day %u\n",
+        count, version_2 ? "version 2" : "version 1", dated, (unsigned int) today());
 }
 
 static note_t *find (uint32_t key, int64_t size) {
@@ -211,9 +216,12 @@ static note_t *note_for (const char *path, int64_t size) {
     for (int i = 0; i < count; i++) {
         if (notes[i].key == key) {
             if (size > 0 && notes[i].size != 0 && notes[i].size != (uint32_t) size) {
+                unsigned long was = (unsigned long) notes[i].size;
                 memset(&notes[i], 0, sizeof(note_t));   /* replaced file: start again */
                 notes[i].key = key;
                 notes[i].added = fresh ? 0 : today();
+                debugf("game index: %s changed size (%lu, was noted at %lu), noted again (day %u)\n", path,
+                    (unsigned long) size, was, (unsigned int) notes[i].added);
             }
             return &notes[i];
         }
@@ -229,6 +237,7 @@ static note_t *note_for (const char *path, int64_t size) {
     memset(n, 0, sizeof(note_t));
     n->key = key;
     n->added = fresh ? 0 : today();     /* a game that wasn't on the card before */
+    debugf("game index: first seen %s (day %u%s)\n", path, (unsigned int) n->added, fresh ? ", the list is new" : "");
     return n;
 }
 

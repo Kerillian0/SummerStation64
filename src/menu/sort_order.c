@@ -9,6 +9,7 @@
 #include "sort_order.h"
 #include "games_folders.h"
 #include "game_index.h"
+#include "games_filter.h"
 
 #define NAME_LENGTH (256)
 
@@ -131,37 +132,68 @@ static int added_days (path_t *directory, const entry_t *e) {
     return (days < 0) ? 0x7FFFFFFF : days;
 }
 
+/* With versions folded under one cover (Game Versions, Region Copies), a
+   cover is as new as its newest version: worked out once before sorting,
+   by entry->index. */
+static int *cover_days = NULL;
+static int cover_days_count = 0;
+
 static int compare_added (const void *pa, const void *pb) {
     int order = folders_first(pa, pb);
     if (order) {
         return order;
     }
-    int a = added_days(detail_directory, pa);
-    int b = added_days(detail_directory, pb);
+    const entry_t *ea = pa, *eb = pb;
+    bool known = cover_days && ea->index >= 0 && ea->index < cover_days_count && eb->index >= 0 && eb->index < cover_days_count;
+    int a = known ? cover_days[ea->index] : added_days(detail_directory, ea);
+    int b = known ? cover_days[eb->index] : added_days(detail_directory, eb);
     return (a != b) ? ((a < b) ? -1 : 1) : compare_name_az(pa, pb);
+}
+
+static void find_cover_days (menu_t *menu) {
+    cover_days_count = games_filter_all_entries(menu->browser.entries);
+    cover_days = malloc(cover_days_count * sizeof(int));
+    if (!cover_days) {
+        return;     /* each entry by its own day, then */
+    }
+    for (int i = 0; i < cover_days_count; i++) {
+        cover_days[i] = 0x7FFFFFFF;
+    }
+    for (int i = 0; i < cover_days_count; i++) {
+        entry_t *e = &menu->browser.list[i];
+        int cover = games_filter_cover_index(e);
+        int days = added_days(menu->browser.directory, e);
+        if (cover >= 0 && cover < cover_days_count && days < cover_days[cover]) {
+            cover_days[cover] = days;
+        }
+    }
+}
+
+const char *sort_order_added_text (int days) {
+    static char text[24];
+    if (days < 0 || days == 0x7FFFFFFF) {
+        return NULL;
+    }
+    if (days < 2) {
+        return days ? "Added yesterday" : "Added today";
+    }
+    if (days < 60) {
+        snprintf(text, sizeof(text), "Added %d days ago", days);
+        return text;
+    }
+    /* Longer ago: the day itself. */
+    static const char *months[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+    time_t when = time(NULL) - (time_t) days * 86400;
+    struct tm *tm = gmtime(&when);
+    snprintf(text, sizeof(text), "Added %s %d, %d", months[tm->tm_mon], tm->tm_mday, tm->tm_year + 1900);
+    return text;
 }
 
 const char *sort_order_detail (path_t *directory, const entry_t *entry) {
     static char text[24];
     int order = options_get(OPTION_SORT_ORDER);
     if (order == SORT_RECENTLY_ADDED) {
-        int days = added_days(directory, entry);
-        if (days == 0x7FFFFFFF) {
-            return NULL;
-        }
-        if (days < 2) {
-            return days ? "Added yesterday" : "Added today";
-        }
-        if (days < 60) {
-            snprintf(text, sizeof(text), "Added %d days ago", days);
-            return text;
-        }
-        /* Longer ago: the day itself. */
-        static const char *months[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
-        time_t when = time(NULL) - (time_t) days * 86400;
-        struct tm *tm = gmtime(&when);
-        snprintf(text, sizeof(text), "Added %s %d, %d", months[tm->tm_mon], tm->tm_mday, tm->tm_year + 1900);
-        return text;
+        return sort_order_added_text(added_days(directory, entry));
     }
     if (order != SORT_RELEASE_DATE && order != SORT_DEVELOPER) {
         return NULL;
@@ -230,6 +262,7 @@ void sort_order_apply (menu_t *menu, int (*stock_compare) (const void *, const v
             break;
         case SORT_RECENTLY_ADDED:
             detail_directory = menu->browser.directory;
+            find_cover_days(menu);
             compare = compare_added;
             break;
         default:
@@ -237,4 +270,6 @@ void sort_order_apply (menu_t *menu, int (*stock_compare) (const void *, const v
     }
 
     qsort(menu->browser.list, menu->browser.entries, sizeof(entry_t), compare);
+    free(cover_days);
+    cover_days = NULL;
 }

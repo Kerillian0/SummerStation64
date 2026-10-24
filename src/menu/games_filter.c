@@ -518,6 +518,11 @@ static int cover_of (int k) {
     return k;
 }
 
+int games_filter_cover_index (const entry_t *e) {
+    int k = (e && marks) ? cover_of(e->index) : -1;
+    return (k >= 0) ? k : (e ? e->index : -1);
+}
+
 int games_filter_versions (menu_t *menu, const entry_t *e) {
     if (!e || e->index < 0 || e->index >= marks_count || !(folding(current) || region_folding(current))) {
         return 1;

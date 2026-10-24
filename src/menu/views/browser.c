@@ -1719,11 +1719,33 @@ void carousel_draw (menu_t *menu) {
         path_free(selected_path);
     }
     // First seen in the last 30 days (game_index_added_days()): a New badge.
+    // A cover standing for several versions is as new as its newest.
     bool is_new = false;
     if (selected_entry->type == ENTRY_TYPE_ROM) {
-        path_t *selected_path = covers->path(menu, covers->selected);
-        int days = game_index_added_days(path_get(selected_path), (covers->list == menu->browser.list) ? selected_entry->size : 0);
-        path_free(selected_path);
+        int days = -1;
+        if (versions > 1) {
+            entry_t *group[VERSIONS_MAX];   // not version_entries: the open version list uses those
+            int n = games_filter_version_list(menu, selected_entry, group, VERSIONS_MAX);
+            for (int i = 0; i < n; i++) {
+                path_t *path = path_clone_push(menu->browser.directory, group[i]->name);
+                int d = game_index_added_days(path_get(path), group[i]->size);
+                path_free(path);
+                if (d >= 0 && (days < 0 || d < days)) {
+                    days = d;
+                }
+            }
+            if (options_get(OPTION_SORT_ORDER) == SORT_RECENTLY_ADDED) {
+                const char *added = sort_order_added_text(days);
+                if (added) {
+                    snprintf(lead_text, sizeof(lead_text), "%s  %d versions", added, versions);
+                    lead = lead_text;
+                }
+            }
+        } else {
+            path_t *selected_path = covers->path(menu, covers->selected);
+            days = game_index_added_days(path_get(selected_path), (covers->list == menu->browser.list) ? selected_entry->size : 0);
+            path_free(selected_path);
+        }
         is_new = (days >= 0 && days < NEW_BADGE_DAYS);
     }
     games_ui_title_panel_draw(title, carousel_kind_label(selected_entry->type), lead, hack, is_new, game_facts_update(menu));

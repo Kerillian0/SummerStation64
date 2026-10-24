@@ -36,4 +36,7 @@ void sort_order_apply (menu_t *menu, int (*stock_compare) (const void *, const v
  */
 const char *sort_order_detail (path_t *directory, const entry_t *entry);
 
+/** "Added today", "Added 3 days ago", "Added Oct 3, 2026" for game_index_added_days(); NULL for -1. */
+const char *sort_order_added_text (int days);
+
 #endif /* SORT_ORDER_H__ */
