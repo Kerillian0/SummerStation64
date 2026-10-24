@@ -158,9 +158,11 @@ static int next_slot (int from, int step) {
 }
 
 static void handle (menu_t *menu, joypad_buttons_t pressed, joypad_inputs_t in) {
-    /* The stick points round the dial: up is #, then clockwise. */
+    /* The stick points round the dial: up is #, then clockwise. While it is
+       held it has the last word on where the pointer is. */
     int x = in.stick_x, y = in.stick_y;
-    if ((x * x) + (y * y) >= STICK_DEADZONE * STICK_DEADZONE) {
+    bool leaning = (x * x) + (y * y) >= STICK_DEADZONE * STICK_DEADZONE;
+    if (leaning) {
         float turn = atan2f((float) x, (float) y);      /* 0 straight up, growing clockwise */
         if (turn < 0) {
             turn += 2.0f * (float) M_PI;
@@ -171,7 +173,7 @@ static void handle (menu_t *menu, joypad_buttons_t pressed, joypad_inputs_t in) 
             jump(menu);
         }
     }
-    if (pressed.c_right || pressed.c_left) {
+    if (!leaning && (pressed.c_right || pressed.c_left)) {
         int s = next_slot(pointed, pressed.c_right ? 1 : -1);
         if (s != pointed) {
             pointed = s;
@@ -184,8 +186,8 @@ static void handle (menu_t *menu, joypad_buttons_t pressed, joypad_inputs_t in) 
         prefix[n + 1] = '\0';
         find_slots();
         select_entry(menu, first_match(0));
-        if (!has_games[pointed]) {
-            pointed = next_slot(pointed, 1);
+        if (!has_games[pointed] && !leaning) {
+            pointed = next_slot(pointed, 1);    /* on to a letter that can follow, unless the stick points */
         }
         sound_play_effect(SFX_SETTING);
     } else if (pressed.b) {
@@ -251,15 +253,17 @@ letter_wheel_state_t letter_wheel_process (menu_t *menu) {
     return LETTER_WHEEL_BUSY;
 }
 
-/* One letter, centered on (x, y), in a box a line high. */
+/* Text centered on (x, y), in a box a line of its font high (rdpq drops
+   text whose box is lower than a line: the title font needs 36). */
 static void letter (int x, int y, int width, menu_font_style_t style, int font, const char *text) {
+    int height = (font == FNT_TITLE) ? 40 : 32;
     rdpq_text_printf(&(rdpq_textparms_t) {
         .width = width,
-        .height = 32,
+        .height = height,
         .align = ALIGN_CENTER,
         .valign = VALIGN_CENTER,
         .style_id = style,
-    }, font, x - (width / 2), y - 16, "%s", text);
+    }, font, x - (width / 2), y - (height / 2), "%s", text);
 }
 
 /* The menu's small white disc (rom:/corner.sprite), stretched and tinted. */
