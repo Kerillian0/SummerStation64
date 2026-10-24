@@ -26,6 +26,7 @@
 #include "../game_index.h"
 #include "../region_pick.h"
 #include "../hidden_games.h"
+#include "../letter_wheel.h"
 #include "../game_learn.h"
 #include "../sort_order.h"
 #include "../menu_options.h"
@@ -219,6 +220,7 @@ static void browser_list_free (menu_t *menu) {
         free(menu->browser.list[i].name);
     }
     games_filter_forget();
+    letter_wheel_close();   // its names are of this list
 
     free(menu->browser.list);
 
@@ -1916,6 +1918,7 @@ static void draw (menu_t *menu, surface_t *d) {
     ui_components_context_menu_draw(&settings_context_menu);
 
     note_draw(); // "Added..." after a folder is added to Games
+    letter_wheel_draw();    // Z held: the letter dial over the covers
     ui_components_context_menu_draw(&hide_menu);
     if (hide_count == 1) {
         ui_components_messagebox_draw("Hide from the cover tabs?\n\n%s\n\nA: Hide    B: Keep\nZ in the Folders tab unhides it.",

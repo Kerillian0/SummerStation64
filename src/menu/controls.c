@@ -2,6 +2,7 @@
 #include <libdragon.h>
 
 #include "controls.h"
+#include "letter_wheel.h"
 #include "menu_features.h"
 #include "box_motion.h"
 
@@ -128,6 +129,15 @@ bool controls_consume_launch_request (void) {
 }
 
 void controls_remap_tabs (menu_t *menu, bool horizontal) {
+    /* Z held on the Games list's covers: the letter dial (letter_wheel.h). */
+    letter_wheel_state_t wheel = horizontal ? letter_wheel_process(menu) : LETTER_WHEEL_IDLE;
+    if (wheel == LETTER_WHEEL_BUSY) {
+        memset(&menu->actions, 0, sizeof(menu->actions));
+        filter_request = 0;
+        flip_request = false;
+        was_vertical = vertical_is_held();
+        return;
+    }
     if (horizontal && box_motion_process(menu)) {
         /* B is held: the stick turns the 3D Box, and nothing else happens.
            Up still held when B is let go doesn't turn the box over. */
@@ -163,7 +173,7 @@ void controls_remap_tabs (menu_t *menu, bool horizontal) {
 
     menu->actions.go_left = pressed.l;
     menu->actions.go_right = pressed.r;
-    menu->actions.options = pressed.z;
+    menu->actions.options = (wheel == LETTER_WHEEL_TAP) || (wheel == LETTER_WHEEL_IDLE && pressed.z);  // a tap of Z, where it opens the dial when held
     menu->actions.lz_context = false;
 
     controls_tap_or_hold(menu);
