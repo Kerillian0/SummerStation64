@@ -22,6 +22,9 @@
  */
 component_boxart_t *baked_art_load (const char *game_code, file_image_type_t which);
 
+/** True if this picture of the game is baked in (nothing is loaded). */
+bool baked_art_has (const char *game_code, file_image_type_t which);
+
 /** True if a picture came from baked_art_load(). */
 bool baked_art_owns (component_boxart_t *art);
 

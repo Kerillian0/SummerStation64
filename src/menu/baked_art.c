@@ -45,9 +45,10 @@ static bool exists (const char *path) {
     return true;
 }
 
-component_boxart_t *baked_art_load (const char *game_code, file_image_type_t which) {
+/* Where a game's baked picture is. @return false if none is baked in. */
+static bool baked_path (const char *game_code, file_image_type_t which, char *path, size_t size) {
     if (!game_code || !code_is_plain(game_code, 4)) {
-        return NULL;
+        return false;
     }
     char side;
     switch (which) {
@@ -57,7 +58,7 @@ component_boxart_t *baked_art_load (const char *game_code, file_image_type_t whi
         case IMAGE_BOXART_LEFT: side = 'l'; break;
         case IMAGE_BOXART_RIGHT: side = 'r'; break;
         case IMAGE_GAMEPAK_FRONT: side = 'p'; break;
-        default: return NULL;
+        default: return false;
     }
 
     /* The files sit in folders named after the code's two middle letters,
@@ -65,20 +66,32 @@ component_boxart_t *baked_art_load (const char *game_code, file_image_type_t whi
        With the region letter first, then (in Europe) the European one,
        then without it: a cover without the letter is baked only for codes
        that have no covers for single regions. */
-    char path[48];
-    snprintf(path, sizeof(path), "rom:/art/%c/%c/%c%c%c%c_%c.sprite", game_code[1], game_code[2],
+    snprintf(path, size, "rom:/art/%c/%c/%c%c%c%c_%c.sprite", game_code[1], game_code[2],
         game_code[0], game_code[1], game_code[2], game_code[3], side);
     if (!exists(path) && is_europe(game_code[3])) {
         /* Another European country: the pack's European cover. */
-        snprintf(path, sizeof(path), "rom:/art/%c/%c/%c%c%cP_%c.sprite", game_code[1], game_code[2],
+        snprintf(path, size, "rom:/art/%c/%c/%c%c%cP_%c.sprite", game_code[1], game_code[2],
             game_code[0], game_code[1], game_code[2], side);
     }
     if (!exists(path)) {
-        snprintf(path, sizeof(path), "rom:/art/%c/%c/%c%c%c_%c.sprite", game_code[1], game_code[2],
+        snprintf(path, size, "rom:/art/%c/%c/%c%c%c_%c.sprite", game_code[1], game_code[2],
             game_code[0], game_code[1], game_code[2], side);
         if (!exists(path)) {
-            return NULL;
+            return false;
         }
+    }
+    return true;
+}
+
+bool baked_art_has (const char *game_code, file_image_type_t which) {
+    char path[48];
+    return baked_path(game_code, which, path, sizeof(path));
+}
+
+component_boxart_t *baked_art_load (const char *game_code, file_image_type_t which) {
+    char path[48];
+    if (!baked_path(game_code, which, path, sizeof(path))) {
+        return NULL;
     }
 
     int slot = -1;
