@@ -716,23 +716,25 @@ static component_context_menu_t versions_menu = {
     }
 };
 
-// A row's name: the file name, and with Hide Region Tags on, without its
-// extension and the good-dump marks ("[!]", "(!)") and other [..] tags. The
-// region tags in round brackets stay: they tell the copies apart.
+// A row's name: the file name, without its extension and the good-dump
+// marks ("[!]", "(!)") with Hide Game Extensions on, and without the other
+// [..] tags with Hide Region Tags on. The region tags in round brackets
+// stay: they tell the copies apart.
 static void version_name (char *out, size_t size, const char *name, bool hack) {
     size_t at = 0;
     const char *end = name + strlen(name);
     bool tidy = features_enabled(FEATURE_HIDE_TAGS);
+    bool plain = features_enabled(FEATURE_HIDE_EXTENSIONS);
     const char *dot = strrchr(name, '.');
-    if (tidy && dot && strlen(dot) <= 5) {
+    if (plain && dot && strlen(dot) <= 5) {
         end = dot;
     }
     for (const char *c = name; c < end && at + 1 < size; c++) {
         const char *close = NULL;
-        if (tidy && *c == '[') {
-            close = memchr(c, ']', end - c);
-        } else if (tidy && strncmp(c, "(!)", 3) == 0) {
+        if ((plain || tidy) && (strncmp(c, "[!]", 3) == 0 || strncmp(c, "(!)", 3) == 0)) {
             close = c + 2;
+        } else if (tidy && *c == '[') {
+            close = memchr(c, ']', end - c);
         }
         if (close) {
             c = close;
