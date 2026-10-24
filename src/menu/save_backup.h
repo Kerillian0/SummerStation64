@@ -25,9 +25,6 @@
 
 #define SAVE_BACKUPS_KEPT   (5)
 
-/** Where the game being loaded keeps its save (`out` has room for `size`). */
-bool save_backup_save_path (menu_t *menu, char *out, size_t size);
-
 /** Call when a game is about to be started, before its save is loaded. */
 void save_backup_before_launch (menu_t *menu);
 

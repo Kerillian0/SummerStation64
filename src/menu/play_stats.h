@@ -9,12 +9,12 @@
  *
  * Time played: nothing of the menu runs during a game, so a session is
  * noted when the game starts and settled when the menu next starts. After
- * RESET it ran until then. After the power switch the time the console was
- * off would count too, so it ends when the cart last wrote the game's save
- * to the card instead, if that was after the start; otherwise (no save, or
- * not written) it isn't counted. A session over 12 hours is taken for a
- * power-off as well (with the USB cable in, the cart stays powered and a
- * power-off looks like RESET).
+ * RESET it ran until then (up to 12 hours). After the power switch the time
+ * the console was off counts too, and the cart doesn't date its save writes
+ * (seen on hardware), so such a session only counts when the console was
+ * back on within 4 hours of the start (the owner's choice): a short
+ * switch-off adds a little, an overnight one adds nothing. With the USB
+ * cable in, the cart stays powered and a power-off looks like RESET.
  */
 
 #ifndef PLAY_STATS_H__
@@ -25,11 +25,10 @@
 #include <time.h>
 
 /**
- * Count one start of the game at `rom_path`, note the session begun (with
- * the game's save file, `save_path`), and save. `now` < 0 if the clock
- * isn't working (then no session is noted).
+ * Count one start of the game at `rom_path`, note the session begun, and
+ * save. `now` < 0 if the clock isn't working (then no session is noted).
  */
-void play_stats_record (const char *rom_path, const char *save_path, time_t now);
+void play_stats_record (const char *rom_path, time_t now);
 
 /**
  * Settle the session noted at the last game start, if there is one: add

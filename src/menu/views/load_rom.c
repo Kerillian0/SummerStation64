@@ -829,8 +829,7 @@ static void load (menu_t *menu) {
     }
 
     bookkeeping_history_add(&menu->bookkeeping, menu->load.rom_path, NULL, BOOKKEEPING_TYPE_ROM);
-    char save_path[256];
-    play_stats_record(path_get(menu->load.rom_path), save_backup_save_path(menu, save_path, sizeof(save_path)) ? save_path : NULL, menu->current_time); // times played, last played, the session for time played
+    play_stats_record(path_get(menu->load.rom_path), menu->current_time); // times played, last played, the session for time played
 
     menu->next_mode = MENU_MODE_BOOT;
 
