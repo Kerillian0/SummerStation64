@@ -323,7 +323,7 @@ const char *games_ui_selection_name (int choice) {
     return (choice >= 0 && choice < SELECTION_COUNT) ? names[choice] : "";
 }
 
-void games_ui_title_panel_draw (const char *title, const char *detail, const char *lead, bool hack, bool is_new, const game_facts_t *facts) {
+void games_ui_title_panel_draw (const char *title, const char *detail, const char *lead, bool hack, bool is_new, const char *with, const game_facts_t *facts) {
     const theme_t *t = theme_get();
     int x0 = GAMES_UI_CONTENT_X0;
     int x1 = GAMES_UI_CONTENT_X1;
@@ -379,9 +379,12 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const cha
 
     if (!facts) {
         /* Not looked up yet: what is known at once. A hack and a new game say so from the start. */
-        if (hack || is_new) {
-            if (lead) {
-                x = games_ui_badge(x, y, lead, STL_DEFAULT, false);
+        if (hack || is_new || with) {
+            if (lead || with) {
+                x = games_ui_badge(x, y, lead ? lead : detail, STL_DEFAULT, false);
+            }
+            if (with) {
+                x = games_ui_badge(x, y, with, STL_BLUE, true);    /* a 64DD disk's cartridge (dd_pair.h) */
             }
             if (hack) {
                 x = games_ui_badge(x, y, "Hack", STL_ORANGE, true);

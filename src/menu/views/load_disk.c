@@ -6,6 +6,7 @@
 #include "views.h"
 #include "../bookkeeping.h"
 #include "../display_name.h"
+#include "../dd_pair.h"
 #include <string.h>
 
 #define DISK_SLOTS_MAX 3 // Maximum number of disk slots supported (excluding the primary disk)
@@ -55,12 +56,13 @@ static void process (menu_t *menu) {
         return;
     }
 
+    // With a cartridge (dd_pair.h), A starts both and L|Z the disk alone.
     if (menu->actions.enter) {
         menu->load_pending.disk_file = true;
-        menu->load.combined_disk_rom = false;
+        menu->load.combined_disk_rom = (menu->load.rom_path != NULL);
     } else if (menu->actions.lz_context && menu->load.rom_path) {
         menu->load_pending.disk_file = true;
-        menu->load.combined_disk_rom = true;
+        menu->load.combined_disk_rom = false;
         sound_play_effect(SFX_SETTING);
     } else if (menu->actions.back) {
         sound_play_effect(SFX_EXIT);
@@ -214,15 +216,16 @@ static void draw (menu_t *menu, surface_t *d) {
         ui_components_actions_bar_text_draw(
             STL_DEFAULT,
             ALIGN_LEFT, VALIGN_TOP,
-            "A: Load and run 64DD disk\n"
-            "B: Exit\n"
+            "%s\n"
+            "B: Exit\n",
+            menu->load.rom_path ? "A: Play with the Game PAK" : "A: Load and run 64DD disk"
         );
 
         if (menu->load.rom_path) {
             ui_components_actions_bar_text_draw(
                 STL_DEFAULT,
                 ALIGN_RIGHT, VALIGN_TOP,
-                "L|Z: Load with ROM\n"
+                "L|Z: Disk only\n"
                 "  R:       Options\n"
             );
         } else {
@@ -275,7 +278,7 @@ static void load (menu_t *menu) {
         return;
     }
 
-    bookkeeping_history_add(&menu->bookkeeping, menu->load.disk_slots.primary.disk_path, menu->load.rom_path, BOOKKEEPING_TYPE_DISK);
+    bookkeeping_history_add(&menu->bookkeeping, menu->load.disk_slots.primary.disk_path, menu->load.combined_disk_rom ? menu->load.rom_path : NULL, BOOKKEEPING_TYPE_DISK);
     menu->next_mode = MENU_MODE_BOOT;
 
     if (menu->load.combined_disk_rom) {
@@ -332,6 +335,7 @@ void view_load_disk_init (menu_t *menu) {
     }
 
     menu->load_pending.disk_file = false;
+    bool cart_given = false;    // a Recent or Favorites entry that was started with a cartridge keeps it
 
     if(menu->load.load_history_id != -1 || menu->load.load_favorite_id != -1) {
         bookkeeping_item_t* items;
@@ -366,7 +370,8 @@ void view_load_disk_init (menu_t *menu) {
         }
 
         menu->load.disk_slots.primary.disk_path = path_clone(items[item_id].primary_path);
-        if(!load_rom(menu, items[item_id].secondary_path)) {
+        cart_given = path_has_value(items[item_id].secondary_path);
+        if(cart_given && !load_rom(menu, items[item_id].secondary_path)) {
             return;  // load_rom handles its own error messages
         }
     } else {
@@ -379,6 +384,22 @@ void view_load_disk_init (menu_t *menu) {
     if (err != DISK_OK) {
         menu_show_error(menu, convert_disk_error_message(err));
         return;
+    }
+
+    // The disk's own cartridge (dd_pair.h), or none: not whichever game was opened last.
+    if (!cart_given) {
+        path_t *cart = dd_pair_cart(menu, path_get(menu->load.disk_slots.primary.disk_path), menu->load.disk_slots.primary.disk_info.id);
+        if (cart) {
+            bool ok = load_rom(menu, cart);
+            path_free(cart);
+            if (!ok) {
+                return;
+            }
+        } else if (menu->load.rom_path) {
+            rom_info_free_meta(&menu->load.rom_info);
+            path_free(menu->load.rom_path);
+            menu->load.rom_path = NULL;
+        }
     }
 
     // Scan for swap disks in the same directory

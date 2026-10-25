@@ -277,7 +277,7 @@ void collections_ui_draw (menu_t *menu) {
     int n = (fan_card == selected) ? fan_count : games_filter_collection_covers(menu, collections_id(selected), NULL, 0);
     snprintf(games, sizeof(games), (n == 1) ? "1 game" : "%d games", n);
     const char *name = collections_name(collections_id(selected));
-    games_ui_title_panel_draw(name, NULL, games, false, false, NULL);
+    games_ui_title_panel_draw(name, NULL, games, false, false, NULL, NULL);
     games_ui_position_draw(name, selected, count, NULL);
 
     games_ui_hints_backdrop_draw();

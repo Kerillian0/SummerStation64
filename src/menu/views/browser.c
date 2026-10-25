@@ -30,6 +30,7 @@
 #include "../collections_ui.h"
 #include "../collections.h"
 #include "../collection_edit.h"
+#include "../dd_pair.h"
 #include "../game_learn.h"
 #include "../sort_order.h"
 #include "../menu_options.h"
@@ -886,6 +887,13 @@ static void folders_hide (menu_t *menu, void *arg) {
     path_free(path);
 }
 
+// 64DD pairing (dd_pair.h): Z on a disk chooses the cartridge it is played with.
+static void pair_disk (menu_t *menu, void *arg) {
+    path_t *path = path_clone_push(menu->browser.directory, menu->browser.entry->name);
+    dd_pair_pick(menu, path_get(path));
+    path_free(path);
+}
+
 // The player's own collections (my_collections.h, collection_edit.h): Z on a
 // game puts it in or out of them; inside one of them, Z can take it out.
 static void add_to_collection (menu_t *menu, void *arg) {
@@ -934,6 +942,7 @@ static component_context_menu_t entry_menu_rows = {
         { .text = "Game info", .action = show_game_info },
         { .text = "Add to collection...", .action = add_to_collection },
         { .text = "Remove from this collection", .action = remove_from_collection },
+        { .text = "Pair with a cartridge...", .action = pair_disk },
         { .text = "Hide this game", .action = hide_game },
         { .text = "Hide this game", .action = folders_hide },
         { .text = "Show entry properties", .action = show_properties },
@@ -953,6 +962,7 @@ static component_context_menu_t entry_context_menu = {
         { .text = "Game info", .action = show_game_info },
         { .text = "Add to collection...", .action = add_to_collection },
         { .text = "Remove from this collection", .action = remove_from_collection },
+        { .text = "Pair with a cartridge...", .action = pair_disk },
         { .text = "Hide this game", .action = hide_game },
         { .text = "Hide this game", .action = folders_hide },
         { .text = "Show entry properties", .action = show_properties },
@@ -987,6 +997,9 @@ static void entry_menu_fill (menu_t *menu) {
         if ((row.action == add_to_collection && (folders_tab || !game))
             || (row.action == remove_from_collection && !(collections_tab && game && collections_mine(collection_open) >= 0))) {
             continue;   // collections: games on a cover tab; taking out, inside the player's own collection
+        }
+        if (row.action == pair_disk && (folders_tab || !e || e->type != ENTRY_TYPE_DISK)) {
+            continue;   // a 64DD disk on a cover tab, where the cartridges are the Games list
         }
         if (row.action == folders_hide && hidden) {
             row.text = "Unhide this game";
@@ -1135,6 +1148,9 @@ static void browser_step_tab (menu_t *menu, int direction) {
 }
 
 static void process (menu_t *menu) {
+    if (dd_pair_process(menu)) {
+        return;     // choosing a disk's cartridge
+    }
     if (collection_edit_process(menu)) {
         return;     // putting a game in collections, naming one, or deleting one
     }
@@ -1860,7 +1876,8 @@ void carousel_draw (menu_t *menu) {
         }
         is_new = (days >= 0 && days < NEW_BADGE_DAYS);
     }
-    games_ui_title_panel_draw(title, carousel_kind_label(selected_entry->type), lead, hack, is_new, game_facts_update(menu));
+    const char *with = (covers->list == menu->browser.list) ? dd_pair_with_text(menu, selected_entry) : NULL; // a 64DD disk's cartridge
+    games_ui_title_panel_draw(title, carousel_kind_label(selected_entry->type), lead, hack, is_new, with, game_facts_update(menu));
     const char *letter_from = !detail ? entry_file_name(selected_entry->name) : (options_get(OPTION_SORT_ORDER) == SORT_DEVELOPER) ? detail : " "; // the letter of what the list is sorted by; none for dates
     games_ui_position_draw(letter_from, covers->selected, covers->entries, (covers->list == menu->browser.list) ? games_filter_label() : NULL); // the file name: that is what the list is sorted by
 }
@@ -2037,6 +2054,7 @@ static void draw (menu_t *menu, surface_t *d) {
     letter_wheel_draw();    // Z held: the letter dial over the covers (or naming a collection)
     ui_components_context_menu_draw(&card_menu);
     collection_edit_draw(); // the list of the player's collections, or "Delete this collection?"
+    dd_pair_draw(); // a disk's cartridge being chosen
     ui_components_context_menu_draw(&hide_menu);
     if (hide_count == 1) {
         ui_components_messagebox_draw("Hide from the cover tabs?\n\n%s\n\n^%02XA: Hide^00    ^%02XB: Keep^00\nZ in the Folders tab unhides it.",
@@ -2131,6 +2149,7 @@ void view_browser_display (menu_t *menu, surface_t *display) {
     if (!folders_tab && !cards_showing() && menu->next_mode == MENU_MODE_BROWSER) carousel_art_update(menu, features_enabled(FEATURE_SIDE_COVERS));
     if (cards_showing() && menu->next_mode == MENU_MODE_BROWSER) collections_ui_after_draw(menu); // the selected card's covers
     if (!folders_tab && menu->next_mode == MENU_MODE_BROWSER) game_learn_update(menu); // while idle, read the headers of games not known yet
+    if (!folders_tab && !cards_showing() && menu->next_mode == MENU_MODE_BROWSER) dd_pair_after_draw(menu, menu->browser.entry); // a disk's ID, for "With ..." on its panel
 
     if (menu->next_mode != MENU_MODE_BROWSER) carousel_art_reset(); // free the cover before another screen loads its own
     if (menu->next_mode != MENU_MODE_BROWSER) collections_ui_free();
