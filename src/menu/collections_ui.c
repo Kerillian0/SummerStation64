@@ -24,6 +24,7 @@
 #define SETTLE_MS       (150)       /* the selection rests this long before its covers load */
 #define MIN_FREE        (320 * 1024)    /* a cover is loaded only while this much is free (side covers keep 288-384) */
 #define BACK_TAP_MS     (300)       /* B let go sooner than this is a tap */
+#define STALE_MS        (200)       /* longer than this between two asks: another screen was up */
 
 #define CARD_Y          (180)       /* the middle of the row, as the cover row's */
 #define FAN_W           (150)
@@ -166,7 +167,16 @@ bool collections_ui_back_tap (void) {
             break;
         }
     }
-    if (down && !b_down) {
+    /* Not asked for a while (another screen was showing, such as Game info,
+       whose B press brought us back): a B already down isn't a tap here. */
+    static uint64_t last_asked = 0;
+    uint64_t now = get_ticks_ms();
+    bool fresh = (now - last_asked) > STALE_MS;
+    last_asked = now;
+    if (fresh) {
+        b_down = down;
+        b_down_at = 0;
+    } else if (down && !b_down) {
         b_down = true;
         b_down_at = get_ticks_ms();
     } else if (!down && b_down) {
