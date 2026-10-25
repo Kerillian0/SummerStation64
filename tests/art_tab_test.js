@@ -9,7 +9,7 @@ const path = require('path');
 const html = fs.readFileSync(path.join(__dirname, '..', 'docs', 'companion', 'index.html'), 'utf8');
 const a = html.indexOf('// --- art logic'), b = html.indexOf('// --- end art logic ---');
 if (a < 0 || b < 0) throw new Error('Could not find the logic block in the Missing Art tab; did it change?');
-const t = new Function(html.slice(a, b) + 'return {parseMissingArt, fitInside, shortDesc, authorWith, mergeIni, artTarget, detailsPath, retroFolder, diskIdOf, detailsLacking, parseMetadat, crcCandidates, libretroDate, matchName, launchboxGames, mainName, launchboxMatch};')();
+const t = new Function(html.slice(a, b) + 'return {parseMissingArt, fitInside, shortDesc, authorWith, mergeIni, artTarget, detailsPath, retroFolder, diskIdOf, detailsLacking, parseMetadat, crcCandidates, libretroDate, matchName, launchboxGames, mainName, launchboxMatch, faceFrame, fitLayout, otherEdges};')();
 
 let checks = 0, failures = 0;
 function check(cond, what) {
@@ -122,6 +122,22 @@ console.log('64DD disks and details');
   check(t.launchboxMatch('Sin and Punishment - Hoshi no Keishousha (J) [!].z64', games) === games[0], 'the main title finds the one game');
   check(t.launchboxMatch('Tsumi to Batsu - Hoshi no Keishousha.z64', games) === games[0], 'an alternate name matches whole');
   check(t.launchboxMatch('Sin and Punishment.z64', [{ names: ['Sin and Punishment - A'] }, { names: ['Sin and Punishment - B'] }]) === null, 'two games fit the main title: no guess');
+
+  console.log('Fit editor');
+  let fr = t.faceFrame('front', 'game', 300, 200, 'auto');
+  check(fr.w === 158 && fr.h === 112 && fr.fill, 'an N64 cover: the wide box frame, cropped to fill');
+  check(t.faceFrame('front', 'game', 200, 300, 'auto').h === 158, 'a tall picture: the tall box frame');
+  fr = t.faceFrame('top', 'game', 600, 100, 'auto');
+  check(fr.w === 158 && fr.h === 30, 'an N64 top label as deep as the box (0.19 of its width)');
+  check(t.faceFrame('spine', 'snes', 40, 300, 'auto').w === 40, 'an SNES spine: a quarter of the box height');
+  check(!t.faceFrame('front', 'nes', 300, 420, 'auto').fill, 'a retro cover keeps its own shape');
+  let L = t.fitLayout(400, 100, { w: 158, h: 30, fill: true }, 0, 1, 0, 0);
+  check(Math.abs(L.h - 39.5) < 0.01 && Math.abs(L.cx - 79) < 0.01 && Math.abs(L.cy - 15) < 0.01, 'zoom 1 covers the frame, centred');
+  L = t.fitLayout(400, 100, { w: 158, h: 30, fill: true }, 0, 1, 0, -1);
+  check(Math.abs((L.cy + L.h / 2) - 30) < 0.01, 'up-down -1 moves the picture up: its bottom edge at the frame\'s bottom');
+  L = t.fitLayout(100, 400, { w: 158, h: 30, fill: true }, 1, 1, 0, 0);
+  check(L.odd && Math.abs(L.w - 158) < 0.01, 'a tall picture turned once lies along the strip');
+  check(t.otherEdges('top', false).join() === 'boxart_left.png,boxart_right.png' && t.otherEdges('spine', true).join() === 'boxart_top.png' && !t.otherEdges('front', false).length, 'the other edges each kind of box takes');
   console.log(failures ? failures + ' of ' + checks + ' checks failed.' : checks + ' checks, 0 failed');
   process.exit(failures ? 1 : 0);
 })();

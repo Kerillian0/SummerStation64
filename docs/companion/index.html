@@ -152,6 +152,8 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
 #art .pics{display:flex;flex-wrap:wrap;gap:16px}
 #art .pic{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
 #art .pic canvas{display:block;background:var(--field);border:1px solid var(--line);border-radius:6px}
+#art .pic .fit{display:flex;flex-direction:column;gap:4px;font-size:14px}
+#art .pic .fit input[type=range]{width:140px;vertical-align:middle}
 #art td.act{white-space:nowrap;text-align:right}
 #art .done{color:var(--n-green);font-weight:700}
 #art .tablewrap{max-height:420px;overflow-y:auto}
@@ -3918,7 +3920,7 @@ var PICTURES = [
   { key: 'cartback', file: 'gamepak_back.png', label: 'Cartridge back' }    // emulator games only
 ];
 // An emulator game's pictures, as the menu names them in its folder (src/menu/retro.c).
-var RETRO_PICTURES = { front: 'boxart_front.png', back: 'boxart_back.png', spine: 'boxart_spine.png', cartridge: 'gamepak_front.png', cartback: 'gamepak_back.png' };
+var RETRO_PICTURES = { front: 'boxart_front.png', back: 'boxart_back.png', spine: 'boxart_spine.png', top: 'boxart_top.png', cartridge: 'gamepak_front.png', cartback: 'gamepak_back.png' };
 var TEXT_LACKS = ['description', 'date', 'developer'];
 
 // missingart.txt (see src/menu/art_report.h): the header, # comments, then
@@ -4030,6 +4032,43 @@ function detailsLacking(ini, hasText) {
   if (!has('author')) out.push('developer');
   return out;
 }
+// The fit editor. Each picture is placed in a frame shaped like its face on
+// the menu's 3D box: an N64 cover's 158 x 112 (or 112 x 158), a top label as
+// deep as the box against its width, a spine as deep against its height
+// (boxes measured: an N64 box about 0.19 deep for its width; NES 0.25 / 0.18,
+// SNES 0.19 / 0.25, Game Boy 0.2). Retro covers and cartridges keep their
+// own shape. `fill` frames are covered (cropping what doesn't fit), others
+// show the whole picture at zoom 1.
+var TOP_DEPTH = { nes: 0.25, snes: 0.19, gb: 0.2, gbc: 0.2 }, SPINE_DEPTH = { nes: 0.18, snes: 0.25, gb: 0.2, gbc: 0.2 };
+function faceFrame(key, kind, w, h, shape) {
+  var retro = !!TOP_DEPTH[kind];
+  if ((key === 'front' || key === 'back') && !retro) {
+    var tall = shape === 'tall' || (shape !== 'wide' && h > w);
+    return { w: tall ? 112 : 158, h: tall ? 158 : 112, fill: true };
+  }
+  if (key === 'top') return { w: 158, h: Math.round(158 * (TOP_DEPTH[kind] || 0.19)), fill: true };
+  if (key === 'spine') return { w: Math.round(158 * (SPINE_DEPTH[kind] || 0.19)), h: 158, fill: true };
+  var f = fitInside(w, h);
+  return { w: f.w, h: f.h, fill: false };
+}
+// Where the picture goes in its frame: turned `turns` quarter turns, zoomed
+// (1 = covers a fill frame, or just fits another), moved by offX / offY
+// (-1 to 1, across whatever overhangs). Gives the drawn size and middle.
+function fitLayout(iw, ih, frame, turns, zoom, offX, offY) {
+  var odd = ((turns % 4) + 4) % 2 === 1, rw = odd ? ih : iw, rh = odd ? iw : ih;
+  var base = frame.fill ? Math.max(frame.w / rw, frame.h / rh) : Math.min(frame.w / rw, frame.h / rh);
+  var dw = rw * base * zoom, dh = rh * base * zoom;
+  var x0 = (frame.w - dw) / 2 + offX * Math.abs(frame.w - dw) / 2;
+  var y0 = (frame.h - dh) / 2 + offY * Math.abs(frame.h - dh) / 2;
+  return { w: dw, h: dh, cx: x0 + dw / 2, cy: y0 + dh / 2, odd: odd };
+}
+// The edge files a top label or spine can also be saved as ("Use for the
+// other edges too"): an N64 box's sides, or a retro box's other edge.
+function otherEdges(key, retro) {
+  if (retro) return key === 'top' ? ['boxart_spine.png'] : key === 'spine' ? ['boxart_top.png'] : [];
+  return key === 'top' ? ['boxart_left.png', 'boxart_right.png'] : [];
+}
+
 // libretro-database's metadat files (CC-BY-SA 4.0): per system, one field
 // per file, each game by its ROM's CRC-32 and its No-Intro name ("comment").
 var LIBRETRO_BASE = 'https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/';
@@ -4513,40 +4552,35 @@ function renderListed() {
   $('artSave').disabled = !(card && changes.size);
 }
 
-// One picture's canvas: a box picture cut to the cover's shape, the others fitted inside 158 x 158.
+// One picture's canvas: the frame its face has on the 3D box, with the picture placed by the fit editor.
 function drawPic(key) {
-  var p = editing.pics[key], spec = PICTURES.find(function (x) { return x.key === key; });
-  var c = $('artPic-' + key), ctx = c.getContext('2d');
-  var cut = spec.box && !isRetro(editing.item);     // an emulator game's box keeps its own shape (retro.c)
-  // A top label goes on lying down and a spine standing up: one the other way round is turned to fit.
-  var turn = !!p.image && ((spec.key === 'top' && p.image.height > p.image.width) || (spec.key === 'spine' && p.image.width > p.image.height));
-  var size = p.image ? (cut ? T.coverCut(p.image.width, p.image.height, p.shape)
-                            : turn ? fitInside(p.image.height, p.image.width) : fitInside(p.image.width, p.image.height))
-                     : { w: spec.key === 'top' ? 158 : (spec.key === 'spine' ? 22 : 112), h: spec.key === 'top' ? 22 : (spec.key === 'spine' ? 158 : 112) };
-  c.width = size.w; c.height = size.h;
-  c.style.width = size.w + 'px'; c.style.height = size.h + 'px';
-  ctx.clearRect(0, 0, size.w, size.h);
+  var p = editing.pics[key], c = $('artPic-' + key), ctx = c.getContext('2d');
+  var odd = p.turns % 2 !== 0;
+  var frame = p.image ? faceFrame(key, editing.item.kind, odd ? p.image.height : p.image.width, odd ? p.image.width : p.image.height, p.shape)
+                      : faceFrame(key, editing.item.kind, 112, 112, p.shape);
+  c.width = frame.w; c.height = frame.h;
+  c.style.width = frame.w + 'px'; c.style.height = frame.h + 'px';
+  ctx.clearRect(0, 0, frame.w, frame.h);
   if (!p.image) {
     p.blob = null;
     p.pending = Promise.resolve();
     return;
   }
+  var L = fitLayout(p.image.width, p.image.height, frame, p.turns, p.zoom, p.offX, p.offY);
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
-  if (cut) ctx.drawImage(p.image, size.sx, size.sy, size.sw, size.sh, 0, 0, size.w, size.h);
-  else if (turn) {
-    ctx.save();
-    ctx.translate(size.w, 0);       // a quarter turn clockwise: the picture's top runs down the right edge
-    ctx.rotate(Math.PI / 2);
-    ctx.drawImage(p.image, 0, 0, size.h, size.w);
-    ctx.restore();
-  } else ctx.drawImage(p.image, 0, 0, size.w, size.h);
+  ctx.save();
+  ctx.translate(L.cx, L.cy);
+  ctx.rotate(p.turns * Math.PI / 2);
+  var w = L.odd ? L.h : L.w, h = L.odd ? L.w : L.h;     // the picture's own width and height, before turning
+  ctx.drawImage(p.image, -w / 2, -h / 2, w, h);
+  ctx.restore();
   p.pending = new Promise(function (done) { c.toBlob(function (b) { p.blob = b; done(); }, 'image/png'); });
 }
 
 function picControl(key, blob) {
   var spec = PICTURES.find(function (x) { return x.key === key; });
-  var p = editing.pics[key] = { image: null, blob: null, pending: Promise.resolve(), shape: 'auto' };
+  var p = editing.pics[key] = { image: null, blob: null, pending: Promise.resolve(), shape: 'auto', turns: 0, zoom: 1, offX: 0, offY: 0, edges: false };
   var box = document.createElement('div');
   box.className = 'pic';
   var label = document.createElement('b');
@@ -4558,6 +4592,28 @@ function picControl(key, blob) {
   input.type = 'file'; input.accept = 'image/*'; input.className = 'hidden';
   var line = document.createElement('div');
   line.className = 'line';
+  var fit = document.createElement('div');
+  fit.className = 'fit hidden';
+  function slider(name, min, max, value, onInput) {
+    var l = document.createElement('label'), r = document.createElement('input');
+    l.textContent = name + ' ';
+    r.type = 'range'; r.min = min; r.max = max; r.value = value;
+    r.addEventListener('input', function () { onInput(parseFloat(this.value)); drawPic(key); });
+    l.appendChild(r);
+    return { label: l, input: r };
+  }
+  var zoom = slider('Zoom', 50, 300, 100, function (v) { p.zoom = v / 100; });
+  var across = slider('Left-right', -100, 100, 0, function (v) { p.offX = v / 100; });
+  var down = slider('Up-down', -100, 100, 0, function (v) { p.offY = v / 100; });
+  // A top label goes on lying down and a spine standing up: one the other way round starts turned.
+  function autoTurns() {
+    if (!p.image) return 0;
+    return ((key === 'top' && p.image.height > p.image.width) || (key === 'spine' && p.image.width > p.image.height)) ? 1 : 0;
+  }
+  function reset() {
+    p.turns = autoTurns(); p.zoom = 1; p.offX = 0; p.offY = 0;
+    zoom.input.value = 100; across.input.value = 0; down.input.value = 0;
+  }
   async function use(file) {
     try {
       p.image = file ? await createImageBitmap(file) : null;
@@ -4565,6 +4621,8 @@ function picControl(key, blob) {
       p.image = null;
       $('artEditStatus').innerHTML = '<span class="bad">That picture could not be read.</span>';
     }
+    reset();
+    fit.classList.toggle('hidden', !p.image);
     drawPic(key);
   }
   input.addEventListener('change', function () { if (this.files[0]) use(this.files[0]); this.value = ''; });
@@ -4578,7 +4636,21 @@ function picControl(key, blob) {
     line.appendChild(shape);
   }
   line.appendChild(button('Clear', true, function () { use(null); }));
-  box.append(label, canvas, line, input);
+  var turnLine = document.createElement('div');
+  turnLine.className = 'line';
+  turnLine.append(button('⟲ Turn left', true, function () { p.turns = (p.turns + 3) % 4; drawPic(key); }),
+                  button('⟳ Turn right', true, function () { p.turns = (p.turns + 1) % 4; drawPic(key); }),
+                  button('Reset', true, function () { reset(); drawPic(key); }));
+  fit.append(zoom.label, across.label, down.label, turnLine);
+  if (otherEdges(key, isRetro(editing.item)).length) {
+    var edges = document.createElement('label'), tick = document.createElement('input');
+    tick.type = 'checkbox';
+    tick.addEventListener('change', function () { p.edges = this.checked; });
+    edges.append(tick, ' Use for the other edges too');
+    edges.title = 'Also saved as ' + otherEdges(key, isRetro(editing.item)).join(' and ') + ', where the game has none.';
+    fit.appendChild(edges);
+  }
+  box.append(label, canvas, line, fit, input);
   $('artPics').appendChild(box);
   return use(blob);
 }
@@ -4609,14 +4681,18 @@ $('artCancel').addEventListener('click', closeEditor);
 
 $('artKeep').addEventListener('click', async function () {
   if (!editing) return;
-  var pics = {}, any = false;
+  var pics = {}, edges = [], any = false;
   for (var key of Object.keys(editing.pics)) {
     await editing.pics[key].pending;
-    if (editing.pics[key].blob) { pics[key] = editing.pics[key].blob; any = true; }
+    if (editing.pics[key].blob) {
+      pics[key] = editing.pics[key].blob;
+      any = true;
+      if (editing.pics[key].edges) edges.push(key);
+    }
   }
   var was = changes.get(editing.item.folder) || {};
   var c = { item: editing.item, pics: pics, desc: $('artDesc').value.trim(), date: $('artDate').value || (/^\d{4}(-\d{2})?$/.test(was.date || '') ? was.date : ''),
-            dev: $('artDev').value.trim(), genre: was.genre, players: was.players };
+            dev: $('artDev').value.trim(), genre: was.genre, players: was.players, edges: edges };
   if (!any && !c.desc && !c.date && !c.dev) { $('artEditStatus').innerHTML = '<span class="bad">Nothing filled in yet.</span>'; return; }
   changes.set(editing.item.folder, c);
   closeEditor();
@@ -4638,6 +4714,13 @@ async function filesToWrite() {
     function add(name, bytes) { out.push({ path: base + '/' + name, bytes: bytes }); written.add(name.toLowerCase()); }
     for (var key of Object.keys(c.pics)) {
       add(PICTURES.find(function (p) { return p.key === key; }).file, new Uint8Array(await c.pics[key].arrayBuffer()));
+    }
+    // "Use for the other edges too": the same picture as the edge files the game has none of (the menu turns it to fit).
+    var present = ((await folderNames(base)) || []).map(function (n) { return n.toLowerCase(); });
+    for (var ek of (c.edges || [])) {
+      for (var other of otherEdges(ek, isRetro(c.item))) {
+        if (present.indexOf(other) < 0 && !written.has(other)) add(other, new Uint8Array(await c.pics[ek].arrayBuffer()));
+      }
     }
     var homebrew = c.item.kind === 'homebrew', iniPath = detailsPath(c.item);
     var ini = (await cardText(iniPath)) ||
