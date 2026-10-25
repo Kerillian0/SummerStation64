@@ -46,9 +46,12 @@ and a CRT television, with and without the Expansion Pak.
 
 | | |
 |---|---|
-| 🎮 **Cover row** | Your games as box covers that slide left and right; turn a box over to see its back. Japanese and 64DD boxes keep their own shape. |
-| 🗂️ **Tabs** | Games, Favorites, Folders and Recent, in the order you choose. Games gathers games from as many folders as you like. |
-| 🔎 **Find a game** | Filter by region, 64DD or hacks; sort by name, recently played, release date or developer; or press Z for a random game. |
+| 🎮 **Cover row** | Your games as 3D boxes or cartridges that hover; hold B to turn one round, or turn it over to see its back. Japanese and 64DD boxes keep their own shape. |
+| 🗂️ **Tabs** | Games, Favorites, Folders, Recent, Collections, Homebrew and Retro, up to four in the order you choose. Games gathers games from as many folders as you like. |
+| 🔎 **Find a game** | Hold Z for a letter dial; filter by region, 64DD, hacks or party size; sort by name, recently played or added, release date or developer; or a random game. |
+| 📚 **Collections** | Series and multiplayer collections found by themselves, and your own, as cards; one cover per game with its hacks and other regions' copies underneath. |
+| 🕹️ **More than N64** | NES, SNES and Game Boy games on a Retro tab with their own box shapes; 64DD disks that start with their cartridge. |
+| 📸 **Screenshots and clips** | Hold START for a screenshot; record a clip of the menu and turn it into a GIF with the [Companion](https://kerillian0.github.io/SummerStation64/companion/#clips). |
 | 🏷️ **Badges** | Players, Expansion Pak, save found, Controller / Rumble / Transfer Pak, a Hack badge, and a ✓ for known good dumps (checked with [Card Prep](https://kerillian0.github.io/SummerStation64/companion/#prep)). |
 | 📖 **Game info** | The cover over a blurred copy of itself, a big title, genre, players and co-op/versus, times played, and the full description, scrolling. |
 | 🎨 **Themes** | Six built-in themes, or your own made with the [Theme Maker](https://kerillian0.github.io/SummerStation64/companion/#themes) and shared with a short code. |
@@ -70,12 +73,13 @@ built in.
 
 ## 📚 Documentation
 
-- **[Release notes and install guide](docs/RELEASE_NOTES_v0.2.md)**
-  ([v0.1](docs/RELEASE_NOTES_v0.1.md)): what's
+- **[Release notes and install guide](docs/RELEASE_NOTES_v0.3.md)**
+  ([v0.2](docs/RELEASE_NOTES_v0.2.md), [v0.1](docs/RELEASE_NOTES_v0.1.md)): what's
   new, installing, first steps, controls, settings and known limitations.
 - **[SummerStation64 Companion](https://kerillian0.github.io/SummerStation64/companion/)**:
-  the Theme Maker, Card Prep (checks your games against known good dumps) and
-  a setup guide, in your web browser. Source: [docs/companion/](docs/companion/).
+  the Theme Maker, Card Prep (checks your games against known good dumps),
+  Hacks, Missing Metadata, Collections, Clips (GIFs) and a setup guide, in
+  your web browser. Source: [docs/companion/](docs/companion/).
 - **[N64FlashcartMenu's documentation](docs/00_index.md)**: still describes
   the file browser, ROM settings, cheats, 64DD and the other stock features.
 
@@ -86,11 +90,10 @@ built in.
 - **v0.2** ✅ released: the Companion (Theme Maker, Card Prep, Guide),
   dump check marks, full descriptions, players and co-op/versus, new themes,
   angled side covers, 300 KB more free memory.
-- **Next release** (built, being tested): 3D boxes and cartridges that hover,
-  turn over, and can be turned by hand with B, with 3D side covers too.
-- **v0.3** organizing: one cover per game with a version picker for hacks
-  and other regions' copies, collections, search, screenshots and animated
-  GIF captures.
+- **v0.3** ✅ released: 3D boxes and cartridges, collections, the letter
+  dial, one cover per game for hacks and other regions' copies, Homebrew and
+  Retro (NES, SNES, Game Boy) tabs, 64DD disks with their cartridge, party
+  mode, clips turned into GIFs, and four new Companion tabs.
 - **v0.4** themes: theme picker, sound and font packs, more seasonal themes.
 - **v0.5** polish: setup wizard, CRT test patterns, accessibility, and a
   versions screen where a game's copies and hacks unfold into a column of
