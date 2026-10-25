@@ -33,6 +33,13 @@
  */
 path_t *dd_pair_cart (menu_t *menu, const char *disk_path, const char id[4]);
 
+/**
+ * The game an expansion disk needs its cartridge for ("F-Zero X"; "" when
+ * not known), or NULL for a disk that plays alone. Every disk the code rule pairs is one: it
+ * holds extra content for a cartridge game and won't start without it.
+ */
+const char *dd_pair_needs (const char id[4]);
+
 /** "With F-Zero X" for the selected cover if it is a paired disk, else NULL. */
 const char *dd_pair_with_text (menu_t *menu, const entry_t *disk);
 

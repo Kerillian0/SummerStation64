@@ -209,6 +209,30 @@ static const entry_t *find_cart (menu_t *menu, const char *disk, const char *id,
     return best;
 }
 
+const char *dd_pair_needs (const char id[4]) {
+    /* The cartridges of the expansion disks upstream lists (docs/17_64dd.md);
+       of these only F-Zero X's Expansion Kit was sold. */
+    static const struct { const char *letters, *game; } games[] = {
+        { "FZ", "F-Zero X" },
+        { "LB", "Mario Party" },
+        { "ZL", "The Legend of Zelda: Ocarina of Time" },
+        { "PS", "Pokemon Stadium" },
+        { "P2", "Pokemon Stadium 2" },
+        { "DZ", "Dezaemon 3D" },
+    };
+    bool expansion = (id[0] >= 'E' && id[0] <= 'Z') || memcmp(id, "DEZA", 4) == 0;
+    if (!expansion) {
+        return NULL;
+    }
+    const char *letters = (memcmp(id, "DEZA", 4) == 0) ? "DZ" : id + 1;
+    for (int i = 0; i < (int) (sizeof(games) / sizeof(games[0])); i++) {
+        if (memcmp(letters, games[i].letters, 2) == 0) {
+            return games[i].game;
+        }
+    }
+    return "";      /* an expansion disk for a game not listed here */
+}
+
 path_t *dd_pair_cart (menu_t *menu, const char *disk_path, const char id[4]) {
     const char *disk = from_top(disk_path);
     note_id(disk, id);

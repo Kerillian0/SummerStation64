@@ -7,6 +7,7 @@
 #include "../bookkeeping.h"
 #include "../display_name.h"
 #include "../dd_pair.h"
+#include <stdio.h>
 #include <string.h>
 
 #define DISK_SLOTS_MAX 3 // Maximum number of disk slots supported (excluding the primary disk)
@@ -51,16 +52,42 @@ static component_context_menu_t options_context_menu = { .list = {
     COMPONENT_CONTEXT_MENU_LIST_END,
 }};
 
+static bool alone_warning = false;     // an expansion disk about to start without its cartridge (dd_pair_needs())
+
 static void process (menu_t *menu) {
     if (ui_components_context_menu_process(menu, &options_context_menu)) {
         return;
     }
 
-    // With a cartridge (dd_pair.h), A starts both and L|Z the disk alone.
+    if (alone_warning) {
+        if (menu->actions.enter) {
+            alone_warning = false;
+            menu->load_pending.disk_file = true;
+            menu->load.combined_disk_rom = false;
+        } else if (menu->actions.back) {
+            alone_warning = false;
+            sound_play_effect(SFX_EXIT);
+        }
+        return;
+    }
+
+    // With a cartridge (dd_pair.h), A starts both and L|Z the disk alone; an
+    // expansion disk alone asks first.
+    bool needs_cart = dd_pair_needs(menu->load.disk_slots.primary.disk_info.id) != NULL;
     if (menu->actions.enter) {
+        if (!menu->load.rom_path && needs_cart) {
+            alone_warning = true;
+            sound_play_effect(SFX_ERROR);
+            return;
+        }
         menu->load_pending.disk_file = true;
         menu->load.combined_disk_rom = (menu->load.rom_path != NULL);
     } else if (menu->actions.lz_context && menu->load.rom_path) {
+        if (needs_cart) {
+            alone_warning = true;
+            sound_play_effect(SFX_ERROR);
+            return;
+        }
         menu->load_pending.disk_file = true;
         menu->load.combined_disk_rom = false;
         sound_play_effect(SFX_SETTING);
@@ -242,6 +269,20 @@ static void draw (menu_t *menu, surface_t *d) {
         }
 
         ui_components_context_menu_draw(&options_context_menu);
+
+        if (alone_warning) {
+            const char *game = dd_pair_needs(menu->load.disk_slots.primary.disk_info.id);
+            char needs[160];
+            if (game[0]) {
+                snprintf(needs, sizeof(needs), "This disk is an expansion for %s\nand needs the %s cartridge to play.", game, game);
+            } else {
+                snprintf(needs, sizeof(needs), "This disk is an expansion for a cartridge game\nand needs that cartridge to play.");
+            }
+            ui_components_messagebox_draw(
+                "%s\n\nTo pair them: on the disk's cover press Z,\nthen Pair with a cartridge...\n\n"
+                "^%02XA: Start the disk anyway^00    ^%02XB: Back^00",
+                needs, STL_RED, STL_GREEN);
+        }
     }
 
     rdpq_detach_show();
@@ -335,6 +376,7 @@ void view_load_disk_init (menu_t *menu) {
     }
 
     menu->load_pending.disk_file = false;
+    alone_warning = false;
     bool cart_given = false;    // a Recent or Favorites entry that was started with a cartridge keeps it
 
     if(menu->load.load_history_id != -1 || menu->load.load_favorite_id != -1) {
