@@ -100,7 +100,7 @@ static void actions_update_buttons (menu_t *menu) {
 
     JOYPAD_PORT_FOREACH (i) {
         pressed = joypad_get_buttons_pressed(i);
-        if (screenshot_button(i, pressed)) {
+        if (screenshot_button(i, &pressed)) {
             pressed.raw = 0;    // kept from the menu: it takes a screenshot (screenshot.c)
             continue;
         }

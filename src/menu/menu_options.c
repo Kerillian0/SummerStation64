@@ -36,6 +36,8 @@ static const option_info_t option_info[OPTION_COUNT] = {
     [OPTION_GAME_VERSIONS] = { "game_versions", 0 }, /* separate */
     [OPTION_REGION_COPIES] = { "region_copies", 0 }, /* separate */
     [OPTION_PREFERRED_REGION] = { "preferred_region", 0 }, /* USA */
+    [OPTION_SHOT_SIZE] = { "shot_size", 0 }, /* full */
+    [OPTION_SHOT_DITHER] = { "shot_dither", 0 }, /* smooth */
 };
 
 static int values[OPTION_COUNT];

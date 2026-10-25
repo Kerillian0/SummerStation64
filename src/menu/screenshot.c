@@ -4,154 +4,183 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <libdragon.h>
 
 #include "menu_features.h"
+#include "menu_options.h"
 #include "safe_file.h"
 #include "screenshot.h"
+#include "shot_png.h"
 #include "sound.h"
 #include "utils/fs.h"
 
 #define FOLDER      "sd:/menu/screenshots"
 #define TEMP_PATH   FOLDER "/shot.tmp"
-#define MAX_WIDTH   (640)
+#define HOLD_MS     (1000)      /* START held this long takes a picture */
 
 static bool wanted = false;
 static int last_number = 0;     /* the highest picture number seen or written */
 
-/* One line of the picture as it is stored: a stored deflate block's 5-byte
-   header, the line's filter byte, then red, green and blue for each pixel. */
-static uint8_t line[5 + 1 + (MAX_WIDTH * 3)];
+/* START on each controller: when it went down, and whether that hold took a picture. */
+static bool start_down[JOYPAD_PORT_COUNT];
+static uint64_t start_down_at[JOYPAD_PORT_COUNT];
+static bool start_shot[JOYPAD_PORT_COUNT];
 
-static uint32_t crc_table[256];
+const char *screenshot_size_name (int value) {
+    return value == SCREENSHOT_HALF ? "Half (320 x 240)" : "Full (640 x 480)";
+}
 
-static void crc_table_make (void) {
-    if (crc_table[1]) {
+const char *screenshot_dither_name (int value) {
+    return value == SCREENSHOT_EXACT ? "Exact" : "Smooth";
+}
+
+/* ---------- the picture's lines ---------- */
+
+/* Smoothing evens out the 16-bit dither: full size by a 1-2-1 blur each way,
+   half size by four pixels each way weighted 1-3-3-1. Each screen line is
+   summed across once and kept, in one of four places, while the lines below
+   it need it. */
+typedef struct {
+    surface_t *display;
+    bool half, smooth;
+    uint16_t *pixels;           /* one screen line as stored */
+    uint16_t *sums[4];          /* lines summed across, red, green, blue per pixel out */
+    int sum_line[4];
+} source_t;
+
+static void read_line (source_t *s, int y) {
+    const uint8_t *buffer = VirtualUncachedAddr(s->display->buffer);   /* what the graphics chip wrote, not old cache contents */
+    memcpy(s->pixels, buffer + (y * s->display->stride), s->display->width * 2);
+}
+
+/* 5 bits each of red, green, blue, then 1 of alpha, as 8 bits each. */
+static inline void unpack (uint16_t p, int *r, int *g, int *b) {
+    int r5 = (p >> 11) & 31, g5 = (p >> 6) & 31, b5 = (p >> 1) & 31;
+    *r = (r5 << 3) | (r5 >> 2);
+    *g = (g5 << 3) | (g5 >> 2);
+    *b = (b5 << 3) | (b5 >> 2);
+}
+
+static const uint16_t *summed (source_t *s, int y) {
+    int height = s->display->height, width = s->display->width;
+    y = (y < 0) ? 0 : ((y >= height) ? height - 1 : y);
+    int slot = y & 3;
+    if (s->sum_line[slot] == y) {
+        return s->sums[slot];
+    }
+    s->sum_line[slot] = y;
+    read_line(s, y);
+    uint16_t *out = s->sums[slot];
+    int out_width = s->half ? width / 2 : width;
+    for (int x = 0; x < out_width; x++) {
+        int sum[3] = { 0, 0, 0 };
+        static const int full_weights[3] = { 1, 2, 1 }, half_weights[4] = { 1, 3, 3, 1 };
+        int first = s->half ? (2 * x) - 1 : x - 1;
+        int taps = s->half ? 4 : 3;
+        for (int t = 0; t < taps; t++) {
+            int at = first + t;
+            at = (at < 0) ? 0 : ((at >= width) ? width - 1 : at);
+            int r, g, b, weight = s->half ? half_weights[t] : full_weights[t];
+            unpack(s->pixels[at], &r, &g, &b);
+            sum[0] += r * weight;
+            sum[1] += g * weight;
+            sum[2] += b * weight;
+        }
+        out[(x * 3) + 0] = sum[0];
+        out[(x * 3) + 1] = sum[1];
+        out[(x * 3) + 2] = sum[2];
+    }
+    return out;
+}
+
+static void picture_line (int y, uint8_t *rgb, void *context) {
+    source_t *s = context;
+    int out_width = s->half ? s->display->width / 2 : s->display->width;
+    if (!s->smooth) {
+        read_line(s, s->half ? y * 2 : y);
+        for (int x = 0; x < out_width; x++) {
+            int r, g, b;
+            unpack(s->pixels[s->half ? x * 2 : x], &r, &g, &b);
+            rgb[(x * 3) + 0] = r;
+            rgb[(x * 3) + 1] = g;
+            rgb[(x * 3) + 2] = b;
+        }
         return;
     }
-    for (uint32_t n = 0; n < 256; n++) {
-        uint32_t c = n;
-        for (int k = 0; k < 8; k++) {
-            c = (c & 1) ? (0xEDB88320u ^ (c >> 1)) : (c >> 1);
-        }
-        crc_table[n] = c;
+    const uint16_t *rows[4];
+    int taps = s->half ? 4 : 3;
+    int first = s->half ? (2 * y) - 1 : y - 1;
+    for (int t = 0; t < taps; t++) {
+        rows[t] = summed(s, first + t);
     }
-}
-
-static uint32_t crc_add (uint32_t crc, const uint8_t *data, size_t length) {
-    for (size_t i = 0; i < length; i++) {
-        crc = crc_table[(crc ^ data[i]) & 0xFF] ^ (crc >> 8);
+    for (int i = 0; i < out_width * 3; i++) {
+        int v = s->half
+            ? (rows[0][i] + (3 * rows[1][i]) + (3 * rows[2][i]) + rows[3][i] + 32) / 64
+            : (rows[0][i] + (2 * rows[1][i]) + rows[2][i] + 8) / 16;
+        rgb[i] = (v > 255) ? 255 : v;
     }
-    return crc;
-}
-
-static void put32 (uint8_t *at, uint32_t value) {
-    at[0] = value >> 24;
-    at[1] = value >> 16;
-    at[2] = value >> 8;
-    at[3] = value;
-}
-
-/* A PNG chunk that is written in one go. */
-static void chunk (FILE *f, const char *type, const uint8_t *data, uint32_t length) {
-    uint8_t head[8];
-    put32(head, length);
-    memcpy(head + 4, type, 4);
-    fwrite(head, 1, 8, f);
-    if (length) {
-        fwrite(data, 1, length, f);
-    }
-    uint32_t crc = crc_add(0xFFFFFFFFu, (const uint8_t *) type, 4);
-    crc = crc_add(crc, data, length);
-    uint8_t tail[4];
-    put32(tail, crc ^ 0xFFFFFFFFu);
-    fwrite(tail, 1, 4, f);
 }
 
 static bool write_png (const char *path, surface_t *display) {
-    int width = display->width;
-    int height = display->height;
-    if (width > MAX_WIDTH || surface_get_format(display) != FMT_RGBA16) {
+    int width = display->width, height = display->height;
+    if (width > SHOT_PNG_MAX_WIDTH || surface_get_format(display) != FMT_RGBA16) {
         return false;
     }
-    FILE *f = fopen(path, "wb");
-    if (!f) {
-        return false;
+    source_t s = {
+        .display = display,
+        .half = options_get(OPTION_SHOT_SIZE) == SCREENSHOT_HALF,
+        .smooth = options_get(OPTION_SHOT_DITHER) != SCREENSHOT_EXACT,
+        .sum_line = { -1, -1, -1, -1 },
+    };
+    int out_width = s.half ? width / 2 : width;
+    s.pixels = malloc(width * 2);
+    uint16_t *sums = s.smooth ? malloc(4 * out_width * 3 * sizeof(uint16_t)) : NULL;
+    bool ok = s.pixels && (sums || !s.smooth);
+    for (int i = 0; i < 4 && sums; i++) {
+        s.sums[i] = sums + (i * out_width * 3);
     }
-    crc_table_make();
-
-    static const uint8_t signature[8] = { 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A };
-    fwrite(signature, 1, 8, f);
-
-    uint8_t header[13];
-    put32(header, width);
-    put32(header + 4, height);
-    header[8] = 8;      /* 8 bits per colour */
-    header[9] = 2;      /* red, green, blue */
-    header[10] = 0;     /* deflate */
-    header[11] = 0;     /* the usual line filters */
-    header[12] = 0;     /* not interlaced */
-    chunk(f, "IHDR", header, sizeof(header));
-
-    /* The picture data: a zlib stream of stored (uncompressed) blocks, one
-       per line, so nothing has to be held but one line. */
-    uint32_t row_bytes = 1 + (width * 3);
-    uint32_t data_length = 2 + (height * (5 + row_bytes)) + 4;
-    uint8_t head[8];
-    put32(head, data_length);
-    memcpy(head + 4, "IDAT", 4);
-    fwrite(head, 1, 8, f);
-    uint32_t crc = crc_add(0xFFFFFFFFu, (const uint8_t *) "IDAT", 4);
-
-    static const uint8_t zlib_header[2] = { 0x78, 0x01 };
-    fwrite(zlib_header, 1, 2, f);
-    crc = crc_add(crc, zlib_header, 2);
-
-    uint32_t adler_a = 1, adler_b = 0;
-    const uint8_t *pixels = VirtualUncachedAddr(display->buffer);   /* what the graphics chip wrote, not old cache contents */
-    for (int y = 0; y < height; y++) {
-        line[0] = (y == height - 1) ? 1 : 0;    /* the last block says so */
-        line[1] = row_bytes & 0xFF;
-        line[2] = row_bytes >> 8;
-        line[3] = ~row_bytes & 0xFF;
-        line[4] = (~row_bytes >> 8) & 0xFF;
-        uint8_t *out = &line[5];
-        *out++ = 0;     /* no filter */
-        const uint16_t *source = (const uint16_t *) (pixels + (y * display->stride));
-        for (int x = 0; x < width; x++) {
-            uint16_t p = source[x];     /* 5 bits each of red, green, blue, then 1 of alpha */
-            uint8_t r = (p >> 11) & 31, g = (p >> 6) & 31, b = (p >> 1) & 31;
-            *out++ = (r << 3) | (r >> 2);
-            *out++ = (g << 3) | (g >> 2);
-            *out++ = (b << 3) | (b >> 2);
-        }
-        for (uint32_t i = 0; i < row_bytes; i++) {
-            adler_a = (adler_a + line[5 + i]) % 65521;
-            adler_b = (adler_b + adler_a) % 65521;
-        }
-        fwrite(line, 1, 5 + row_bytes, f);
-        crc = crc_add(crc, line, 5 + row_bytes);
+    FILE *f = ok ? fopen(path, "wb") : NULL;
+    if (f) {
+        ok = shot_png_write(f, out_width, s.half ? height / 2 : height, picture_line, &s);
+        ok = (fclose(f) == 0) && ok;
+    } else {
+        ok = false;
     }
-    uint8_t adler[4];
-    put32(adler, (adler_b << 16) | adler_a);
-    fwrite(adler, 1, 4, f);
-    crc = crc_add(crc, adler, 4);
-    put32(head, crc ^ 0xFFFFFFFFu);
-    fwrite(head, 1, 4, f);
-
-    chunk(f, "IEND", NULL, 0);
-    bool ok = (ferror(f) == 0);
-    ok = (fclose(f) == 0) && ok;
+    free(sums);
+    free(s.pixels);
     return ok;
 }
 
-bool screenshot_button (joypad_port_t port, joypad_buttons_t pressed) {
-    if (port != JOYPAD_PORT_2 || !pressed.start || !features_enabled(FEATURE_SCREENSHOTS)) {
+bool screenshot_button (joypad_port_t port, joypad_buttons_t *pressed) {
+    if (!features_enabled(FEATURE_SCREENSHOTS)) {
+        start_down[port] = false;
         return false;
     }
-    wanted = true;
-    return true;
+    if (port == JOYPAD_PORT_2 && pressed->start) {
+        wanted = true;
+        return true;
+    }
+    /* Any other controller: START counts on release, unless it was held long enough for a picture. */
+    bool down = joypad_get_buttons(port).start;     /* the state now: "held" is false on the frame it goes down */
+    if (pressed->start) {
+        pressed->start = 0;
+        start_down[port] = true;
+        start_down_at[port] = get_ticks_ms();
+        start_shot[port] = false;
+    } else if (start_down[port] && down) {
+        if (!start_shot[port] && (get_ticks_ms() - start_down_at[port]) >= HOLD_MS) {
+            start_shot[port] = true;
+            wanted = true;
+        }
+    } else if (start_down[port]) {
+        start_down[port] = false;
+        if (!start_shot[port]) {
+            pressed->start = 1;     /* a tap: START does what it always does */
+        }
+    }
+    return false;
 }
 
 void screenshot_after_frame (surface_t *display) {

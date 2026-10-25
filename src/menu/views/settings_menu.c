@@ -15,6 +15,7 @@
 #include "../games_ui.h"
 #include "../games_filter.h"
 #include "../region_pick.h"
+#include "../screenshot.h"
 #include "../art_report.h"
 #include "../hidden_games.h"
 #include "../box_motion.h"
@@ -309,7 +310,11 @@ static const item_t system_items[] = {
         "When the menu starts, the picture comes up from black and the background music rises, over one or two seconds. Off shows the menu at once."),
     CHOICES("Performance Overlay", OPTION_PERF_OVERLAY, 2, debug_stats_overlay_name, NULL,
         "For testing: a strip at the bottom of the screen shows the frame time (33.4 ms is on time), how long the graphics chip took, and free memory."),
-    FEATURE("Screenshots", FEATURE_SCREENSHOTS, "Press START on a controller in port 2 to save the screen as a picture in menu/screenshots on the SD card. The menu pauses for a moment while it saves."),
+    FEATURE("Screenshots", FEATURE_SCREENSHOTS, "Hold START for a second (or press START on controller 2) to save the screen as a picture in menu/screenshots on the SD card. A tap of START then works when it is let go. The menu pauses a moment while it saves."),
+    CHOICES("Screenshot Size", OPTION_SHOT_SIZE, 2, screenshot_size_name, NULL,
+        "Full keeps the menu's whole 640 x 480 picture. Half is 320 x 240, about what a 240p TV shows, with much smaller files."),
+    CHOICES("Screenshot Dither", OPTION_SHOT_DITHER, 2, screenshot_dither_name, NULL,
+        "The console draws in 16-bit color with a fine dot pattern that the TV hides. Smooth evens it out in the picture; Exact keeps every pixel as drawn (larger files)."),
     FEATURE("Remember Settings Page", FEATURE_REMEMBER_SETTINGS, "Reopen Settings on the page and row you last used, until the console is switched off."),
     ACTION("Reset Settings", ask_reset, "Put the stock settings back to how they were on a fresh install."),
 };

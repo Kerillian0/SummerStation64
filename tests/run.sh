@@ -23,6 +23,12 @@ gcc -std=gnu11 -Wall -Werror -I"$here/../src/menu" \
 "$out/rom_hacks_test" || status=1
 
 echo
+echo "== screenshot pictures =="
+gcc -std=gnu11 -Wall -Werror -O2 -I"$here/../src/menu" \
+    -o "$out/shot_png_test" "$here/shot_png_test.c" "$here/../src/menu/shot_png.c"
+"$out/shot_png_test" "$out" && python3 "$here/shot_png_check.py" "$out" || status=1
+
+echo
 echo "== share codes =="
 if command -v node >/dev/null 2>&1; then
     node "$here/share_code_test.js" || status=1
