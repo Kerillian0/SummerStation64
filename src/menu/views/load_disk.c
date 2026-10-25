@@ -7,6 +7,8 @@
 #include "../bookkeeping.h"
 #include "../display_name.h"
 #include "../dd_pair.h"
+#include "../game_info_more.h"
+#include "../play_stats.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -56,6 +58,23 @@ static bool alone_warning = false;     // an expansion disk about to start witho
 
 static void process (menu_t *menu) {
     if (ui_components_context_menu_process(menu, &options_context_menu)) {
+        return;
+    }
+
+    if (game_info_more_details_showing()) {   // the details pop-up: START or B closes it
+        if (menu->actions.settings || menu->actions.back) {
+            game_info_more_details(false);
+            sound_play_effect(SFX_EXIT);
+        }
+        return;
+    }
+    if (menu->actions.settings && !alone_warning) {
+        game_info_more_details(true);
+        sound_play_effect(SFX_SETTING);
+        return;
+    }
+    if ((menu->actions.go_left || menu->actions.go_right) && !alone_warning) {
+        game_info_more_pictures(menu);    // the front or back of the box
         return;
     }
 
@@ -174,11 +193,17 @@ static void scan_for_swap_disks(menu_t *menu) {
 static void draw (menu_t *menu, surface_t *d) {
     rdpq_attach(d, NULL);
 
-    ui_components_background_draw();
+    if (!game_info_more_backdrop_ready() || menu->load_pending.disk_file) ui_components_background_draw(); // the backdrop covers the whole screen
 
     if (menu->load_pending.disk_file) {
         ui_components_loader_draw(0.0f, NULL);
     } else {
+#if 1 // laid out like an N64 game's info (game_info_more.c); set to 0 for the stock page
+        (void) format_disk_region; // only the stock page uses it
+        game_info_more_draw_disk(menu, &menu->load.disk_slots.primary.disk_info, swap_disk_count,
+                                 menu->load.rom_path ? path_last_get(menu->load.rom_path) : NULL,
+                                 dd_pair_needs(menu->load.disk_slots.primary.disk_info.id));
+#else
         ui_components_layout_draw();
 
         ui_components_main_text_draw(
@@ -267,6 +292,7 @@ static void draw (menu_t *menu, surface_t *d) {
         if (boxart != NULL) {
             ui_components_boxart_draw(boxart);
         }
+#endif
 
         ui_components_context_menu_draw(&options_context_menu);
 
@@ -320,6 +346,7 @@ static void load (menu_t *menu) {
     }
 
     bookkeeping_history_add(&menu->bookkeeping, menu->load.disk_slots.primary.disk_path, menu->load.combined_disk_rom ? menu->load.rom_path : NULL, BOOKKEEPING_TYPE_DISK);
+    play_stats_record(path_get(menu->load.disk_slots.primary.disk_path), menu->current_time); // times played and time played, as for cartridges
     menu->next_mode = MENU_MODE_BOOT;
 
     if (menu->load.combined_disk_rom) {
@@ -344,6 +371,7 @@ static void load (menu_t *menu) {
 
 static void deinit (void) {
     ui_components_boxart_free(boxart);
+    game_info_more_close();
 }
 
 static bool load_rom(menu_t* menu, path_t* rom_path) {
@@ -448,7 +476,8 @@ void view_load_disk_init (menu_t *menu) {
     scan_for_swap_disks(menu);
 
     ui_components_context_menu_init(&options_context_menu);
-    boxart = ui_components_boxart_init(menu->storage_prefix, menu->load.disk_slots.primary.disk_info.id, NULL, IMAGE_BOXART_FRONT);
+    boxart = NULL;  // the page has its own pictures (game_info_more.c)
+    game_info_more_open_disk(menu, path_get(menu->load.disk_slots.primary.disk_path), menu->load.disk_slots.primary.disk_info.id);
 }
 
 void view_load_disk_display (menu_t *menu, surface_t *display) {

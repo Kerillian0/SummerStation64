@@ -86,6 +86,7 @@ SRCS = \
 	menu/party.c \
 	menu/dd_pair.c \
 	menu/retro.c \
+	menu/game_info_more.c \
 	menu/region_pick.c \
 	menu/art_report.c \
 	menu/hidden_games.c \

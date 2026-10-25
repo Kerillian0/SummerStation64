@@ -13,6 +13,7 @@
 
 #include "menu_state.h"
 #include "ui_components.h"
+#include "fonts.h"
 
 /** Text the stock screen already knows how to produce, handed over as is. */
 typedef struct {
@@ -37,5 +38,36 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
  * screen, so the shared background underneath need not be drawn.
  */
 bool game_info_ui_backdrop_ready (menu_t *menu);
+
+/** The same for the game at this full path (the 64DD and Retro screens). */
+bool game_info_ui_backdrop_ready_for (const char *path);
+
+#define GAME_INFO_PAGE_BADGES   (3)
+
+/**
+ * A game other than an N64 cartridge (a 64DD disk, an emulator game), drawn
+ * the same way: backdrop, cover, the line above the title, the title,
+ * badges, Played and Last played (play_stats.h) and one box of its own,
+ * the description and the button hints.
+ */
+typedef struct {
+    const char *path;           /**< the game's full path: its play counts, and whose backdrop is kept */
+    const char *name;
+    const char *above;          /**< the grey line above the title (genre, date, maker), or NULL */
+    const char *badges[GAME_INFO_PAGE_BADGES];      /**< up to three, NULL after the last */
+    menu_font_style_t badge_styles[GAME_INFO_PAGE_BADGES];
+    const char *fact_caption;   /**< the third box */
+    const char *fact_value;
+    const char *description;    /**< NULL: "No description available." */
+    const char *a_hint;         /**< NULL: "Play" */
+    const char *r_hint, *z_hint, *start_hint;   /**< NULL: not shown */
+    bool pictures;              /**< ◀▶ Pictures */
+    bool front_picture;         /**< the picture shown is the front cover (the backdrop is made from it) */
+} game_info_page_t;
+
+void game_info_ui_draw_page (menu_t *menu, component_boxart_t *art, const game_info_page_t *page);
+
+/** "1998-10-26" -> "Oct 26, 1998" (or as it was, if it isn't a date). */
+void game_info_ui_format_date (char *out, size_t size, const char *text);
 
 #endif /* GAME_INFO_UI_H__ */

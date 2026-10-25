@@ -135,8 +135,8 @@ static void backdrop_make (surface_t *image) {
 }
 
 /* Keep the backdrop in step with the game being shown. */
-static void backdrop_update (menu_t *menu, surface_t *image, bool front_picture) {
-    uint32_t key = menu->load.rom_path ? text_hash(path_get(menu->load.rom_path)) : 0;
+static void backdrop_update (const char *key_path, surface_t *image, bool front_picture) {
+    uint32_t key = key_path ? text_hash(key_path) : 0;
 
     if (key != backdrop_key) {
         if (backdrop.buffer) {
@@ -154,7 +154,11 @@ static void backdrop_update (menu_t *menu, surface_t *image, bool front_picture)
 }
 
 bool game_info_ui_backdrop_ready (menu_t *menu) {
-    return backdrop.buffer && menu->load.rom_path && (backdrop_key == text_hash(path_get(menu->load.rom_path)));
+    return game_info_ui_backdrop_ready_for(menu->load.rom_path ? path_get(menu->load.rom_path) : NULL);
+}
+
+bool game_info_ui_backdrop_ready_for (const char *path) {
+    return backdrop.buffer && path && (backdrop_key == text_hash(path));
 }
 
 /* The backdrop stretched over the whole screen. Stretching so small a
@@ -442,6 +446,69 @@ static void draw_description (const char *text, int height) {
     rdpq_paragraph_render(desc_layout, X0 + PAD, DESC_Y + 20);
 }
 
+/* The name. "Series - Subtitle" is shown as the series in big letters
+   with the subtitle smaller underneath; any other name as big as fits in
+   two lines. */
+static void draw_title (const char *name) {
+    const char *dash = strstr(name, " - ");
+    char series[96];
+    if (dash && dash > name && dash[3] != '\0' && (size_t) (dash - name) < sizeof(series)) {
+        memcpy(series, name, dash - name);
+        series[dash - name] = '\0';
+        const char *subtitle = dash + 3;
+
+        rdpq_text_printf(&(rdpq_textparms_t) {
+            .width = TITLE_WIDTH,
+            .height = TITLE_MAIN_HEIGHT,
+            .wrap = WRAP_ELLIPSES,
+        }, title_font_pick(series, TITLE_WIDTH - 16), X0, TITLE_Y, "%s", series);
+
+        int font = title_font_pick(subtitle, TITLE_WIDTH - 16);
+        if (font == FNT_TITLE) {
+            font = FNT_TITLE_MEDIUM; /* never as big as the series */
+        }
+        rdpq_text_printf(&(rdpq_textparms_t) {
+            .width = TITLE_WIDTH,
+            .height = SUBTITLE_HEIGHT,
+            .wrap = (font == FNT_DEFAULT) ? WRAP_WORD : WRAP_ELLIPSES,
+            .style_id = STL_GRAY,
+        }, font, X0, SUBTITLE_Y, "%s", subtitle);
+    } else {
+        rdpq_text_printf(&(rdpq_textparms_t) {
+            .width = TITLE_WIDTH,
+            .height = TITLE_HEIGHT,
+            .wrap = WRAP_WORD,
+        }, title_font_pick(name, (TITLE_WIDTH * 2) - 32), X0, TITLE_Y, "%s", name);
+    }
+
+}
+
+/* The first two boxes: how often and how long it has been played, and when last. */
+static void draw_played (menu_t *menu, const char *path) {
+    time_t last = 0;
+    int plays = path ? play_stats_get(path, &last) : 0;
+
+    char played[24];
+    uint32_t seconds = path ? play_stats_seconds(path) : 0;
+    int minutes = (int) (seconds / 60);
+    if (plays <= 0) {
+        snprintf(played, sizeof(played), "Never");
+    } else if (minutes <= 0) {
+        snprintf(played, sizeof(played), (plays == 1) ? "1 time" : "%d times", plays);
+    } else if (minutes < 60) {
+        snprintf(played, sizeof(played), "%d\u00d7  %d min", plays, minutes);    /* times and time played */
+    } else if (minutes < 100 * 60) {
+        snprintf(played, sizeof(played), "%d\u00d7  %dh %02dm", plays, minutes / 60, minutes % 60);
+    } else {
+        snprintf(played, sizeof(played), "%d\u00d7  %d h", plays, minutes / 60);
+    }
+    char last_played[24];
+    format_last_played(last_played, sizeof(last_played), last, menu->current_time, plays);
+
+    draw_fact(0, "Played", played);
+    draw_fact(1, "Last played", last_played);
+}
+
 static bool known (const char *text) {
     return text && text[0] != '\0' && strcmp(text, "Not specified") != 0;
 }
@@ -450,7 +517,7 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
     rom_info_t *info = &menu->load.rom_info;
     surface_t *image = art_ready(art) ? art->image : NULL;
 
-    backdrop_update(menu, image, view->front_picture);
+    backdrop_update(menu->load.rom_path ? path_get(menu->load.rom_path) : NULL, image, view->front_picture);
     if (backdrop.buffer) {
         draw_backdrop(&backdrop);
     }
@@ -477,39 +544,7 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
             known(info->meta.author) ? info->meta.author : "");
     }
 
-    /* The name. "Series - Subtitle" is shown as the series in big letters
-       with the subtitle smaller underneath; any other name as big as fits
-       in two lines. */
-    const char *dash = strstr(view->name, " - ");
-    char series[96];
-    if (dash && dash > view->name && dash[3] != '\0' && (size_t) (dash - view->name) < sizeof(series)) {
-        memcpy(series, view->name, dash - view->name);
-        series[dash - view->name] = '\0';
-        const char *subtitle = dash + 3;
-
-        rdpq_text_printf(&(rdpq_textparms_t) {
-            .width = TITLE_WIDTH,
-            .height = TITLE_MAIN_HEIGHT,
-            .wrap = WRAP_ELLIPSES,
-        }, title_font_pick(series, TITLE_WIDTH - 16), X0, TITLE_Y, "%s", series);
-
-        int font = title_font_pick(subtitle, TITLE_WIDTH - 16);
-        if (font == FNT_TITLE) {
-            font = FNT_TITLE_MEDIUM; /* never as big as the series */
-        }
-        rdpq_text_printf(&(rdpq_textparms_t) {
-            .width = TITLE_WIDTH,
-            .height = SUBTITLE_HEIGHT,
-            .wrap = (font == FNT_DEFAULT) ? WRAP_WORD : WRAP_ELLIPSES,
-            .style_id = STL_GRAY,
-        }, font, X0, SUBTITLE_Y, "%s", subtitle);
-    } else {
-        rdpq_text_printf(&(rdpq_textparms_t) {
-            .width = TITLE_WIDTH,
-            .height = TITLE_HEIGHT,
-            .wrap = WRAP_WORD,
-        }, title_font_pick(view->name, (TITLE_WIDTH * 2) - 32), X0, TITLE_Y, "%s", view->name);
-    }
+    draw_title(view->name);
 
     /* Whether this copy is a known good dump (Card Prep's verified.txt). */
     const char *rom_path = menu->load.rom_path ? path_get(menu->load.rom_path) : NULL;
@@ -538,25 +573,7 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
     /* Played, last played, players. (The save type, TV region and release
        date boxes made way: the date moved up beside the maker, the other two
        can still be seen and changed under Options.) */
-    time_t last = 0;
-    int plays = menu->load.rom_path ? play_stats_get(path_get(menu->load.rom_path), &last) : 0;
-
-    char played[24];
-    uint32_t seconds = menu->load.rom_path ? play_stats_seconds(path_get(menu->load.rom_path)) : 0;
-    int minutes = (int) (seconds / 60);
-    if (plays <= 0) {
-        snprintf(played, sizeof(played), "Never");
-    } else if (minutes <= 0) {
-        snprintf(played, sizeof(played), (plays == 1) ? "1 time" : "%d times", plays);
-    } else if (minutes < 60) {
-        snprintf(played, sizeof(played), "%d\u00d7  %d min", plays, minutes);    /* times and time played */
-    } else if (minutes < 100 * 60) {
-        snprintf(played, sizeof(played), "%d\u00d7  %dh %02dm", plays, minutes / 60, minutes % 60);
-    } else {
-        snprintf(played, sizeof(played), "%d\u00d7  %d h", plays, minutes / 60);
-    }
-    char last_played[24];
-    format_last_played(last_played, sizeof(last_played), last, menu->current_time, plays);
+    draw_played(menu, menu->load.rom_path ? path_get(menu->load.rom_path) : NULL);
 
     /* Players: the count and how they play together, from the built-in
        table (game_data.c), else the game's metadata. */
@@ -570,8 +587,6 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
         snprintf(players, sizeof(players), "1");
     }
 
-    draw_fact(0, "Played", played);
-    draw_fact(1, "Last played", last_played);
     draw_fact(2, "Players", players);
 
     /* Description. This game's own switches are only mentioned when one
@@ -613,4 +628,57 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
         games_ui_hint_mark_draw(1, dump, dump_check_label(dump),
             (dump == DUMP_VERIFIED) ? STL_GREEN : (dump == DUMP_BAD) ? STL_RED : STL_ORANGE);
     }
+}
+
+void game_info_ui_draw_page (menu_t *menu, component_boxart_t *art, const game_info_page_t *page) {
+    surface_t *image = art_ready(art) ? art->image : NULL;
+
+    backdrop_update(page->path, image, page->front_picture);
+    if (backdrop.buffer) {
+        draw_backdrop(&backdrop);
+    }
+    draw_cover(image);
+
+    if (page->above && page->above[0]) {
+        rdpq_text_printf(&(rdpq_textparms_t) {
+            .width = TITLE_WIDTH,
+            .wrap = WRAP_ELLIPSES,
+            .style_id = STL_GRAY,
+        }, FNT_DEFAULT, X0, MAKER_Y + 14, "%s", page->above);
+    }
+    draw_title(page->name);
+
+    int x = X0 - 6;
+    for (int i = 0; i < GAME_INFO_PAGE_BADGES && page->badges[i]; i++) {
+        if (x < COVER_X - 120) {
+            x = games_ui_badge(x, BADGES_Y, page->badges[i], page->badge_styles[i], true);
+        }
+    }
+
+    draw_played(menu, page->path);
+    draw_fact(2, page->fact_caption ? page->fact_caption : "", page->fact_value ? page->fact_value : "");
+
+    fill(X0, DESC_Y, X1, DESC_Y + DESC_HEIGHT, panel_color());
+    draw_description((page->description && page->description[0]) ? page->description : "No description available.", DESC_HEIGHT - 30);
+
+    games_ui_hints_backdrop_draw();
+    x = games_ui_hint_draw(GAMES_UI_HINTS_X, 0, "A", page->a_hint ? page->a_hint : "Play");
+    games_ui_hint_draw(x, 0, "B", "Back");
+    x = GAMES_UI_HINTS_X;
+    if (page->r_hint) {
+        x = games_ui_hint_draw(x, 1, "R", page->r_hint);
+    }
+    if (page->z_hint) {
+        games_ui_hint_draw(x, 1, "Z", page->z_hint);
+    }
+    if (page->start_hint) {
+        games_ui_hint_right_draw(0, "START", page->start_hint);
+    }
+    if (page->pictures) {
+        games_ui_hint_right_draw(1, "◀▶", "Pictures");
+    }
+}
+
+void game_info_ui_format_date (char *out, size_t size, const char *text) {
+    format_date(out, size, text);
 }

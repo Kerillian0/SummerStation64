@@ -3,6 +3,9 @@
 #include "utils/fs.h"
 #include "../sound.h"
 #include "views.h"
+#include "../game_info_more.h"
+#include "../games_ui.h"
+#include "../play_stats.h"
 
 
 static const char *emu_nes_rom_extensions[] = { "nes", NULL };
@@ -45,22 +48,37 @@ static char *format_emulator_name (cart_load_emu_type_t emulator_info) {
 
 
 static void process (menu_t *menu) {
+    if (game_info_more_details_showing()) {   // the details pop-up: START or B closes it
+        if (menu->actions.settings || menu->actions.back) {
+            game_info_more_details(false);
+            sound_play_effect(SFX_EXIT);
+        }
+        return;
+    }
     if (menu->actions.enter) {
         menu->load_pending.emulator_file = true;
     } else if (menu->actions.back) {
         sound_play_effect(SFX_EXIT);
-        menu->next_mode = MENU_MODE_BROWSER;
+        menu->next_mode = games_ui_origin(); // back to the tab this was opened from
+    } else if (menu->actions.settings) {
+        game_info_more_details(true);
+        sound_play_effect(SFX_SETTING);
+    } else if (menu->actions.go_left || menu->actions.go_right) {
+        game_info_more_pictures(menu);    // the front or back of the box
     }
 }
 
 static void draw (menu_t *menu, surface_t *d) {
     rdpq_attach(d, NULL);
 
-    ui_components_background_draw();
+    if (!game_info_more_backdrop_ready() || menu->load_pending.emulator_file) ui_components_background_draw(); // the backdrop covers the whole screen
 
     if (menu->load_pending.emulator_file) {
         ui_components_loader_draw(0.0f, NULL);
     } else {
+#if 1 // laid out like an N64 game's info (game_info_more.c); set to 0 for the stock page
+        game_info_more_draw_retro(menu, format_emulator_name(emu_type));
+#else
         ui_components_layout_draw();
 
         ui_components_main_text_draw(
@@ -86,6 +104,7 @@ static void draw (menu_t *menu, surface_t *d) {
             "A: Load and run Emulated ROM\n"
             "B: Exit"
         );
+#endif
     }
 
     rdpq_detach_show();
@@ -112,6 +131,11 @@ static void load (menu_t *menu) {
         menu_show_error(menu, cart_load_convert_error_message(err));
         return;
     }
+
+    path_t *played = path_clone_push(menu->browser.directory, menu->browser.entry->name);
+    play_stats_record(path_get(played), menu->current_time); // times played and time played, as for cartridges
+    path_free(played);
+    game_info_more_close();
 
     menu->next_mode = MENU_MODE_BOOT;
     menu->boot_params->device_type = BOOT_DEVICE_TYPE_ROM;
@@ -149,6 +173,7 @@ void view_load_emulator_init (menu_t *menu) {
         menu_show_error(menu, "Unsupported ROM");
     }
 
+    game_info_more_open_retro(menu, path_get(path));
     path_free(path);
 }
 
@@ -160,5 +185,9 @@ void view_load_emulator_display (menu_t *menu, surface_t *display) {
     if (menu->load_pending.emulator_file) {
         menu->load_pending.emulator_file = false;
         load(menu);
+    }
+
+    if (menu->next_mode != MENU_MODE_LOAD_EMULATOR) {
+        game_info_more_close();     // the pictures and text go with the screen
     }
 }
