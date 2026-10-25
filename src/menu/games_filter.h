@@ -79,6 +79,9 @@ void games_filter_shelf (menu_t *menu, bool homebrew, bool list_loaded);
  */
 void games_filter_collection (menu_t *menu, int which, bool list_loaded);
 
+/** The player changed a collection of their own: work the collections out again (shows at once in an open one). */
+void games_filter_collections_changed (menu_t *menu);
+
 /**
  * How many covers a collection has with the current folding (Game Versions,
  * Region Copies), putting the first `most` of them, in list order, in `out`.

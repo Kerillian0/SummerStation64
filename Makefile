@@ -88,6 +88,8 @@ SRCS = \
 	menu/letter_wheel.c \
 	menu/collections.c \
 	menu/collections_ui.c \
+	menu/my_collections.c \
+	menu/collection_edit.c \
 	menu/box3d.c \
 	menu/box_motion.c \
 	menu/hack_games.c \

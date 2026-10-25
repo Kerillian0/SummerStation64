@@ -11,7 +11,7 @@
  *
  * The three covers are the only memory it uses (about 105 KB), loaded once
  * the selection rests and only while there is room; freed when the tab or
- * the card changes.
+ * the card changes. Z opens the card's Options.
  */
 
 #ifndef COLLECTIONS_UI_H__
@@ -26,6 +26,7 @@ typedef enum {
     COLLECTIONS_UI_TAB_LEFT,    /**< L: the tab before */
     COLLECTIONS_UI_TAB_RIGHT,   /**< R: the tab after */
     COLLECTIONS_UI_SETTINGS,    /**< START: the START menu */
+    COLLECTIONS_UI_OPTIONS,     /**< Z: the card's Options (new collection; rename and delete the player's own) */
 } collections_ui_action_t;
 
 /** Read this frame's buttons on the row of cards. */

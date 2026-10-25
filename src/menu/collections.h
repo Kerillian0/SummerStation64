@@ -9,6 +9,9 @@
  * 4 Players, Co-op, Versus) come from the game data (game_data.h). Only
  * collections with a game on the card are offered.
  *
+ * The player's own collections (my_collections.h) come first, newest
+ * first, also while still empty.
+ *
  * Which collections each game is in is worked out when the Games list loads
  * (one bit each, by entry->index), from what the game list already knows,
  * so nothing is read from the card. A game not looked up yet is in none
@@ -22,7 +25,7 @@
 #include "menu_state.h"
 
 /** Most collections there can be at once. */
-#define COLLECTIONS_MAX     (32)
+#define COLLECTIONS_MAX     (64)
 
 /** Work out every game's collections, for the whole Games list (shown and hidden). */
 void collections_build (menu_t *menu);
@@ -42,6 +45,9 @@ int collections_id (int place);
 
 /** A collection's name, by number, e.g. "The Legend of Zelda" or "4 Players". */
 const char *collections_name (int id);
+
+/** The place of the player's own collection with this number (my_collections.h), or -1 for a built-in one. */
+int collections_mine (int id);
 
 /** True if this entry of the Games list is in the collection with this number. */
 bool collections_has (int id, const entry_t *e);

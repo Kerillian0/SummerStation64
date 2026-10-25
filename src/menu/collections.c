@@ -12,6 +12,7 @@
 #include "game_data.h"
 #include "game_index.h"
 #include "games_filter.h"
+#include "my_collections.h"
 #include "path.h"
 
 #define SERIES_PATH     "rom:/series.txt"
@@ -35,12 +36,15 @@ enum { MULTI_TWO, MULTI_FOUR, MULTI_COOP, MULTI_VERSUS, MULTI_COUNT };
 static const char *const multi_names[MULTI_COUNT] = { "2+ Players", "4 Players", "Co-op", "Versus" };
 
 /* Every collection that could be offered, by number: the series, then the
-   multiplayer ones. `offered` lists those with games, in order. */
-#define ALL_COLLECTIONS (SERIES_MAX + MULTI_COUNT)
+   multiplayer ones, then the player's own (my_collections.h). `offered`
+   lists the ones to show, in order: the player's own (newest first, even
+   while empty), then those of the others that have games. */
+#define MINE_FIRST      (SERIES_MAX + MULTI_COUNT)
+#define ALL_COLLECTIONS (MINE_FIRST + MY_COLLECTIONS_MAX)
 static int offered[COLLECTIONS_MAX];
 static int offered_count = 0;
 
-static uint32_t *member = NULL;     /* by entry->index: one bit per collection, by its number */
+static uint64_t *member = NULL;     /* by entry->index: one bit per collection, by its number */
 static int member_count = 0;
 
 static void load_series (void) {
@@ -121,10 +125,8 @@ void collections_build (menu_t *menu) {
     if (all <= 0) {
         return;
     }
-    uint64_t *in = calloc(all, sizeof(uint64_t));
-    member = calloc(all, sizeof(uint32_t));
-    if (!in || !member) {
-        free(in);
+    member = calloc(all, sizeof(uint64_t));
+    if (!member) {
         collections_forget();
         return;
     }
@@ -133,28 +135,29 @@ void collections_build (menu_t *menu) {
     uint64_t used = 0;
     for (int i = 0; i < all; i++) {
         entry_t *e = &menu->browser.list[i];
-        if (e->type != ENTRY_TYPE_ROM || e->index < 0 || e->index >= all) {
+        if (e->index < 0 || e->index >= all || (e->type != ENTRY_TYPE_ROM && e->type != ENTRY_TYPE_DISK && e->type != ENTRY_TYPE_EMULATOR)) {
             continue;
         }
         path_t *path = path_clone_push(menu->browser.directory, e->name);
-        const game_index_entry_t *known = game_index_find(path_get(path), e->size);
+        uint64_t in = (uint64_t) my_collections_of(path_get(path)) << MINE_FIRST;   /* any game the player put there */
+        const game_index_entry_t *known = (e->type == ENTRY_TYPE_ROM) ? game_index_find(path_get(path), e->size) : NULL;
         path_free(path);
         if (known && !game_index_is_homebrew(known->code)) {
-            in[e->index] = collections_of(known->code, known->players);
-            used |= in[e->index];
+            in |= collections_of(known->code, known->players);
         }
+        member[e->index] = in;
+        used |= in;
     }
 
-    /* Offer the ones with games: the series in the list's order, then the multiplayer ones. */
-    for (int c = 0; c < ALL_COLLECTIONS && offered_count < COLLECTIONS_MAX; c++) {
+    /* The player's own first, newest first; then the others with games: the series in the list's order, then the multiplayer ones. */
+    for (int k = my_collections_count() - 1; k >= 0 && offered_count < COLLECTIONS_MAX; k--) {
+        offered[offered_count++] = MINE_FIRST + k;
+    }
+    for (int c = 0; c < MINE_FIRST && offered_count < COLLECTIONS_MAX; c++) {
         if ((c < series_count || c >= SERIES_MAX) && (used & (1ull << c))) {
             offered[offered_count++] = c;
         }
     }
-    for (int i = 0; i < all; i++) {
-        member[i] = (uint32_t) in[i];
-    }
-    free(in);
     debugf("collections: %d with games\n", offered_count);
 }
 
@@ -170,13 +173,20 @@ const char *collections_name (int id) {
     if (id >= 0 && id < series_count) {
         return series_names[id];
     }
-    if (id >= SERIES_MAX && id < ALL_COLLECTIONS) {
+    if (id >= SERIES_MAX && id < MINE_FIRST) {
         return multi_names[id - SERIES_MAX];
+    }
+    if (id >= MINE_FIRST && id < ALL_COLLECTIONS) {
+        return my_collections_name(id - MINE_FIRST);
     }
     return "";
 }
 
+int collections_mine (int id) {
+    return (id >= MINE_FIRST && id < MINE_FIRST + my_collections_count()) ? (id - MINE_FIRST) : -1;
+}
+
 bool collections_has (int id, const entry_t *e) {
     return member && e && id >= 0 && id < ALL_COLLECTIONS && e->index >= 0 && e->index < member_count
-        && (member[e->index] & (1u << id));
+        && (member[e->index] & (1ull << id));
 }

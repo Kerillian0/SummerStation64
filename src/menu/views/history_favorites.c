@@ -5,6 +5,8 @@
 #include "../ui_components/constants.h"
 #include "../sound.h"
 #include "../hidden_games.h"
+#include "../collection_edit.h"
+#include "../letter_wheel.h"
 #include "views.h"
 #include "../controls.h"
 #include "../display_name.h"
@@ -37,14 +39,16 @@ static void row_ask_remove (menu_t *menu, void *arg) {
 static void row_ask_hide (menu_t *menu, void *arg) {
     confirm_hide = true;
 }
+static void row_add_to_collection (menu_t *menu, void *arg);
 static component_context_menu_t row_context_menu = { .list = {
     { .text = "Random game", .action = row_random },
+    { .text = "Add to collection...", .action = row_add_to_collection },
     { .text = "Hide this game", .action = row_ask_hide },
     { .text = "Remove from Favorites", .action = row_ask_remove },
     COMPONENT_CONTEXT_MENU_LIST_END,
 }};
 static void row_menu_show (bool favorites) {
-    row_context_menu.list[2].text = favorites ? "Remove from Favorites" : NULL;   // the list ends at the first row without text
+    row_context_menu.list[3].text = favorites ? "Remove from Favorites" : NULL;   // the list ends at the first row without text
     ui_components_context_menu_init(&row_context_menu);     // counts the rows
     ui_components_context_menu_show(&row_context_menu);
 }
@@ -53,6 +57,13 @@ static bookkeeping_tab_context_t tab_context = BOOKKEEPING_TAB_CONTEXT_NONE;
 static int selected_item = -1;
 static bookkeeping_item_t *item_list;
 static uint16_t item_max = 0;
+
+// Put the selected game in the player's own collections (collection_edit.h).
+static void row_add_to_collection (menu_t *menu, void *arg) {
+    if (selected_item != -1) {
+        collection_edit_pick(path_get(item_list[selected_item].primary_path));
+    }
+}
 
 
 static void item_reset_selected(menu_t *menu) {
@@ -104,6 +115,9 @@ static void process(menu_t *menu) {
         return; // the START menu is open
     }
 
+    if (collection_edit_process(menu)) {
+        return; // putting the game in collections, or naming a new one
+    }
     if (COVER_ROWS && ui_components_context_menu_process(menu, &row_context_menu)) {
         return; // the Options menu is open
     }
@@ -253,6 +267,8 @@ static void draw(menu_t *menu, surface_t *display) {
         }
         games_ui_hint_right_draw(0, "START", "Settings");
         ui_components_context_menu_draw(&row_context_menu);
+        letter_wheel_draw();    // naming a new collection
+        collection_edit_draw();
         start_menu_draw();
         if (confirm_hide && selected_item != -1) {
             ui_components_messagebox_draw(

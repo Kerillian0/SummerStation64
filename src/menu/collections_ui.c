@@ -102,6 +102,9 @@ collections_ui_action_t collections_ui_process (menu_t *menu) {
     if (menu->actions.settings) {
         return COLLECTIONS_UI_SETTINGS;
     }
+    if (pressed.z) {
+        return COLLECTIONS_UI_OPTIONS;
+    }
     if (count <= 0) {
         return COLLECTIONS_UI_NONE;
     }
@@ -218,8 +221,10 @@ void collections_ui_draw (menu_t *menu) {
         name_text(GAMES_UI_CONTENT_X0, 100, DISPLAY_WIDTH - (2 * GAMES_UI_CONTENT_X0), 200, STL_GRAY,
             "No collections yet.\n\n"
             "Collections are series (The Legend of Zelda, Mario Party, ...) and multiplayer games. "
-            "The menu finds them as it learns your games, while the Games tab sits idle.");
+            "The menu finds them as it learns your games, while the Games tab sits idle. "
+            "Press Z to make one of your own.");
         games_ui_hints_backdrop_draw();
+        games_ui_hint_draw(GAMES_UI_HINTS_X, 1, "Z", "New collection");
         games_ui_hint_right_draw(0, "START", "Settings");
         return;
     }
@@ -261,5 +266,6 @@ void collections_ui_draw (menu_t *menu) {
 
     games_ui_hints_backdrop_draw();
     games_ui_hint_draw(GAMES_UI_HINTS_X, 0, "A", "Open");
+    games_ui_hint_draw(GAMES_UI_HINTS_X, 1, "Z", "Options");
     games_ui_hint_right_draw(0, "START", "Settings");
 }

@@ -41,4 +41,19 @@ void letter_wheel_draw (void);
 /** Close it without drawing again (the list is being freed or the screen left). */
 void letter_wheel_close (void);
 
+/**
+ * Spell a name with the dial (a new collection's, for one): it stays open
+ * by itself until START keeps the name (in Title Case) or B with nothing
+ * left gives up, and then calls `done` with the name, or NULL.
+ * @param prompt Shown above the name ("New collection").
+ * @param start The name to start from, or NULL.
+ */
+void letter_wheel_name_begin (const char *prompt, const char *start, void (*done) (menu_t *menu, const char *name));
+
+/** True while a name is being spelled: the screen hands its buttons to letter_wheel_name_process(). */
+bool letter_wheel_naming (void);
+
+/** Read this frame's buttons while naming. */
+void letter_wheel_name_process (menu_t *menu);
+
 #endif /* LETTER_WHEEL_H__ */

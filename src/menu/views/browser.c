@@ -28,6 +28,8 @@
 #include "../hidden_games.h"
 #include "../letter_wheel.h"
 #include "../collections_ui.h"
+#include "../collections.h"
+#include "../collection_edit.h"
 #include "../game_learn.h"
 #include "../sort_order.h"
 #include "../menu_options.h"
@@ -884,12 +886,54 @@ static void folders_hide (menu_t *menu, void *arg) {
     path_free(path);
 }
 
+// The player's own collections (my_collections.h, collection_edit.h): Z on a
+// game puts it in or out of them; inside one of them, Z can take it out.
+static void add_to_collection (menu_t *menu, void *arg) {
+    path_t *path = path_clone_push(menu->browser.directory, menu->browser.entry->name);
+    collection_edit_pick(path_get(path));
+    path_free(path);
+}
+
+static void remove_from_collection (menu_t *menu, void *arg) {
+    path_t *path = path_clone_push(menu->browser.directory, menu->browser.entry->name);
+    collection_edit_remove(menu, collections_mine(collection_open), path_get(path));
+    path_free(path);
+}
+
+// Z on the Collections tab's cards: a new collection; rename or delete the player's own.
+static void card_new (menu_t *menu, void *arg) {
+    collection_edit_new();
+}
+static void card_rename (menu_t *menu, void *arg) {
+    collection_edit_rename(collections_mine(collections_ui_selected()));
+}
+static void card_delete (menu_t *menu, void *arg) {
+    collection_edit_delete(collections_mine(collections_ui_selected()));
+}
+static component_context_menu_t card_menu = {
+    .row_selected = -1,     // hidden until shown
+    .list = {
+        { .text = "New collection", .action = card_new },
+        { .text = "Rename", .action = card_rename },
+        { .text = "Delete collection", .action = card_delete },
+        COMPONENT_CONTEXT_MENU_LIST_END,
+    }
+};
+static void card_menu_show (void) {
+    bool mine = collections_mine(collections_ui_selected()) >= 0;
+    card_menu.list[1].text = mine ? "Rename" : NULL;    // the list ends at the first row without text
+    ui_components_context_menu_init(&card_menu);
+    ui_components_context_menu_show(&card_menu);
+}
+
 // Every row the Options menu can have. entry_menu_fill() copies the ones
 // that suit the tab into entry_context_menu each time it is opened.
 static component_context_menu_t entry_menu_rows = {
     .list = {
         { .text = "Random game", .action = random_game },
         { .text = "Game info", .action = show_game_info },
+        { .text = "Add to collection...", .action = add_to_collection },
+        { .text = "Remove from this collection", .action = remove_from_collection },
         { .text = "Hide this game", .action = hide_game },
         { .text = "Hide this game", .action = folders_hide },
         { .text = "Show entry properties", .action = show_properties },
@@ -907,6 +951,8 @@ static component_context_menu_t entry_context_menu = {
     .list = {
         { .text = "Random game", .action = random_game },
         { .text = "Game info", .action = show_game_info },
+        { .text = "Add to collection...", .action = add_to_collection },
+        { .text = "Remove from this collection", .action = remove_from_collection },
         { .text = "Hide this game", .action = hide_game },
         { .text = "Hide this game", .action = folders_hide },
         { .text = "Show entry properties", .action = show_properties },
@@ -937,6 +983,10 @@ static void entry_menu_fill (menu_t *menu) {
         }
         if ((row.action == hide_game && (folders_tab || !game)) || (row.action == folders_hide && (!folders_tab || !game))) {
             continue;   // hiding: from a cover, or a game in the Folders tab
+        }
+        if ((row.action == add_to_collection && (folders_tab || !game))
+            || (row.action == remove_from_collection && !(collections_tab && game && collections_mine(collection_open) >= 0))) {
+            continue;   // collections: games on a cover tab; taking out, inside the player's own collection
         }
         if (row.action == folders_hide && hidden) {
             row.text = "Unhide this game";
@@ -1085,6 +1135,12 @@ static void browser_step_tab (menu_t *menu, int direction) {
 }
 
 static void process (menu_t *menu) {
+    if (collection_edit_process(menu)) {
+        return;     // putting a game in collections, naming one, or deleting one
+    }
+    if (ui_components_context_menu_process(menu, &card_menu)) {
+        return;     // the Collections tab's card Options
+    }
     if (ui_components_context_menu_process(menu, menu->browser.archive ? &archive_context_menu : &entry_context_menu)) {
         return;
     }
@@ -1119,6 +1175,10 @@ static void process (menu_t *menu) {
             case COLLECTIONS_UI_TAB_RIGHT: browser_step_tab(menu, 1); break;
             case COLLECTIONS_UI_SETTINGS:
                 ui_components_context_menu_show(&settings_context_menu);
+                sound_play_effect(SFX_SETTING);
+                break;
+            case COLLECTIONS_UI_OPTIONS:
+                card_menu_show();
                 sound_play_effect(SFX_SETTING);
                 break;
             default: break;
@@ -1908,10 +1968,13 @@ static void draw (menu_t *menu, surface_t *d) {
                 .valign = VALIGN_CENTER,
                 .wrap = WRAP_WORD,
                 .style_id = STL_GRAY,
-            }, FNT_DEFAULT, GAMES_UI_CONTENT_X0, 100,
-                "No games found.\n\n"
-                "Open the Folders tab, go to a folder with games, press Z "
-                "and choose \"Add this folder to Games\".");
+            }, FNT_DEFAULT, GAMES_UI_CONTENT_X0, 100, "%s",
+                collections_tab
+                ? "This collection is empty.\n\n"
+                  "On any game, press Z and choose \"Add to collection...\". Tap B to go back to the collections."
+                : "No games found.\n\n"
+                  "Open the Folders tab, go to a folder with games, press Z "
+                  "and choose \"Add this folder to Games\".");
         }
     }
 #else
@@ -1970,7 +2033,9 @@ static void draw (menu_t *menu, surface_t *d) {
     ui_components_context_menu_draw(&settings_context_menu);
 
     note_draw(); // "Added..." after a folder is added to Games
-    letter_wheel_draw();    // Z held: the letter dial over the covers
+    letter_wheel_draw();    // Z held: the letter dial over the covers (or naming a collection)
+    ui_components_context_menu_draw(&card_menu);
+    collection_edit_draw(); // the list of the player's collections, or "Delete this collection?"
     ui_components_context_menu_draw(&hide_menu);
     if (hide_count == 1) {
         ui_components_messagebox_draw("Hide from the cover tabs?\n\n%s\n\nA: Hide    B: Keep\nZ in the Folders tab unhides it.",
@@ -2009,6 +2074,7 @@ void view_browser_init (menu_t *menu) {
         ui_components_context_menu_init(&settings_context_menu);
         ui_components_context_menu_init(&versions_menu);       // empty, so hidden
         ui_components_context_menu_init(&hide_menu);
+        ui_components_context_menu_init(&card_menu);
         hide_count = 0;
         if (load_directory(menu)) {
             path_free(menu->browser.directory);

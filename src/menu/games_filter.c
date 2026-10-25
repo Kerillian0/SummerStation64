@@ -517,6 +517,16 @@ void games_filter_collection (menu_t *menu, int which, bool list_loaded) {
     }
 }
 
+void games_filter_collections_changed (menu_t *menu) {
+    if (total <= 0 || !marks) {
+        return;     /* the Games list isn't loaded: its next load works them out */
+    }
+    collections_build(menu);
+    if (current == FILTER_COLLECTION) {
+        reapply(menu);
+    }
+}
+
 int games_filter_collection_covers (menu_t *menu, int which, entry_t **out, int most) {
     int n = 0;
     int saved = collection;
