@@ -9,7 +9,7 @@ const path = require('path');
 const html = fs.readFileSync(path.join(__dirname, '..', 'docs', 'companion', 'index.html'), 'utf8');
 const a = html.indexOf('// --- art logic'), b = html.indexOf('// --- end art logic ---');
 if (a < 0 || b < 0) throw new Error('Could not find the logic block in the Missing Art tab; did it change?');
-const t = new Function(html.slice(a, b) + 'return {parseMissingArt, fitInside, shortDesc, authorWith, mergeIni, artTarget, detailsPath, retroFolder, diskIdOf, detailsLacking, parseMetadat, crcCandidates, libretroDate, matchName, launchboxGames, mainName, launchboxMatch, faceFrame, fitLayout, otherEdges};')();
+const t = new Function(html.slice(a, b) + 'return {parseMissingArt, fitInside, shortDesc, authorWith, mergeIni, artTarget, detailsPath, retroFolder, diskIdOf, detailsLacking, parseMetadat, crcCandidates, libretroDate, matchName, launchboxGames, mainName, launchboxMatch, faceFrame, fitLayout, otherEdges, cardTopOf};')();
 
 let checks = 0, failures = 0;
 function check(cond, what) {
@@ -32,6 +32,22 @@ check(games[0].folder === 'N/D/Z/J' && games[0].kind === 'game' && games[0].lack
 check(games[1].folder === 'homebrew/the_big_fix' && games[1].lacks.length === 4, 'homebrew by title, Windows line end');
 check(games[2].file === 'Hacks/Zelda\twith a tab.z64', 'a file name holding a tab stays whole');
 check(t.parseMissingArt('hacks 1\n') === null, 'another file is not taken for the report');
+
+console.log('Where the card\'s top is, from a plain folder upload (Firefox)');
+let top = t.cardTopOf(['SD/menu/missingart.txt', 'SD/N64(US)/Mario.z64']);
+check(top.prefix === 'SD/' && !top.menuOnly, 'the card picked: its name comes first');
+top = t.cardTopOf(['E:/SD/menu/config.ini', 'E:/SD/N64/x.z64']);
+check(top.prefix === 'E:/SD/', 'more than one folder before menu/');
+top = t.cardTopOf(['menu/missingart.txt', 'N64/x.z64']);
+check(top.prefix === '' && !top.menuOnly, 'nothing before menu/');
+top = t.cardTopOf(['menu/missingart.txt', 'menu/metadata/N/S/M/E/boxart_front.png']);
+check(top.prefix === '' && !top.menuOnly, 'the menu folder named first is the card\'s, not the picked one');
+top = t.cardTopOf(['Backups/menu/config.ini', 'Backups/othermenu/config.ini']);
+check(top.prefix === 'Backups/', 'a folder merely ending in "menu" is not the menu folder');
+top = t.cardTopOf(['mymenu/missingart.txt', 'mymenu/metadata/a.png']);
+check(top.prefix === 'mymenu/' && top.menuOnly, 'the menu folder picked: the report sits right inside it');
+top = t.cardTopOf(['SD/N64/x.z64']);
+check(top.prefix === 'SD/' && !top.menuOnly, 'no report anywhere: the first folder, as before');
 
 console.log('Pictures and text');
 let f = t.fitInside(316, 44);

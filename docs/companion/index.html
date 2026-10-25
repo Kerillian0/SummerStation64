@@ -4168,6 +4168,26 @@ function launchboxMatch(fileName, games) {
 // Game Boy and Game Boy Color games are often listed under the other (a
 // Game Boy game with Color extras, kept as .gbc): look in both.
 var ALSO_LISTED = { gb: 'gbc', gbc: 'gb' };
+// Where the card's top is among the paths a plain folder upload gives
+// ("Card/menu/missingart.txt"; browsers differ in what comes first): the part
+// before menu/missingart.txt (or menu/config.ini), else the folder holding
+// missingart.txt itself when the menu folder was picked, else the first folder.
+function cardTopOf(paths) {
+  var best = null;
+  paths.forEach(function (p) {
+    var m = /^(.*?)menu\/(missingart\.txt|config\.ini)$/i.exec(p);
+    if (m && (m[1] === '' || m[1].slice(-1) === '/') && (best === null || m[1].length < best.length)) best = m[1];
+  });
+  if (best !== null) return { prefix: best, menuOnly: false };
+  paths.forEach(function (p) {
+    var m = /^(.*\/)?missingart\.txt$/i.exec(p);
+    if (m && (best === null || (m[1] || '').length < best.length)) best = m[1] || '';
+  });
+  if (best !== null) return { prefix: best, menuOnly: true };
+  var first = paths.length && paths[0].indexOf('/') >= 0 ? paths[0].slice(0, paths[0].indexOf('/') + 1) : '';
+  return { prefix: first, menuOnly: false };
+}
+
 // --- end art logic ---
 
 var T = window.cardTools;
@@ -4281,14 +4301,47 @@ function missingText(lacks) {
   return lacks.map(function (l) { return words[l] || l; }).join(', ');
 }
 
-async function cardChosen(root, menuFiles, all, files) {
-  card = { root: root, menuFiles: menuFiles, all: all || [], files: files || new Map(), games: [] };
+function esc(text) {
+  return String(text).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; });
+}
+
+// The card's menu folder picked instead of the top of the card: it stands in
+// for the top, with "menu" leading back to itself and nothing else there.
+function menuAsTop(menuDir) {
+  function none() { return Promise.reject(new DOMException('not in the menu folder', 'NotFoundError')); }
+  return {
+    name: menuDir.name,
+    getDirectoryHandle: function (name, options) { return name.toLowerCase() === 'menu' ? Promise.resolve(menuDir) : none(); },
+    getFileHandle: none,
+    entries: async function* () {}
+  };
+}
+async function holdsReport(dir) {
+  try { await dir.getFileHandle('missingart.txt'); return true; } catch (e) { return false; }
+}
+async function hasMenu(dir) {
+  try { await dir.getDirectoryHandle('menu'); return true; } catch (e) { return false; }
+}
+
+async function cardChosen(root, menuFiles, all, files, picked) {
+  var menuOnly = false;
+  if (root) {
+    picked = root.name;
+    if (!(await hasMenu(root)) && (root.name.toLowerCase() === 'menu' || await holdsReport(root))) {
+      root = menuAsTop(root);
+      menuOnly = true;
+    }
+  } else if (menuFiles) {
+    menuOnly = !!files && files.menuOnly;
+  }
+  card = { root: root, menuFiles: menuFiles, all: all || [], files: files || new Map(), games: [], menuOnly: menuOnly };
   changes.clear();
   closeEditor();
   $('artCardStatus').textContent = 'Reading the card...';
   var text = await cardText(ART_REPORT), note = '';
   if (text === null) {
-    note = '<span class="bad">No menu/missingart.txt on this card</span>, so N64 games aren\'t listed: on the console, open Settings &gt; Library &gt; Find Missing Metadata, then pick the card again. ';
+    note = '<span class="bad">No menu/missingart.txt in "' + esc(picked || '?') + '"</span>, so N64 games aren\'t listed. Pick the top folder of the SD card (the one holding the <b>menu</b> folder). ' +
+      'If it isn\'t there either: on the console, open Settings &gt; Library &gt; Find Missing Metadata, then pick the card again. ';
   } else {
     var parsed = parseMissingArt(text);
     if (!parsed) {
@@ -4300,9 +4353,11 @@ async function cardChosen(root, menuFiles, all, files) {
         (made ? ', listed ' + new Date(made).toLocaleString() : '') + '. ';
     }
   }
-  var extra = await extraGames();
+  var extra = menuOnly ? [] : await extraGames();
   card.games = card.games.concat(extra);
-  $('artCardStatus').innerHTML = note + '<b>' + extra.length + '</b> 64DD, NES, SNES or Game Boy game' + (extra.length === 1 ? '' : 's') + ' missing something.' +
+  $('artCardStatus').innerHTML = note + (menuOnly
+      ? 'This is the <b>menu</b> folder, so 64DD, NES, SNES and Game Boy games can\'t be found: pick the top of the card to list them too.'
+      : '<b>' + extra.length + '</b> 64DD, NES, SNES or Game Boy game' + (extra.length === 1 ? '' : 's') + ' missing something.') +
     (root ? '' : ' This browser can\'t write to the card: you\'ll get a .zip to copy.');
   $('artLibretro').disabled = !card.games.some(isRetro);
   $('artLaunchbox').disabled = !card.games.length;
@@ -4478,14 +4533,19 @@ $('artPick').addEventListener('click', async function () {
   }
 });
 $('artPickOld').addEventListener('change', function () {
-  var menuFiles = new Map(), all = [], disks = new Map();
-  Array.prototype.forEach.call(this.files, function (f) {
-    var path = f.webkitRelativePath.split('/').slice(1).join('/');
+  var menuFiles = new Map(), all = [], disks = new Map(), list = Array.prototype.slice.call(this.files);
+  var full = list.map(function (f) { return f.webkitRelativePath || f.name; });
+  var top = cardTopOf(full);
+  var picked = full.length ? full[0].split('/')[0] : '';
+  disks.menuOnly = top.menuOnly;
+  list.forEach(function (f, i) {
+    if (full[i].slice(0, top.prefix.length).toLowerCase() !== top.prefix.toLowerCase()) return;
+    var path = (top.menuOnly ? 'menu/' : '') + full[i].slice(top.prefix.length);
     all.push(path);
     if (/^menu\//i.test(path) || /\.metadata\.ini$/i.test(path)) menuFiles.set(path.toLowerCase(), f);
     if (/\.ndd$/i.test(path) || retroFolder(path)) disks.set(path.toLowerCase(), f);   // read for disk IDs and libretro's CRCs
   });
-  cardChosen(null, menuFiles, all, disks);
+  cardChosen(null, menuFiles, all, disks, picked);
 });
 
 function button(text, quiet, onClick) {
