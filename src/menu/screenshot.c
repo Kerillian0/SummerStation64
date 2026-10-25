@@ -123,15 +123,15 @@ static void picture_line (int y, uint8_t *rgb, void *context) {
     }
 }
 
-static bool write_png (const char *path, surface_t *display) {
+bool screenshot_write (const char *path, surface_t *display, bool half, bool smooth) {
     int width = display->width, height = display->height;
     if (width > SHOT_PNG_MAX_WIDTH || surface_get_format(display) != FMT_RGBA16) {
         return false;
     }
     source_t s = {
         .display = display,
-        .half = options_get(OPTION_SHOT_SIZE) == SCREENSHOT_HALF,
-        .smooth = options_get(OPTION_SHOT_DITHER) != SCREENSHOT_EXACT,
+        .half = half,
+        .smooth = smooth,
         .sum_line = { -1, -1, -1, -1 },
     };
     int out_width = s.half ? width / 2 : width;
@@ -190,7 +190,7 @@ void screenshot_after_frame (surface_t *display) {
     wanted = false;
     uint64_t began = get_ticks_ms();
 
-    if (!directory_exists(FOLDER) && !directory_create(FOLDER)) {
+    if (!directory_exists(FOLDER) && directory_create(FOLDER)) {     /* it returns true when it fails */
         debugf("screenshot: could not make %s\n", FOLDER);
         sound_play_effect(SFX_ERROR);
         return;
@@ -200,7 +200,9 @@ void screenshot_after_frame (surface_t *display) {
         snprintf(path, sizeof(path), FOLDER "/shot%04d.png", ++last_number);
     } while (file_exists(path) && last_number < 9999);
 
-    if (!write_png(TEMP_PATH, display) || !safe_file_replace(TEMP_PATH, path)) {
+    bool half = options_get(OPTION_SHOT_SIZE) == SCREENSHOT_HALF;
+    bool smooth = options_get(OPTION_SHOT_DITHER) != SCREENSHOT_EXACT;
+    if (!screenshot_write(TEMP_PATH, display, half, smooth) || !safe_file_replace(TEMP_PATH, path)) {
         debugf("screenshot: could not save %s\n", path);
         sound_play_effect(SFX_ERROR);
         return;

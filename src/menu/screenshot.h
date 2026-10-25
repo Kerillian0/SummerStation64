@@ -31,6 +31,13 @@ bool screenshot_button (joypad_port_t port, joypad_buttons_t *pressed);
 const char *screenshot_size_name (int value);
 const char *screenshot_dither_name (int value);
 
+/**
+ * Write the frame just drawn as a PNG (also used for clips, clip.h).
+ * @param half 320 x 240 instead of 640 x 480.
+ * @param smooth Even out the 16-bit dither.
+ */
+bool screenshot_write (const char *path, surface_t *display, bool half, bool smooth);
+
 /** Called once a frame has been drawn: saves it if a screenshot was asked for. */
 void screenshot_after_frame (surface_t *display);
 

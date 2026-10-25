@@ -16,6 +16,7 @@
 #include "../games_filter.h"
 #include "../region_pick.h"
 #include "../screenshot.h"
+#include "../clip.h"
 #include "../art_report.h"
 #include "../hidden_games.h"
 #include "../box_motion.h"
@@ -75,6 +76,8 @@ typedef struct {
     { .label = text, .help = about, .type = ITEM_CHOICE, .option = id, .choice_count = count, .choice_name = names, .changed = hook }
 #define ACTION(text, func, about) \
     { .label = text, .help = about, .type = ITEM_ACTION, .action = func }
+#define ACTION_INFO(text, func, info_func, about) \
+    { .label = text, .help = about, .type = ITEM_ACTION, .action = func, .info = info_func }
 #define INFO(text, func, about) \
     { .label = text, .help = about, .type = ITEM_INFO, .info = func }
 #define COUNT(list) ((int) (sizeof(list) / sizeof(list[0])))
@@ -236,6 +239,10 @@ static void show_hidden_games (menu_t *menu) {
     menu->browser.reload = true;    // the Games list reads them again
 }
 
+static const char *clip_status_info (menu_t *menu) {
+    return clip_status(menu);
+}
+
 static const char *art_report_info (menu_t *menu) {
     (void) menu;
     return art_report_status();
@@ -316,6 +323,15 @@ static const item_t system_items[] = {
         "Full keeps the menu's whole 640 x 480 picture. Half is 320 x 240, about what a 240p TV shows, with much smaller files."),
     CHOICES("Screenshot Dither", OPTION_SHOT_DITHER, 2, screenshot_dither_name, NULL,
         "The console draws in 16-bit color with a fine dot pattern that the TV hides. Smooth evens it out in the picture; Exact keeps every pixel as drawn (larger files)."),
+    ACTION_INFO("Record Clip", clip_arm, clip_status_info, "Press A, then leave Settings: after three ticks the menu records a clip of what you do, frame by frame, into menu/clips on the SD card. The console runs slowly while it saves; the clip plays at full speed. The Companion turns it into a GIF. A again before leaving: never mind."),
+    CHOICES("Clip Length", OPTION_CLIP_LENGTH, CLIP_LENGTH_COUNT, clip_length_name, NULL,
+        "How long a clip lasts. Recording takes much longer than this: each frame is saved to the card as it is drawn."),
+    CHOICES("Clip Size", OPTION_CLIP_SIZE, 2, screenshot_size_name, NULL,
+        "Full keeps the menu's whole 640 x 480 picture, Half is 320 x 240. Half records about four times faster and makes a smaller GIF."),
+    CHOICES("Clip Frame Rate", OPTION_CLIP_FPS, CLIP_FPS_COUNT, clip_fps_name, NULL,
+        "30 is every frame the menu draws, the smoothest. 15 halves the frames to save and the size of the GIF."),
+    CHOICES("Clip Dither", OPTION_CLIP_DITHER, 2, screenshot_dither_name, NULL,
+        "Smooth evens out the console's fine dot pattern, which also makes the GIF smaller; Exact keeps every pixel as drawn."),
     FEATURE("Remember Settings Page", FEATURE_REMEMBER_SETTINGS, "Reopen Settings on the page and row you last used, until the console is switched off."),
     ACTION("Reset Settings", ask_reset, "Put the stock settings back to how they were on a fresh install."),
 };
@@ -509,6 +525,10 @@ static void draw_item (menu_t *menu, const item_t *it, int y) {
             value = it->choice_name(options_get(it->option));
             break;
         case ITEM_ACTION:
+            if (it->info) {
+                value = it->info(menu);     /* an action that also says how it stands (Record Clip) */
+                style = STL_GRAY;
+            }
             break;
         case ITEM_INFO:
             value = it->info(menu);

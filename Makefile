@@ -87,6 +87,7 @@ SRCS = \
 	menu/dd_pair.c \
 	menu/retro.c \
 	menu/game_info_more.c \
+	menu/clip.c \
 	menu/region_pick.c \
 	menu/art_report.c \
 	menu/hidden_games.c \
@@ -294,6 +295,9 @@ $(FILESYSTEM_DIR)/Firple-Bold-Title20.font64: $(ASSETS_DIR)/fonts/Firple-Bold.tt
 
 $(BUILD_DIR)/menu/views/credits.o: .FORCE
 $(BUILD_DIR)/menu/views/credits.o: FLAGS+=-DMENU_VERSION=\"$(MENU_VERSION)\" -DBUILD_TIMESTAMP=\"$(BUILD_TIMESTAMP)\"
+
+# Clips (src/menu/clip.c) swap in their own clock while recording.
+$(BUILD_DIR)/$(PROJECT_NAME).elf: LDFLAGS += --wrap=get_ticks_ms
 
 $(BUILD_DIR)/$(PROJECT_NAME).elf: $(OBJS)
 
