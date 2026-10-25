@@ -22,3 +22,26 @@ python3 assets/data/make_game_data.py
 
 The build copies `gamedata.txt` into the menu file as `rom:/gamedata.txt`
 (`src/menu/game_data.c` reads it, about 6 KB in memory).
+
+## Series
+
+`series.txt` is built into the menu file too, for the Collections tab: each
+series (The Legend of Zelda, Mario Party, Banjo, ...) with the exact game
+codes of its games in every region.
+
+- **Which series there are, and how their games are recognised** (a regular
+  expression on the game's name) is `series_list.txt`, written for this
+  project. Edit it to add or change a series; a game in two series goes in
+  the first, and a series needs two games or more.
+- **The game names and codes** come from libretro-database's No-Intro list
+  (`metadat/no-intro`), CC-BY-SA 4.0, so `series.txt` is shared under that
+  licence as well.
+
+Rebuild after changing `series_list.txt` (needs the internet):
+
+```sh
+python3 assets/data/make_series.py
+```
+
+The build copies it into the menu file as `rom:/series.txt`
+(`src/menu/collections.c` reads it, about 2 KB in memory).

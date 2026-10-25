@@ -1,0 +1,24 @@
+# Series for the menu's Collections tab, written for this project.
+# One series a line: its name as shown, a tab, then a regular expression
+# matched against the No-Intro game names. assets/data/make_series.py turns
+# this into series.txt (the game codes of each series), which the build
+# copies into the menu file. A game in two series takes the first.
+# Keep names short (the title panel) and to plain Latin letters.
+The Legend of Zelda	Zelda
+Mario Party	^Mario Party
+Mario	Super Mario 64|Paper Mario|Mario Story|Dr\. Mario|Mario Kart|Mario Golf|Mario Tennis|Mario no Photopie
+Donkey Kong	Donkey Kong|Diddy Kong
+Banjo	^Banjo
+007 & Perfect Dark	GoldenEye 007|^Perfect Dark
+Pokemon	Pokemon|Pikachu
+Star Wars	^Star Wars
+Turok	Turok
+Castlevania	^Castlevania|Akumajou Dracula
+Bomberman	Bomberman
+Mortal Kombat	Mortal Kombat
+Tony Hawk	Tony Hawk
+Wrestling	^WWF |^WCW |Virtual Pro Wrestling
+Rush	^San Francisco Rush|^Rush 2
+Cruis'n	^Cruis'n
+Army Men	^Army Men
+NFL Blitz	NFL Blitz

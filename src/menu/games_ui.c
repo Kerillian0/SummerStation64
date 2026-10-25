@@ -164,7 +164,7 @@ static void memory_badge_draw (void) {
 }
 
 void games_ui_topbar_draw (menu_t *menu, games_tab_t selected) {
-    static const char *const labels[GAMES_TAB_COUNT] = { "Games", "Recent", "Favorites", "Folders", "Homebrew" };
+    static const char *const labels[GAMES_TAB_COUNT] = { "Games", "Recent", "Favorites", "Folders", "Homebrew", "Collections" };
     games_tab_t shown[GAMES_TAB_COUNT];
     int count = tabs_list(shown);
 

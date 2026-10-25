@@ -86,6 +86,8 @@ SRCS = \
 	menu/art_report.c \
 	menu/hidden_games.c \
 	menu/letter_wheel.c \
+	menu/collections.c \
+	menu/collections_ui.c \
 	menu/box3d.c \
 	menu/box_motion.c \
 	menu/hack_games.c \
@@ -237,6 +239,12 @@ $(BUILD_DIR)/$(PROJECT_NAME).dfs: $(wildcard $(FILESYSTEM_DIR)/meta)
 # Genre, players and play modes per game code (assets/data/make_game_data.py).
 $(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM_DIR)/gamedata.txt
 $(FILESYSTEM_DIR)/gamedata.txt: $(ASSETS_DIR)/data/gamedata.txt
+	@echo "    [DATA] $@"
+	@cp "$<" $@
+
+# Which game codes belong to which series, for the Collections tab (assets/data/make_series.py).
+$(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM_DIR)/series.txt
+$(FILESYSTEM_DIR)/series.txt: $(ASSETS_DIR)/data/series.txt
 	@echo "    [DATA] $@"
 	@cp "$<" $@
 

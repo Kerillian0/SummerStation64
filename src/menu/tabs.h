@@ -3,13 +3,14 @@
  * @brief Which tabs are on the tab bar, and in what order.
  *
  * The bar has up to four places. The player picks what goes in each
- * (Settings > Tabs): Games, Favorites, Folders, Recent, Homebrew, or
- * nothing. Out of the box it is Games, Favorites, Folders. L and R step
+ * (Settings > Tabs): Games, Favorites, Folders, Recent, Homebrew,
+ * Collections, or nothing. Out of the box it is Games, Favorites, Folders. L and R step
  * through them.
  *
- * Games, Homebrew and Folders are the same screen (the file browser): Folders
- * shows another list, Homebrew the Games list with only homebrew in it. So
- * this also keeps track of which of the three is wanted.
+ * Games, Homebrew, Collections and Folders are the same screen (the file
+ * browser): Folders shows another list, Homebrew the Games list with only
+ * homebrew in it, Collections the Games list one collection at a time. So
+ * this also keeps track of which of them is wanted.
  */
 
 #ifndef TABS_H__
@@ -27,6 +28,7 @@ typedef enum {
     TAB_CHOICE_FOLDERS,
     TAB_CHOICE_RECENT,
     TAB_CHOICE_HOMEBREW,
+    TAB_CHOICE_COLLECTIONS,
     TAB_CHOICE_COUNT
 } tab_choice_t;
 
@@ -74,5 +76,8 @@ void tabs_browser_show_folders (bool folders);
 
 /** Whether the browser screen's Games list should show only homebrew (the Homebrew tab). */
 bool tabs_browser_shows_homebrew (void);
+
+/** Whether the browser screen should show the Collections tab. */
+bool tabs_browser_shows_collections (void);
 
 #endif /* TABS_H__ */

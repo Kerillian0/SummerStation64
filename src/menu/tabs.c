@@ -10,6 +10,7 @@
 
 static bool folders_wanted = false;
 static bool homebrew_wanted = false;
+static bool collections_wanted = false;
 
 const char *tabs_choice_name (int choice) {
     switch (choice) {
@@ -18,6 +19,7 @@ const char *tabs_choice_name (int choice) {
         case TAB_CHOICE_FOLDERS: return "Folders";
         case TAB_CHOICE_RECENT: return "Recent";
         case TAB_CHOICE_HOMEBREW: return "Homebrew";
+        case TAB_CHOICE_COLLECTIONS: return "Collections";
         default: return "None";
     }
 }
@@ -35,6 +37,7 @@ int tabs_list (games_tab_t *out) {
             case TAB_CHOICE_FOLDERS: tab = GAMES_TAB_FOLDERS; break;
             case TAB_CHOICE_RECENT: tab = GAMES_TAB_RECENT; break;
             case TAB_CHOICE_HOMEBREW: tab = GAMES_TAB_HOMEBREW; break;
+            case TAB_CHOICE_COLLECTIONS: tab = GAMES_TAB_COLLECTIONS; break;
             default: continue;
         }
         if (!seen[tab]) {
@@ -134,16 +137,25 @@ void tabs_open (menu_t *menu, games_tab_t tab) {
         case GAMES_TAB_FOLDERS:
             folders_wanted = true;
             homebrew_wanted = false;
+            collections_wanted = false;
             menu->next_mode = MENU_MODE_BROWSER;
             break;
         case GAMES_TAB_HOMEBREW:
             folders_wanted = false;
             homebrew_wanted = true;
+            collections_wanted = false;
+            menu->next_mode = MENU_MODE_BROWSER;
+            break;
+        case GAMES_TAB_COLLECTIONS:
+            folders_wanted = false;
+            homebrew_wanted = false;
+            collections_wanted = true;
             menu->next_mode = MENU_MODE_BROWSER;
             break;
         default:
             folders_wanted = false;
             homebrew_wanted = false;
+            collections_wanted = false;
             menu->next_mode = MENU_MODE_BROWSER;
             break;
     }
@@ -157,9 +169,14 @@ void tabs_browser_show_folders (bool folders) {
     folders_wanted = folders;
     if (folders) {
         homebrew_wanted = false;
+        collections_wanted = false;
     }
 }
 
 bool tabs_browser_shows_homebrew (void) {
     return homebrew_wanted && !folders_wanted;
+}
+
+bool tabs_browser_shows_collections (void) {
+    return collections_wanted && !folders_wanted;
 }

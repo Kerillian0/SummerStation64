@@ -17,6 +17,7 @@
 #include "path.h"
 #include "menu_options.h"
 #include "region_pick.h"
+#include "collections.h"
 #include "rom_hacks.h"
 #include "sort_order.h"
 
@@ -29,10 +30,12 @@ typedef enum {
     FILTER_HACKS,
     FILTER_STEPS,               /* C-up / C-down step through the ones above */
     FILTER_HOMEBREW = FILTER_STEPS,     /* the Homebrew tab's shelf */
+    FILTER_COLLECTION,                  /* the Collections tab's shelf: one collection (collections.h), not a mark */
     FILTER_COUNT
 } filter_t;
 
-static const char *names[FILTER_COUNT] = { "All", "USA", "Japan", "Europe", "64DD", "Hacks", "Homebrew" };
+static const char *names[FILTER_COUNT] = { "All", "USA", "Japan", "Europe", "64DD", "Hacks", "Homebrew", "Collection" };
+static int collection = -1;     /* the collection the Collections tab shows, by its number (collections_id()) */
 
 /* Which filters a game belongs to, one bit each (bit FILTER_ALL always set). */
 static uint16_t *marks = NULL;   /* indexed by entry->index, the order the folder was read in */
@@ -62,9 +65,9 @@ static bool folding (filter_t f) {
 }
 static filter_t current = FILTER_ALL;
 
-/* Whether other regions' copies are left out for this filter: under All only. */
+/* Whether other regions' copies are left out for this filter: under All, and in a collection. */
 static bool region_folding (filter_t f) {
-    return f == FILTER_ALL && options_get(OPTION_REGION_COPIES) == REGION_COPIES_ONE_COVER;
+    return (f == FILTER_ALL || f == FILTER_COLLECTION) && options_get(OPTION_REGION_COPIES) == REGION_COPIES_ONE_COVER;
 }
 static filter_t stepped = FILTER_ALL;   /* the Games tab's step, kept while the shelf shows */
 static bool shelf = false;              /* the Homebrew tab is showing */
@@ -143,7 +146,8 @@ static bool matches (const entry_t *e, filter_t f) {
     if (f == FILTER_HOMEBREW && e->index >= 0 && e->index < marks_count && (marks[e->index] & (1 << FILTER_HACKS))) {
         return false;   /* a hack without a proper code is still a hack, not homebrew */
     }
-    return e->index >= 0 && e->index < marks_count && (marks[e->index] & (1 << f))
+    bool in = (f == FILTER_COLLECTION) ? collections_has(collection, e) : ((marks[e->index] & (1 << f)) != 0);
+    return e->index >= 0 && e->index < marks_count && in
         && !((marks[e->index] & MARK_FOLDED) && folding(f))
         && !((marks[e->index] & MARK_REGION_FOLDED) && region_folding(f));
 }
@@ -367,9 +371,10 @@ void games_filter_recheck_hacks (menu_t *menu) {
         marks[i] &= ~((1 << FILTER_HACKS) | MARK_FOLDED | MARK_REGION_FOLDED);
     }
     mark_hacks(menu);   /* the whole list, hidden games included */
+    collections_build(menu);    /* newly learned codes put games in their collections */
     debugf("games filter: %d homebrew games known\n", count_for(menu, FILTER_HOMEBREW));
-    if (current == FILTER_HACKS || current == FILTER_HOMEBREW) {
-        reapply(menu);          /* the Hacks step or the shelf is showing: show the new set */
+    if (current == FILTER_HACKS || current == FILTER_HOMEBREW || current == FILTER_COLLECTION) {
+        reapply(menu);          /* the Hacks step or a shelf is showing: show the new set */
     }
     /* With Game Versions grouped, newly learned codes fold more files: done
        at the next load, so the row doesn't change under the player. */
@@ -410,6 +415,7 @@ void games_filter_forget (void) {
     group = NULL;
     free(rgroup);
     rgroup = NULL;
+    collections_forget();
     marks_count = 0;
     total = 0;
 }
@@ -435,6 +441,7 @@ void games_filter_after_load (menu_t *menu, int (*compare) (const void *, const 
         marks[i] = classify(menu, e);
     }
     mark_hacks(menu);
+    collections_build(menu);
     debugf("games filter: %d homebrew games known\n", count_for(menu, FILTER_HOMEBREW));
     if (!shelf && current != FILTER_ALL && count_for(menu, current) == 0) {
         current = FILTER_ALL;   /* nothing of that kind any more */
@@ -484,11 +491,54 @@ int games_filter_all_entries (int shown) {
 }
 
 const char *games_filter_label (void) {
+    if (current == FILTER_COLLECTION) {
+        return collections_name(collection);
+    }
     return (current == FILTER_ALL || shelf) ? NULL : names[current];
 }
 
+void games_filter_collection (menu_t *menu, int which, bool list_loaded) {
+    if (which >= 0) {
+        if (!shelf) {
+            stepped = current;
+        }
+        shelf = true;
+        current = FILTER_COLLECTION;
+        collection = which;
+    } else if (current == FILTER_COLLECTION) {
+        shelf = false;
+        current = stepped;
+        collection = -1;
+    } else {
+        return;
+    }
+    if (list_loaded && total > 0) {
+        reapply(menu);
+    }
+}
+
+int games_filter_collection_covers (menu_t *menu, int which, entry_t **out, int most) {
+    int n = 0;
+    int saved = collection;
+    collection = which;
+    for (int i = 0; i < total; i++) {
+        entry_t *e = &menu->browser.list[i];
+        if (matches(e, FILTER_COLLECTION)) {
+            if (n < most) {
+                out[n] = e;
+            }
+            n++;
+        }
+    }
+    collection = saved;
+    return n;
+}
+
 void games_filter_shelf (menu_t *menu, bool homebrew, bool list_loaded) {
-    if (homebrew == shelf) {
+    if (current == FILTER_COLLECTION) {
+        games_filter_collection(menu, -1, list_loaded && !homebrew);   /* from a collection straight to Homebrew or Games */
+    }
+    if (homebrew == (shelf && current == FILTER_HOMEBREW)) {
         return;
     }
     shelf = homebrew;

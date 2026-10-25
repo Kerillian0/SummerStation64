@@ -27,6 +27,7 @@
 #include "../region_pick.h"
 #include "../hidden_games.h"
 #include "../letter_wheel.h"
+#include "../collections_ui.h"
 #include "../game_learn.h"
 #include "../sort_order.h"
 #include "../menu_options.h"
@@ -61,11 +62,18 @@ static const char *rom_meta_extensions[] = { "meta", "metadata", NULL };
 // as a plain list). Each has its own place.
 static bool folders_tab = false;
 static bool homebrew_tab = false;           // the Games list on its homebrew shelf (games_filter_shelf)
+static bool collections_tab = false;        // the Collections tab: its row of cards (collections_ui.h), or one collection on the Games list
+static int collection_open = -1;            // ... the collection shown, by its number, or -1 while the cards show
 static path_t *folders_directory = NULL;    // where the Folders tab was left
-static char left_on[3][256] = { "", "", "" };   // the entry the Games [0], Folders [1] and Homebrew [2] tabs were left on, to go back to it (while the console is on)
+static char left_on[4][256] = { "", "", "", "" };   // the entry the Games [0], Folders [1], Homebrew [2] and Collections [3] tabs were left on, to go back to it (while the console is on)
 
 static int tab_slot (void) {
-    return folders_tab ? 1 : (homebrew_tab ? 2 : 0);
+    return folders_tab ? 1 : (homebrew_tab ? 2 : (collections_tab ? 3 : 0));
+}
+
+// The Collections tab's row of cards is showing (no collection open).
+static bool cards_showing (void) {
+    return collections_tab && collection_open < 0 && !folders_tab;
 }
 
 static bool archive_entry_limit_exceeded = false;
@@ -1040,9 +1048,30 @@ static void browser_show_shelf (menu_t *menu, bool homebrew) {
     }
 }
 
+// Open a collection on the Collections tab (its number), or -1 to go back to the cards.
+static void collection_show (menu_t *menu, int which) {
+    carousel_art_reset();
+    game_facts_reset();
+    collections_ui_free();
+    collection_open = which;
+    games_filter_collection(menu, which, menu->browser.valid && !folders_tab);
+}
+
+// Switch to or from the Collections tab. The Games list stays.
+static void browser_show_collections (menu_t *menu, bool on) {
+    if (on == collections_tab) {
+        return;
+    }
+    if (collection_open >= 0) {
+        collection_show(menu, -1);
+    }
+    collections_ui_free();
+    collections_tab = on;
+}
+
 // L or R: the tab before or after this one, in the player's order.
 static void browser_step_tab (menu_t *menu, int direction) {
-    games_tab_t here = folders_tab ? GAMES_TAB_FOLDERS : (homebrew_tab ? GAMES_TAB_HOMEBREW : GAMES_TAB_GAMES);
+    games_tab_t here = folders_tab ? GAMES_TAB_FOLDERS : (homebrew_tab ? GAMES_TAB_HOMEBREW : (collections_tab ? GAMES_TAB_COLLECTIONS : GAMES_TAB_GAMES));
     games_tab_t next = tabs_step(here, direction);
     if (next == here) {
         return;
@@ -1079,6 +1108,26 @@ static void process (menu_t *menu) {
 
     if (settings_context_menu.row_selected >= 0 && menu->actions.settings) menu->actions.back = true; // START again closes the START menu, like B
     if (ui_components_context_menu_process(menu, &settings_context_menu)) {
+        return;
+    }
+
+    // The Collections tab: its row of cards, or a tap of B inside a collection to go back to them.
+    if (cards_showing()) {
+        switch (collections_ui_process(menu)) {
+            case COLLECTIONS_UI_OPEN: collection_show(menu, collections_ui_selected()); break;
+            case COLLECTIONS_UI_TAB_LEFT: browser_step_tab(menu, -1); break;
+            case COLLECTIONS_UI_TAB_RIGHT: browser_step_tab(menu, 1); break;
+            case COLLECTIONS_UI_SETTINGS:
+                ui_components_context_menu_show(&settings_context_menu);
+                sound_play_effect(SFX_SETTING);
+                break;
+            default: break;
+        }
+        return;
+    }
+    if (collections_tab && !folders_tab && collections_ui_back_tap()) {
+        collection_show(menu, -1);
+        sound_play_effect(SFX_EXIT);
         return;
     }
 
@@ -1785,8 +1834,8 @@ static void carousel_hints_draw (menu_t *menu) {
     }
 
     x = GAMES_UI_HINTS_X;
-    if (folders_tab && !path_is_root(menu->browser.directory)) {
-        x = games_ui_hint_draw(x, 1, "B", "Back");
+    if ((folders_tab && !path_is_root(menu->browser.directory)) || (collections_tab && !folders_tab)) {
+        x = games_ui_hint_draw(x, 1, "B", "Back");  // in a collection: a tap goes back to the cards, holding still turns the box
     } else if (!folders_tab && menu->browser.entry && menu->browser.entry->type == ENTRY_TYPE_ROM && features_enabled(FEATURE_BOX_3D)) {
         x = games_ui_hint_draw(x, 1, "B", "Inspect");   // hold B to turn the 3D Box (box_motion.h)
     }
@@ -1795,7 +1844,7 @@ static void carousel_hints_draw (menu_t *menu) {
     }
 
     games_ui_hint_right_draw(0, "START", "Settings");
-    games_ui_hint_right_draw(1, "C", homebrew_tab ? "Scroll ◀▶" : "Scroll ◀▶ Filter ▲▼"); // the Homebrew tab has no filter steps
+    games_ui_hint_right_draw(1, "C", (homebrew_tab || collections_tab) ? "Scroll ◀▶" : "Scroll ◀▶ Filter ▲▼"); // the Homebrew and Collections tabs have no filter steps
 }
 #endif
 
@@ -1808,7 +1857,7 @@ static void draw (menu_t *menu, surface_t *d) {
     // darkened afterwards. Anything that pops up over the screen, or any
     // other case, falls back to darkening everything.
     int fade_dark = intro_fade_dark();
-    bool fade_parts = fade_dark > 0 && fade_dark < 255 && !folders_tab && menu->browser.entries > 0
+    bool fade_parts = fade_dark > 0 && fade_dark < 255 && !folders_tab && !cards_showing() && menu->browser.entries > 0
         && !safe_mode_active() && get_ticks_ms() >= note_until_ms
         && entry_context_menu.row_selected < 0 && archive_context_menu.row_selected < 0 && settings_context_menu.row_selected < 0;
     if (fade_parts) {
@@ -1845,8 +1894,11 @@ static void draw (menu_t *menu, surface_t *d) {
                 : "No homebrew found.\n\n"
                   "Homebrew games are found by the game code homebrew tools give them. "
                   "Put them in a folder the Games tab reads.");
+    } else if (cards_showing()) {
+        games_ui_topbar_draw(menu, GAMES_TAB_COLLECTIONS);
+        collections_ui_draw(menu);  // the row of cards, with its own hints
     } else {
-        games_ui_topbar_draw(menu, homebrew_tab ? GAMES_TAB_HOMEBREW : GAMES_TAB_GAMES);
+        games_ui_topbar_draw(menu, homebrew_tab ? GAMES_TAB_HOMEBREW : (collections_tab ? GAMES_TAB_COLLECTIONS : GAMES_TAB_GAMES));
         carousel_draw(menu);
         if (menu->browser.entries <= 0) {
             rdpq_text_printf(&(rdpq_textparms_t) {
@@ -1869,7 +1921,7 @@ static void draw (menu_t *menu, surface_t *d) {
 #endif
 
 #if BROWSER_CAROUSEL
-    carousel_hints_draw(menu);
+    if (!cards_showing()) carousel_hints_draw(menu);
 #else
     const char *action = NULL;
 
@@ -1944,6 +1996,7 @@ void view_browser_init (menu_t *menu) {
     if (menu->browser.select_file) tabs_browser_show_folders(true); // being sent to a particular file: that is the Folders tab's job
     browser_show_tab(menu, tabs_browser_shows_folders());
     browser_show_shelf(menu, tabs_browser_shows_homebrew()); // Games <-> Homebrew: the same list, shown differently
+    browser_show_collections(menu, tabs_browser_shows_collections()); // ... and Collections: its cards, or one collection
     if (!folders_tab && !path_is_root(menu->browser.directory)) {
         // The Games tab reads its folders from the top of the card (games_folders.h).
         path_free(menu->browser.directory);
@@ -2002,16 +2055,18 @@ void view_browser_init (menu_t *menu) {
 
 void view_browser_display (menu_t *menu, surface_t *display) {
     process(menu);
-    folder_memory_use_key(folders_tab ? NULL : (homebrew_tab ? "homebrew:" : "games:")); // the Games and Homebrew tabs keep their own places
+    folder_memory_use_key(folders_tab ? NULL : (homebrew_tab ? "homebrew:" : (collections_tab ? "collections:" : "games:"))); // the Games, Homebrew and Collections tabs keep their own places
     folder_memory_update(menu); // put the selection back where it was left in this folder
 
     draw(menu, display);
 
     // Cover art is fetched here, after the picture has been handed to the graphics chip, so the chip draws while the art loads
-    if (!folders_tab && menu->next_mode == MENU_MODE_BROWSER) carousel_art_update(menu, features_enabled(FEATURE_SIDE_COVERS));
+    if (!folders_tab && !cards_showing() && menu->next_mode == MENU_MODE_BROWSER) carousel_art_update(menu, features_enabled(FEATURE_SIDE_COVERS));
+    if (cards_showing() && menu->next_mode == MENU_MODE_BROWSER) collections_ui_after_draw(menu); // the selected card's covers
     if (!folders_tab && menu->next_mode == MENU_MODE_BROWSER) game_learn_update(menu); // while idle, read the headers of games not known yet
 
     if (menu->next_mode != MENU_MODE_BROWSER) carousel_art_reset(); // free the cover before another screen loads its own
+    if (menu->next_mode != MENU_MODE_BROWSER) collections_ui_free();
     if (menu->next_mode != MENU_MODE_BROWSER) folder_memory_flush();
     if (menu->next_mode != MENU_MODE_BROWSER) game_facts_reset(); // favorites may change while away
 }

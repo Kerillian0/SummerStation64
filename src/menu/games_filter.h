@@ -72,6 +72,19 @@ const char *games_filter_label (void);
  */
 void games_filter_shelf (menu_t *menu, bool homebrew, bool list_loaded);
 
+/**
+ * The Collections tab: the Games list showing one collection (by its number,
+ * collections_id()), or `which` -1 to leave it (back to the Games tab's own step).
+ * @param list_loaded The Games list is loaded now (else the next load applies it).
+ */
+void games_filter_collection (menu_t *menu, int which, bool list_loaded);
+
+/**
+ * How many covers a collection has with the current folding (Game Versions,
+ * Region Copies), putting the first `most` of them, in list order, in `out`.
+ */
+int games_filter_collection_covers (menu_t *menu, int which, entry_t **out, int most);
+
 /** Game Versions (option `game_versions`, Settings > Library). */
 typedef enum {
     GAME_VERSIONS_SEPARATE,     /**< every file its own cover (the default) */

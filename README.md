@@ -95,6 +95,9 @@ built in.
 - **v0.5** polish: setup wizard, CRT test patterns, accessibility, and a
   versions screen where a game's copies and hacks unfold into a column of
   covers with their names beside them.
+- **v1.0:** menu achievements: for finishing games (from time played) and
+  whole collections (every Zelda, every Mario Party, ...), unlocking special
+  themes, music, sounds, fonts and intros; menu milestones and other fun ones.
 - **After v0.5:** extra support for the **ModRetro M64** and **Analogue 3D**:
   32-bit color, 60 frames a second, a layout that uses the safe area of HDMI
   displays, and widescreen if needed.
