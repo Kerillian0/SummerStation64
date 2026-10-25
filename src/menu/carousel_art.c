@@ -732,9 +732,9 @@ static void edges_update (menu_t *menu, uint64_t now) {
         const cover_list_t *covers = cover_list_current(menu);
         path_t *path = covers->path(menu, center_index);
         if (covers->list[center_index].type == ENTRY_TYPE_EMULATOR) {
-            /* An emulator game: one spine picture for both sides (drawn on the right too, carousel_art_draw_box()), no top. */
-            if (edge_kinds[i] == IMAGE_BOXART_LEFT) {
-                edges[i] = retro_art_load(menu->storage_prefix, path_get(path), IMAGE_BOXART_LEFT);
+            /* An emulator game: its top label, and one spine picture for both sides (drawn on the right too, carousel_art_draw_box()). */
+            if (edge_kinds[i] == IMAGE_BOXART_LEFT || edge_kinds[i] == IMAGE_BOXART_TOP) {
+                edges[i] = retro_art_load(menu->storage_prefix, path_get(path), edge_kinds[i]);
             }
             path_free(path);
             return;     /* one a frame */
@@ -755,6 +755,24 @@ static void edges_update (menu_t *menu, uint64_t now) {
             }
         }
         return;     /* one a frame */
+    }
+}
+
+/* Fill Box Edges (feature `fill_box_edges`): a box missing its top or a
+   side borrows an edge picture it has (box3d.c turns it to fit). */
+static void fill_edges (box3d_art_t *art) {
+    if (!features_enabled(FEATURE_FILL_BOX_EDGES) || art->cartridge) {
+        return;
+    }
+    surface_t *side = art->left ? art->left : art->right;
+    if (!art->top) {
+        art->top = side;
+    }
+    if (!art->left) {
+        art->left = art->right ? art->right : art->top;
+    }
+    if (!art->right) {
+        art->right = art->left;
     }
 }
 
@@ -801,6 +819,7 @@ bool carousel_art_draw_box (menu_t *menu, int index, int x0, int y0, int w, int 
         art.right = art.left;   /* an emulator game's one spine picture (retro.h) */
     }
     art.back = (side != IMAGE_BOXART_FRONT);
+    fill_edges(&art);
     if (slot->cart) {
         art.cartridge = true;
         art.top = art.left = art.right = NULL;
@@ -875,6 +894,7 @@ bool carousel_art_draw_side_box (menu_t *menu, int index, int x0, int y0, int w,
     } else if (carousel_art_tint_state(menu, index, &tint) == ART_TINT_KNOWN) {
         art.side = tint;
     }
+    fill_edges(&art);
     /* Sized at the selected box's resting angles, so a box turned further
        comes out narrower, as it should. */
     box3d_pose_t pose = { .yaw = yaw, .pitch = BOX_PITCH, .amount = 1.0f, .fit_yaw = BOX_YAW, .fit_pitch = BOX_PITCH };

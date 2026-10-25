@@ -182,6 +182,7 @@ static const item_t display_items[] = {
     FEATURE("Favorite Heart", FEATURE_FAVORITE_HEART, "Mark a favorite game with a heart beside its name. Off shows the word Favorite under the name."),
     FEATURE("Button Icons", FEATURE_BUTTON_ICONS, "Show the buttons in the hints along the bottom in their own shapes and colors. Off shows them as plain boxes."),
     FEATURE("Memory Badge", FEATURE_MEMORY_BADGE, "Show a small Expansion Pak or Jumper Pak under the clock, with the console's memory (8MB or 4MB)."),
+    FEATURE("Fill Box Edges", FEATURE_FILL_BOX_EDGES, "On a 3D box missing its top label or a side picture, show the edge picture it does have there too, turned to fit. Off leaves those faces plain."),
     FEATURE("Controller Marks", FEATURE_CONTROLLER_MARKS, "With two or more controllers plugged in, show the four controller ports under the clock in place of the Memory Badge, lit for each one in use. C-up / C-down on the Games tab then also offer Party: the games for that many players."),
     CHOICES("Accessory Badges", OPTION_PAK_BADGES, PAK_BADGES_COUNT, games_ui_pak_badges_name, NULL,
         "Show which accessories a game uses (Controller Pak, Rumble Pak, Transfer Pak) under its name. Colored puts each in its own colored box, like Save found; Plain shows them in grey. Known for most games from the menu's built-in list."),

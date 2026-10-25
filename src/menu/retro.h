@@ -8,7 +8,8 @@
  * Emulator games stay off the Games tab. Each system's cover has its own
  * box shape until its picture arrives, and the picture comes from
  * sd:/menu/metadata/<system>/<file name without extension>/boxart_front.png
- * (and boxart_back.png, and boxart_spine.png for the 3D box's sides), the
+ * (and boxart_back.png, boxart_spine.png for the 3D box's sides and
+ * boxart_top.png for its top and bottom), the
  * system being nes, snes, gb or gbc.
  */
 

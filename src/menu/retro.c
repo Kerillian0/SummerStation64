@@ -84,6 +84,7 @@ component_boxart_t *retro_art_load (const char *storage_prefix, const char *name
     const char *file;
     switch (which) {
         case IMAGE_BOXART_BACK: file = "boxart_back.png"; break;
+        case IMAGE_BOXART_TOP: file = "boxart_top.png"; break;
         case IMAGE_BOXART_LEFT:
         case IMAGE_BOXART_RIGHT: file = "boxart_spine.png"; break;     /* one spine, on whichever side shows */
         case IMAGE_GAMEPAK_FRONT: file = "gamepak_front.png"; break;

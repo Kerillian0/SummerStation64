@@ -47,6 +47,7 @@ typedef enum {
     FEATURE_BOX_3D,
     FEATURE_SIDE_BOXES,
     FEATURE_CONTROLLER_MARKS,
+    FEATURE_FILL_BOX_EDGES,
     FEATURE_COUNT
 } feature_t;
 
