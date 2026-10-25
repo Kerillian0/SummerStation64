@@ -6,8 +6,8 @@
  * Opened by the stock disk and emulator screens (load_disk.c,
  * load_emulator.c), which keep their buttons and loading; this holds the
  * pictures and details and draws the page. Details come from a
- * metadata.ini beside the pictures (name, author, release-date,
- * short-desc), and the full text from description.txt there:
+ * metadata.ini beside the pictures (name, author, release-date, genre,
+ * num-players, short-desc), and the full text from description.txt there:
  * - a disk: by its ID, baked into the menu file or under
  *   sd:/menu/metadata/D/M/P/J/ (or without the last letter), as N64 games;
  * - an emulator game: sd:/menu/metadata/<nes|snes|gb|gbc>/<file name>/ (retro.h).

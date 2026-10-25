@@ -146,7 +146,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
 #hacks .listed,#art .listed{margin:0;padding-left:20px}
 #hacks .listed li,#art .listed li{margin-bottom:6px}
 
-/* ---------- Missing Art ---------- */
+/* ---------- Missing Metadata (#art) ---------- */
 #art textarea{resize:vertical;min-height:96px;line-height:1.4}
 #art .row{grid-template-columns:130px minmax(0,1fr)}
 #art .pics{display:flex;flex-wrap:wrap;gap:16px}
@@ -189,7 +189,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
     <a href="#themes" data-tab="themes">Theme Maker</a>
     <a href="#prep" data-tab="prep">Card Prep</a>
     <a href="#hacks" data-tab="hacks">Hacks</a>
-    <a href="#art" data-tab="art">Missing Art</a>
+    <a href="#art" data-tab="art">Missing Metadata</a>
     <a href="#coll" data-tab="coll">Collections</a>
     <a href="#guide" data-tab="guide">Guide</a>
   </nav>
@@ -476,7 +476,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
 <div class="tabpane tool" id="art" hidden>
 <div class="wrap">
   <header>
-    <h1 class="page-title">Missing Art</h1>
+    <h1 class="page-title">Missing Metadata</h1>
     <p>Fill in the covers, labels and details your games are missing, from your own pictures and notes. The menu
       makes the list: on the console, open <b>Settings &gt; Library &gt; Find Missing Art</b> first. Everything
       happens in this browser: nothing is uploaded anywhere.</p>
@@ -496,19 +496,37 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
 
     <section>
       <h2><span class="n">2</span>Choose a game</h2>
-      <p>Each game with what it is missing. Pictures and details baked into the menu file count as there already. NES, SNES
-        and Game Boy games are found on the card by this page and take their box's front, back and spine (the 3D box's sides,
+      <p>Each game with what it is missing. For N64 games, pictures and details baked into the menu file count as there
+        already. NES, SNES
+        and Game Boy games and 64DD disks are found on the card by this page (from the Games tab's folders), with their
+        details too; emulator games take their box's front, back and spine (the 3D box's sides,
         standing or lying down), and their cartridge's front and back (with a see-through background: the menu traces the
         cartridge's shape from it); their pictures keep
         their own shape and go in <code>menu/metadata/nes/&lt;file name&gt;/</code> (or <code>snes</code>, <code>gb</code>,
         <code>gbc</code>).</p>
       <div class="line">
         <input type="text" id="artSearch" placeholder="Search games" aria-label="Search games" style="max-width:280px">
+        <select id="artSystem" aria-label="Show one system" style="width:auto">
+          <option value="">All systems</option><option value="n64">N64</option><option value="disk">64DD</option>
+          <option value="nes">NES</option><option value="snes">SNES</option><option value="gb">Game Boy</option>
+          <option value="gbc">Game Boy Color</option></select>
         <select id="artNeed" aria-label="Show games missing" style="width:auto">
           <option value="">Missing anything</option><option value="front">Missing the front cover</option>
           <option value="back">Missing the back</option><option value="top">Missing the top label</option>
           <option value="cartridge">Missing the cartridge</option><option value="text">Missing text</option></select>
       </div>
+      <div class="line" style="margin-top:10px">
+        <button class="go small quiet" type="button" id="artLibretro" disabled>Fill details from libretro</button>
+        <button class="go small quiet" type="button" id="artLaunchbox" disabled>Fill from LaunchBox's Metadata.zip...</button>
+        <input type="file" id="artLaunchboxFile" accept=".zip,.xml" class="hidden">
+        <span class="status" id="artAutoStatus"></span>
+      </div>
+      <p class="hint">libretro (CC-BY-SA 4.0) gives NES, SNES and Game Boy games' developer, release date, genre and players,
+        matched exactly by each file's CRC. LaunchBox's database also has descriptions, and covers N64 and 64DD games, matched
+        by name: download <code>Metadata.zip</code> yourself from
+        <a href="https://gamesdb.launchbox-app.com/" target="_blank" rel="noopener">the LaunchBox Games Database</a> and choose
+        it here. It is read in this browser only; LaunchBox publishes no terms for using it elsewhere, so it is never bundled
+        with SummerStation64. Only what a game is missing is filled in, and nothing is written until you save.</p>
       <div class="tablewrap" style="margin-top:10px"><table>
         <thead><tr><th>Game</th><th>Missing</th><th></th></tr></thead>
         <tbody id="artRows"><tr><td colspan="3" class="U">Pick the card first.</td></tr></tbody>
@@ -3401,7 +3419,7 @@ function matchPopularHack(list, fileName, fileCode) {
 }
 // --- end hacks logic ---
 
-// Shared with the Missing Art tab.
+// Shared with the Missing Metadata tab.
 window.cardTools = { coverCut: coverCut, zipStore: zipStore, iniValue: iniValue, tidyName: tidyName, crcOf: crcOf };
 
 var P = window.cardPrep;
@@ -3939,6 +3957,126 @@ function retroFolder(file) {
   var system = RETRO_SYSTEMS[base.slice(dot + 1).toLowerCase()];
   return system ? system + '/' + base.slice(0, dot) : null;
 }
+// A 64DD disk image's ID (src/menu/disk_info.c): the first four bytes of
+// system area block 14, else 15; each block is 85 sectors of 232 bytes.
+// `read(offset)` gives the four bytes there. null if neither looks like one.
+var DISK_BLOCK = 232 * 85;
+async function diskIdOf(read) {
+  for (var lba of [14, 15]) {
+    var b = await read(lba * DISK_BLOCK);
+    var id = b ? String.fromCharCode.apply(null, Array.from(b.slice(0, 4))) : '';
+    if (/^[A-Z0-9]{4}$/.test(id)) return id;
+  }
+  return null;
+}
+// Which details a metadata.ini (text, or null) and a description.txt beside it leave missing.
+function detailsLacking(ini, hasText) {
+  function has(key) { return !!ini && new RegExp('^\\s*' + key + '\\s*=\\s*\\S', 'm').test(ini); }
+  var out = [];
+  if (!hasText && !has('short-desc')) out.push('description');
+  if (!has('release-date')) out.push('date');
+  if (!has('author')) out.push('developer');
+  return out;
+}
+// libretro-database's metadat files (CC-BY-SA 4.0): per system, one field
+// per file, each game by its ROM's CRC-32 and its No-Intro name ("comment").
+var LIBRETRO_BASE = 'https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/';
+var LIBRETRO_SYSTEMS = { nes: 'Nintendo - Nintendo Entertainment System', snes: 'Nintendo - Super Nintendo Entertainment System',
+                         gb: 'Nintendo - Game Boy', gbc: 'Nintendo - Game Boy Color' };
+var LIBRETRO_FIELDS = { developer: 'developer', releaseyear: 'releaseyear', releasemonth: 'releasemonth', genre: 'genre', maxusers: 'users' };
+function parseMetadat(text, key) {
+  var byCrc = new Map(), byName = new Map(), re = /game \(([\s\S]*?)\n\)/g, m;
+  while ((m = re.exec(text))) {
+    var body = m[1];
+    var value = new RegExp('\\n\\s*' + key + ' "?([^"\\n]*)"?').exec(body);
+    if (!value || !value[1].trim()) continue;
+    var crc = /crc ([0-9A-Fa-f]{8})/.exec(body), name = /comment "([^"]*)"/.exec(body);
+    if (crc) byCrc.set(crc[1].toLowerCase(), value[1].trim());
+    if (name && !byName.has(matchName(name[1]))) byName.set(matchName(name[1]), value[1].trim());
+  }
+  return { byCrc: byCrc, byName: byName };
+}
+// The CRCs a file may be listed under: as it is, and (NES, SNES) without
+// a copier's header, which some dumps carry.
+function crcCandidates(bytes, crc32) {
+  var out = [crc32(bytes)];
+  if (bytes.length > 16 && bytes[0] === 0x4E && bytes[1] === 0x45 && bytes[2] === 0x53 && bytes[3] === 0x1A) out.push(crc32(bytes.subarray(16)));
+  if (bytes.length % 1024 === 512) out.push(crc32(bytes.subarray(512)));
+  return out.map(function (c) { return ('00000000' + (c >>> 0).toString(16)).slice(-8); });
+}
+// "1985" and "9" -> "1985-09".
+function libretroDate(year, month) {
+  if (!/^\d{4}$/.test(year || '')) return '';
+  var mo = parseInt(month, 10);
+  return (mo >= 1 && mo <= 12) ? year + '-' + ('0' + mo).slice(-2) : year;
+}
+
+// LaunchBox's Metadata.xml, which the player downloads themselves: <Game>
+// blocks with Name, Platform, ReleaseDate, Overview, MaxPlayers, Genres,
+// Developer. Names are matched without brackets, articles, case or
+// punctuation, within the game's platform.
+var LAUNCHBOX_PLATFORMS = { n64: 'Nintendo 64', disk: 'Nintendo 64DD', nes: 'Nintendo Entertainment System',
+                            snes: 'Super Nintendo Entertainment System', gb: 'Nintendo Game Boy', gbc: 'Nintendo Game Boy Color' };
+function matchName(name) {
+  var s = String(name).normalize('NFD').replace(/[\u0300-\u036f]/g, '');    // "Pokémon" as "Pokemon"
+  s = s.replace(/\.[a-z0-9]{1,4}$/i, '').replace(/\s*[\(\[][^\)\]]*[\)\]]/g, '').replace(/_/g, ' ');
+  s = s.replace(/^(.*?), (The|A|An)\b/i, '$2 $1').toLowerCase().replace(/&/g, 'and');
+  return s.replace(/^(the|a|an) /, '').replace(/[^a-z0-9]+/g, '');
+}
+function xmlText(block, tag) {
+  var m = new RegExp('<' + tag + '>([\\s\\S]*?)</' + tag + '>').exec(block);
+  if (!m) return '';
+  return m[1].replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+             .replace(/&#(\d+);/g, function (x, n) { return String.fromCharCode(parseInt(n, 10)); }).replace(/&amp;/g, '&').trim();
+}
+// The games (of the platforms wanted) and alternate names in a stretch of
+// Metadata.xml. `rest` is the unfinished end, to go before the next stretch:
+// from an unfinished block, else the last few characters (a tag may be cut).
+function launchboxGames(text, platforms) {
+  var games = [], alternates = [], at = 0, re = /<(Game|GameAlternateName)>([\s\S]*?)<\/\1>/g, m;
+  while ((m = re.exec(text))) {
+    at = re.lastIndex;
+    var b = m[2];
+    if (m[1] === 'GameAlternateName') {
+      alternates.push({ id: xmlText(b, 'DatabaseID'), name: xmlText(b, 'AlternateName') });
+      continue;
+    }
+    var platform = xmlText(b, 'Platform');
+    if (platforms.indexOf(platform) < 0) continue;
+    games.push({ id: xmlText(b, 'DatabaseID'), name: xmlText(b, 'Name'), platform: platform, date: xmlText(b, 'ReleaseDate').slice(0, 10),
+                 overview: xmlText(b, 'Overview'), players: xmlText(b, 'MaxPlayers'), genre: xmlText(b, 'Genres').split(';')[0].trim(),
+                 developer: xmlText(b, 'Developer').split(';')[0].trim() });
+  }
+  var open = Math.max(text.lastIndexOf('<Game>'), text.lastIndexOf('<GameAlternateName>'));
+  var rest = (open >= at) ? text.slice(open) : text.slice(Math.max(at, text.length - 32));
+  return { games: games, alternates: alternates, rest: rest };
+}
+// A title's main part: before " - " or ":" ("Sin and Punishment - Hoshi no Keishousha" -> "Sin and Punishment").
+function mainName(name) {
+  var base = String(name).replace(/\.[a-z0-9]{1,4}$/i, '').replace(/\s*[\(\[][^\)\]]*[\)\]]/g, '');
+  return matchName(base.split(/ - |: /)[0]);
+}
+// The LaunchBox game for a file among one platform's games (each with its
+// `names`: name and alternate names), or null. The whole title first; then
+// its main part against whole titles, then whole title against main parts,
+// those two only when a single game fits.
+function launchboxMatch(fileName, games) {
+  var full = matchName(fileName), main = mainName(fileName);
+  games.forEach(function (g) {     // each name tidied once, not once per file
+    if (!g.keys || g.keys.length !== g.names.length) { g.keys = g.names.map(matchName); g.mains = g.names.map(mainName); }
+  });
+  var exact = games.filter(function (g) { return g.keys.indexOf(full) >= 0; });
+  if (exact.length) return exact[0];
+  var tries = [
+    games.filter(function (g) { return g.keys.indexOf(main) >= 0; }),
+    games.filter(function (g) { return g.mains.indexOf(full) >= 0; }),
+  ];
+  for (var i = 0; i < tries.length; i++) if (tries[i].length === 1) return tries[i][0];
+  return null;
+}
+// Game Boy and Game Boy Color games are often listed under the other (a
+// Game Boy game with Color extras, kept as .gbc): look in both.
+var ALSO_LISTED = { gb: 'gbc', gbc: 'gb' };
 // --- end art logic ---
 
 var T = window.cardTools;
@@ -3979,8 +4117,9 @@ async function folderNames(path) {
   }
 }
 
-// The emulator games in the Games tab's folders that lack a front or back picture.
-async function retroGames() {
+// Emulator games and 64DD disks in the Games tab's folders that lack
+// pictures or details (the menu's report lists N64 cartridges only).
+async function extraGames() {
   var F = window.cardFolders, out = [];
   var folders = F.gameFolders(await cardText('menu/config.ini'), await cardText('menu/gamefolders.txt'));
   for (var folder of folders) {
@@ -3993,15 +4132,53 @@ async function retroGames() {
                       .map(function (p) { return p.slice(pre.length); });
     }
     for (var name of names) {
-      var art = retroFolder(name);
-      if (!art) continue;
-      var have = ((await folderNames('menu/metadata/' + art)) || []).map(function (n) { return n.toLowerCase(); });
-      var lacks = Object.keys(RETRO_PICTURES).filter(function (k) { return have.indexOf(RETRO_PICTURES[k]) < 0; });
-      if (lacks.length) out.push({ folder: art, kind: art.split('/')[0], lacks: lacks, file: F.entryName(folder, name) });
+      var art = retroFolder(name), kind, look, pictures;
+      if (art) {
+        kind = art.split('/')[0];
+        look = art;
+        pictures = RETRO_PICTURES;
+      } else if (/\.ndd$/i.test(name)) {
+        var id = await diskIdOf(await diskReader(folder, name));
+        if (!id) continue;
+        kind = 'disk';
+        art = id.split('').join('/');
+        look = art;
+        // The menu reads the folder with the region letter, else the one without it.
+        if ((await folderNames('menu/metadata/' + art)) === null && (await folderNames('menu/metadata/' + art.slice(0, -2))) !== null) look = art.slice(0, -2);
+        pictures = { front: 'boxart_front.png', back: 'boxart_back.png' };
+      } else {
+        continue;
+      }
+      var have = ((await folderNames('menu/metadata/' + look)) || []).map(function (n) { return n.toLowerCase(); });
+      var lacks = Object.keys(pictures).filter(function (k) { return have.indexOf(pictures[k]) < 0; });
+      var ini = have.indexOf('metadata.ini') >= 0 ? await cardText('menu/metadata/' + look + '/metadata.ini') : null;
+      lacks = lacks.concat(detailsLacking(ini, have.indexOf('description.txt') >= 0));
+      if (lacks.length) out.push({ folder: art, kind: kind, lacks: lacks, file: F.entryName(folder, name) });
     }
   }
   return out;
 }
+// Reads a few bytes of a disk image at an offset.
+async function diskReader(folder, name) {
+  var file = null;
+  if (card.root) {
+    try {
+      var dir = card.root;
+      for (var part of folder.split('/').filter(Boolean)) dir = await dir.getDirectoryHandle(part);
+      file = await (await dir.getFileHandle(name)).getFile();
+    } catch (e) {
+      file = null;
+    }
+  } else {
+    file = card.files.get(F_entry(folder, name).toLowerCase()) || null;
+  }
+  return async function (offset) {
+    if (!file || offset + 4 > file.size) return null;
+    return new Uint8Array(await file.slice(offset, offset + 4).arrayBuffer());
+  };
+}
+function F_entry(folder, name) { return window.cardFolders.entryName(folder, name); }
+function systemOf(item) { return isRetro(item) ? item.kind : (item.kind === 'disk' ? 'disk' : 'n64'); }
 function isRetro(item) { return !!RETRO_NAMES[item.kind]; }
 
 function gameName(item) {
@@ -4013,8 +4190,8 @@ function missingText(lacks) {
   return lacks.map(function (l) { return words[l] || l; }).join(', ');
 }
 
-async function cardChosen(root, menuFiles, all) {
-  card = { root: root, menuFiles: menuFiles, all: all || [], games: [] };
+async function cardChosen(root, menuFiles, all, files) {
+  card = { root: root, menuFiles: menuFiles, all: all || [], files: files || new Map(), games: [] };
   changes.clear();
   closeEditor();
   $('artCardStatus').textContent = 'Reading the card...';
@@ -4032,12 +4209,172 @@ async function cardChosen(root, menuFiles, all) {
         (made ? ', listed ' + new Date(made).toLocaleString() : '') + '. ';
     }
   }
-  var retro = await retroGames();
-  card.games = card.games.concat(retro);
-  $('artCardStatus').innerHTML = note + '<b>' + retro.length + '</b> NES, SNES or Game Boy game' + (retro.length === 1 ? '' : 's') + ' without pictures.' +
+  var extra = await extraGames();
+  card.games = card.games.concat(extra);
+  $('artCardStatus').innerHTML = note + '<b>' + extra.length + '</b> 64DD, NES, SNES or Game Boy game' + (extra.length === 1 ? '' : 's') + ' missing something.' +
     (root ? '' : ' This browser can\'t write to the card: you\'ll get a .zip to copy.');
+  $('artLibretro').disabled = !card.games.some(isRetro);
+  $('artLaunchbox').disabled = !card.games.length;
+  $('artAutoStatus').textContent = '';
   renderRows();
   renderListed();
+}
+
+// A game's file from the card, or null.
+async function gameFile(item) {
+  if (card.root) {
+    try {
+      var parts = item.file.split('/'), dir = card.root;
+      for (var i = 0; i < parts.length - 1; i++) dir = await dir.getDirectoryHandle(parts[i]);
+      return await (await dir.getFileHandle(parts[parts.length - 1])).getFile();
+    } catch (e) {
+      return null;
+    }
+  }
+  return card.files.get(item.file.toLowerCase()) || null;
+}
+
+// What was found for a game, added to its changes (only what it lacks, never over what the player typed).
+function autoFill(item, found) {
+  var c = changes.get(item.folder) || { item: item, pics: {}, desc: '', date: '', dev: '' }, any = false;
+  function put(field, lack, value) {
+    if (value && item.lacks.indexOf(lack) >= 0 && !c[field]) { c[field] = value; any = true; }
+  }
+  put('dev', 'developer', found.developer);
+  put('date', 'date', found.date);
+  put('desc', 'description', found.overview);
+  if (found.genre && !c.genre) { c.genre = found.genre; any = true; }
+  if (found.players && !c.players) { c.players = found.players; any = true; }
+  if (any) changes.set(item.folder, c);
+  return any;
+}
+
+$('artLibretro').addEventListener('click', async function () {
+  var btn = this, status = $('artAutoStatus');
+  btn.disabled = true;
+  var filled = 0, looked = 0;
+  try {
+    var systems = Array.from(new Set(card.games.filter(isRetro).reduce(function (all, g) {
+      return all.concat(ALSO_LISTED[g.kind] ? [g.kind, ALSO_LISTED[g.kind]] : [g.kind]);
+    }, [])));
+    var data = {};
+    for (var sys of systems) {
+      data[sys] = {};
+      for (var field of Object.keys(LIBRETRO_FIELDS)) {
+        status.textContent = 'Downloading ' + RETRO_NAMES[sys] + ' ' + field + '...';
+        var r = await fetch(LIBRETRO_BASE + field + '/' + encodeURIComponent(LIBRETRO_SYSTEMS[sys]) + '.dat');
+        data[sys][field] = r.ok ? parseMetadat(await r.text(), LIBRETRO_FIELDS[field]) : { byCrc: new Map(), byName: new Map() };
+      }
+    }
+    for (var item of card.games.filter(isRetro)) {
+      if (!item.lacks.some(function (l) { return TEXT_LACKS.indexOf(l) >= 0; })) continue;
+      status.textContent = 'Reading ' + gameName(item) + '...';
+      var f = await gameFile(item);
+      if (!f) continue;
+      looked++;
+      var crcs = crcCandidates(new Uint8Array(await f.arrayBuffer()), T.crcOf);
+      var base = matchName(item.file.slice(item.file.lastIndexOf('/') + 1));
+      function get(field) {
+        var lists = [data[item.kind][field]].concat(ALSO_LISTED[item.kind] ? [data[ALSO_LISTED[item.kind]][field]] : []);
+        for (var d of lists) for (var c of crcs) if (d.byCrc.has(c)) return d.byCrc.get(c);
+        for (var d2 of lists) if (d2.byName.has(base)) return d2.byName.get(base);
+        return '';
+      }
+      if (autoFill(item, { developer: get('developer'), date: libretroDate(get('releaseyear'), get('releasemonth')),
+                           genre: get('genre'), players: get('maxusers') })) filled++;
+    }
+    status.innerHTML = 'libretro filled in <b>' + filled + '</b> of ' + looked + ' game' + (looked === 1 ? '' : 's') + '. Check them below, then save.';
+  } catch (e) {
+    status.innerHTML = '<span class="bad">Could not reach libretro-database (' + e.message + ').</span>';
+  }
+  btn.disabled = false;
+  renderRows();
+  renderListed();
+});
+
+$('artLaunchbox').addEventListener('click', function () { $('artLaunchboxFile').click(); });
+$('artLaunchboxFile').addEventListener('change', async function () {
+  var file = this.files[0], status = $('artAutoStatus');
+  this.value = '';
+  if (!file) return;
+  var wanted = new Map();     // platform -> Map(match name -> [items])
+  card.games.forEach(function (item) {
+    var system = systemOf(item);
+    if (!LAUNCHBOX_PLATFORMS[system] || !item.lacks.some(function (l) { return TEXT_LACKS.indexOf(l) >= 0; })) return;
+    var key = matchName(item.file.slice(item.file.lastIndexOf('/') + 1));
+    [system].concat(ALSO_LISTED[system] ? [ALSO_LISTED[system]] : []).forEach(function (sys) {
+      var platform = LAUNCHBOX_PLATFORMS[sys];
+      if (!wanted.has(platform)) wanted.set(platform, new Map());
+      var list = wanted.get(platform).get(key) || [];
+      if (list.indexOf(item) < 0) list.push(item);
+      wanted.get(platform).set(key, list);
+    });
+  });
+  if (!wanted.size) { status.textContent = 'No game here is missing details.'; return; }
+  $('artLaunchbox').disabled = true;
+  var filled = 0;
+  try {
+    var stream = await launchboxStream(file);
+    var reader = stream.pipeThrough(new TextDecoderStream()).getReader(), text = '', read = 0, platforms = Array.from(wanted.keys());
+    var lbGames = [], byId = new Map(), done = new Set();  // alternate names come after the games in the file: match at the end
+    for (;;) {
+      var part = await reader.read();
+      if (part.done) break;
+      text += part.value;
+      read += part.value.length;
+      var got = launchboxGames(text, platforms);
+      text = got.rest;
+      got.games.forEach(function (g) { g.names = [g.name]; lbGames.push(g); byId.set(g.id, g); });
+      got.alternates.forEach(function (a) { var g = byId.get(a.id); if (g && a.name) g.names.push(a.name); });
+      status.textContent = 'Reading LaunchBox\'s list... ' + Math.round(read / 1048576) + ' MB';
+    }
+    // Each game wanted, among its platform's games (Game Boy and Color both).
+    wanted.forEach(function (byKey, platform) {
+      var games = lbGames.filter(function (g) { return g.platform === platform; });
+      byKey.forEach(function (items) {
+        items.forEach(function (item) {
+          if (done.has(item)) return;
+          var g = launchboxMatch(item.file.slice(item.file.lastIndexOf('/') + 1), games);
+          if (g) {
+            done.add(item);
+            if (autoFill(item, g)) filled++;
+          }
+        });
+      });
+    });
+    status.innerHTML = 'LaunchBox filled in <b>' + filled + '</b> game' + (filled === 1 ? '' : 's') + '. Check them below, then save.';
+  } catch (e) {
+    status.innerHTML = '<span class="bad">Could not read that file (' + e.message + ').</span> Choose LaunchBox\'s Metadata.zip or the Metadata.xml inside it.';
+  }
+  $('artLaunchbox').disabled = false;
+  renderRows();
+  renderListed();
+});
+
+// Metadata.xml as a stream of bytes: the file itself, or unpacked from the .zip as it is read.
+async function launchboxStream(file) {
+  if (!/\.zip$/i.test(file.name)) return file.stream();
+  var tail = new DataView(await file.slice(Math.max(0, file.size - 65558)).arrayBuffer()), end = -1;
+  for (var i = tail.byteLength - 22; i >= 0; i--) if (tail.getUint32(i, true) === 0x06054b50) { end = i; break; }
+  if (end < 0) throw new Error('not a .zip');
+  var entries = tail.getUint16(end + 10, true), dirSize = tail.getUint32(end + 12, true), dirAt = tail.getUint32(end + 16, true);
+  var dir = new DataView(await file.slice(dirAt, dirAt + dirSize).arrayBuffer()), at = 0, dec = new TextDecoder();
+  for (var n = 0; n < entries; n++) {
+    var method = dir.getUint16(at + 10, true), packed = dir.getUint32(at + 20, true);
+    var nameLen = dir.getUint16(at + 28, true), extraLen = dir.getUint16(at + 30, true), commentLen = dir.getUint16(at + 32, true);
+    var local = dir.getUint32(at + 42, true);
+    var name = dec.decode(new Uint8Array(dir.buffer, dir.byteOffset + at + 46, nameLen));
+    if (/(^|\/)Metadata\.xml$/i.test(name)) {
+      var head = new DataView(await file.slice(local, local + 30).arrayBuffer());
+      var start = local + 30 + head.getUint16(26, true) + head.getUint16(28, true);
+      var body = file.slice(start, start + packed).stream();
+      if (method === 0) return body;
+      if (method === 8) return body.pipeThrough(new DecompressionStream('deflate-raw'));
+      throw new Error('packed in a way this page can\'t unpack');
+    }
+    at += 46 + nameLen + extraLen + commentLen;
+  }
+  throw new Error('no Metadata.xml in it');
 }
 
 $('artPick').addEventListener('click', async function () {
@@ -4050,13 +4387,14 @@ $('artPick').addEventListener('click', async function () {
   }
 });
 $('artPickOld').addEventListener('change', function () {
-  var menuFiles = new Map(), all = [];
+  var menuFiles = new Map(), all = [], disks = new Map();
   Array.prototype.forEach.call(this.files, function (f) {
     var path = f.webkitRelativePath.split('/').slice(1).join('/');
     all.push(path);
     if (/^menu\//i.test(path) || /\.metadata\.ini$/i.test(path)) menuFiles.set(path.toLowerCase(), f);
+    if (/\.ndd$/i.test(path) || retroFolder(path)) disks.set(path.toLowerCase(), f);   // read for disk IDs and libretro's CRCs
   });
-  cardChosen(null, menuFiles, all);
+  cardChosen(null, menuFiles, all, disks);
 });
 
 function button(text, quiet, onClick) {
@@ -4075,14 +4413,15 @@ function renderRows() {
     body.innerHTML = '<tr><td colspan="3" class="U">' + (card ? 'Nothing to fill in.' : 'Pick the card first.') + '</td></tr>';
     return;
   }
-  var q = $('artSearch').value.trim().toLowerCase(), need = $('artNeed').value, shown = 0;
+  var q = $('artSearch').value.trim().toLowerCase(), need = $('artNeed').value, system = $('artSystem').value, shown = 0;
   card.games.forEach(function (item) {
+    if (system && systemOf(item) !== system) return;
     if (q && gameName(item).toLowerCase().indexOf(q) < 0 && item.file.toLowerCase().indexOf(q) < 0) return;
     if (need === 'text' ? !item.lacks.some(function (l) { return TEXT_LACKS.indexOf(l) >= 0; }) : (need && item.lacks.indexOf(need) < 0)) return;
     var tr = document.createElement('tr');
     var name = document.createElement('td');
     name.className = 'file';
-    name.textContent = gameName(item) + (item.kind && item.kind !== 'game' ? ' (' + (RETRO_NAMES[item.kind] || item.kind) + ')' : '');
+    name.textContent = gameName(item) + (item.kind && item.kind !== 'game' ? ' (' + (RETRO_NAMES[item.kind] || (item.kind === 'disk' ? '64DD' : item.kind)) + ')' : '');
     var miss = document.createElement('td');
     miss.textContent = missingText(item.lacks);
     var act = document.createElement('td');
@@ -4102,6 +4441,7 @@ function renderRows() {
 }
 $('artSearch').addEventListener('input', renderRows);
 $('artNeed').addEventListener('change', renderRows);
+$('artSystem').addEventListener('change', renderRows);
 
 function renderListed() {
   var ul = $('artListed');
@@ -4112,6 +4452,8 @@ function renderListed() {
     if (c.desc) what.push('description');
     if (c.date) what.push('date');
     if (c.dev) what.push('developer');
+    if (c.genre) what.push('genre');
+    if (c.players) what.push('players');
     li.textContent = gameName(c.item) + ': ' + what.join(', ') + ' ';
     li.appendChild(button('Undo', true, function () { changes.delete(folder); renderRows(); renderListed(); }));
     ul.appendChild(li);
@@ -4211,7 +4553,9 @@ $('artKeep').addEventListener('click', async function () {
     await editing.pics[key].pending;
     if (editing.pics[key].blob) { pics[key] = editing.pics[key].blob; any = true; }
   }
-  var c = { item: editing.item, pics: pics, desc: $('artDesc').value.trim(), date: $('artDate').value, dev: $('artDev').value.trim() };
+  var was = changes.get(editing.item.folder) || {};
+  var c = { item: editing.item, pics: pics, desc: $('artDesc').value.trim(), date: $('artDate').value || (/^\d{4}(-\d{2})?$/.test(was.date || '') ? was.date : ''),
+            dev: $('artDev').value.trim(), genre: was.genre, players: was.players };
   if (!any && !c.desc && !c.date && !c.dev) { $('artEditStatus').innerHTML = '<span class="bad">Nothing filled in yet.</span>'; return; }
   changes.set(editing.item.folder, c);
   closeEditor();
@@ -4237,9 +4581,11 @@ async function filesToWrite() {
     var homebrew = c.item.kind === 'homebrew', iniPath = detailsPath(c.item);
     var ini = (await cardText(iniPath)) ||
       (target.copyFrom ? await cardText('menu/metadata/' + target.copyFrom + '/metadata.ini') : null);
-    if (c.desc || c.date || c.dev) {
+    if (c.desc || c.date || c.dev || c.genre || c.players) {
       var oldAuthor = ini ? (/^\s*author\s*=\s*(.*?)\s*$/m.exec(ini) || [])[1] : '';
       var values = { 'release-date': c.date, author: c.dev ? T.iniValue(authorWith(oldAuthor, c.dev), 60) : '' };
+      if (c.genre) values.genre = T.iniValue(c.genre, 40);
+      if (c.players && /^\d+$/.test(c.players)) values['num-players'] = c.players;
       // The menu keeps up to 255 characters of a value; homebrew has no description.txt, so it gets more here.
       if (c.desc) values['short-desc'] = T.iniValue(shortDesc(c.desc, homebrew ? 250 : 120));
       if (!ini) values.name = T.iniValue(gameName(c.item), 90);

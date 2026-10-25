@@ -9,7 +9,7 @@ const path = require('path');
 const html = fs.readFileSync(path.join(__dirname, '..', 'docs', 'companion', 'index.html'), 'utf8');
 const a = html.indexOf('// --- art logic'), b = html.indexOf('// --- end art logic ---');
 if (a < 0 || b < 0) throw new Error('Could not find the logic block in the Missing Art tab; did it change?');
-const t = new Function(html.slice(a, b) + 'return {parseMissingArt, fitInside, shortDesc, authorWith, mergeIni, artTarget, detailsPath, retroFolder};')();
+const t = new Function(html.slice(a, b) + 'return {parseMissingArt, fitInside, shortDesc, authorWith, mergeIni, artTarget, detailsPath, retroFolder, diskIdOf, detailsLacking, parseMetadat, crcCandidates, libretroDate, matchName, launchboxGames, mainName, launchboxMatch};')();
 
 let checks = 0, failures = 0;
 function check(cond, what) {
@@ -76,5 +76,52 @@ check(t.retroFolder('Zelda.SFC') === 'snes/Zelda' && t.retroFolder('Zelda.smc') 
 check(t.retroFolder('Tetris.gb') === 'gb/Tetris' && t.retroFolder('Pokemon.gbc') === 'gbc/Pokemon', 'Game Boy and Game Boy Color apart');
 check(t.retroFolder('Sonic.sms') === null && t.retroFolder('Mario.z64') === null && t.retroFolder('.nes') === null, 'other systems, N64 games and odd names are not');
 
-console.log(checks + ' checks, ' + failures + ' failed');
-process.exit(failures ? 1 : 0);
+console.log('64DD disks and details');
+(async () => {
+  const block = 232 * 85, image = new Uint8Array(16 * block);
+  image.set([0x44, 0x4D, 0x50, 0x4A], 15 * block);     // DMPJ in block 15 only
+  const read = async (offset) => image.slice(offset, offset + 4);
+  check(await t.diskIdOf(read) === 'DMPJ', 'the ID from block 15 when 14 is blank');
+  image.set([0x45, 0x46, 0x5A, 0x4A], 14 * block);     // EFZJ in block 14 wins
+  check(await t.diskIdOf(read) === 'EFZJ', 'block 14 first');
+  check(await t.diskIdOf(async () => new Uint8Array([0, 1, 2, 3])) === null, 'not a disk: no ID');
+  check(t.detailsLacking(null, false).join() === 'description,date,developer', 'no metadata.ini: all three');
+  check(t.detailsLacking('[meta]\nauthor = Nintendo\nrelease-date = 1999-12-01\nshort-desc =\n', true).length === 0, 'a description.txt counts, as do the keys');
+  check(t.detailsLacking('[meta]\nshort-desc = A game.\nauthor =\n', false).join() === 'date,developer', 'an empty key is missing');
+
+  console.log('libretro');
+  const dat = 'clrmamepro (\n\tname "x"\n)\n\ngame (\n\tcomment "10-Yard Fight (USA, Europe)"\n\tdeveloper "Irem"\n\trom ( crc C986CDA2 )\n)\n\n' +
+    'game (\n\tcomment "10-Pin Bowling (USA)"\n\tusers 1\n\trom ( crc 9A024415 )\n)\n';
+  let md = t.parseMetadat(dat, 'developer');
+  check(md.byCrc.get('c986cda2') === 'Irem' && md.byName.get(t.matchName('10-Yard Fight (USA, Europe)')) === 'Irem', 'a developer, by CRC and by name');
+  check(t.parseMetadat(dat, 'users').byCrc.get('9a024415') === '1', 'player counts without quotes');
+  const crc = require('zlib').crc32 || ((b) => { let c = ~0; for (const x of b) { c ^= x; for (let k = 0; k < 8; k++) c = (c >>> 1) ^ (0xEDB88320 & -(c & 1)); } return ~c >>> 0; });
+  const nes = new Uint8Array(16 + 32); nes.set([0x4E, 0x45, 0x53, 0x1A]);
+  let cands = t.crcCandidates(nes, crc);
+  check(cands.length === 2 && cands[1] === ('00000000' + crc(nes.subarray(16)).toString(16)).slice(-8), 'an NES file also without its header');
+  check(t.crcCandidates(new Uint8Array(1024 + 512), crc).length === 2, 'an SNES file with a copier header also without it');
+  check(t.libretroDate('1985', '9') === '1985-09' && t.libretroDate('1994', '') === '1994' && t.libretroDate('', '3') === '', 'year and month as a date');
+
+  console.log('LaunchBox');
+  check(t.matchName('Legend of Zelda, The - Ocarina of Time (U) [!].z64') === t.matchName('The Legend of Zelda: Ocarina of Time'), 'names match without tags, articles or punctuation');
+  check(t.matchName('Pokemon - Yellow Version - Special Pikachu Edition (USA, Europe) (CGB+SGB Enhanced).gbc') === t.matchName('Pokémon Yellow Version: Special Pikachu Edition'), 'accents read as plain letters');
+  check(t.matchName('Banjo & Kazooie.nes') === t.matchName('Banjo and Kazooie'), '& and "and"');
+  const xml = '<LaunchBox>\n<Game>\n<Name>Super Mario Bros.</Name>\n<ReleaseDate>1985-09-13T00:00:00-07:00</ReleaseDate>\n<Overview>Mario &amp; Luigi.</Overview>\n' +
+    '<MaxPlayers>2</MaxPlayers>\n<Platform>Nintendo Entertainment System</Platform>\n<Genres>Platform;Action</Genres>\n<Developer>Nintendo</Developer>\n</Game>\n' +
+    '<Game>\n<Name>Halo</Name>\n<Platform>Microsoft Xbox</Platform>\n</Game>\n<Game>\n<Name>Tetr';
+  const lb = t.launchboxGames(xml, ['Nintendo Entertainment System']);
+  check(lb.games.length === 1 && lb.games[0].date === '1985-09-13' && lb.games[0].overview === 'Mario & Luigi.' && lb.games[0].genre === 'Platform', 'a game, its date, text and first genre');
+  check(lb.rest === '<Game>\n<Name>Tetr', 'an unfinished game is kept for the next stretch');
+  check(t.parseMetadat('game (\n\tcomment "Pokemon - Yellow Version - Special Pikachu Edition (USA, Europe) (CGB+SGB Enhanced)"\n\tdeveloper "Game Freak"\n\trom ( crc 7D527D62 )\n)\n', 'developer')
+        .byName.get(t.matchName('Pokemon Yellow Version - Special Pikachu Edition.gb')) === 'Game Freak', 'libretro by a tidy name when the CRC differs');
+  const lbg = t.launchboxGames('<Game><Name>Sin and Punishment</Name><DatabaseID>7</DatabaseID><Platform>Nintendo 64</Platform></Game>' +
+    '<GameAlternateName><AlternateName>Tsumi to Batsu: Hoshi no Keishousha</AlternateName><DatabaseID>7</DatabaseID></GameAlternateName><GameImage>x</Gam', ['Nintendo 64']);
+  check(lbg.games.length === 1 && lbg.alternates.length === 1 && lbg.alternates[0].id === '7', 'alternate names read too');
+  check(lbg.rest.length <= 32, 'a long tail of other blocks is not kept');
+  const games = [{ names: ['Sin and Punishment', 'Tsumi to Batsu: Hoshi no Keishousha'] }, { names: ['Sin & Punishment: Star Successor'] }];
+  check(t.launchboxMatch('Sin and Punishment - Hoshi no Keishousha (J) [!].z64', games) === games[0], 'the main title finds the one game');
+  check(t.launchboxMatch('Tsumi to Batsu - Hoshi no Keishousha.z64', games) === games[0], 'an alternate name matches whole');
+  check(t.launchboxMatch('Sin and Punishment.z64', [{ names: ['Sin and Punishment - A'] }, { names: ['Sin and Punishment - B'] }]) === null, 'two games fit the main title: no guess');
+  console.log(failures ? failures + ' of ' + checks + ' checks failed.' : checks + ' checks, 0 failed');
+  process.exit(failures ? 1 : 0);
+})();

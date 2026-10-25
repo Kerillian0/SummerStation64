@@ -30,12 +30,14 @@ static component_boxart_t *art = NULL;
 static bool back = false;           /* the back of the box is showing */
 static bool details = false;
 
-static char author[64], date[32], name[96];
+static char author[64], date[32], name[96], genre[40];
+static int players = 0;
 static char *description = NULL;
 
 /* What a metadata.ini says, and the full text from a description.txt. Either may be NULL. */
 static void read_meta (const char *ini_file, const char *text_file) {
-    author[0] = date[0] = name[0] = '\0';
+    author[0] = date[0] = name[0] = genre[0] = '\0';
+    players = 0;
     free(description);
     description = NULL;
     const char *file = ini_file;
@@ -50,6 +52,8 @@ static void read_meta (const char *ini_file, const char *text_file) {
             }
             snprintf(date, sizeof(date), "%s", ini_get_string(ini, "meta", "release-date", ""));
             snprintf(name, sizeof(name), "%s", ini_get_string(ini, "meta", "name", ""));
+            snprintf(genre, sizeof(genre), "%s", ini_get_string(ini, "meta", "genre", ""));
+            players = ini_get_int(ini, "meta", "num-players", 0);
             const char *desc = ini_get_string(ini, "meta", "short-desc", "");
             if (desc[0]) {
                 description = strdup(desc);
@@ -174,15 +178,32 @@ bool game_info_more_backdrop_ready (void) {
     return game_info_ui_backdrop_ready_for(path);
 }
 
-/* "Oct 26, 2000 · Nintendo", or NULL. */
+/* "Platform · Oct 26, 2000 · Nintendo", or NULL: the developer last, so a long name is what gets cut short. */
 static const char *above_line (void) {
-    static char line[128];
+    static char line[160];
     char released[32] = "";
     if (date[0]) {
         game_info_ui_format_date(released, sizeof(released), date);
     }
-    snprintf(line, sizeof(line), "%s%s%s", released, (released[0] && author[0]) ? " \xC2\xB7 " : "", author);
+    const char *parts[3] = { genre, released, author };
+    line[0] = '\0';
+    for (int i = 0; i < 3; i++) {
+        if (parts[i][0]) {
+            size_t n = strlen(line);
+            snprintf(line + n, sizeof(line) - n, "%s%s", n ? " \xC2\xB7 " : "", parts[i]);
+        }
+    }
     return line[0] ? line : NULL;
+}
+
+/* "1-4 players", or NULL for one player or not known. */
+static const char *players_badge (void) {
+    static char text[24];
+    if (players < 2) {
+        return NULL;
+    }
+    snprintf(text, sizeof(text), "1-%d players", players);
+    return text;
 }
 
 static const char *file_name (void) {
@@ -219,6 +240,10 @@ void game_info_more_draw_disk (menu_t *menu, const disk_info_t *disk, int swap_d
         page.badges[b] = "Needs its cartridge";
         page.badge_styles[b++] = STL_ORANGE;
     }
+    if (players_badge()) {
+        page.badges[b] = players_badge();
+        page.badge_styles[b++] = STL_DEFAULT;
+    }
     game_info_ui_draw_page(menu, art, &page);
 
     if (details) {
@@ -243,6 +268,8 @@ void game_info_more_draw_retro (menu_t *menu, const char *system_name) {
         .pictures = true,
         .front_picture = !back,
     };
+    page.badges[0] = players_badge();
+    page.badge_styles[0] = STL_DEFAULT;
     game_info_ui_draw_page(menu, art, &page);
 
     if (details) {

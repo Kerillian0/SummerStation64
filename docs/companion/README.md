@@ -1,7 +1,7 @@
 # SummerStation64 Companion
 
 One web page, `index.html`, with six tabs: **Theme Maker**, **Card Prep**,
-**Hacks**, **Missing Art**, **Collections** and **Guide**. Published with GitHub Pages from this folder
+**Hacks**, **Missing Metadata**, **Collections** and **Guide**. Published with GitHub Pages from this folder
 (Settings > Pages: branch `summerstation`, folder `/docs`), at
 `https://kerillian0.github.io/SummerStation64/companion/`. Each tab has its
 own address: `#themes`, `#prep`, `#hacks`, `#art`, `#coll`, `#guide` (and `#guide-setup`,
@@ -102,7 +102,7 @@ opened from disk): after changing the list run
 `python3 scripts/embed_popular_hacks.py`; the tests check the two match. The
 compatibility notes are still being checked, and the page says so.
 
-## Missing Art
+## Missing Metadata (`#art`)
 
 Fills in what the menu's own check (Settings > Library > Find Missing Art)
 found missing, listed in `menu/missingart.txt`: one line per game, tab-separated:
@@ -125,13 +125,43 @@ them for homebrew), with the description as a longer `short-desc` (the menu
 keeps 255 characters of a value). Pictures and details baked
 into the menu file are not on the list (they count as there).
 
-Emulator games (NES, SNES, Game Boy, Game Boy Color: `src/menu/retro.c`) are
-not in the menu's report, so the page finds them itself in the Games tab's
-folders (`menu/config.ini` and `menu/gamefolders.txt`, read as the
-Collections tab does) and lists those without `boxart_front.png` or
-`boxart_back.png` in `menu/metadata/<nes|snes|gb|gbc>/<file name without
-extension>/`. Their pictures keep their own shape (fitted inside 158 x 158),
-since each system's box has a different one.
+Emulator games (NES, SNES, Game Boy, Game Boy Color: `src/menu/retro.c`) and
+64DD disks are not in the menu's report, so the page finds them itself. A
+disk's ID is read from its image as `src/menu/disk_info.c` does (the first
+four bytes of system block 14, else 15; 85 sectors of 232 bytes a block),
+and its folder is the ID's (`D/M/P/J`, else the one without the region
+letter), as for cartridges. For both, a missing description (no
+`description.txt` and no `short-desc`), `release-date` or `author` is
+offered too, written as for cartridges. A system filter shows one system
+at a time. Both are looked for in the Games tab's folders
+(`menu/config.ini` and `menu/gamefolders.txt`, read as the Collections tab
+does). An emulator game's folder is `menu/metadata/<nes|snes|gb|gbc>/<file
+name without extension>/`, with `boxart_front.png`, `boxart_back.png`,
+`boxart_spine.png`, `gamepak_front.png` and `gamepak_back.png`; its pictures
+keep their own shape (fitted inside 158 x 158), since each system's box has a
+different one. A disk takes a front and a back, cut like an N64 box. Art
+baked into the menu file is not known to the page for these, so a disk
+whose cover is only baked is listed as missing it.
+
+Two buttons fill details in by themselves, only for what a game lacks and
+never over what the player typed; nothing is written until Save:
+- **libretro** (CC-BY-SA 4.0): `metadat/developer`, `releaseyear`,
+  `releasemonth`, `genre` and `maxusers` for NES, SNES, Game Boy and Game Boy
+  Color, fetched at run time, matched by each file's CRC-32 (as it is, and
+  without an iNES or SNES copier header), else by its No-Intro name.
+- **LaunchBox**: the player's own `Metadata.zip` (or the `Metadata.xml` in
+  it) from the LaunchBox Games Database, read as a stream (the .zip
+  unpacked with `DecompressionStream`), keeping only the platforms wanted.
+  Games are matched by name (`matchName()`: no brackets, articles, case,
+  accents or punctuation) within their platform, LaunchBox's alternate names
+  (`GameAlternateName`, after the games in the file) included; failing that,
+  by the main title (before " - " or ":", `mainName()`) when only one game
+  fits (`launchboxMatch()`). Game Boy and Game Boy Color are searched
+  together (`ALSO_LISTED`), here and for libretro, whose name fallback uses
+  `matchName()` too. It adds descriptions and covers N64 and 64DD too. LaunchBox publishes no terms for reuse, so it is never
+  fetched by the page or bundled; the page says so.
+Genre and player counts are written as `genre` and `num-players`, which the
+64DD and Retro Game info screens show (`src/menu/game_info_more.c`).
 
 ## Collections
 
@@ -161,7 +191,7 @@ and settings are named exactly as on the console).
 
 There is no browser in the dev container. `sh tests/run.sh` runs the Theme
 Maker's share codes, Card Prep's working code (between `// --- logic` and
-`// --- end logic ---`), the Hacks tab's (`// --- hacks logic`), the Missing Art
+`// --- end logic ---`), the Hacks tab's (`// --- hacks logic`), the Missing Metadata
 tab's (`// --- art logic`) and the Collections tab's (`// --- collections logic`) in Node.js, taken straight out of this page. The parts
 that need a browser (the preview, picking a folder, saving) are checked by
 opening the page.
