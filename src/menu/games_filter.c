@@ -21,6 +21,7 @@
 #include "collections.h"
 #include "game_data.h"
 #include "party.h"
+#include "retro.h"
 #include "rom_hacks.h"
 #include "sort_order.h"
 
@@ -35,11 +36,13 @@ typedef enum {
     FILTER_STEPS,               /* C-up / C-down step through the ones above */
     FILTER_HOMEBREW = FILTER_STEPS,     /* the Homebrew tab's shelf */
     FILTER_COLLECTION,                  /* the Collections tab's shelf: one collection (collections.h), not a mark */
+    FILTER_RETRO,                       /* the Retro tab's shelf: emulator games, one system or all (retro.h) */
     FILTER_COUNT
 } filter_t;
 
-static const char *names[FILTER_COUNT] = { "All", "USA", "Japan", "Europe", "64DD", "Hacks", "Party", "Homebrew", "Collection" };
+static const char *names[FILTER_COUNT] = { "All", "USA", "Japan", "Europe", "64DD", "Hacks", "Party", "Homebrew", "Collection", "Retro" };
 static int collection = -1;     /* the collection the Collections tab shows, by its number (collections_id()) */
+static retro_system_t retro_step = RETRO_OTHER;     /* on the Retro shelf: RETRO_OTHER for all, else one system */
 
 /* Which filters a game belongs to, one bit each (bit FILTER_ALL always set). */
 static uint16_t *marks = NULL;   /* indexed by entry->index, the order the folder was read in */
@@ -76,7 +79,7 @@ static bool region_folding (filter_t f) {
     return (f == FILTER_ALL || f == FILTER_COLLECTION) && options_get(OPTION_REGION_COPIES) == REGION_COPIES_ONE_COVER;
 }
 static filter_t stepped = FILTER_ALL;   /* the Games tab's step, kept while the shelf shows */
-static bool shelf = false;              /* the Homebrew tab is showing */
+static bool shelf = false;              /* the Homebrew or Retro tab is showing */
 static int (*stock_compare) (const void *, const void *) = NULL;   /* the browser's own sort, for the Type order */
 
 static uint8_t from_code_letter (char c) {
@@ -132,6 +135,9 @@ static uint16_t classify (menu_t *menu, entry_t *e) {
     if (e->type == ENTRY_TYPE_DISK) {
         return m | (1 << FILTER_64DD);
     }
+    if (e->type == ENTRY_TYPE_EMULATOR) {
+        return 1 << FILTER_RETRO;   /* not under All: emulator games live on the Retro tab */
+    }
     if (e->type != ENTRY_TYPE_ROM) {
         return m;
     }
@@ -173,7 +179,10 @@ static bool matches (const entry_t *e, filter_t f) {
     if (f == FILTER_HOMEBREW && e->index >= 0 && e->index < marks_count && (marks[e->index] & (1 << FILTER_HACKS))) {
         return false;   /* a hack without a proper code is still a hack, not homebrew */
     }
-    bool in = (f == FILTER_COLLECTION) ? collections_has(collection, e)
+    if (f == FILTER_RETRO && e->index >= 0 && e->index < marks_count && retro_step != RETRO_OTHER && retro_system(e->name) != retro_step) {
+        return false;   /* another system's game */
+    }
+    bool in = (f == FILTER_COLLECTION) ? (collections_has(collection, e))
             : (f == FILTER_PARTY) ? (players && party >= 2 && e->index >= 0 && e->index < marks_count && players[e->index] >= party)
             : ((marks[e->index] & (1 << f)) != 0);
     return e->index >= 0 && e->index < marks_count && in
@@ -486,7 +495,29 @@ void games_filter_after_load (menu_t *menu, int (*compare) (const void *, const 
     }
 }
 
+/* The Retro shelf's own steps: All, NES, SNES, Game Boy, Game Boy Color, skipping systems with no games. */
+static bool retro_step_by (menu_t *menu, int direction) {
+    retro_system_t was = retro_step, next = retro_step;
+    for (int tries = 0; tries < RETRO_SYSTEMS; tries++) {
+        next = (retro_system_t) ((next + direction + RETRO_SYSTEMS) % RETRO_SYSTEMS);
+        retro_step = next;
+        if (next == RETRO_OTHER || count_for(menu, FILTER_RETRO) > 0) {
+            break;
+        }
+    }
+    retro_step = next;
+    if (next == was) {
+        return false;
+    }
+    reapply(menu);
+    debugf("games filter: Retro %s, %d games\n", retro_name(retro_step), (int) menu->browser.entries);
+    return true;
+}
+
 bool games_filter_step (menu_t *menu, int direction) {
+    if (total > 0 && shelf && current == FILTER_RETRO) {
+        return retro_step_by(menu, direction);
+    }
     if (total <= 0 || shelf) {
         return false;
     }
@@ -545,6 +576,9 @@ const char *games_filter_label (void) {
     if (current == FILTER_COLLECTION) {
         return collections_name(collection);
     }
+    if (current == FILTER_RETRO) {
+        return (retro_step == RETRO_OTHER) ? NULL : retro_name(retro_step);
+    }
     if (current == FILTER_PARTY && !shelf) {
         static char label[24];
         snprintf(label, sizeof(label), "Party: %d+", party);
@@ -600,18 +634,22 @@ int games_filter_collection_covers (menu_t *menu, int which, entry_t **out, int 
     return n;
 }
 
-void games_filter_shelf (menu_t *menu, bool homebrew, bool list_loaded) {
+void games_filter_shelf (menu_t *menu, games_shelf_t which, bool list_loaded) {
     if (current == FILTER_COLLECTION) {
-        games_filter_collection(menu, -1, list_loaded && !homebrew);   /* from a collection straight to Homebrew or Games */
+        games_filter_collection(menu, -1, list_loaded && which == GAMES_SHELF_NONE);   /* from a collection straight to a shelf or Games */
     }
-    if (homebrew == (shelf && current == FILTER_HOMEBREW)) {
+    filter_t wanted = (which == GAMES_SHELF_HOMEBREW) ? FILTER_HOMEBREW : (which == GAMES_SHELF_RETRO) ? FILTER_RETRO : FILTER_ALL;
+    if ((which != GAMES_SHELF_NONE) == shelf && (!shelf || current == wanted)) {
         return;
     }
-    shelf = homebrew;
-    if (homebrew) {
-        stepped = current;
-        current = FILTER_HOMEBREW;
+    if (which != GAMES_SHELF_NONE) {
+        if (!shelf) {
+            stepped = current;
+        }
+        shelf = true;
+        current = wanted;
     } else {
+        shelf = false;
         current = stepped;
     }
     if (list_loaded && total > 0) {

@@ -29,6 +29,7 @@ typedef enum {
     TAB_CHOICE_RECENT,
     TAB_CHOICE_HOMEBREW,
     TAB_CHOICE_COLLECTIONS,
+    TAB_CHOICE_RETRO,
     TAB_CHOICE_COUNT
 } tab_choice_t;
 
@@ -79,5 +80,8 @@ bool tabs_browser_shows_homebrew (void);
 
 /** Whether the browser screen should show the Collections tab. */
 bool tabs_browser_shows_collections (void);
+
+/** Whether the browser should show the Games list on its Retro shelf (retro.h). */
+bool tabs_browser_shows_retro (void);
 
 #endif /* TABS_H__ */

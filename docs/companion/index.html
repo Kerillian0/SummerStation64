@@ -496,7 +496,11 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
 
     <section>
       <h2><span class="n">2</span>Choose a game</h2>
-      <p>Each game with what it is missing. Pictures and details baked into the menu file count as there already.</p>
+      <p>Each game with what it is missing. Pictures and details baked into the menu file count as there already. NES, SNES
+        and Game Boy games are found on the card by this page and take their box's front, back and spine (the 3D box's sides,
+        standing or lying down); their pictures keep
+        their own shape and go in <code>menu/metadata/nes/&lt;file name&gt;/</code> (or <code>snes</code>, <code>gb</code>,
+        <code>gbc</code>).</p>
       <div class="line">
         <input type="text" id="artSearch" placeholder="Search games" aria-label="Search games" style="max-width:280px">
         <select id="artNeed" aria-label="Show games missing" style="width:auto">
@@ -3838,7 +3842,8 @@ var PICTURES = [
   { key: 'front', file: 'boxart_front.png', label: 'Front cover', box: true },
   { key: 'back', file: 'boxart_back.png', label: 'Back of the box', box: true },
   { key: 'top', file: 'boxart_top.png', label: 'Top label' },
-  { key: 'cartridge', file: 'gamepak_front.png', label: 'Cartridge' }
+  { key: 'cartridge', file: 'gamepak_front.png', label: 'Cartridge' },
+  { key: 'spine', file: 'boxart_spine.png', label: 'Spine' }     // emulator games only: both sides of the 3D box
 ];
 var TEXT_LACKS = ['description', 'date', 'developer'];
 
@@ -3918,6 +3923,18 @@ function detailsPath(item) {
   var slash = item.file.lastIndexOf('/'), dot = item.file.lastIndexOf('.');
   return (dot > slash ? item.file.slice(0, dot) : item.file) + '.metadata.ini';
 }
+// Emulator games (src/menu/retro.c): the menu's report lists only N64
+// games, so the page finds these itself. Each has a folder under
+// menu/metadata named after its system and its file name without the
+// extension ("nes/Super Mario Bros. (World)"); null for other files.
+var RETRO_SYSTEMS = { nes: 'nes', sfc: 'snes', smc: 'snes', gb: 'gb', gbc: 'gbc' };
+var RETRO_NAMES = { nes: 'NES', snes: 'SNES', gb: 'Game Boy', gbc: 'Game Boy Color' };
+function retroFolder(file) {
+  var base = String(file).slice(String(file).lastIndexOf('/') + 1), dot = base.lastIndexOf('.');
+  if (dot <= 0) return null;
+  var system = RETRO_SYSTEMS[base.slice(dot + 1).toLowerCase()];
+  return system ? system + '/' + base.slice(0, dot) : null;
+}
 // --- end art logic ---
 
 var T = window.cardTools;
@@ -3949,7 +3966,7 @@ async function folderNames(path) {
   }
   try {
     var dir = card.root;
-    for (var part of path.split('/')) dir = await dir.getDirectoryHandle(part);
+    for (var part of path.split('/').filter(Boolean)) dir = await dir.getDirectoryHandle(part);
     var out = [];
     for await (var [name] of dir.entries()) out.push(name);
     return out;
@@ -3958,34 +3975,63 @@ async function folderNames(path) {
   }
 }
 
+// The emulator games in the Games tab's folders that lack a front or back picture.
+async function retroGames() {
+  var F = window.cardFolders, out = [];
+  var folders = F.gameFolders(await cardText('menu/config.ini'), await cardText('menu/gamefolders.txt'));
+  for (var folder of folders) {
+    var names;
+    if (card.root) {
+      names = (await folderNames(folder.slice(1))) || [];
+    } else {
+      var pre = folder === '/' ? '' : folder.slice(1).toLowerCase() + '/';
+      names = card.all.filter(function (p) { return p.toLowerCase().indexOf(pre) === 0 && p.slice(pre.length).indexOf('/') < 0; })
+                      .map(function (p) { return p.slice(pre.length); });
+    }
+    for (var name of names) {
+      var art = retroFolder(name);
+      if (!art) continue;
+      var have = ((await folderNames('menu/metadata/' + art)) || []).map(function (n) { return n.toLowerCase(); });
+      var lacks = ['front', 'back', 'spine'].filter(function (k) { return have.indexOf('boxart_' + k + '.png') < 0; });
+      if (lacks.length) out.push({ folder: art, kind: art.split('/')[0], lacks: lacks, file: F.entryName(folder, name) });
+    }
+  }
+  return out;
+}
+function isRetro(item) { return !!RETRO_NAMES[item.kind]; }
+
 function gameName(item) {
   var base = item.file.slice(item.file.lastIndexOf('/') + 1);
   return T.tidyName(base) || base;
 }
 function missingText(lacks) {
-  var words = { front: 'front', back: 'back', top: 'top label', cartridge: 'cartridge', description: 'description', date: 'date', developer: 'developer' };
+  var words = { front: 'front', back: 'back', top: 'top label', cartridge: 'cartridge', spine: 'spine', description: 'description', date: 'date', developer: 'developer' };
   return lacks.map(function (l) { return words[l] || l; }).join(', ');
 }
 
-async function cardChosen(root, menuFiles) {
-  card = { root: root, menuFiles: menuFiles, games: [] };
+async function cardChosen(root, menuFiles, all) {
+  card = { root: root, menuFiles: menuFiles, all: all || [], games: [] };
   changes.clear();
   closeEditor();
-  var text = await cardText(ART_REPORT);
+  $('artCardStatus').textContent = 'Reading the card...';
+  var text = await cardText(ART_REPORT), note = '';
   if (text === null) {
-    $('artCardStatus').innerHTML = '<span class="bad">No menu/missingart.txt on this card.</span> On the console, open Settings &gt; Library &gt; Find Missing Art, then pick the card again.';
+    note = '<span class="bad">No menu/missingart.txt on this card</span>, so N64 games aren\'t listed: on the console, open Settings &gt; Library &gt; Find Missing Art, then pick the card again. ';
   } else {
     var parsed = parseMissingArt(text);
     if (!parsed) {
-      $('artCardStatus').innerHTML = '<span class="bad">menu/missingart.txt doesn\'t start with "' + ART_HEADER + '".</span>';
+      note = '<span class="bad">menu/missingart.txt doesn\'t start with "' + ART_HEADER + '".</span> ';
     } else {
       card.games = parsed;
       var made = (await cardFile(ART_REPORT)).lastModified;
-      $('artCardStatus').innerHTML = '<b>' + parsed.length + '</b> game' + (parsed.length === 1 ? '' : 's') + ' missing something' +
-        (made ? ', listed ' + new Date(made).toLocaleString() : '') + '.' +
-        (root ? '' : ' This browser can\'t write to the card: you\'ll get a .zip to copy.');
+      note = '<b>' + parsed.length + '</b> N64 game' + (parsed.length === 1 ? '' : 's') + ' missing something' +
+        (made ? ', listed ' + new Date(made).toLocaleString() : '') + '. ';
     }
   }
+  var retro = await retroGames();
+  card.games = card.games.concat(retro);
+  $('artCardStatus').innerHTML = note + '<b>' + retro.length + '</b> NES, SNES or Game Boy game' + (retro.length === 1 ? '' : 's') + ' without pictures.' +
+    (root ? '' : ' This browser can\'t write to the card: you\'ll get a .zip to copy.');
   renderRows();
   renderListed();
 }
@@ -4000,12 +4046,13 @@ $('artPick').addEventListener('click', async function () {
   }
 });
 $('artPickOld').addEventListener('change', function () {
-  var menuFiles = new Map();
+  var menuFiles = new Map(), all = [];
   Array.prototype.forEach.call(this.files, function (f) {
     var path = f.webkitRelativePath.split('/').slice(1).join('/');
+    all.push(path);
     if (/^menu\//i.test(path) || /\.metadata\.ini$/i.test(path)) menuFiles.set(path.toLowerCase(), f);
   });
-  cardChosen(null, menuFiles);
+  cardChosen(null, menuFiles, all);
 });
 
 function button(text, quiet, onClick) {
@@ -4031,7 +4078,7 @@ function renderRows() {
     var tr = document.createElement('tr');
     var name = document.createElement('td');
     name.className = 'file';
-    name.textContent = gameName(item) + (item.kind && item.kind !== 'game' ? ' (' + item.kind + ')' : '');
+    name.textContent = gameName(item) + (item.kind && item.kind !== 'game' ? ' (' + (RETRO_NAMES[item.kind] || item.kind) + ')' : '');
     var miss = document.createElement('td');
     miss.textContent = missingText(item.lacks);
     var act = document.createElement('td');
@@ -4072,8 +4119,9 @@ function renderListed() {
 function drawPic(key) {
   var p = editing.pics[key], spec = PICTURES.find(function (x) { return x.key === key; });
   var c = $('artPic-' + key), ctx = c.getContext('2d');
-  var size = p.image ? (spec.box ? T.coverCut(p.image.width, p.image.height, p.shape) : fitInside(p.image.width, p.image.height))
-                     : { w: spec.key === 'top' ? 158 : 112, h: spec.key === 'top' ? 22 : 112 };
+  var cut = spec.box && !isRetro(editing.item);     // an emulator game's box keeps its own shape (retro.c)
+  var size = p.image ? (cut ? T.coverCut(p.image.width, p.image.height, p.shape) : fitInside(p.image.width, p.image.height))
+                     : { w: spec.key === 'top' ? 158 : (spec.key === 'spine' ? 22 : 112), h: spec.key === 'top' ? 22 : (spec.key === 'spine' ? 158 : 112) };
   c.width = size.w; c.height = size.h;
   c.style.width = size.w + 'px'; c.style.height = size.h + 'px';
   ctx.clearRect(0, 0, size.w, size.h);
@@ -4084,7 +4132,7 @@ function drawPic(key) {
   }
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
-  if (spec.box) ctx.drawImage(p.image, size.sx, size.sy, size.sw, size.sh, 0, 0, size.w, size.h);
+  if (cut) ctx.drawImage(p.image, size.sx, size.sy, size.sw, size.sh, 0, 0, size.w, size.h);
   else ctx.drawImage(p.image, 0, 0, size.w, size.h);
   p.pending = new Promise(function (done) { c.toBlob(function (b) { p.blob = b; done(); }, 'image/png'); });
 }
@@ -4114,7 +4162,7 @@ function picControl(key, blob) {
   }
   input.addEventListener('change', function () { if (this.files[0]) use(this.files[0]); this.value = ''; });
   line.appendChild(button('Choose a picture', true, function () { input.click(); }));
-  if (spec.box) {
+  if (spec.box && !isRetro(editing.item)) {
     var shape = document.createElement('select');
     shape.setAttribute('aria-label', spec.label + ' shape');
     shape.style.width = 'auto';
@@ -4349,6 +4397,7 @@ function moveCollection(list, k, up) {
 }
 // --- end collections logic ---
 
+window.cardFolders = { gameFolders: gameFolders, entryName: entryName, isGameFile: isGameFile };
 var T = window.cardTools;
 var $ = function (id) { return document.getElementById(id); };
 var card = null;        // { root, files (fallback: lower path -> File), games: [{name, title, folder}], names: Set, hidden: Set }

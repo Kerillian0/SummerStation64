@@ -303,11 +303,29 @@ static void place (float bw, float bh, float bd, float yaw, float pitch) {
     }
 }
 
+/* A side picture's short and long edges: a spine may come lying down. */
+static float side_short (const surface_t *s) { return (s->width < s->height) ? s->width : s->height; }
+static float side_long (const surface_t *s) { return (s->width < s->height) ? s->height : s->width; }
+
 /* Draw a face with its picture, or in plain color when it has none. */
 static void face (const int *corners_of, surface_t *image, color_t color, float shade, int bright) {
     if (facing(corners_of) && !(image && face_picture(corners_of, image, shade, bright))) {
         face_plain(corners_of, shaded(color, shade, bright));
     }
+}
+
+/* A side, with its picture stood upright if it is lying down (wider than
+   tall): turned so its top runs down the face's back edge, the way a
+   spine's words read. */
+static void side_face (const int *corners_of, surface_t *image, color_t color, float shade, int bright) {
+    if (image && image->width > image->height) {
+        const int turned[4] = { corners_of[1], corners_of[2], corners_of[3], corners_of[0] };
+        if (facing(corners_of) && !face_picture(turned, image, shade, bright)) {
+            face_plain(corners_of, shaded(color, shade, bright));
+        }
+        return;
+    }
+    face(corners_of, image, color, shade, bright);
 }
 
 void box3d_draw (const box3d_art_t *art, int x0, int y0, int w, int h, const box3d_pose_t *pose) {
@@ -327,8 +345,10 @@ void box3d_draw (const box3d_art_t *art, int x0, int y0, int w, int h, const box
     /* The box in its own units: the front picture's size, and its depth from
        the top strip's shape, or a guess. */
     float longest = (bw > bh) ? bw : bh;
+    surface_t *spine = art->left ? art->left : art->right;
     float bd = art->cartridge ? bw * CART_DEPTH
         : (art->top && art->top->width > 0) ? bw * art->top->height / art->top->width
+        : (spine && spine->width > 0 && spine->height > 0) ? bh * side_short(spine) / side_long(spine)  /* the spine's shape gives the depth */
         : longest * DEPTH_GUESS;
     bd *= amount;
 
@@ -368,8 +388,8 @@ void box3d_draw (const box3d_art_t *art, int x0, int y0, int w, int h, const box
             /* The bottom carries the same label as the top. */
             face(faces[FACE_TOP], art->top, art->side, TOP_SHADE, art->bright);
             face(faces[FACE_BOTTOM], art->top, art->side, BOTTOM_SHADE, art->bright);
-            face(faces[FACE_LEFT], art->back ? art->right : art->left, art->side, SIDE_SHADE, art->bright);
-            face(faces[FACE_RIGHT], art->back ? art->left : art->right, art->side, SIDE_SHADE, art->bright);
+            side_face(faces[FACE_LEFT], art->back ? art->right : art->left, art->side, SIDE_SHADE, art->bright);
+            side_face(faces[FACE_RIGHT], art->back ? art->left : art->right, art->side, SIDE_SHADE, art->bright);
         }
         if (art->front && facing(faces[FACE_FRONT])) {
             draw_cutout = art->cartridge;

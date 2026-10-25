@@ -31,6 +31,7 @@
 #include "../collections.h"
 #include "../collection_edit.h"
 #include "../dd_pair.h"
+#include "../retro.h"
 #include "../game_learn.h"
 #include "../sort_order.h"
 #include "../menu_options.h"
@@ -65,13 +66,14 @@ static const char *rom_meta_extensions[] = { "meta", "metadata", NULL };
 // as a plain list). Each has its own place.
 static bool folders_tab = false;
 static bool homebrew_tab = false;           // the Games list on its homebrew shelf (games_filter_shelf)
+static bool retro_tab = false;              // ... or on its Retro shelf: emulator games (retro.h)
 static bool collections_tab = false;        // the Collections tab: its row of cards (collections_ui.h), or one collection on the Games list
 static int collection_open = -1;            // ... the collection shown, by its number, or -1 while the cards show
 static path_t *folders_directory = NULL;    // where the Folders tab was left
-static char left_on[4][256] = { "", "", "", "" };   // the entry the Games [0], Folders [1], Homebrew [2] and Collections [3] tabs were left on, to go back to it (while the console is on)
+static char left_on[5][256] = { "", "", "", "", "" };   // the entry the Games [0], Folders [1], Homebrew [2], Collections [3] and Retro [4] tabs were left on, to go back to it (while the console is on)
 
 static int tab_slot (void) {
-    return folders_tab ? 1 : (homebrew_tab ? 2 : (collections_tab ? 3 : 0));
+    return folders_tab ? 1 : (homebrew_tab ? 2 : (collections_tab ? 3 : (retro_tab ? 4 : 0)));
 }
 
 // The Collections tab's row of cards is showing (no collection open).
@@ -1091,10 +1093,10 @@ static void select_left_on (menu_t *menu) {
     }
 }
 
-// Switch the Games list between the Games and Homebrew tabs. The list stays;
-// only what it shows changes, so nothing is read from the card.
-static void browser_show_shelf (menu_t *menu, bool homebrew) {
-    if (homebrew == homebrew_tab) {
+// Switch the Games list between the Games, Homebrew and Retro tabs. The list
+// stays; only what it shows changes, so nothing is read from the card.
+static void browser_show_shelf (menu_t *menu, bool homebrew, bool retro) {
+    if (homebrew == homebrew_tab && retro == retro_tab) {
         return;
     }
     bool loaded = menu->browser.valid && !folders_tab;
@@ -1105,7 +1107,8 @@ static void browser_show_shelf (menu_t *menu, bool homebrew) {
         snprintf(left_on[tab_slot()], sizeof(left_on[0]), "%s", menu->browser.entry ? menu->browser.entry->name : "");
     }
     homebrew_tab = homebrew;
-    games_filter_shelf(menu, homebrew, loaded);
+    retro_tab = retro;
+    games_filter_shelf(menu, homebrew ? GAMES_SHELF_HOMEBREW : (retro ? GAMES_SHELF_RETRO : GAMES_SHELF_NONE), loaded);
     if (loaded) {
         select_left_on(menu);
     }
@@ -1134,7 +1137,7 @@ static void browser_show_collections (menu_t *menu, bool on) {
 
 // L or R: the tab before or after this one, in the player's order.
 static void browser_step_tab (menu_t *menu, int direction) {
-    games_tab_t here = folders_tab ? GAMES_TAB_FOLDERS : (homebrew_tab ? GAMES_TAB_HOMEBREW : (collections_tab ? GAMES_TAB_COLLECTIONS : GAMES_TAB_GAMES));
+    games_tab_t here = folders_tab ? GAMES_TAB_FOLDERS : (homebrew_tab ? GAMES_TAB_HOMEBREW : (collections_tab ? GAMES_TAB_COLLECTIONS : (retro_tab ? GAMES_TAB_RETRO : GAMES_TAB_GAMES)));
     games_tab_t next = tabs_step(here, direction);
     if (next == here) {
         return;
@@ -1448,7 +1451,11 @@ static void carousel_fade_rects (void (*rect) (int, int, int, int)) {
 static void carousel_fit_to_art (menu_t *menu, int index, int *w, int *h) {
     float aspect;
     if (!carousel_art_aspect(menu, index, &aspect) || aspect <= 0.0f) {
-        return;
+        const cover_list_t *covers = cover_list_current(menu);
+        if (index < 0 || index >= covers->entries || covers->list[index].type != ENTRY_TYPE_EMULATOR) {
+            return;
+        }
+        aspect = retro_aspect(retro_system(covers->list[index].name));  // an emulator game's box, until its picture arrives
     }
     if ((float) *w / *h > aspect) {
         *w = (int) (*h * aspect);
@@ -1782,7 +1789,7 @@ void carousel_draw (menu_t *menu) {
                 .width = w - 16,
                 .wrap = WRAP_ELLIPSES,
                 .style_id = STL_GRAY,
-            }, FNT_DEFAULT, x0 + 8, y0 + 18, "%s", carousel_type_label(e->type));
+            }, FNT_DEFAULT, x0 + 8, y0 + 18, "%s", (e->type == ENTRY_TYPE_EMULATOR) ? retro_short_name(retro_system(e->name)) : carousel_type_label(e->type));
 
             rdpq_text_printf(&(rdpq_textparms_t) {
                 .width = w - 16,
@@ -1877,7 +1884,8 @@ void carousel_draw (menu_t *menu) {
         is_new = (days >= 0 && days < NEW_BADGE_DAYS);
     }
     const char *with = (covers->list == menu->browser.list) ? dd_pair_with_text(menu, selected_entry) : NULL; // a 64DD disk's cartridge
-    games_ui_title_panel_draw(title, carousel_kind_label(selected_entry->type), lead, hack, is_new, with, game_facts_update(menu));
+    const char *kind = (selected_entry->type == ENTRY_TYPE_EMULATOR) ? retro_kind(retro_system(selected_entry->name)) : carousel_kind_label(selected_entry->type);
+    games_ui_title_panel_draw(title, kind, lead, hack, is_new, with, game_facts_update(menu));
     const char *letter_from = !detail ? entry_file_name(selected_entry->name) : (options_get(OPTION_SORT_ORDER) == SORT_DEVELOPER) ? detail : " "; // the letter of what the list is sorted by; none for dates
     games_ui_position_draw(letter_from, covers->selected, covers->entries, (covers->list == menu->browser.list) ? games_filter_label() : NULL); // the file name: that is what the list is sorted by
 }
@@ -1922,7 +1930,7 @@ static void carousel_hints_draw (menu_t *menu) {
     }
 
     games_ui_hint_right_draw(0, "START", "Settings");
-    games_ui_hint_right_draw(1, "C", (homebrew_tab || collections_tab) ? "Scroll ◀▶" : "Scroll ◀▶ Filter ▲▼"); // the Homebrew and Collections tabs have no filter steps
+    games_ui_hint_right_draw(1, "C", (homebrew_tab || collections_tab) ? "Scroll ◀▶" : "Scroll ◀▶ Filter ▲▼"); // the Homebrew and Collections tabs have no filter steps (Retro steps through its systems)
 }
 #endif
 
@@ -1956,6 +1964,19 @@ static void draw (menu_t *menu, surface_t *d) {
     if (folders_tab) {
         games_ui_topbar_draw(menu, GAMES_TAB_FOLDERS);
         folders_ui_draw(menu);
+    } else if (retro_tab && menu->browser.entries <= 0) {
+        games_ui_topbar_draw(menu, GAMES_TAB_RETRO);
+        rdpq_text_printf(&(rdpq_textparms_t) {
+            .width = DISPLAY_WIDTH - (2 * GAMES_UI_CONTENT_X0),
+            .height = 200,
+            .align = ALIGN_CENTER,
+            .valign = VALIGN_CENTER,
+            .wrap = WRAP_WORD,
+            .style_id = STL_GRAY,
+        }, FNT_DEFAULT, GAMES_UI_CONTENT_X0, 100,
+            "No emulator games found.\n\n"
+            "NES, SNES, Game Boy and Game Boy Color games show here. Put them in a folder the Games tab reads, "
+            "and the emulators in menu/emulators (see the menu's guide).");
     } else if (homebrew_tab && menu->browser.entries <= 0) {
         games_ui_topbar_draw(menu, GAMES_TAB_HOMEBREW);
         rdpq_text_printf(&(rdpq_textparms_t) {
@@ -1976,7 +1997,7 @@ static void draw (menu_t *menu, surface_t *d) {
         games_ui_topbar_draw(menu, GAMES_TAB_COLLECTIONS);
         collections_ui_draw(menu);  // the row of cards, with its own hints
     } else {
-        games_ui_topbar_draw(menu, homebrew_tab ? GAMES_TAB_HOMEBREW : (collections_tab ? GAMES_TAB_COLLECTIONS : GAMES_TAB_GAMES));
+        games_ui_topbar_draw(menu, homebrew_tab ? GAMES_TAB_HOMEBREW : (collections_tab ? GAMES_TAB_COLLECTIONS : (retro_tab ? GAMES_TAB_RETRO : GAMES_TAB_GAMES)));
         carousel_draw(menu);
         if (menu->browser.entries <= 0) {
             rdpq_text_printf(&(rdpq_textparms_t) {
@@ -2079,7 +2100,7 @@ void view_browser_init (menu_t *menu) {
     games_ui_set_origin(MENU_MODE_BROWSER); // where B on a game's info screen comes back to
     if (menu->browser.select_file) tabs_browser_show_folders(true); // being sent to a particular file: that is the Folders tab's job
     browser_show_tab(menu, tabs_browser_shows_folders());
-    browser_show_shelf(menu, tabs_browser_shows_homebrew()); // Games <-> Homebrew: the same list, shown differently
+    browser_show_shelf(menu, tabs_browser_shows_homebrew(), tabs_browser_shows_retro()); // Games <-> Homebrew <-> Retro: the same list, shown differently
     browser_show_collections(menu, tabs_browser_shows_collections()); // ... and Collections: its cards, or one collection
     if (!folders_tab && !path_is_root(menu->browser.directory)) {
         // The Games tab reads its folders from the top of the card (games_folders.h).
@@ -2140,7 +2161,7 @@ void view_browser_init (menu_t *menu) {
 
 void view_browser_display (menu_t *menu, surface_t *display) {
     process(menu);
-    folder_memory_use_key(folders_tab ? NULL : (homebrew_tab ? "homebrew:" : (collections_tab ? "collections:" : "games:"))); // the Games, Homebrew and Collections tabs keep their own places
+    folder_memory_use_key(folders_tab ? NULL : (homebrew_tab ? "homebrew:" : (collections_tab ? "collections:" : (retro_tab ? "retro:" : "games:")))); // the Games, Homebrew and Collections tabs keep their own places
     folder_memory_update(menu); // put the selection back where it was left in this folder
 
     draw(menu, display);

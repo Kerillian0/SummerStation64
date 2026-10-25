@@ -9,7 +9,7 @@ const path = require('path');
 const html = fs.readFileSync(path.join(__dirname, '..', 'docs', 'companion', 'index.html'), 'utf8');
 const a = html.indexOf('// --- art logic'), b = html.indexOf('// --- end art logic ---');
 if (a < 0 || b < 0) throw new Error('Could not find the logic block in the Missing Art tab; did it change?');
-const t = new Function(html.slice(a, b) + 'return {parseMissingArt, fitInside, shortDesc, authorWith, mergeIni, artTarget, detailsPath};')();
+const t = new Function(html.slice(a, b) + 'return {parseMissingArt, fitInside, shortDesc, authorWith, mergeIni, artTarget, detailsPath, retroFolder};')();
 
 let checks = 0, failures = 0;
 function check(cond, what) {
@@ -69,6 +69,12 @@ console.log('Where details go');
 check(t.detailsPath(games[0]) === 'menu/metadata/N/D/Z/J/metadata.ini', 'a game: its folder');
 check(t.detailsPath(games[1]) === 'N64(US)/the_big_fix.metadata.ini', 'homebrew: beside its file, as Game info reads it');
 check(t.shortDesc(long, 250).length <= 250 && t.shortDesc(long, 250).length > 120, 'homebrew\'s longer short description');
+
+console.log('Emulator games');
+check(t.retroFolder('N64(US)/Super Mario Bros. (World).nes') === 'nes/Super Mario Bros. (World)', 'NES: its system, then the name without the folder or extension');
+check(t.retroFolder('Zelda.SFC') === 'snes/Zelda' && t.retroFolder('Zelda.smc') === 'snes/Zelda', 'both SNES extensions, any case');
+check(t.retroFolder('Tetris.gb') === 'gb/Tetris' && t.retroFolder('Pokemon.gbc') === 'gbc/Pokemon', 'Game Boy and Game Boy Color apart');
+check(t.retroFolder('Sonic.sms') === null && t.retroFolder('Mario.z64') === null && t.retroFolder('.nes') === null, 'other systems, N64 games and odd names are not');
 
 console.log(checks + ' checks, ' + failures + ' failed');
 process.exit(failures ? 1 : 0);

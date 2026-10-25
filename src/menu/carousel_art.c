@@ -5,6 +5,7 @@
 
 #include "memory_note.h"
 #include "carousel_art.h"
+#include "retro.h"
 #include "art_tint.h"
 #include "game_learn.h"
 #include "baked_art.h"
@@ -250,6 +251,27 @@ static component_boxart_t *art_load (menu_t *menu, int index, file_image_type_t 
     const cover_list_t *covers = cover_list_current(menu);
     path_t *path = covers->path(menu, index);
     int64_t size = covers->list[index].size;
+
+    /* An emulator game: its picture by file name (retro.h), from the card only. */
+    if (covers->list[index].type == ENTRY_TYPE_EMULATOR) {
+        component_boxart_t *art = NULL;
+        if (!card) {
+            if (card_pending) {
+                *card_pending = true;
+            }
+        } else {
+            if (*which != IMAGE_BOXART_BACK) {
+                *which = IMAGE_BOXART_FRONT;    /* no cartridge pictures: the box */
+            }
+            art = retro_art_load(menu->storage_prefix, path_get(path), *which);
+            if (!art && *which != IMAGE_BOXART_FRONT) {
+                *which = IMAGE_BOXART_FRONT;
+                art = retro_art_load(menu->storage_prefix, path_get(path), *which);
+            }
+        }
+        path_free(path);
+        return art;
+    }
 
     /* A game seen before needs no look at its file: the list knows its code. */
     const game_index_entry_t *known = game_index_find(path_get(path), size);
@@ -608,6 +630,14 @@ static void edges_update (menu_t *menu, uint64_t now) {
 
         const cover_list_t *covers = cover_list_current(menu);
         path_t *path = covers->path(menu, center_index);
+        if (covers->list[center_index].type == ENTRY_TYPE_EMULATOR) {
+            /* An emulator game: one spine picture for both sides (drawn on the right too, carousel_art_draw_box()), no top. */
+            if (edge_kinds[i] == IMAGE_BOXART_LEFT) {
+                edges[i] = retro_art_load(menu->storage_prefix, path_get(path), IMAGE_BOXART_LEFT);
+            }
+            path_free(path);
+            return;     /* one a frame */
+        }
         const game_index_entry_t *known = game_index_find(path_get(path), covers->list[center_index].size);
         path_free(path);
         if (!known || game_index_is_homebrew(known->code)) {
@@ -666,6 +696,9 @@ bool carousel_art_draw_box (menu_t *menu, int index, int x0, int y0, int w, int 
     art.top = art_ready(edges[0]) ? edges[0]->image : (art_ready(slot->top) ? slot->top->image : NULL);
     art.left = art_ready(edges[1]) ? edges[1]->image : NULL;
     art.right = art_ready(edges[2]) ? edges[2]->image : NULL;
+    if (slot->entry && slot->entry->type == ENTRY_TYPE_EMULATOR) {
+        art.right = art.left;   /* an emulator game's one spine picture (retro.h) */
+    }
     art.back = (side != IMAGE_BOXART_FRONT);
     if (slot->cart) {
         art.cartridge = true;
@@ -857,7 +890,7 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
                 slot->art = NULL;
             }
             slot->card_pending = false;
-            if (slot->entry->type == ENTRY_TYPE_ROM) {
+            if (slot->entry->type == ENTRY_TYPE_ROM || slot->entry->type == ENTRY_TYPE_EMULATOR) {    /* emulator games: retro.h */
                 if (side_cover && !memory_free_for(BAKED_SIDE_ART_MIN_FREE)) {
                     /* Not even room for a baked cover: leave it untried, so it
                        is tried again once memory has been freed. */

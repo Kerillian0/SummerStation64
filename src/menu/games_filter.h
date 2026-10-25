@@ -69,11 +69,15 @@ const char *games_filter_label (void);
 /**
  * The Homebrew tab: the Games list showing only homebrew (games whose code
  * homebrew tools write, game_index_is_homebrew()). C-up / C-down do nothing
- * there; the Games tab's own step comes back when it is left. Homebrew the
+ * there. The Retro tab: only emulator games (retro.h), which the Games tab
+ * leaves out; C-up / C-down step through its systems. The Games tab's own
+ * step comes back when either is left. Homebrew the
  * idle reader finds while the shelf shows is added when it finishes.
  * @param list_loaded The Games list is loaded now (else the next load applies it).
  */
-void games_filter_shelf (menu_t *menu, bool homebrew, bool list_loaded);
+typedef enum { GAMES_SHELF_NONE, GAMES_SHELF_HOMEBREW, GAMES_SHELF_RETRO } games_shelf_t;
+
+void games_filter_shelf (menu_t *menu, games_shelf_t which, bool list_loaded);
 
 /**
  * The Collections tab: the Games list showing one collection (by its number,

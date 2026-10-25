@@ -125,6 +125,14 @@ them for homebrew), with the description as a longer `short-desc` (the menu
 keeps 255 characters of a value). Pictures and details baked
 into the menu file are not on the list (they count as there).
 
+Emulator games (NES, SNES, Game Boy, Game Boy Color: `src/menu/retro.c`) are
+not in the menu's report, so the page finds them itself in the Games tab's
+folders (`menu/config.ini` and `menu/gamefolders.txt`, read as the
+Collections tab does) and lists those without `boxart_front.png` or
+`boxart_back.png` in `menu/metadata/<nes|snes|gb|gbc>/<file name without
+extension>/`. Their pictures keep their own shape (fitted inside 158 x 158),
+since each system's box has a different one.
+
 ## Collections
 
 Edits the player's own collections in `menu/collections.txt`, the file the
