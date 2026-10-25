@@ -2038,11 +2038,11 @@ static void draw (menu_t *menu, surface_t *d) {
     collection_edit_draw(); // the list of the player's collections, or "Delete this collection?"
     ui_components_context_menu_draw(&hide_menu);
     if (hide_count == 1) {
-        ui_components_messagebox_draw("Hide from the cover tabs?\n\n%s\n\nA: Hide    B: Keep\nZ in the Folders tab unhides it.",
-                                      display_name_version(hide_names[0]));
+        ui_components_messagebox_draw("Hide from the cover tabs?\n\n%s\n\n^%02XA: Hide^00    ^%02XB: Keep^00\nZ in the Folders tab unhides it.",
+                                      display_name_version(hide_names[0]), STL_RED, STL_GREEN);
     } else if (hide_count > 1) {
-        ui_components_messagebox_draw("Hide from the cover tabs?\n\n%s (%d versions)\n\nA: Hide    B: Keep\nZ in the Folders tab unhides them.",
-                                      display_name(menu->browser.entry), hide_count);
+        ui_components_messagebox_draw("Hide from the cover tabs?\n\n%s (%d versions)\n\n^%02XA: Hide^00    ^%02XB: Keep^00\nZ in the Folders tab unhides them.",
+                                      display_name(menu->browser.entry), hide_count, STL_RED, STL_GREEN);
     }
     if (fade_parts) {
         carousel_fade_rects(intro_fade_rect);

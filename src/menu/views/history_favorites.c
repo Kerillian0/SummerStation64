@@ -274,17 +274,17 @@ static void draw(menu_t *menu, surface_t *display) {
             ui_components_messagebox_draw(
                 "Hide from the cover tabs?\n\n"
                 "%s\n\n"
-                "A: Hide    B: Keep\n"
+                "^%02XA: Hide^00    ^%02XB: Keep^00\n"
                 "Z in the Folders tab unhides it.",
-                display_name_file(path_last_get(item_list[selected_item].primary_path))
+                display_name_file(path_last_get(item_list[selected_item].primary_path)), STL_RED, STL_GREEN
             );
         }
         if (confirm_remove && selected_item != -1) {
             ui_components_messagebox_draw(
                 "Remove from Favorites?\n\n"
                 "%s\n\n"
-                "A: Remove    B: Keep",
-                display_name_file(path_last_get(item_list[selected_item].primary_path))
+                "^%02XA: Remove^00    ^%02XB: Keep^00",
+                display_name_file(path_last_get(item_list[selected_item].primary_path)), STL_RED, STL_GREEN
             );
         }
         rdpq_detach_show();

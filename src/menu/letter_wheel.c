@@ -58,6 +58,29 @@ static char slot_char (int slot) {
     return (slot == 0) ? '#' : (char) ('A' + slot - 1);
 }
 
+/* The controller in use: the first with a button down or the stick leaning
+   (naming needs the stick with no button held), else the first one. "held"
+   is the state now: joypad_get_buttons_held() is still false on the frame a
+   button goes down. */
+static void read_pad (joypad_buttons_t *pressed, joypad_buttons_t *held, joypad_inputs_t *in) {
+    bool first = true;
+    JOYPAD_PORT_FOREACH (i) {
+        joypad_inputs_t inputs = joypad_get_inputs(i);
+        joypad_buttons_t p = joypad_get_buttons_pressed(i), h = joypad_get_buttons(i);
+        bool active = p.raw || h.raw
+            || (inputs.stick_x * inputs.stick_x) + (inputs.stick_y * inputs.stick_y) >= STICK_DEADZONE * STICK_DEADZONE;
+        if (first || active) {
+            *pressed = p;
+            *held = h;
+            *in = inputs;
+            first = false;
+        }
+        if (active) {
+            return;
+        }
+    }
+}
+
 /* The stick's direction as a slot: up is the first, then clockwise. -1 while it is near the middle. */
 static int stick_slot (joypad_inputs_t in) {
     int x = in.stick_x, y = in.stick_y;
@@ -239,18 +262,9 @@ letter_wheel_state_t letter_wheel_process (menu_t *menu) {
         return LETTER_WHEEL_IDLE;   /* not the Games list's covers: Z as usual */
     }
 
-    joypad_buttons_t pressed = {0}, held = {0};
-    joypad_inputs_t in = {0};
-    JOYPAD_PORT_FOREACH (i) {
-        /* The current state: "held" is still false on the frame a button goes down. */
-        joypad_buttons_t p = joypad_get_buttons_pressed(i), h = joypad_get_buttons(i);
-        if (p.raw || h.raw) {
-            pressed = p;
-            held = h;
-            in = joypad_get_inputs(i);
-            break;
-        }
-    }
+    joypad_buttons_t pressed, held;
+    joypad_inputs_t in;
+    read_pad(&pressed, &held, &in);
 
     if (!z_down) {
         if (!pressed.z) {
@@ -342,16 +356,9 @@ void letter_wheel_name_process (menu_t *menu) {
     if (!naming) {
         return;
     }
-    joypad_buttons_t pressed = {0};
-    joypad_inputs_t in = {0};
-    JOYPAD_PORT_FOREACH (i) {
-        joypad_buttons_t p = joypad_get_buttons_pressed(i), h = joypad_get_buttons(i);
-        if (p.raw || h.raw) {
-            pressed = p;
-            in = joypad_get_inputs(i);
-            break;
-        }
-    }
+    joypad_buttons_t pressed, held;
+    joypad_inputs_t in;
+    read_pad(&pressed, &held, &in);
     int s = stick_slot(in);
     if (s >= 0) {
         pointed = s;    /* the stick has the last word while it leans */

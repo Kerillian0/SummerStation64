@@ -163,8 +163,8 @@ bool collection_edit_process (menu_t *menu) {
 
 void collection_edit_draw (void) {
     if (showing == DELETING) {
-        ui_components_messagebox_draw("Delete this collection?\n\n%s\n\nA: Delete    B: Keep\nThe games stay on the card.",
-                                      my_collections_name(target));
+        ui_components_messagebox_draw("Delete this collection?\n\n%s\n\n^%02XA: Delete^00    ^%02XB: Keep^00\nThe games stay on the card.",
+                                      my_collections_name(target), STL_RED, STL_GREEN);
     } else if (showing == PICKING) {
         int rows = 1 + my_collections_count();
         int shown = (rows < ROWS_SHOWN) ? rows : ROWS_SHOWN;

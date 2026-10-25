@@ -137,7 +137,13 @@ void collections_ui_after_draw (menu_t *menu) {
         }
         fan_choose(menu);
     }
-    /* One cover a frame. */
+    /* One cover a frame. A picture from the card is unpacked by the PNG
+       decoder, which takes one at a time: wait for it before the next. */
+    for (int i = 0; i < FAN_COVERS; i++) {
+        if (fan_art[i] && fan_art[i]->loading) {
+            return;
+        }
+    }
     for (int i = 0; i < FAN_COVERS; i++) {
         if (fan_tried[i] || !fan_codes[i][0]) {
             continue;
