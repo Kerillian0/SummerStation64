@@ -104,7 +104,7 @@ compatibility notes are still being checked, and the page says so.
 
 ## Missing Metadata (`#art`)
 
-Fills in what the menu's own check (Settings > Library > Find Missing Art)
+Fills in what the menu's own check (Settings > Library > Find Missing Metadata)
 found missing, listed in `menu/missingart.txt`: one line per game, tab-separated:
 its folder under `menu/metadata/`, kind (game, hack, homebrew), what it lacks
 (front, back, top, cartridge, description, date, developer) and its file. For

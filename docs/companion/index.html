@@ -478,7 +478,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
   <header>
     <h1 class="page-title">Missing Metadata</h1>
     <p>Fill in the covers, labels and details your games are missing, from your own pictures and notes. The menu
-      makes the list: on the console, open <b>Settings &gt; Library &gt; Find Missing Art</b> first. Everything
+      makes the list: on the console, open <b>Settings &gt; Library &gt; Find Missing Metadata</b> first. Everything
       happens in this browser: nothing is uploaded anywhere.</p>
   </header>
 
@@ -551,7 +551,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
     <section>
       <h2><span class="n">4</span>Save to the card</h2>
       <p>Writes each game's pictures and details into its folder under <code>menu/metadata/</code>. Existing details
-        are kept; only what you filled in is added. Run Find Missing Art again on the console to see what is left.</p>
+        are kept; only what you filled in is added. Run Find Missing Metadata again on the console to see what is left.</p>
       <ul class="listed" id="artListed"></ul>
       <div class="line">
         <button class="go" id="artSave" disabled>Save to card</button>
@@ -4197,7 +4197,7 @@ async function cardChosen(root, menuFiles, all, files) {
   $('artCardStatus').textContent = 'Reading the card...';
   var text = await cardText(ART_REPORT), note = '';
   if (text === null) {
-    note = '<span class="bad">No menu/missingart.txt on this card</span>, so N64 games aren\'t listed: on the console, open Settings &gt; Library &gt; Find Missing Art, then pick the card again. ';
+    note = '<span class="bad">No menu/missingart.txt on this card</span>, so N64 games aren\'t listed: on the console, open Settings &gt; Library &gt; Find Missing Metadata, then pick the card again. ';
   } else {
     var parsed = parseMissingArt(text);
     if (!parsed) {
@@ -4621,7 +4621,7 @@ $('artSave').addEventListener('click', async function () {
       var games = changes.size;
       changes.clear();
       $('artSaveStatus').innerHTML = 'Saved <b>' + files.length + '</b> file' + (files.length === 1 ? '' : 's') + ' for ' + games +
-        ' game' + (games === 1 ? '' : 's') + '. Run Find Missing Art on the console to update the list.';
+        ' game' + (games === 1 ? '' : 's') + '. Run Find Missing Metadata on the console to update the list.';
       renderRows();
       renderListed();
       return;

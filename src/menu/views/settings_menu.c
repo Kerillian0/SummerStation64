@@ -270,8 +270,8 @@ static const item_t library_items[] = {
     FEATURE("Remember Position", FEATURE_REMEMBER_SELECTION, "Going back into a folder returns to the game you had selected there, also after playing."),
     INFO("Hidden Games", hidden_info, "Games hidden from the cover tabs with Z, \"Hide this game\". They stay on the card and in the Folders tab, where Z, \"Unhide this game\", brings one back."),
     ACTION("Unhide All Games", show_hidden_games, "Bring every hidden game back to the cover tabs. No files are touched."),
-    ACTION("Find Missing Art", make_art_report, "Check every game on the Games tab for its cover, the back of its box, top label, cartridge picture, description, release date and developer. Games lacking any are listed in menu/missingart.txt on the SD card. Stay on this page until it is done."),
-    INFO("Missing Art", art_report_info, "How many games lack something, from the last check. Open menu/missingart.txt on a PC to see which, and what each one lacks."),
+    ACTION("Find Missing Metadata", make_art_report, "Check every game on the Games tab for its cover, the back of its box, top label, cartridge picture, description, release date and developer. Games lacking any are listed in menu/missingart.txt on the SD card, for the Companion's Missing Metadata tab. Stay on this page until it is done."),
+    INFO("Missing Metadata", art_report_info, "How many games lack something, from the last check. The Companion's Missing Metadata tab shows which, and fills them in."),
 };
 
 static const item_t file_items[] = {
@@ -444,6 +444,7 @@ static void process (menu_t *menu) {
 #define HELP_Y          (ROWS_Y + (VISIBLE_ROWS * ROW_HEIGHT) + 4)
 #define HELP_HEIGHT     (LAYOUT_ACTIONS_SEPARATOR_Y - 8 - HELP_Y)
 #define ROW_PADDING     (6)
+#define INFO_NAME_WIDTH (176)   /* an information row's name ("Missing Metadata"); its value gets the rest */
 #define SCROLLBAR_X     (ITEMS_X + ITEMS_WIDTH + 3)
 #define SCROLLBAR_WIDTH (4)
 
@@ -517,8 +518,8 @@ static void draw_item (menu_t *menu, const item_t *it, int y) {
 
     if (it->type == ITEM_INFO) {
         /* Long values (folder paths) get most of the row. */
-        draw_text(ITEMS_X, y, 130, ALIGN_LEFT, STL_DEFAULT, it->label);
-        draw_text(ITEMS_X + 130, y, ITEMS_WIDTH - 130, ALIGN_RIGHT, style, value);
+        draw_text(ITEMS_X, y, INFO_NAME_WIDTH, ALIGN_LEFT, STL_DEFAULT, it->label);
+        draw_text(ITEMS_X + INFO_NAME_WIDTH, y, ITEMS_WIDTH - INFO_NAME_WIDTH, ALIGN_RIGHT, style, value);
     } else {
         draw_text(ITEMS_X, y, ITEMS_WIDTH, ALIGN_LEFT, STL_DEFAULT, it->label);
         draw_text(ITEMS_X, y, ITEMS_WIDTH, ALIGN_RIGHT, style, value);
