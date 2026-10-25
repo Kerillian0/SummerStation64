@@ -1,10 +1,10 @@
 # SummerStation64 Companion
 
-One web page, `index.html`, with five tabs: **Theme Maker**, **Card Prep**,
-**Hacks**, **Missing Art** and **Guide**. Published with GitHub Pages from this folder
+One web page, `index.html`, with six tabs: **Theme Maker**, **Card Prep**,
+**Hacks**, **Missing Art**, **Collections** and **Guide**. Published with GitHub Pages from this folder
 (Settings > Pages: branch `summerstation`, folder `/docs`), at
 `https://kerillian0.github.io/SummerStation64/companion/`. Each tab has its
-own address: `#themes`, `#prep`, `#hacks`, `#art`, `#guide` (and `#guide-setup`,
+own address: `#themes`, `#prep`, `#hacks`, `#art`, `#coll`, `#guide` (and `#guide-setup`,
 `#guide-hardware`, `#guide-tools`, `#guide-help`).
 
 Markup, styles and scripts are all in the one file, with no build step. It
@@ -125,6 +125,24 @@ them for homebrew), with the description as a longer `short-desc` (the menu
 keeps 255 characters of a value). Pictures and details baked
 into the menu file are not on the list (they count as there).
 
+## Collections
+
+Edits the player's own collections in `menu/collections.txt`, the file the
+console's Collections tab keeps (`src/menu/my_collections.h`): `collections 1`,
+then a `= Name` line per collection followed by its games, each as its file
+from the top of the card (`N64(US)/Game.z64`). The console shows the last
+collection in the file first, so the page lists them that way and a new one
+goes at the end. Limits as on the console: 32 collections, 128 games, names of
+28 bytes.
+
+The games offered are those of the console's Games tab: the files with a game
+extension directly in the start folder (`default_directory` in
+`menu/config.ini`) and in each folder of `menu/gamefolders.txt`, named with
+the folder as those files spell it. A game in a collection that is no longer
+there (renamed or moved) is shown as missing, with a button to drop them all;
+hidden games (`menu/hidden.txt`) are marked. The console reads the file at
+start-up.
+
 ## Guide
 
 Plain HTML in the `#guide` tab: SD card setup, hardware, tools and
@@ -135,7 +153,7 @@ and settings are named exactly as on the console).
 
 There is no browser in the dev container. `sh tests/run.sh` runs the Theme
 Maker's share codes, Card Prep's working code (between `// --- logic` and
-`// --- end logic ---`), the Hacks tab's (`// --- hacks logic`) and the Missing Art
-tab's (`// --- art logic`) in Node.js, taken straight out of this page. The parts
+`// --- end logic ---`), the Hacks tab's (`// --- hacks logic`), the Missing Art
+tab's (`// --- art logic`) and the Collections tab's (`// --- collections logic`) in Node.js, taken straight out of this page. The parts
 that need a browser (the preview, picking a folder, saving) are checked by
 opening the page.

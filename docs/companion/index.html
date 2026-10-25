@@ -156,6 +156,13 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
 #art .done{color:var(--n-green);font-weight:700}
 #art .tablewrap{max-height:420px;overflow-y:auto}
 
+/* ---------- Collections ---------- */
+#coll td.act{white-space:nowrap;text-align:right}
+#coll .tablewrap{max-height:420px;overflow-y:auto}
+#coll td.file small{display:block;color:var(--ink-2)}
+#coll .in{color:var(--n-green);font-weight:700}
+#coll .gone{color:var(--n-yellow);font-weight:700}
+
 /* ---------- Guide ---------- */
 #guide .wrap{max-width:960px;display:grid;grid-template-columns:minmax(0,1fr)}
 #guide .toc{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
@@ -183,6 +190,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
     <a href="#prep" data-tab="prep">Card Prep</a>
     <a href="#hacks" data-tab="hacks">Hacks</a>
     <a href="#art" data-tab="art">Missing Art</a>
+    <a href="#coll" data-tab="coll">Collections</a>
     <a href="#guide" data-tab="guide">Guide</a>
   </nav>
 </div></div>
@@ -525,6 +533,74 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
       <div class="line">
         <button class="go" id="artSave" disabled>Save to card</button>
         <span class="status" id="artSaveStatus"></span>
+      </div>
+    </section>
+  </div>
+</div>
+</div>
+
+<div class="tabpane tool" id="coll" hidden>
+<div class="wrap">
+  <header>
+    <h1 class="page-title">Collections</h1>
+    <p>Make your own collections for the console's <b>Collections</b> tab, and choose their games, with a keyboard.
+      Collections made on the console show here too. Everything happens in this browser: nothing is uploaded anywhere.</p>
+  </header>
+
+  <div class="panel">
+    <section>
+      <h2><span class="n">1</span>Pick your SD card</h2>
+      <p>Choose the top folder of the card (the one with <code>sc64menu.n64</code> in it). The games are read from the
+        same folders as the console's Games tab, and the collections from <code>menu/collections.txt</code>.</p>
+      <div class="line">
+        <button class="go" id="collPick">Choose SD card</button>
+        <input type="file" id="collPickOld" webkitdirectory class="hidden">
+        <span class="status" id="collCardStatus">No card chosen yet.</span>
+      </div>
+    </section>
+
+    <section>
+      <h2><span class="n">2</span>Your collections</h2>
+      <p>In the order the console shows them, first at the top. Up to 32 collections of 128 games each.</p>
+      <div class="line">
+        <input type="text" id="collNewName" placeholder="New collection name" aria-label="New collection name" style="max-width:280px">
+        <button class="go small" type="button" id="collNew" disabled>Make it</button>
+        <span class="status" id="collListStatus"></span>
+      </div>
+      <div class="tablewrap" style="margin-top:10px"><table>
+        <thead><tr><th>Collection</th><th>Games</th><th></th></tr></thead>
+        <tbody id="collRows"><tr><td colspan="3" class="U">Pick the card first.</td></tr></tbody>
+      </table></div>
+    </section>
+
+    <section id="collEdit" class="hidden">
+      <h2><span class="n">3</span><span id="collTitle"></span></h2>
+      <div class="line">
+        <input type="text" id="collRename" aria-label="Collection name" style="max-width:280px">
+        <button class="go small quiet" type="button" id="collRenameBtn">Rename</button>
+        <button class="go small quiet" type="button" id="collDropGone">Remove games not on the card</button>
+        <button class="go small quiet" type="button" id="collClose">Done</button>
+      </div>
+      <p class="hint" style="margin-top:8px">Names show on the console in its letters: A-Z, digits and the common accents are safe.</p>
+      <div class="line" style="margin-top:12px">
+        <input type="text" id="collSearch" placeholder="Search games" aria-label="Search games" style="max-width:280px">
+        <select id="collShow" aria-label="Show" style="width:auto">
+          <option value="">All games</option><option value="in">In this collection</option><option value="out">Not in it</option></select>
+        <span class="status" id="collEditStatus"></span>
+      </div>
+      <div class="tablewrap" style="margin-top:10px"><table>
+        <thead><tr><th>Game</th><th></th></tr></thead>
+        <tbody id="collGames"></tbody>
+      </table></div>
+    </section>
+
+    <section>
+      <h2><span class="n">4</span>Save to the card</h2>
+      <p>Writes <code>menu/collections.txt</code>. The console reads it at start-up, so switch it on (or press RESET)
+        afterwards.</p>
+      <div class="line">
+        <button class="go" id="collSave" disabled>Save to card</button>
+        <span class="status" id="collSaveStatus"></span>
       </div>
     </section>
   </div>
@@ -4166,10 +4242,393 @@ $('artSave').addEventListener('click', async function () {
 </script>
 
 <script>
-/* Tabs: one per address (#themes, #prep, #hacks, #art, #guide, or a Guide section such as
+(function(){
+'use strict';
+// --- collections logic (also run by tests/collections_tab_test.js) ---
+var COLL_FILE = 'menu/collections.txt';
+var COLL_HEADER = 'collections 1';
+var COLL_MAX = 32, COLL_GAMES = 128, COLL_NAME = 28;     // MY_COLLECTIONS_MAX / _GAMES / _NAME in the menu
+var FOLDERS_MAX = 8;                                    // GAMES_FOLDERS_MAX
+// The files the Games tab shows (n64_rom, disk and emulator extensions in browser.c).
+var GAME_EXTENSIONS = ['z64', 'n64', 'v64', 'rom', 'ndd', 'nes', 'sfc', 'smc', 'gb', 'gbc', 'sms', 'gg', 'sg', 'chf', 'rzx', 'mx1', 'mx2', 'emu'];
+
+// collections.txt (see src/menu/my_collections.h): the header, then "= Name"
+// lines, each followed by its games from the top of the card. Read the way
+// the menu reads it: blank and # lines skipped, games before the first name
+// and anything past the limits left out. null when it is not the menu's file.
+function parseCollections(text) {
+  var lines = String(text).split(/\r?\n/), out = [], c = null;
+  if (lines[0].indexOf(COLL_HEADER) !== 0) return null;
+  for (var i = 1; i < lines.length; i++) {
+    var line = lines[i];
+    if (!line || line[0] === '#') continue;
+    if (line[0] === '=' && line[1] === ' ') {
+      c = out.length < COLL_MAX ? { name: cutName(line.slice(2)), games: [] } : null;
+      if (c) out.push(c);
+    } else if (c && c.games.length < COLL_GAMES && c.games.indexOf(line) < 0) {
+      c.games.push(line);
+    }
+  }
+  return out;
+}
+
+function writeCollections(list) {
+  var out = COLL_HEADER + '\n';
+  list.forEach(function (c) {
+    out += '= ' + c.name + '\n';
+    c.games.forEach(function (g) { out += g + '\n'; });
+  });
+  return out;
+}
+
+// A name the menu keeps as it is: one line, trimmed, at most 28 bytes
+// (cut between characters, never inside one).
+function cutName(name) {
+  var s = String(name).replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim(), enc = new TextEncoder();
+  while (enc.encode(s).length > COLL_NAME) s = Array.from(s).slice(0, -1).join('');
+  return s.trim();
+}
+
+// A [section] key from an ini file, or null.
+function iniGet(text, section, key) {
+  var inside = false, lines = String(text || '').split(/\r?\n/);
+  for (var i = 0; i < lines.length; i++) {
+    var l = lines[i].trim(), m;
+    if ((m = /^\[(.*)\]$/.exec(l))) { inside = (m[1].trim().toLowerCase() === section); continue; }
+    if (inside && (m = /^([^=;#]+)=(.*)$/.exec(l)) && m[1].trim() === key) return m[2].trim().replace(/^"(.*)"$/, '$1');
+  }
+  return null;
+}
+
+// "sd:/N64(JP)/" -> "/N64(JP)", as games_folders.c tidies a folder.
+function tidyFolder(path) {
+  var p = String(path || ''), colon = p.indexOf(':/');
+  if (colon >= 0) p = p.slice(colon + 1);
+  if (p[0] !== '/') p = '/';
+  while (p.length > 1 && p[p.length - 1] === '/') p = p.slice(0, -1);
+  return p;
+}
+
+// The Games tab's folders: the start folder (config.ini's default_directory),
+// then those added in gamefolders.txt, each once.
+function gameFolders(configText, foldersText) {
+  var start = tidyFolder(iniGet(configText, 'menu', 'default_directory') || '/'), out = [start], added = 0;
+  String(foldersText || '').split(/\r?\n/).forEach(function (line) {
+    if (line[0] !== '/' || added >= FOLDERS_MAX) return;
+    added++;
+    var f = tidyFolder(line);
+    if (!out.some(function (o) { return o.toLowerCase() === f.toLowerCase(); })) out.push(f);
+  });
+  return out;
+}
+
+// A game's name in collections.txt: its folder (as the menu spells it) and file, from the top of the card.
+function entryName(folder, file) {
+  return folder === '/' ? file : folder.slice(1) + '/' + file;
+}
+
+function isGameFile(name) {
+  var dot = name.lastIndexOf('.');
+  return name[0] !== '.' && dot > 0 && GAME_EXTENSIONS.indexOf(name.slice(dot + 1).toLowerCase()) >= 0;
+}
+
+function parseHidden(text) {
+  var lines = String(text || '').split(/\r?\n/);
+  if (lines[0] !== 'hidden 1') return new Set();
+  return new Set(lines.slice(1).filter(Boolean));
+}
+
+// Move collection `k` one place: the console shows the last in the file first, so "up" is later in the file.
+function moveCollection(list, k, up) {
+  var to = up ? k + 1 : k - 1;
+  if (to < 0 || to >= list.length) return false;
+  var c = list[k];
+  list[k] = list[to];
+  list[to] = c;
+  return true;
+}
+// --- end collections logic ---
+
+var T = window.cardTools;
+var $ = function (id) { return document.getElementById(id); };
+var card = null;        // { root, files (fallback: lower path -> File), games: [{name, title, folder}], names: Set, hidden: Set }
+var list = [];          // the collections, in the file's order
+var open = -1;          // the collection being edited
+var dirty = false;
+
+function plural(n, word) { return n + ' ' + word + (n === 1 ? '' : 's'); }
+
+// A folder handle by its path from the top ("N64(US)/Hacks"), matching names
+// without regard to case as the card does; null if there is none.
+async function dirAt(path) {
+  var dir = card.root;
+  for (var part of path.split('/').filter(Boolean)) {
+    var next = null;
+    try { next = await dir.getDirectoryHandle(part); } catch (e) {
+      for await (var [name, h] of dir.entries()) {
+        if (h.kind === 'directory' && name.toLowerCase() === part.toLowerCase()) { next = h; break; }
+      }
+    }
+    if (!next) return null;
+    dir = next;
+  }
+  return dir;
+}
+async function cardText(path) {
+  if (!card.root) { var f = card.files.get(path.toLowerCase()); return f ? f.text() : null; }
+  var slash = path.lastIndexOf('/'), dir = await dirAt(path.slice(0, slash));
+  if (!dir) return null;
+  try { return await (await (await dir.getFileHandle(path.slice(slash + 1))).getFile()).text(); } catch (e) { return null; }
+}
+// The game files directly in one card folder.
+async function folderGames(folder) {
+  var out = [];
+  if (!card.root) {
+    var pre = folder === '/' ? '' : folder.slice(1).toLowerCase() + '/';
+    card.all.forEach(function (p) {
+      if (p.toLowerCase().indexOf(pre) === 0 && p.slice(pre.length).indexOf('/') < 0 && isGameFile(p.slice(pre.length))) out.push(p.slice(pre.length));
+    });
+    return out;
+  }
+  var dir = await dirAt(folder);
+  if (!dir) return out;
+  for await (var [name, h] of dir.entries()) if (h.kind === 'file' && isGameFile(name)) out.push(name);
+  return out;
+}
+
+async function cardChosen(root, files, all) {
+  card = { root: root, files: files, all: all, games: [], names: new Set(), hidden: new Set() };
+  open = -1;
+  dirty = false;
+  $('collCardStatus').textContent = 'Reading the card...';
+  var folders = gameFolders(await cardText('menu/config.ini'), await cardText('menu/gamefolders.txt'));
+  card.hidden = parseHidden(await cardText('menu/hidden.txt'));
+  for (var folder of folders) {
+    for (var file of await folderGames(folder)) {
+      var name = entryName(folder, file);
+      if (card.names.has(name)) continue;
+      card.names.add(name);
+      card.games.push({ name: name, title: T.tidyName(file) || file });
+    }
+  }
+  card.games.sort(function (a, b) { return a.title.localeCompare(b.title) || a.name.localeCompare(b.name); });
+  var text = await cardText(COLL_FILE), note = '';
+  list = text === null ? [] : parseCollections(text);
+  if (list === null) {
+    list = [];
+    note = ' <span class="bad">menu/collections.txt doesn\'t start with "' + COLL_HEADER + '"; saving replaces it.</span>';
+  }
+  $('collCardStatus').innerHTML = '<b>' + card.games.length + '</b> game' + (card.games.length === 1 ? '' : 's') + ' in ' +
+    plural(folders.length, 'Games folder') + ', <b>' + list.length + '</b> of your collection' + (list.length === 1 ? '' : 's') + '.' + note +
+    (root ? '' : ' This browser can\'t write to the card: you\'ll get the file to copy.');
+  $('collNew').disabled = false;
+  $('collSaveStatus').textContent = '';
+  closeEditor();
+  render();
+}
+
+$('collPick').addEventListener('click', async function () {
+  if (!window.showDirectoryPicker) { $('collPickOld').click(); return; }
+  try {
+    var root = await window.showDirectoryPicker({ mode: 'readwrite' });
+    card = { root: root };
+    await cardChosen(root, null, null);
+  } catch (e) {
+    if (e.name !== 'AbortError') $('collCardStatus').innerHTML = '<span class="bad">Could not open that folder: ' + e.message + '</span>';
+  }
+});
+$('collPickOld').addEventListener('change', function () {
+  var files = new Map(), all = [];
+  Array.prototype.forEach.call(this.files, function (f) {
+    var path = f.webkitRelativePath.split('/').slice(1).join('/');
+    all.push(path);
+    if (/^menu\/[^/]+$/i.test(path)) files.set(path.toLowerCase(), f);
+  });
+  card = { root: null, files: files };
+  cardChosen(null, files, all);
+});
+
+function button(text, quiet, onClick, disabled) {
+  var b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'go small' + (quiet ? ' quiet' : '');
+  b.textContent = text;
+  b.disabled = !!disabled;
+  b.addEventListener('click', onClick);
+  return b;
+}
+function changed() {
+  dirty = true;
+  $('collSaveStatus').textContent = '';
+  render();
+}
+function missing(c) { return c.games.filter(function (g) { return !card.names.has(g); }).length; }
+
+function render() {
+  var body = $('collRows');
+  body.textContent = '';
+  $('collSave').disabled = !(card && dirty);
+  if (!card || !card.games) { body.innerHTML = '<tr><td colspan="3" class="U">Pick the card first.</td></tr>'; return; }
+  if (!list.length) body.innerHTML = '<tr><td colspan="3" class="U">None yet. Type a name above and press Make it.</td></tr>';
+  for (var k = list.length - 1; k >= 0; k--) (function (k) {
+    var c = list[k], tr = document.createElement('tr');
+    var name = document.createElement('td');
+    name.className = 'file';
+    name.textContent = c.name;
+    var games = document.createElement('td'), gone = missing(c);
+    games.textContent = c.games.length;
+    if (gone) {
+      var g = document.createElement('span');
+      g.className = 'gone';
+      g.textContent = ' (' + gone + ' not on the card)';
+      games.appendChild(g);
+    }
+    var act = document.createElement('td');
+    act.className = 'act';
+    act.append(button('↑', true, function () { if (moveCollection(list, k, true)) { if (open === k) open = k + 1; else if (open === k + 1) open = k; changed(); renderEditor(); } }, k === list.length - 1),
+      ' ', button('↓', true, function () { if (moveCollection(list, k, false)) { if (open === k) open = k - 1; else if (open === k - 1) open = k; changed(); renderEditor(); } }, k === 0),
+      ' ', button(open === k ? 'Editing' : 'Edit', open === k, function () { openEditor(k); }),
+      ' ', button('Delete', true, function () {
+        if (!confirm('Delete "' + c.name + '"? The games stay on the card.')) return;
+        list.splice(k, 1);
+        if (open === k) closeEditor(); else if (open > k) open--;
+        changed();
+        renderEditor();
+      }));
+    tr.append(name, games, act);
+    body.appendChild(tr);
+  })(k);
+  $('collListStatus').textContent = list.length >= COLL_MAX ? 'There are as many collections as there can be (32).' : '';
+}
+
+$('collNew').addEventListener('click', function () {
+  var name = cutName($('collNewName').value);
+  if (!name) { $('collListStatus').innerHTML = '<span class="bad">Type a name first.</span>'; return; }
+  if (list.length >= COLL_MAX) return;
+  list.push({ name: name, games: [] });     // at the end of the file: first on the console, as there
+  $('collNewName').value = '';
+  changed();
+  openEditor(list.length - 1);
+});
+$('collNewName').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('collNew').click(); });
+
+function openEditor(k) {
+  open = k;
+  $('collRename').value = list[k].name;
+  $('collSearch').value = '';
+  $('collShow').value = '';
+  $('collEditStatus').textContent = '';
+  $('collEdit').classList.remove('hidden');
+  render();
+  renderEditor();
+  $('collEdit').scrollIntoView({ block: 'start' });
+}
+function closeEditor() {
+  open = -1;
+  $('collEdit').classList.add('hidden');
+}
+$('collClose').addEventListener('click', function () { closeEditor(); render(); });
+
+$('collRenameBtn').addEventListener('click', function () {
+  var name = cutName($('collRename').value);
+  if (!name || open < 0) return;
+  list[open].name = name;
+  $('collRename').value = name;
+  changed();
+  renderEditor();
+});
+$('collRename').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('collRenameBtn').click(); });
+$('collDropGone').addEventListener('click', function () {
+  if (open < 0) return;
+  list[open].games = list[open].games.filter(function (g) { return card.names.has(g); });
+  changed();
+  renderEditor();
+});
+
+function renderEditor() {
+  if (open < 0) return;
+  var c = list[open], body = $('collGames'), q = $('collSearch').value.trim().toLowerCase(), show = $('collShow').value;
+  var inSet = new Set(c.games), gone = missing(c);
+  $('collTitle').textContent = c.name + ' (' + c.games.length + ' of ' + COLL_GAMES + ' games)';
+  $('collDropGone').classList.toggle('hidden', !gone);
+  $('collDropGone').textContent = 'Remove ' + plural(gone, 'game') + ' not on the card';
+  body.textContent = '';
+  // Games no longer on the card first, so they are seen; then the card's games.
+  var rows = c.games.filter(function (g) { return !card.names.has(g); }).map(function (g) {
+    return { name: g, title: T.tidyName(g.slice(g.lastIndexOf('/') + 1)) || g, gone: true };
+  }).concat(card.games);
+  var shown = 0;
+  rows.forEach(function (game) {
+    var isIn = inSet.has(game.name);
+    if (show === 'in' && !isIn) return;
+    if (show === 'out' && isIn) return;
+    if (q && game.title.toLowerCase().indexOf(q) < 0 && game.name.toLowerCase().indexOf(q) < 0) return;
+    var tr = document.createElement('tr'), td = document.createElement('td');
+    td.className = 'file';
+    td.textContent = game.title;
+    var small = document.createElement('small');
+    small.textContent = game.name + (game.gone ? '  (not on the card: renamed or moved?)' : '') +
+      (card.hidden.has(game.name) ? '  (hidden: it won\'t show until unhidden)' : '');
+    td.appendChild(small);
+    var act = document.createElement('td');
+    act.className = 'act';
+    if (isIn) {
+      var mark = document.createElement('span');
+      mark.className = game.gone ? 'gone' : 'in';
+      mark.textContent = game.gone ? 'Missing ' : 'In ';
+      act.append(mark, button('Remove', true, function () {
+        c.games.splice(c.games.indexOf(game.name), 1);
+        changed();
+        renderEditor();
+      }));
+    } else {
+      act.appendChild(button('Add', false, function () {
+        if (c.games.length >= COLL_GAMES) { $('collEditStatus').innerHTML = '<span class="bad">That collection is full (128 games).</span>'; return; }
+        c.games.push(game.name);
+        changed();
+        renderEditor();
+      }));
+    }
+    tr.append(td, act);
+    body.appendChild(tr);
+    shown++;
+  });
+  if (!shown) body.innerHTML = '<tr><td colspan="2" class="U">' + (card.games.length ? 'No game matches.' : 'No games found in the Games folders.') + '</td></tr>';
+}
+$('collSearch').addEventListener('input', renderEditor);
+$('collShow').addEventListener('change', renderEditor);
+
+$('collSave').addEventListener('click', async function () {
+  var text = writeCollections(list);
+  if (card.root) {
+    try {
+      var menu = await dirAt('menu') || await card.root.getDirectoryHandle('menu', { create: true });
+      var w = await (await menu.getFileHandle('collections.txt', { create: true })).createWritable();
+      await w.write(text);
+      await w.close();
+      dirty = false;
+      $('collSaveStatus').innerHTML = 'Saved ' + plural(list.length, 'collection') + '. Switch the console on (or press RESET) to see them.';
+      render();
+      return;
+    } catch (e) {
+      $('collSaveStatus').innerHTML = '<span class="bad">Could not write to the card (' + e.message + ').</span> Here is the file instead.';
+    }
+  }
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+  a.download = 'collections.txt';
+  a.click();
+  if (!card.root) $('collSaveStatus').innerHTML = 'Copy <b>collections.txt</b> into the card\'s <b>menu</b> folder, replacing the one there.';
+});
+window.addEventListener('beforeunload', function (e) { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+})();
+</script>
+
+<script>
+/* Tabs: one per address (#themes, #prep, #hacks, #art, #coll, #guide, or a Guide section such as
    #guide-tools), so each can be linked to directly. */
 (function () {
-  var panes = ['themes', 'prep', 'hacks', 'art', 'guide'];
+  var panes = ['themes', 'prep', 'hacks', 'art', 'coll', 'guide'];
   function show() {
     var hash = (location.hash || '#themes').slice(1);
     var tab = hash.indexOf('guide') === 0 ? 'guide' : (panes.indexOf(hash) >= 0 ? hash : 'themes');
