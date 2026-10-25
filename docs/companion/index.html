@@ -156,6 +156,10 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
 #art .done{color:var(--n-green);font-weight:700}
 #art .tablewrap{max-height:420px;overflow-y:auto}
 
+/* ---------- Clips ---------- */
+#clips td.act{white-space:nowrap;text-align:right}
+#clips canvas,#clips img{display:block;max-width:100%;border:1px solid var(--line);border-radius:6px;image-rendering:auto}
+
 /* ---------- Collections ---------- */
 #coll td.act{white-space:nowrap;text-align:right}
 #coll .tablewrap{max-height:420px;overflow-y:auto}
@@ -191,6 +195,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
     <a href="#hacks" data-tab="hacks">Hacks</a>
     <a href="#art" data-tab="art">Missing Metadata</a>
     <a href="#coll" data-tab="coll">Collections</a>
+    <a href="#clips" data-tab="clips">Clips</a>
     <a href="#guide" data-tab="guide">Guide</a>
   </nav>
 </div></div>
@@ -624,6 +629,53 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
       <div class="line">
         <button class="go" id="collSave" disabled>Save to card</button>
         <span class="status" id="collSaveStatus"></span>
+      </div>
+    </section>
+  </div>
+</div>
+</div>
+
+<div class="tabpane tool" id="clips" hidden>
+<div class="wrap">
+  <header>
+    <h1 class="page-title">Clips</h1>
+    <p>Turn a clip recorded on the console into an animated GIF. On the console: <b>Settings &gt; System &gt; Record Clip</b>.
+      Everything happens in this browser: nothing is uploaded anywhere.</p>
+  </header>
+
+  <div class="panel">
+    <section>
+      <h2><span class="n">1</span>Pick your SD card</h2>
+      <p>Choose the top folder of the card. Clips are read from <code>menu/clips/</code>.</p>
+      <div class="line">
+        <button class="go" id="clipPick">Choose SD card</button>
+        <input type="file" id="clipPickOld" webkitdirectory class="hidden">
+        <span class="status" id="clipCardStatus">No card chosen yet.</span>
+      </div>
+      <div class="tablewrap" style="margin-top:10px"><table>
+        <thead><tr><th>Clip</th><th>Frames</th><th>Length</th><th></th></tr></thead>
+        <tbody id="clipRows"><tr><td colspan="4" class="U">Pick the card first.</td></tr></tbody>
+      </table></div>
+    </section>
+
+    <section id="clipMakeSection" class="hidden">
+      <h2><span class="n">2</span>Make the GIF</h2>
+      <canvas id="clipPreview" width="320" height="240" aria-label="The clip's first frame"></canvas>
+      <div class="line" style="margin-top:12px">
+        <label>Size <select id="clipScale" style="width:auto">
+          <option value="1">As recorded</option><option value="0.75">Three quarters</option><option value="0.5">Half</option></select></label>
+        <label>From frame <input type="number" id="clipFirst" min="1" value="1" style="width:90px"></label>
+        <label>to <input type="number" id="clipLast" min="1" value="1" style="width:90px"></label>
+        <label><input type="checkbox" id="clipLoop" checked> Loop forever</label>
+      </div>
+      <div class="line" style="margin-top:12px">
+        <button class="go" id="clipMake" disabled>Make GIF</button>
+        <span class="status" id="clipStatus"></span>
+      </div>
+      <progress id="clipProgress" class="hidden" value="0" max="1"></progress>
+      <div id="clipResult" class="hidden" style="margin-top:12px">
+        <img id="clipImage" alt="The GIF made from the clip">
+        <div class="line" style="margin-top:8px"><a class="go" id="clipDownload" href="#" download="clip.gif">Download GIF</a></div>
       </div>
     </section>
   </div>
@@ -5024,10 +5076,337 @@ window.addEventListener('beforeunload', function (e) { if (dirty) { e.preventDef
 </script>
 
 <script>
-/* Tabs: one per address (#themes, #prep, #hacks, #art, #coll, #guide, or a Guide section such as
+(function(){
+'use strict';
+// --- gif logic (also run by tests/clips_tab_test.js) ---
+var CLIP_HEADER = 'clip 1';
+var TRANSPARENT = 255;      // palette index for "same as the frame before"
+
+// clip.txt (src/menu/clip.c): "clip 1", then fps, frames, size.
+function parseClipTxt(text) {
+  var lines = String(text || '').split(/\r?\n/), out = { fps: 15, frames: 0, size: '' };
+  if (lines[0].trim() !== CLIP_HEADER) return null;
+  lines.slice(1).forEach(function (l) {
+    var m = /^(\w+)\s+(.*)$/.exec(l.trim());
+    if (!m) return;
+    if (m[1] === 'fps') out.fps = parseInt(m[2], 10) || 15;
+    else if (m[1] === 'frames') out.frames = parseInt(m[2], 10) || 0;
+    else if (m[1] === 'size') out.size = m[2];
+  });
+  return out;
+}
+
+// Each frame's delay in hundredths of a second (what GIF counts in), so
+// that the clip as a whole keeps its real speed: 15 a second is 7, 7, 6...
+function gifDelays(count, fps) {
+  var out = [];
+  for (var i = 0; i < count; i++) out.push(Math.round((i + 1) * 100 / fps) - Math.round(i * 100 / fps));
+  return out;
+}
+
+// Up to `size` colors for the pixels sampled (a flat [r,g,b, r,g,b, ...]):
+// the box of colors with the widest spread is cut at its middle, again and
+// again, and each box gives its average.
+function medianCut(samples, size) {
+  var n = samples.length / 3, all = new Uint32Array(n);
+  for (var i = 0; i < n; i++) all[i] = i;
+  var boxes = [all];
+  function spread(box) {
+    var lo = [255, 255, 255], hi = [0, 0, 0];
+    for (var j = 0; j < box.length; j++) for (var c = 0; c < 3; c++) {
+      var v = samples[box[j] * 3 + c];
+      if (v < lo[c]) lo[c] = v;
+      if (v > hi[c]) hi[c] = v;
+    }
+    var w = [hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]], ch = w[0] >= w[1] && w[0] >= w[2] ? 0 : (w[1] >= w[2] ? 1 : 2);
+    return { ch: ch, width: w[ch] };
+  }
+  while (boxes.length < size) {
+    var best = -1, bestWidth = 0, bestCh = 0;
+    for (var b = 0; b < boxes.length; b++) {
+      if (boxes[b].length < 2) continue;
+      var s = spread(boxes[b]);
+      if (s.width > bestWidth) { best = b; bestWidth = s.width; bestCh = s.ch; }
+    }
+    if (best < 0) break;
+    var box = Array.from(boxes[best]).sort(function (a, c) { return samples[a * 3 + bestCh] - samples[c * 3 + bestCh]; });
+    var mid = box.length >> 1;
+    boxes.splice(best, 1, Uint32Array.from(box.slice(0, mid)), Uint32Array.from(box.slice(mid)));
+  }
+  return boxes.map(function (box) {
+    var sum = [0, 0, 0];
+    for (var j = 0; j < box.length; j++) for (var c = 0; c < 3; c++) sum[c] += samples[box[j] * 3 + c];
+    return sum.map(function (v) { return Math.round(v / Math.max(1, box.length)); });
+  });
+}
+
+// Nearest palette color for RGBA pixels, remembered per 15-bit color.
+function makeMapper(palette) {
+  var cache = new Int16Array(32768).fill(-1);
+  return function (r, g, b) {
+    var key = ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
+    var hit = cache[key];
+    if (hit >= 0) return hit;
+    var best = 0, bestD = Infinity;
+    for (var i = 0; i < palette.length; i++) {
+      var p = palette[i], dr = p[0] - r, dg = p[1] - g, db = p[2] - b, d = dr * dr * 3 + dg * dg * 4 + db * db * 2;
+      if (d < bestD) { bestD = d; best = i; }
+    }
+    cache[key] = best;
+    return best;
+  };
+}
+
+// GIF's LZW for one frame's palette indices, in sub-blocks of at most 255 bytes.
+function lzwEncode(indices, minCodeSize) {
+  var out = [], bits = 0, nbits = 0, clear = 1 << minCodeSize, eoi = clear + 1;
+  var codeSize = minCodeSize + 1, next = eoi + 1, table = new Map();
+  function emit(code) {
+    bits |= code << nbits;
+    nbits += codeSize;
+    while (nbits >= 8) { out.push(bits & 255); bits >>>= 8; nbits -= 8; }
+  }
+  emit(clear);
+  var prefix = indices[0];
+  for (var i = 1; i < indices.length; i++) {
+    var k = indices[i], key = (prefix << 8) | k, code = table.get(key);
+    if (code !== undefined) { prefix = code; continue; }
+    emit(prefix);
+    if (next === 4096) {
+      emit(clear);
+      table.clear();
+      next = eoi + 1;
+      codeSize = minCodeSize + 1;
+    } else {
+      if (next >= (1 << codeSize)) codeSize++;
+      table.set(key, next++);
+    }
+    prefix = k;
+  }
+  emit(prefix);
+  emit(eoi);
+  if (nbits > 0) out.push(bits & 255);
+  var blocks = [];
+  for (var at = 0; at < out.length; at += 255) {
+    var part = out.slice(at, at + 255);
+    blocks.push(part.length);
+    for (var j = 0; j < part.length; j++) blocks.push(part[j]);
+  }
+  blocks.push(0);
+  return blocks;
+}
+
+// A GIF being written: the header and palette, then frames one by one.
+// Frames after the first keep only the rectangle that changed, and inside
+// it the pixels that didn't change are see-through, which keeps a menu
+// clip small. A frame with no change lengthens the one before.
+function GifWriter(width, height, palette, loop) {
+  var parts = [], prev = null, pending = null;
+  function u16(v) { return [v & 255, (v >> 8) & 255]; }
+  var head = [0x47, 0x49, 0x46, 0x38, 0x39, 0x61].concat(u16(width), u16(height), [0xF7, 0, 0]);
+  for (var i = 0; i < 256; i++) { var c = palette[i] || [0, 0, 0]; head.push(c[0], c[1], c[2]); }
+  if (loop) head = head.concat([0x21, 0xFF, 0x0B], Array.from('NETSCAPE2.0').map(function (ch) { return ch.charCodeAt(0); }), [3, 1, 0, 0, 0]);
+  parts.push(Uint8Array.from(head));
+  function flush() {
+    if (!pending) return;
+    var f = pending, gce = [0x21, 0xF9, 0x04, (1 << 2) | (f.transparent ? 1 : 0)].concat(u16(f.delay), [TRANSPARENT, 0]);
+    var desc = [0x2C].concat(u16(f.x), u16(f.y), u16(f.w), u16(f.h), [0]);
+    parts.push(Uint8Array.from(gce.concat(desc, [8])), Uint8Array.from(lzwEncode(f.pixels, 8)));
+    pending = null;
+  }
+  return {
+    add: function (indices, delay) {
+      var x0 = 0, y0 = 0, x1 = width - 1, y1 = height - 1;
+      if (prev) {
+        x0 = width; y0 = height; x1 = -1; y1 = -1;
+        for (var y = 0; y < height; y++) for (var x = 0; x < width; x++) {
+          if (indices[y * width + x] !== prev[y * width + x]) {
+            if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+          }
+        }
+        if (x1 < 0) { if (pending) pending.delay += delay; return; }     // nothing changed
+      }
+      var w = x1 - x0 + 1, h = y1 - y0 + 1, px = new Uint8Array(w * h);
+      for (var yy = 0; yy < h; yy++) for (var xx = 0; xx < w; xx++) {
+        var at = (y0 + yy) * width + x0 + xx;
+        px[yy * w + xx] = (prev && indices[at] === prev[at]) ? TRANSPARENT : indices[at];
+      }
+      flush();
+      pending = { x: x0, y: y0, w: w, h: h, pixels: px, delay: delay, transparent: !!prev };
+      prev = indices;
+    },
+    finish: function () {
+      flush();
+      parts.push(Uint8Array.of(0x3B));
+      return new Blob(parts, { type: 'image/gif' });
+    },
+    parts: parts
+  };
+}
+// --- end gif logic ---
+
+var $ = function (id) { return document.getElementById(id); };
+var clips = [];         // { name, info, frames: [File or handle getter] }
+var chosen = null;
+
+// The clips on a card: menu/clips/clipNNNN/ with clip.txt and frameNNNN.png.
+async function readCardClips(root, files) {
+  var out = [];
+  if (root) {
+    var dir;
+    try { dir = await (await root.getDirectoryHandle('menu')).getDirectoryHandle('clips'); } catch (e) { return out; }
+    for await (var [name, h] of dir.entries()) {
+      if (h.kind !== 'directory') continue;
+      var frames = [], txt = null;
+      for await (var [fname, fh] of h.entries()) {
+        if (fh.kind !== 'file') continue;
+        if (/^frame\d+\.png$/i.test(fname)) frames.push({ name: fname, get: (function (x) { return function () { return x.getFile(); }; })(fh) });
+        if (fname.toLowerCase() === 'clip.txt') txt = await (await fh.getFile()).text();
+      }
+      if (frames.length) out.push({ name: name, info: parseClipTxt(txt), frames: frames });
+    }
+  } else {
+    var byClip = new Map();
+    files.forEach(function (f, path) {
+      var m = /^(?:.*\/)?(clip\d+)\/(frame\d+\.png|clip\.txt)$/i.exec(path);
+      if (!m) return;
+      if (!byClip.has(m[1])) byClip.set(m[1], { name: m[1], txt: null, frames: [] });
+      var c = byClip.get(m[1]);
+      if (/clip\.txt$/i.test(m[2])) c.txt = f;
+      else c.frames.push({ name: m[2], get: function () { return Promise.resolve(f); } });
+    });
+    for (var c of byClip.values()) {
+      if (c.frames.length) out.push({ name: c.name, info: parseClipTxt(c.txt ? await c.txt.text() : null), frames: c.frames });
+    }
+  }
+  out.forEach(function (c) { c.frames.sort(function (a, b) { return a.name.localeCompare(b.name, undefined, { numeric: true }); }); });
+  return out.sort(function (a, b) { return b.name.localeCompare(a.name, undefined, { numeric: true }); });   // newest first
+}
+
+function showClips() {
+  var body = $('clipRows');
+  body.textContent = '';
+  if (!clips.length) { body.innerHTML = '<tr><td colspan="4" class="U">No clips found. Record one on the console: Settings &gt; System &gt; Record Clip.</td></tr>'; return; }
+  clips.forEach(function (c) {
+    var tr = document.createElement('tr'), fps = c.info ? c.info.fps : 15;
+    [c.name, c.frames.length + ' frames', (c.frames.length / fps).toFixed(1) + ' s at ' + fps + ' a second'].forEach(function (t) {
+      var td = document.createElement('td'); td.textContent = t; tr.appendChild(td);
+    });
+    var act = document.createElement('td'), b = document.createElement('button');
+    act.className = 'act';
+    b.type = 'button'; b.className = 'go small' + (chosen === c ? ' quiet' : ''); b.textContent = chosen === c ? 'Chosen' : 'Choose';
+    b.addEventListener('click', function () { choose(c); });
+    act.appendChild(b); tr.appendChild(act);
+    body.appendChild(tr);
+  });
+}
+
+async function choose(c) {
+  chosen = c;
+  showClips();
+  $('clipFirst').max = $('clipLast').max = c.frames.length;
+  $('clipFirst').value = 1;
+  $('clipLast').value = c.frames.length;
+  $('clipMake').disabled = false;
+  $('clipResult').classList.add('hidden');
+  $('clipStatus').textContent = '';
+  var img = await createImageBitmap(await c.frames[0].get());
+  var cv = $('clipPreview');
+  cv.width = img.width; cv.height = img.height;
+  cv.getContext('2d').drawImage(img, 0, 0);
+  $('clipMakeSection').classList.remove('hidden');
+}
+
+async function cardPicked(root, files) {
+  $('clipCardStatus').textContent = 'Looking for clips...';
+  chosen = null;
+  clips = await readCardClips(root, files);
+  $('clipCardStatus').innerHTML = '<b>' + clips.length + '</b> clip' + (clips.length === 1 ? '' : 's') + ' found.';
+  $('clipMakeSection').classList.add('hidden');
+  showClips();
+}
+
+$('clipPick').addEventListener('click', async function () {
+  if (!window.showDirectoryPicker) { $('clipPickOld').click(); return; }
+  try {
+    await cardPicked(await window.showDirectoryPicker({ mode: 'read' }), null);
+  } catch (e) {
+    if (e.name !== 'AbortError') $('clipCardStatus').innerHTML = '<span class="bad">Could not open that folder: ' + e.message + '</span>';
+  }
+});
+$('clipPickOld').addEventListener('change', function () {
+  var files = new Map();
+  Array.prototype.forEach.call(this.files, function (f) { files.set(f.webkitRelativePath, f); });
+  cardPicked(null, files);
+});
+
+// One frame's pixels at the size wanted.
+async function framePixels(frame, scale) {
+  var img = await createImageBitmap(await frame.get());
+  var w = Math.max(1, Math.round(img.width * scale)), h = Math.max(1, Math.round(img.height * scale));
+  var cv = new OffscreenCanvas(w, h), ctx = cv.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, 0, 0, w, h);
+  img.close();
+  return { w: w, h: h, data: ctx.getImageData(0, 0, w, h).data };
+}
+
+$('clipMake').addEventListener('click', async function () {
+  if (!chosen) return;
+  var btn = this, status = $('clipStatus'), bar = $('clipProgress');
+  btn.disabled = true;
+  try {
+    var first = Math.max(1, parseInt($('clipFirst').value, 10) || 1), last = Math.min(chosen.frames.length, parseInt($('clipLast').value, 10) || chosen.frames.length);
+    if (last < first) throw new Error('the last frame comes before the first');
+    var frames = chosen.frames.slice(first - 1, last), scale = parseFloat($('clipScale').value), fps = chosen.info ? chosen.info.fps : 15;
+    bar.classList.remove('hidden');
+    bar.max = frames.length * 2;
+    // First pass: colors sampled from every frame, for one palette for the whole clip.
+    var samples = [], step = Math.max(1, Math.floor(frames.length / 40));
+    for (var i = 0; i < frames.length; i++) {
+      bar.value = i;
+      if (i % step) continue;
+      status.textContent = 'Choosing colors... frame ' + (i + 1) + ' of ' + frames.length;
+      var p = await framePixels(frames[i], scale);
+      for (var at = 0; at < p.data.length; at += 4 * 7) samples.push(p.data[at], p.data[at + 1], p.data[at + 2]);
+    }
+    if (samples.length > 600000) {      // at most about 200,000 colors to sort: plenty for a palette, and quick
+      var keep = [], every = Math.ceil(samples.length / 600000);
+      for (var si = 0; si < samples.length; si += 3 * every) keep.push(samples[si], samples[si + 1], samples[si + 2]);
+      samples = keep;
+    }
+    var palette = medianCut(samples, 255), map = makeMapper(palette), delays = gifDelays(frames.length, fps), gif = null;
+    // Second pass: each frame mapped to the palette and written.
+    for (var j = 0; j < frames.length; j++) {
+      status.textContent = 'Writing the GIF... frame ' + (j + 1) + ' of ' + frames.length;
+      bar.value = frames.length + j;
+      var q = await framePixels(frames[j], scale);
+      if (!gif) gif = GifWriter(q.w, q.h, palette, $('clipLoop').checked);
+      var idx = new Uint8Array(q.w * q.h);
+      for (var k = 0, d = 0; k < idx.length; k++, d += 4) idx[k] = map(q.data[d], q.data[d + 1], q.data[d + 2]);
+      gif.add(idx, delays[j]);
+    }
+    var blob = gif.finish(), url = URL.createObjectURL(blob);
+    $('clipImage').src = url;
+    $('clipDownload').href = url;
+    $('clipDownload').download = chosen.name + '.gif';
+    $('clipResult').classList.remove('hidden');
+    status.innerHTML = 'Done: <b>' + Math.round(blob.size / 1024) + ' KB</b>, ' + frames.length + ' frames.';
+  } catch (e) {
+    status.innerHTML = '<span class="bad">Could not make the GIF (' + e.message + ').</span>';
+  }
+  bar.classList.add('hidden');
+  btn.disabled = false;
+});
+})();
+</script>
+
+<script>
+/* Tabs: one per address (#themes, #prep, #hacks, #art, #coll, #clips, #guide, or a Guide section such as
    #guide-tools), so each can be linked to directly. */
 (function () {
-  var panes = ['themes', 'prep', 'hacks', 'art', 'coll', 'guide'];
+  var panes = ['themes', 'prep', 'hacks', 'art', 'coll', 'clips', 'guide'];
   function show() {
     var hash = (location.hash || '#themes').slice(1);
     var tab = hash.indexOf('guide') === 0 ? 'guide' : (panes.indexOf(hash) >= 0 ? hash : 'themes');

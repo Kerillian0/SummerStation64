@@ -1,10 +1,10 @@
 # SummerStation64 Companion
 
-One web page, `index.html`, with six tabs: **Theme Maker**, **Card Prep**,
-**Hacks**, **Missing Metadata**, **Collections** and **Guide**. Published with GitHub Pages from this folder
+One web page, `index.html`, with seven tabs: **Theme Maker**, **Card Prep**,
+**Hacks**, **Missing Metadata**, **Collections**, **Clips** and **Guide**. Published with GitHub Pages from this folder
 (Settings > Pages: branch `summerstation`, folder `/docs`), at
 `https://kerillian0.github.io/SummerStation64/companion/`. Each tab has its
-own address: `#themes`, `#prep`, `#hacks`, `#art`, `#coll`, `#guide` (and `#guide-setup`,
+own address: `#themes`, `#prep`, `#hacks`, `#art`, `#coll`, `#clips`, `#guide` (and `#guide-setup`,
 `#guide-hardware`, `#guide-tools`, `#guide-help`).
 
 Markup, styles and scripts are all in the one file, with no build step. It
@@ -180,6 +180,21 @@ the folder as those files spell it. A game in a collection that is no longer
 there (renamed or moved) is shown as missing, with a button to drop them all;
 hidden games (`menu/hidden.txt`) are marked. The console reads the file at
 start-up.
+
+## Clips
+
+Turns a clip recorded on the console (Settings > System > Record Clip,
+`src/menu/clip.c`) into an animated GIF. A clip is a folder
+`menu/clips/clipNNNN/` of `frameNNNN.png` with a `clip.txt` (`clip 1`, then
+`fps`, `frames`, `size`). The page samples colors from every frame and makes
+one palette of 255 by median cut (index 255 is see-through), maps each frame
+to it (nearest color, remembered per 15-bit color), and writes a GIF89a with
+its own LZW encoder: frames after the first keep only the rectangle that
+changed, with unchanged pixels see-through, and a frame with no change adds
+its time to the one before. Delays are in hundredths of a second, rounded so
+the whole clip keeps its speed (15 a second: 7, 7, 6, ...). Options: size,
+first and last frame, loop. Tested in Node with the GIFs decoded by Pillow
+(`tests/clips_tab_test.js`, `tests/clips_gif_check.py`).
 
 ## Guide
 
