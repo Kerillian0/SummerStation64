@@ -16,6 +16,8 @@
 
 #include <libdragon.h>
 
+#define BOX3D_OUTLINE_MAX   (32)
+
 typedef struct {
     surface_t *front;   /**< the cover; NULL for a moment in a flip: then front_w x front_h gives its size */
     int front_w, front_h;
@@ -28,6 +30,10 @@ typedef struct {
     bool cartridge;     /**< a cartridge: its outline pushed back to its thickness, and its
                              front picture has see-through edges */
     surface_t *bottom;  /**< a cartridge's bottom with its circuit board, or NULL */
+    const float (*outline)[2];  /**< a cartridge's own outline across its picture, (0, 0) top left to
+                                     (1, 1), clockwise from the bottom left, the last stretch the bottom;
+                                     NULL for the N64 cartridge's */
+    int outline_points;
     bool back;          /**< the back of the box is showing: the side pictures change places (the top
                              and bottom labels stay as they are, reading the right way up) */
 } box3d_art_t;

@@ -64,6 +64,9 @@ typedef struct {
     bool cart;                  /* the art is a cartridge (Show Games As: Cartridges), with see-through edges */
     bool cart_ready;            /* its edges are see-through and its plastic color is known */
     color_t body;               /* the cartridge's plastic color, for its 3D edges */
+    float outline[BOX3D_OUTLINE_MAX][2];    /* a retro cartridge's outline, traced from its picture (box3d.h) */
+    int outline_points;         /* 0: the N64 cartridge's outline */
+    bool plain_back;            /* a retro cartridge turned over with no back picture: its front painted plain */
 } slot_t;
 
 typedef enum {
@@ -130,6 +133,53 @@ static file_image_type_t front_kind (void) {
    reaches the edges (the corners and notches round the cartridge). Then
    take the plastic's color from the cartridge's left grip, for its 3D
    edges. Baked cartridges keep their own see-through edges. */
+/* A retro cartridge's outline, from its picture's see-through edges: the
+   left and right edges of the solid part at a few heights (closer
+   together near the top and bottom, where corners round off), clockwise
+   from the bottom left as box3d.h wants it. */
+static void cart_trace (slot_t *slot, const uint16_t *px, int stride, int w, int h) {
+    static const float heights[] = { 0.0f, 0.02f, 0.05f, 0.10f, 0.20f, 0.35f, 0.50f, 0.65f, 0.80f, 0.90f, 0.95f, 0.98f, 1.0f };
+    const int rows = (int) (sizeof(heights) / sizeof(heights[0]));
+    int top = 0, bottom = h - 1;
+    #define SOLID_ROW(y) ({ bool any = false; for (int x = 0; x < w && !any; x++) any = (px[(y) * stride + x] & 1); any; })
+    while (top < bottom && !SOLID_ROW(top)) top++;
+    while (bottom > top && !SOLID_ROW(bottom)) bottom--;
+    #undef SOLID_ROW
+    if (bottom - top < 4) {
+        return;
+    }
+    float left[16][2], right[16][2];
+    int n = 0;
+    for (int i = 0; i < rows; i++) {
+        int y = top + (int) (heights[i] * (bottom - top));
+        int x0 = 0, x1 = w - 1;
+        while (x0 < w && !(px[y * stride + x0] & 1)) x0++;
+        while (x1 > x0 && !(px[y * stride + x1] & 1)) x1--;
+        if (x0 >= x1) {
+            continue;
+        }
+        left[n][0] = (float) x0 / w;
+        right[n][0] = (float) (x1 + 1) / w;
+        left[n][1] = right[n][1] = (float) y / (h - 1);
+        n++;
+    }
+    if (n < 2) {
+        return;
+    }
+    int k = 0;
+    for (int i = n - 1; i >= 0; i--) {     /* up the left side */
+        slot->outline[k][0] = left[i][0];
+        slot->outline[k][1] = left[i][1];
+        k++;
+    }
+    for (int i = 0; i < n; i++) {          /* down the right side; back to the start is the bottom */
+        slot->outline[k][0] = right[i][0];
+        slot->outline[k][1] = right[i][1];
+        k++;
+    }
+    slot->outline_points = k;
+}
+
 static void cart_prepare (slot_t *slot) {
     surface_t *image = slot->art->image;
     slot->cart_ready = true;
@@ -164,6 +214,22 @@ static void cart_prepare (slot_t *slot) {
     }
     if (n > 0) {
         slot->body = RGBA32(r * 255 / (31 * n), g * 255 / (31 * n), b * 255 / (31 * n), 0xFF);
+    }
+    slot->outline_points = 0;
+    if (slot->entry && slot->entry->type == ENTRY_TYPE_EMULATOR) {
+        cart_trace(slot, px, stride, w, h);
+        if (slot->plain_back) {
+            /* No back picture: the same shape in plain plastic, a little darker than the front. */
+            uint16_t plain = ((slot->body.r * 27 / 255) << 11) | ((slot->body.g * 27 / 255) << 6) | ((slot->body.b * 27 / 255) << 1) | 1;  /* 5 bits each, 85% */
+            for (int y = 0; y < h; y++) {
+                for (int x = 0; x < w; x++) {
+                    if (px[y * stride + x] & 1) {
+                        px[y * stride + x] = plain;
+                    }
+                }
+            }
+            data_cache_hit_writeback(image->buffer, image->stride * h);
+        }
     }
 }
 
@@ -260,10 +326,17 @@ static component_boxart_t *art_load (menu_t *menu, int index, file_image_type_t 
                 *card_pending = true;
             }
         } else {
-            if (*which != IMAGE_BOXART_BACK) {
-                *which = IMAGE_BOXART_FRONT;    /* no cartridge pictures: the box */
+            if (*which == IMAGE_GAMEPAK_FRONT) {
+                art = retro_art_load(menu->storage_prefix, path_get(path), IMAGE_GAMEPAK_FRONT);
+                if (!art) {
+                    *which = IMAGE_BOXART_FRONT;    /* no cartridge picture: the box */
+                }
+            } else if (*which != IMAGE_BOXART_BACK) {
+                *which = IMAGE_BOXART_FRONT;
             }
-            art = retro_art_load(menu->storage_prefix, path_get(path), *which);
+            if (!art) {
+                art = retro_art_load(menu->storage_prefix, path_get(path), *which);
+            }
             if (!art && *which != IMAGE_BOXART_FRONT) {
                 *which = IMAGE_BOXART_FRONT;
                 art = retro_art_load(menu->storage_prefix, path_get(path), *which);
@@ -447,7 +520,8 @@ static void cart_back_free (void) {
 
 /* The picture a cover shows right now: a turned-over cartridge shows the shared back. */
 static bool shows_cart_back (slot_t *slot) {
-    return slot->cart && slot->index == center_index && side != IMAGE_BOXART_FRONT && cart_back_sprite;
+    return slot->cart && slot->index == center_index && side != IMAGE_BOXART_FRONT && cart_back_sprite
+        && !(slot->entry && slot->entry->type == ENTRY_TYPE_EMULATOR);     /* a retro cartridge has its own back */
 }
 
 static surface_t *slot_image (slot_t *slot) {
@@ -461,7 +535,8 @@ bool carousel_art_flip (void) {
         return false;
     }
     slot_t *center = slot_find(art_menu, center_index);
-    if (!center || !art_ready(center->art) || (center->cart && !cart_back_load(center))) {
+    bool retro_cart = center && center->cart && center->entry && center->entry->type == ENTRY_TYPE_EMULATOR;
+    if (!center || !art_ready(center->art) || (center->cart && !retro_cart && !cart_back_load(center))) {
         return false;
     }
     flip = FLIP_CLOSING;
@@ -486,6 +561,32 @@ static void flip_update (menu_t *menu) {
     if (!center) {
         flip = FLIP_NONE;
         return;
+    }
+
+    if (flip == FLIP_CLOSING && (now - flip_at) >= half && center->cart && center->entry && center->entry->type == ENTRY_TYPE_EMULATOR) {
+        /* A retro cartridge: its own back picture (retro.h), else its front painted plain. */
+        for (int i = 0; i < SLOT_COUNT; i++) {
+            if (&slots[i] != center && slots[i].used && slots[i].art && slots[i].art->loading) {
+                slot_clear(&slots[i]);  /* the decoder handles one picture at a time */
+            }
+        }
+        if (center->art) {
+            ui_components_boxart_free(center->art);
+        }
+        side = (side == IMAGE_BOXART_FRONT) ? IMAGE_BOXART_BACK : IMAGE_BOXART_FRONT;
+        path_t *path = cover_list_current(menu)->path(menu, center->index);
+        center->art = NULL;
+        center->plain_back = false;
+        if (side != IMAGE_BOXART_FRONT) {
+            center->art = retro_art_load(menu->storage_prefix, path_get(path), IMAGE_GAMEPAK_BACK);
+            center->plain_back = (center->art == NULL);
+        }
+        if (!center->art) {
+            center->art = retro_art_load(menu->storage_prefix, path_get(path), IMAGE_GAMEPAK_FRONT);
+        }
+        path_free(path);
+        center->cart_ready = false;     /* its edges cleared and outline traced again */
+        flip = FLIP_LOADING;
     }
 
     if (flip == FLIP_CLOSING && (now - flip_at) >= half && center->cart) {
@@ -705,6 +806,8 @@ bool carousel_art_draw_box (menu_t *menu, int index, int x0, int y0, int w, int 
         art.top = art.left = art.right = NULL;
         art.side = slot->body;
         art.bottom = cart_bottom();
+        art.outline = slot->outline_points ? (const float (*)[2]) slot->outline : NULL;
+        art.outline_points = slot->outline_points;
     }
     color_t tint;
     if (slot->cart) {
@@ -767,6 +870,8 @@ bool carousel_art_draw_side_box (menu_t *menu, int index, int x0, int y0, int w,
         art.top = NULL;
         art.side = slot->body;
         art.bottom = cart_bottom();
+        art.outline = slot->outline_points ? (const float (*)[2]) slot->outline : NULL;
+        art.outline_points = slot->outline_points;
     } else if (carousel_art_tint_state(menu, index, &tint) == ART_TINT_KNOWN) {
         art.side = tint;
     }

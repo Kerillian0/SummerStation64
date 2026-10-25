@@ -185,21 +185,27 @@ static point_t turn_point (float x, float y, float z, float yaw, float pitch) {
 static void cartridge_walls (const box3d_art_t *art, float bw, float bh, float bd, float yaw, float pitch) {
     point_t saved[8];       /* the walls borrow the corner list; the front is drawn from it afterwards */
     memcpy(saved, corners, sizeof(saved));
-    point_t front[CART_POINTS], back[CART_POINTS];
-    for (int i = 0; i < CART_POINTS; i++) {
-        float x = (cart_outline[i][0] - 0.5f) * bw;
-        float y = (cart_outline[i][1] - 0.5f) * bh;
+    /* Its own outline (a retro cartridge's, traced from its picture), else the N64 one. */
+    const float (*outline)[2] = (art->outline && art->outline_points >= 3) ? art->outline : cart_outline;
+    int points = (art->outline && art->outline_points >= 3) ? art->outline_points : CART_POINTS;
+    if (points > BOX3D_OUTLINE_MAX) {
+        points = BOX3D_OUTLINE_MAX;
+    }
+    point_t front[BOX3D_OUTLINE_MAX], back[BOX3D_OUTLINE_MAX];
+    for (int i = 0; i < points; i++) {
+        float x = (outline[i][0] - 0.5f) * bw;
+        float y = (outline[i][1] - 0.5f) * bh;
         front[i] = turn_point(x, y, -bd / 2, yaw, pitch);
         back[i] = turn_point(x, y, bd / 2, yaw, pitch);
     }
 
     /* The walls facing the viewer, furthest first. */
     static const int quad[4] = { 0, 1, 2, 3 };
-    int order[CART_POINTS];
-    float depth[CART_POINTS];
+    int order[BOX3D_OUTLINE_MAX];
+    float depth[BOX3D_OUTLINE_MAX];
     int count = 0;
-    for (int i = 0; i < CART_POINTS; i++) {
-        int j = (i + 1) % CART_POINTS;
+    for (int i = 0; i < points; i++) {
+        int j = (i + 1) % points;
         corners[0] = front[i]; corners[1] = back[i]; corners[2] = back[j]; corners[3] = front[j];
         if (!facing(quad)) {
             continue;
@@ -235,10 +241,10 @@ static void cartridge_walls (const box3d_art_t *art, float bw, float bh, float b
     }
     for (int n = 0; n < count; n++) {
         int i = order[n];
-        int j = (i + 1) % CART_POINTS;
+        int j = (i + 1) % points;
         /* Which way the wall faces, across the picture: up, sideways or down. */
-        float dx = cart_outline[j][0] - cart_outline[i][0];
-        float dy = cart_outline[j][1] - cart_outline[i][1];
+        float dx = outline[j][0] - outline[i][0];
+        float dy = outline[j][1] - outline[i][1];
         float shade = (dx > 0.0f) ? 1.0f : (dx < 0.0f) ? CART_BOTTOM_SHADE : CART_SIDE_SHADE;
         (void) dy;
         int k = (int) (shade * art->bright);
@@ -267,7 +273,7 @@ static void cartridge_walls (const box3d_art_t *art, float bw, float bh, float b
         }
 
         /* The bottom: the slot with the circuit board, in the middle of its plastic. */
-        if (pcb && i == CART_POINTS - 1) {
+        if (pcb && i == points - 1) {
             const float u0 = 0.13f, u1 = 0.87f, w0 = 0.22f, w1 = 0.82f;  /* along the bottom, and front to back */
             point_t near0 = mix(front[i], front[j], u0), near1 = mix(front[i], front[j], u1);
             point_t far0 = mix(back[i], back[j], u0), far1 = mix(back[i], back[j], u1);

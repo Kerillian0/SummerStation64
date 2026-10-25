@@ -498,7 +498,8 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
       <h2><span class="n">2</span>Choose a game</h2>
       <p>Each game with what it is missing. Pictures and details baked into the menu file count as there already. NES, SNES
         and Game Boy games are found on the card by this page and take their box's front, back and spine (the 3D box's sides,
-        standing or lying down); their pictures keep
+        standing or lying down), and their cartridge's front and back (with a see-through background: the menu traces the
+        cartridge's shape from it); their pictures keep
         their own shape and go in <code>menu/metadata/nes/&lt;file name&gt;/</code> (or <code>snes</code>, <code>gb</code>,
         <code>gbc</code>).</p>
       <div class="line">
@@ -3843,8 +3844,11 @@ var PICTURES = [
   { key: 'back', file: 'boxart_back.png', label: 'Back of the box', box: true },
   { key: 'top', file: 'boxart_top.png', label: 'Top label' },
   { key: 'cartridge', file: 'gamepak_front.png', label: 'Cartridge' },
-  { key: 'spine', file: 'boxart_spine.png', label: 'Spine' }     // emulator games only: both sides of the 3D box
+  { key: 'spine', file: 'boxart_spine.png', label: 'Spine' },    // emulator games only: both sides of the 3D box
+  { key: 'cartback', file: 'gamepak_back.png', label: 'Cartridge back' }    // emulator games only
 ];
+// An emulator game's pictures, as the menu names them in its folder (src/menu/retro.c).
+var RETRO_PICTURES = { front: 'boxart_front.png', back: 'boxart_back.png', spine: 'boxart_spine.png', cartridge: 'gamepak_front.png', cartback: 'gamepak_back.png' };
 var TEXT_LACKS = ['description', 'date', 'developer'];
 
 // missingart.txt (see src/menu/art_report.h): the header, # comments, then
@@ -3992,7 +3996,7 @@ async function retroGames() {
       var art = retroFolder(name);
       if (!art) continue;
       var have = ((await folderNames('menu/metadata/' + art)) || []).map(function (n) { return n.toLowerCase(); });
-      var lacks = ['front', 'back', 'spine'].filter(function (k) { return have.indexOf('boxart_' + k + '.png') < 0; });
+      var lacks = Object.keys(RETRO_PICTURES).filter(function (k) { return have.indexOf(RETRO_PICTURES[k]) < 0; });
       if (lacks.length) out.push({ folder: art, kind: art.split('/')[0], lacks: lacks, file: F.entryName(folder, name) });
     }
   }
@@ -4005,7 +4009,7 @@ function gameName(item) {
   return T.tidyName(base) || base;
 }
 function missingText(lacks) {
-  var words = { front: 'front', back: 'back', top: 'top label', cartridge: 'cartridge', spine: 'spine', description: 'description', date: 'date', developer: 'developer' };
+  var words = { front: 'front', back: 'back', top: 'top label', cartridge: 'cartridge', spine: 'spine', cartback: 'cartridge back', description: 'description', date: 'date', developer: 'developer' };
   return lacks.map(function (l) { return words[l] || l; }).join(', ');
 }
 
