@@ -2,7 +2,7 @@
  * @file games_filter.h
  * @brief Shows only one region's games, only 64DD disks or only hacks, on the Games tab.
  *
- * C-up and C-down step through All, USA, Japan, Europe, 64DD and Hacks, leaving out
+ * C-up and C-down step through All, USA, Japan, Europe, 64DD, Hacks and Party (party.h), leaving out
  * any with no games. A game's region comes from its code in the remembered
  * game list (the last letter: E USA, J Japan, P and the other PAL letters
  * Europe), or else from tags in its file name such as (U), (J), (E), (Japan).
@@ -32,6 +32,9 @@ void games_filter_after_load (menu_t *menu, int (*compare) (const void *, const 
  * @return false if nothing changed (no other filter has games).
  */
 bool games_filter_step (menu_t *menu, int direction);
+
+/** Once a frame on the Games tab: if controllers came or went while Party shows, show the new set. */
+void games_filter_party_check (menu_t *menu);
 
 /**
  * A game's code was just learned: place it in its region, if its file name

@@ -5,6 +5,7 @@
  */
 
 #include <ctype.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
@@ -18,6 +19,8 @@
 #include "menu_options.h"
 #include "region_pick.h"
 #include "collections.h"
+#include "game_data.h"
+#include "party.h"
 #include "rom_hacks.h"
 #include "sort_order.h"
 
@@ -28,29 +31,32 @@ typedef enum {
     FILTER_EUROPE,
     FILTER_64DD,
     FILTER_HACKS,
+    FILTER_PARTY,               /* games for at least as many players as there are controllers (party.h): not a mark */
     FILTER_STEPS,               /* C-up / C-down step through the ones above */
     FILTER_HOMEBREW = FILTER_STEPS,     /* the Homebrew tab's shelf */
     FILTER_COLLECTION,                  /* the Collections tab's shelf: one collection (collections.h), not a mark */
     FILTER_COUNT
 } filter_t;
 
-static const char *names[FILTER_COUNT] = { "All", "USA", "Japan", "Europe", "64DD", "Hacks", "Homebrew", "Collection" };
+static const char *names[FILTER_COUNT] = { "All", "USA", "Japan", "Europe", "64DD", "Hacks", "Party", "Homebrew", "Collection" };
 static int collection = -1;     /* the collection the Collections tab shows, by its number (collections_id()) */
 
 /* Which filters a game belongs to, one bit each (bit FILTER_ALL always set). */
 static uint16_t *marks = NULL;   /* indexed by entry->index, the order the folder was read in */
 static int marks_count = 0;
+static uint8_t *players = NULL;     /* by entry->index: how many can play it at once (0 not known) */
+static int party = 0;               /* the controllers the Party step was worked out for */
 static int total = 0;           /* entries in the list, shown and hidden */
 
 /* Game Versions: Grouped. Files sharing a game code (an original, its hacks
    and copies of it) show as one cover; the others are folded under it. */
-#define MARK_FOLDED     (1 << 7)    /* in marks: folded under another file's cover */
+#define MARK_FOLDED     (1 << 10)    /* in marks: folded under another file's cover */
 static int16_t *group = NULL;       /* by entry->index: the index of its cover's file, or -1 */
 
 /* Region Copies: One Cover. A game's copies from other regions (the same
    first three letters of the code) show under All as one cover, chosen by
    region_pick. Hacks are never folded this way. */
-#define MARK_REGION_FOLDED  (1 << 8)    /* in marks: folded under another region's cover */
+#define MARK_REGION_FOLDED  (1 << 11)    /* in marks: folded under another region's cover */
 static int16_t *rgroup = NULL;      /* by entry->index: the index of its cover's file, or -1 */
 
 const char *games_filter_versions_name (int choice) {
@@ -142,11 +148,34 @@ static uint16_t classify (menu_t *menu, entry_t *e) {
     return m | region;
 }
 
+/* How many can play each game, from the built-in table, else the game list. */
+static void note_players (menu_t *menu) {
+    for (int i = 0; players && i < total; i++) {
+        entry_t *e = &menu->browser.list[i];
+        if (e->index < 0 || e->index >= marks_count) {
+            continue;
+        }
+        players[e->index] = 0;
+        if (e->type != ENTRY_TYPE_ROM) {
+            continue;
+        }
+        path_t *path = path_clone_push(menu->browser.directory, e->name);
+        const game_index_entry_t *known = game_index_find(path_get(path), e->size);
+        path_free(path);
+        if (known && !game_index_is_homebrew(known->code)) {
+            const game_data_t *data = game_data_find(known->code);
+            players[e->index] = (data && data->players) ? data->players : known->players;
+        }
+    }
+}
+
 static bool matches (const entry_t *e, filter_t f) {
     if (f == FILTER_HOMEBREW && e->index >= 0 && e->index < marks_count && (marks[e->index] & (1 << FILTER_HACKS))) {
         return false;   /* a hack without a proper code is still a hack, not homebrew */
     }
-    bool in = (f == FILTER_COLLECTION) ? collections_has(collection, e) : ((marks[e->index] & (1 << f)) != 0);
+    bool in = (f == FILTER_COLLECTION) ? collections_has(collection, e)
+            : (f == FILTER_PARTY) ? (players && party >= 2 && e->index >= 0 && e->index < marks_count && players[e->index] >= party)
+            : ((marks[e->index] & (1 << f)) != 0);
     return e->index >= 0 && e->index < marks_count && in
         && !((marks[e->index] & MARK_FOLDED) && folding(f))
         && !((marks[e->index] & MARK_REGION_FOLDED) && region_folding(f));
@@ -372,9 +401,10 @@ void games_filter_recheck_hacks (menu_t *menu) {
     }
     mark_hacks(menu);   /* the whole list, hidden games included */
     collections_build(menu);    /* newly learned codes put games in their collections */
+    note_players(menu);
     debugf("games filter: %d homebrew games known\n", count_for(menu, FILTER_HOMEBREW));
-    if (current == FILTER_HACKS || current == FILTER_HOMEBREW || current == FILTER_COLLECTION) {
-        reapply(menu);          /* the Hacks step or a shelf is showing: show the new set */
+    if (current == FILTER_HACKS || current == FILTER_PARTY || current == FILTER_HOMEBREW || current == FILTER_COLLECTION) {
+        reapply(menu);          /* the Hacks or Party step or a shelf is showing: show the new set */
     }
     /* With Game Versions grouped, newly learned codes fold more files: done
        at the next load, so the row doesn't change under the player. */
@@ -415,6 +445,8 @@ void games_filter_forget (void) {
     group = NULL;
     free(rgroup);
     rgroup = NULL;
+    free(players);
+    players = NULL;
     collections_forget();
     marks_count = 0;
     total = 0;
@@ -434,6 +466,7 @@ void games_filter_after_load (menu_t *menu, int (*compare) (const void *, const 
     }
     group = malloc(total * sizeof(int16_t));   /* without it, versions simply aren't grouped */
     rgroup = malloc(total * sizeof(int16_t));  /* nor region copies */
+    players = malloc(total);                    /* nor the Party step offered */
     marks_count = total;
     for (int i = 0; i < total; i++) {
         entry_t *e = &menu->browser.list[i];
@@ -442,6 +475,8 @@ void games_filter_after_load (menu_t *menu, int (*compare) (const void *, const 
     }
     mark_hacks(menu);
     collections_build(menu);
+    note_players(menu);
+    party = party_players();
     debugf("games filter: %d homebrew games known\n", count_for(menu, FILTER_HOMEBREW));
     if (!shelf && current != FILTER_ALL && count_for(menu, current) == 0) {
         current = FILTER_ALL;   /* nothing of that kind any more */
@@ -455,6 +490,7 @@ bool games_filter_step (menu_t *menu, int direction) {
     if (total <= 0 || shelf) {
         return false;
     }
+    party = party_players();
     filter_t next = current;
     for (int tries = 0; tries < FILTER_STEPS; tries++) {
         next = (filter_t) ((next + direction + FILTER_STEPS) % FILTER_STEPS);
@@ -486,6 +522,21 @@ void games_filter_note_code (const entry_t *e, const char *code) {
     }
 }
 
+void games_filter_party_check (menu_t *menu) {
+    int now = party_players();
+    if (now == party) {
+        return;
+    }
+    debugf("games filter: %d controllers\n", now);
+    party = now;
+    if (current == FILTER_PARTY && !shelf && total > 0) {
+        if (count_for(menu, FILTER_PARTY) == 0) {
+            current = FILTER_ALL;   /* too few controllers now, or no game for so many */
+        }
+        reapply(menu);
+    }
+}
+
 int games_filter_all_entries (int shown) {
     return (total > shown) ? total : shown;
 }
@@ -493,6 +544,11 @@ int games_filter_all_entries (int shown) {
 const char *games_filter_label (void) {
     if (current == FILTER_COLLECTION) {
         return collections_name(collection);
+    }
+    if (current == FILTER_PARTY && !shelf) {
+        static char label[24];
+        snprintf(label, sizeof(label), "Party: %d+", party);
+        return label;
     }
     return (current == FILTER_ALL || shelf) ? NULL : names[current];
 }

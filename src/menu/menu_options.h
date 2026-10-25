@@ -32,6 +32,7 @@ typedef enum {
     OPTION_PREFERRED_REGION, /**< a preferred_region_t value (see region_pick.h) */
     OPTION_SHOT_SIZE,   /**< a screenshot_size_t value (see screenshot.h) */
     OPTION_SHOT_DITHER, /**< a screenshot_dither_t value (see screenshot.h) */
+    OPTION_PARTY_TEST,  /**< hidden, for testing: count this many controllers (see party.h); 0 counts the real ones */
     OPTION_COUNT
 } option_t;
 

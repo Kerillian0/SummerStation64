@@ -19,6 +19,8 @@ The icons are kept as small as the console allows:
 - corner.png: a 16 x 16 white disc in 16 shades (128 bytes). Its four
   quarters are the rounded corners of the tabs, panels and badges.
 - heart.png: 16 x 14, white in 16 shades (112 bytes), tinted by the menu.
+- port.png: 24 x 20, a controller port in 16 shades (240 bytes), tinted by
+  the menu (the controller marks under the clock).
 - cart_back.png: 158 x 107, the back of a game cartridge in light grey
   (thousands of colors, 34 KB in memory while a cartridge shows its back).
   The menu tints it to each cartridge's plastic. Its outline comes from
@@ -111,6 +113,27 @@ hd.polygon([(0.9 * SCALE, 6.4 * SCALE), (15.1 * SCALE, 6.4 * SCALE), (8 * SCALE,
 heart = shrink(heart, HW, HH).point(lambda v: (v // 17) * 17)
 heart.save("heart.png")
 print(f"heart.png: {HW} x {HH}")
+
+# A controller port, as on the front of the console: a dome-shaped
+# opening (flat at the bottom, round at the top) with its three pins in a
+# row. White in 16 shades, tinted by the menu: the accent color for a port
+# with a controller in it, grey for an empty one. The opening is see-through.
+PW, PH = 24, 20
+port = Image.new("L", (PW * SCALE, PH * SCALE), 0)
+pd = ImageDraw.Draw(port)
+def dome(d, x0, y0, x1, y1, fill):
+    r = (x1 - x0) / 2
+    d.ellipse([x0, y0, x1, y0 + 2 * r * 0.9], fill=fill)
+    d.rectangle([x0, y0 + r * 0.9, x1, y1], fill=fill)
+k = SCALE
+dome(pd, 0.5 * k, 0.5 * k, 23.5 * k, 19.5 * k, 255)    # the shell
+dome(pd, 3.5 * k, 3.5 * k, 20.5 * k, 16.5 * k, 0)      # the opening
+for i in range(3):                                      # the pins
+    cx = (7.5 + i * 4.5) * k
+    pd.ellipse([cx - 1.5 * k, 9.5 * k, cx + 1.5 * k, 12.5 * k], fill=255)
+port = shrink(port, PW, PH).point(lambda v: (v // 17) * 17)
+port.save("port.png")
+print(f"port.png: {PW} x {PH}")
 
 # The dump marks (Card Prep's verified.txt): white symbols drawn over the
 # button disc, which the menu tints green, amber or red. Same size as the

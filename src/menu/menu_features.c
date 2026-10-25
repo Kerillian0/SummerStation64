@@ -47,6 +47,7 @@ static const feature_info_t feature_info[FEATURE_COUNT] = {
     [FEATURE_DESC_SCROLL]         = { "desc_scroll",         true,  false },
     [FEATURE_BOX_3D]              = { "box_3d",              true,  false },
     [FEATURE_SIDE_BOXES]          = { "side_boxes",          true,  false },
+    [FEATURE_CONTROLLER_MARKS]    = { "controller_marks",    true,  false },
 };
 
 #define FEATURES_USER_PATH      "sd:/menu/features.ini"

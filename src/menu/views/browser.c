@@ -1194,7 +1194,8 @@ static void process (menu_t *menu) {
     controls_remap_tabs(menu, !folders_tab); // Games: left/right scroll the covers. Folders: up/down move down the list. L/R tabs, Z options
     if (!folders_tab && controls_consume_flip_request() && carousel_art_flip()) sound_play_effect(SFX_CURSOR); // up/down: turn the box over
     int filter_step = controls_consume_filter_step();
-    if (!folders_tab && filter_step && games_filter_step(menu, filter_step)) sound_play_effect(SFX_CURSOR); // C-up/C-down: All, USA, Japan, Europe, 64DD
+    if (!folders_tab && filter_step && games_filter_step(menu, filter_step)) sound_play_effect(SFX_CURSOR); // C-up/C-down: All, USA, Japan, Europe, 64DD, Hacks, Party
+    if (!folders_tab) games_filter_party_check(menu); // a controller plugged in or out
 
     int scroll_speed = menu->actions.go_fast ? 10 : 1;
 

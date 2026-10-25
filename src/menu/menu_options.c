@@ -38,6 +38,7 @@ static const option_info_t option_info[OPTION_COUNT] = {
     [OPTION_PREFERRED_REGION] = { "preferred_region", 0 }, /* USA */
     [OPTION_SHOT_SIZE] = { "shot_size", 0 }, /* full */
     [OPTION_SHOT_DITHER] = { "shot_dither", 0 }, /* smooth */
+    [OPTION_PARTY_TEST] = { "party_test", 0 }, /* count the real controllers */
 };
 
 static int values[OPTION_COUNT];

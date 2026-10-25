@@ -8,6 +8,7 @@
 #include "fonts.h"
 #include "dump_check.h"
 #include "games_ui.h"
+#include "party.h"
 #include "tabs.h"
 #include "game_index.h"
 #include "menu_features.h"
@@ -163,6 +164,40 @@ static void memory_badge_draw (void) {
     }, FNT_SMALL, x0 + pak->width, MEMORY_Y + 9, "Detected");
 }
 
+/* Under the clock, in the memory badge's place while two or more
+   controllers are in: the four controller ports (rom:/port.sprite, drawn by
+   make_icons.py), each tinted the accent color while a controller is in
+   it, grey while empty (party.h). With one controller the memory badge
+   shows instead. */
+#define PORT_WIDTH      (24)
+#define PORT_HEIGHT     (20)
+#define PORT_GAP        (6)
+#define PORTS_WIDTH     ((4 * PORT_WIDTH) + (3 * PORT_GAP))
+#define PORTS_Y         (MEMORY_Y + 2)
+
+static bool ports_shown (void) {
+    return features_enabled(FEATURE_CONTROLLER_MARKS) && party_players() >= 2;
+}
+
+static void controller_marks_draw (void) {
+    static sprite_t *port_icon = NULL;
+    if (!port_icon) {
+        port_icon = sprite_load("rom:/port.sprite");
+    }
+    const theme_t *t = theme_get();
+    int x = VISIBLE_AREA_X1 - TOPBAR_INSET - PORTS_WIDTH;
+    rdpq_mode_push();
+        rdpq_set_mode_standard();
+        rdpq_mode_combiner(RDPQ_COMBINER1((0,0,0,PRIM), (0,0,0,TEX0)));
+        rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+        for (int port = 0; port < 4; port++) {
+            rdpq_set_prim_color(party_port_in_use(port) ? t->accent : t->tab_inactive);
+            rdpq_sprite_blit(port_icon, x, PORTS_Y, NULL);
+            x += PORT_WIDTH + PORT_GAP;
+        }
+    rdpq_mode_pop();
+}
+
 void games_ui_topbar_draw (menu_t *menu, games_tab_t selected) {
     static const char *const labels[GAMES_TAB_COUNT] = { "Games", "Recent", "Favorites", "Folders", "Homebrew", "Collections" };
     games_tab_t shown[GAMES_TAB_COUNT];
@@ -186,8 +221,12 @@ void games_ui_topbar_draw (menu_t *menu, games_tab_t selected) {
     }
 
     /* Not on Folders: the list there starts right under the tab bar. */
-    if (features_enabled(FEATURE_MEMORY_BADGE) && selected != GAMES_TAB_FOLDERS) {
-        memory_badge_draw();
+    if (selected != GAMES_TAB_FOLDERS) {
+        if (ports_shown()) {
+            controller_marks_draw();
+        } else if (features_enabled(FEATURE_MEMORY_BADGE)) {
+            memory_badge_draw();
+        }
     }
 }
 
@@ -601,7 +640,10 @@ void games_ui_fade_rects (void (*rect) (int, int, int, int), bool bare_only) {
     /* Drawn straight on the background: the tab bar with the clock, the
        memory badge under it, the position bar. */
     rect(VISIBLE_AREA_X0 + TOPBAR_INSET - 2, TOPBAR_Y - 2, VISIBLE_AREA_X1 - TOPBAR_INSET + 2, GAMES_UI_TOPBAR_BOTTOM + 2);
-    if (features_enabled(FEATURE_MEMORY_BADGE)) {
+    if (ports_shown()) {
+        int x1 = VISIBLE_AREA_X1 - TOPBAR_INSET;
+        rect(x1 - PORTS_WIDTH - 2, PORTS_Y - 2, x1 + 2, PORTS_Y + PORT_HEIGHT + 2);
+    } else if (features_enabled(FEATURE_MEMORY_BADGE)) {
         int x1 = VISIBLE_AREA_X1 - TOPBAR_INSET;
         rect(x1 - MEMORY_TEXT - PAK_WIDTH - 4, GAMES_UI_TOPBAR_BOTTOM + 2, x1 + 2, GAMES_UI_MEMORY_BOTTOM);
     }

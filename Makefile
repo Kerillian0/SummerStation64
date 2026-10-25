@@ -83,6 +83,7 @@ SRCS = \
 	menu/settings.c \
 	menu/sound.c \
 	menu/shot_png.c \
+	menu/party.c \
 	menu/region_pick.c \
 	menu/art_report.c \
 	menu/hidden_games.c \
@@ -173,6 +174,7 @@ IMAGES = \
 	jumper_pak.png \
 	button.png \
 	heart.png \
+	port.png \
 	mark_check.png \
 	mark_cross.png \
 	mark_question.png \
@@ -187,6 +189,7 @@ IMAGES = \
 MKSPRITE_FLAGS ?= --format CI4
 $(FILESYSTEM_DIR)/button.sprite: MKSPRITE_FLAGS=--format I4
 $(FILESYSTEM_DIR)/heart.sprite: MKSPRITE_FLAGS=--format I4
+$(FILESYSTEM_DIR)/port.sprite: MKSPRITE_FLAGS=--format I4
 $(FILESYSTEM_DIR)/mark_check.sprite: MKSPRITE_FLAGS=--format I4
 $(FILESYSTEM_DIR)/mark_cross.sprite: MKSPRITE_FLAGS=--format I4
 $(FILESYSTEM_DIR)/mark_question.sprite: MKSPRITE_FLAGS=--format I4
