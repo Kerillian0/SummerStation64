@@ -4518,7 +4518,10 @@ function drawPic(key) {
   var p = editing.pics[key], spec = PICTURES.find(function (x) { return x.key === key; });
   var c = $('artPic-' + key), ctx = c.getContext('2d');
   var cut = spec.box && !isRetro(editing.item);     // an emulator game's box keeps its own shape (retro.c)
-  var size = p.image ? (cut ? T.coverCut(p.image.width, p.image.height, p.shape) : fitInside(p.image.width, p.image.height))
+  // A top label goes on lying down and a spine standing up: one the other way round is turned to fit.
+  var turn = !!p.image && ((spec.key === 'top' && p.image.height > p.image.width) || (spec.key === 'spine' && p.image.width > p.image.height));
+  var size = p.image ? (cut ? T.coverCut(p.image.width, p.image.height, p.shape)
+                            : turn ? fitInside(p.image.height, p.image.width) : fitInside(p.image.width, p.image.height))
                      : { w: spec.key === 'top' ? 158 : (spec.key === 'spine' ? 22 : 112), h: spec.key === 'top' ? 22 : (spec.key === 'spine' ? 158 : 112) };
   c.width = size.w; c.height = size.h;
   c.style.width = size.w + 'px'; c.style.height = size.h + 'px';
@@ -4531,7 +4534,13 @@ function drawPic(key) {
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
   if (cut) ctx.drawImage(p.image, size.sx, size.sy, size.sw, size.sh, 0, 0, size.w, size.h);
-  else ctx.drawImage(p.image, 0, 0, size.w, size.h);
+  else if (turn) {
+    ctx.save();
+    ctx.translate(size.w, 0);       // a quarter turn clockwise: the picture's top runs down the right edge
+    ctx.rotate(Math.PI / 2);
+    ctx.drawImage(p.image, 0, 0, size.h, size.w);
+    ctx.restore();
+  } else ctx.drawImage(p.image, 0, 0, size.w, size.h);
   p.pending = new Promise(function (done) { c.toBlob(function (b) { p.blob = b; done(); }, 'image/png'); });
 }
 

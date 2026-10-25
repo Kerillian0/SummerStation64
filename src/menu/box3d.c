@@ -11,6 +11,11 @@
 /* How deep a box is against its longest side when there is no top strip
    to tell (a US box's top strip is 158 x 22). */
 #define DEPTH_GUESS         (0.14f)
+/* However its pictures are shaped, a box's depth stays within real boxes'
+   proportions against its longest side (an N64 box is about 0.19): a tall
+   picture used as the top label once made a box three times too deep. */
+#define DEPTH_MIN           (0.06f)
+#define DEPTH_MAX           (0.25f)
 /* A cartridge's thickness against its width (about 18 mm to 116 mm). */
 #define CART_DEPTH          (0.16f)
 /* The camera's distance, against the box's longest side: nearer gives
@@ -320,11 +325,12 @@ static void face (const int *corners_of, surface_t *image, color_t color, float 
     }
 }
 
-/* A side, with its picture stood upright if it is lying down (wider than
-   tall): turned so its top runs down the face's back edge, the way a
-   spine's words read. */
-static void side_face (const int *corners_of, surface_t *image, color_t color, float shade, int bright) {
-    if (image && image->width > image->height) {
+/* A side, top or bottom with its picture turned to fit: a side's picture
+   stood upright if it is lying down (wider than tall), a top label laid
+   down if it is standing up; turned so its top runs down the face's back
+   edge, the way a spine's words read. */
+static void strip_face (const int *corners_of, surface_t *image, color_t color, float shade, int bright, bool upright) {
+    if (image && (upright ? (image->width > image->height) : (image->height > image->width))) {
         const int turned[4] = { corners_of[1], corners_of[2], corners_of[3], corners_of[0] };
         if (facing(corners_of) && !face_picture(turned, image, shade, bright)) {
             face_plain(corners_of, shaded(color, shade, bright));
@@ -332,6 +338,15 @@ static void side_face (const int *corners_of, surface_t *image, color_t color, f
         return;
     }
     face(corners_of, image, color, shade, bright);
+}
+
+static void side_face (const int *corners_of, surface_t *image, color_t color, float shade, int bright) {
+    strip_face(corners_of, image, color, shade, bright, true);
+}
+
+/* The top and bottom: a label standing up (taller than wide) is laid down along them. */
+static void top_face (const int *corners_of, surface_t *image, color_t color, float shade, int bright) {
+    strip_face(corners_of, image, color, shade, bright, false);
 }
 
 void box3d_draw (const box3d_art_t *art, int x0, int y0, int w, int h, const box3d_pose_t *pose) {
@@ -353,9 +368,12 @@ void box3d_draw (const box3d_art_t *art, int x0, int y0, int w, int h, const box
     float longest = (bw > bh) ? bw : bh;
     surface_t *spine = art->left ? art->left : art->right;
     float bd = art->cartridge ? bw * CART_DEPTH
-        : (art->top && art->top->width > 0) ? bw * art->top->height / art->top->width
+        : (art->top && art->top->width > 0 && art->top->height > 0) ? bw * side_short(art->top) / side_long(art->top)   /* the top label's shape, lying either way */
         : (spine && spine->width > 0 && spine->height > 0) ? bh * side_short(spine) / side_long(spine)  /* the spine's shape gives the depth */
         : longest * DEPTH_GUESS;
+    if (!art->cartridge) {
+        bd = (bd < longest * DEPTH_MIN) ? longest * DEPTH_MIN : (bd > longest * DEPTH_MAX) ? longest * DEPTH_MAX : bd;
+    }
     bd *= amount;
 
     /* Its size is worked out at the resting angles, so it keeps that size
@@ -392,8 +410,8 @@ void box3d_draw (const box3d_art_t *art, int x0, int y0, int w, int h, const box
             cartridge_walls(art, bw, bh, bd, pose->yaw * amount, pose->pitch * amount);
         } else if (amount > 0.0f) {
             /* The bottom carries the same label as the top. */
-            face(faces[FACE_TOP], art->top, art->side, TOP_SHADE, art->bright);
-            face(faces[FACE_BOTTOM], art->top, art->side, BOTTOM_SHADE, art->bright);
+            top_face(faces[FACE_TOP], art->top, art->side, TOP_SHADE, art->bright);
+            top_face(faces[FACE_BOTTOM], art->top, art->side, BOTTOM_SHADE, art->bright);
             side_face(faces[FACE_LEFT], art->back ? art->right : art->left, art->side, SIDE_SHADE, art->bright);
             side_face(faces[FACE_RIGHT], art->back ? art->left : art->right, art->side, SIDE_SHADE, art->bright);
         }
