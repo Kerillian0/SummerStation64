@@ -1172,7 +1172,7 @@ static void process (menu_t *menu) {
             case COLLECTIONS_UI_TAB_LEFT: browser_step_tab(menu, -1); break;
             case COLLECTIONS_UI_TAB_RIGHT: browser_step_tab(menu, 1); break;
             case COLLECTIONS_UI_SETTINGS:
-                ui_components_context_menu_show(&settings_context_menu);
+                menu->next_mode = MENU_MODE_SETTINGS_EDITOR; // START opens Settings at once
                 sound_play_effect(SFX_SETTING);
                 break;
             case COLLECTIONS_UI_OPTIONS:
@@ -1306,7 +1306,7 @@ static void process (menu_t *menu) {
         ui_components_context_menu_show(menu->browser.archive ? &archive_context_menu : &entry_context_menu);
         sound_play_effect(SFX_SETTING);
     } else if (menu->actions.settings) {
-        ui_components_context_menu_show(&settings_context_menu);
+        menu->next_mode = MENU_MODE_SETTINGS_EDITOR; // START opens Settings at once; the stock START menu's screens are in Settings > Information
         sound_play_effect(SFX_SETTING);
     } else if (menu->actions.go_right) {
         browser_step_tab(menu, 1);

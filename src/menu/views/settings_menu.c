@@ -147,6 +147,23 @@ static void remove_background (menu_t *menu) {
     ui_components_background_clear();
 }
 
+/* Screens of the stock menu opened from here come back here (settings_menu_back_mode()). */
+static bool tool_open = false;
+
+static void open_tool (menu_t *menu, menu_mode_t mode) {
+    tool_open = true;
+    menu->next_mode = mode;
+}
+static void open_credits (menu_t *menu) { open_tool(menu, MENU_MODE_CREDITS); }
+static void open_flashcart_info (menu_t *menu) { open_tool(menu, MENU_MODE_FLASHCART); }
+static void open_system_info (menu_t *menu) { open_tool(menu, MENU_MODE_SYSTEM_INFO); }
+static void open_controller_paks (menu_t *menu) { open_tool(menu, MENU_MODE_CONTROLLER_PAKFS); }
+static void open_clock (menu_t *menu) { open_tool(menu, MENU_MODE_RTC); }
+
+menu_mode_t settings_menu_back_mode (void) {
+    return tool_open ? MENU_MODE_SETTINGS_EDITOR : MENU_MODE_BROWSER;
+}
+
 static void ask_reset (menu_t *menu) {
     (void) menu;
     confirm_reset = true;
@@ -335,9 +352,17 @@ static const item_t system_items[] = {
         "30 is every frame the menu draws, the smoothest. 15 halves the frames to save and the size of the GIF."),
     CHOICES("Clip Dither", OPTION_CLIP_DITHER, 2, screenshot_dither_name, NULL,
         "Smooth evens out the console's fine dot pattern, which also makes the GIF smaller; Exact keeps every pixel as drawn."),
+    ACTION("Controller Pak Manager", open_controller_paks, "The notes (game saves) on a Controller Pak: back them up to the SD card, restore one or a whole dump, delete one, or format the Pak."),
+    ACTION("Clock", open_clock, "Set the date and time of the cart's clock, used for the clock on the tab bar, dated save backups and time played."),
     FEATURE("Advanced Game Options", FEATURE_ADVANCED_OPTIONS, "Game info's Options (R) also offers Set CIC Type, Set Save Type, Set TV Type, the Datel Code Editor and Clear RDRAM on boot. For games that need them; most never do. Choices already made stay in use when this is off."),
     FEATURE("Remember Settings Page", FEATURE_REMEMBER_SETTINGS, "Reopen Settings on the page and row you last used, until the console is switched off."),
     ACTION("Reset Settings", ask_reset, "Put the stock settings back to how they were on a fresh install."),
+};
+
+static const item_t information_items[] = {
+    ACTION("Menu Information", open_credits, "The menu's version, the people and projects it is built on, and the music and sound credits."),
+    ACTION("Flashcart Information", open_flashcart_info, "The SummerCart64's firmware version and what it supports."),
+    ACTION("N64 Information", open_system_info, "The console: Expansion Pak or not, region, the controllers plugged in and whether a 64DD drive is attached."),
 };
 
 static const category_t categories[] = {
@@ -348,6 +373,7 @@ static const category_t categories[] = {
     { "Library", library_items, COUNT(library_items) },
     { "Files", file_items, COUNT(file_items) },
     { "System", system_items, COUNT(system_items) },
+    { "Information", information_items, COUNT(information_items) },
 };
 
 /* ---------- state ---------- */
@@ -664,9 +690,12 @@ static void draw (menu_t *menu, surface_t *d) {
 void view_settings_menu_init (menu_t *menu) {
     (void) menu;
     confirm_reset = false;
+    bool back_from_tool = tool_open;
+    tool_open = false;
 
-    // Start from the top, unless the player wants to come back to where they were.
-    if (!features_enabled(FEATURE_REMEMBER_SETTINGS)) {
+    // Start from the top, unless the player wants to come back to where they were
+    // (or comes back from a screen opened here).
+    if (!features_enabled(FEATURE_REMEMBER_SETTINGS) && !back_from_tool) {
         category = 0;
         item = 0;
         in_items = false;

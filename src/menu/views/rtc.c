@@ -3,6 +3,7 @@
 #include <libdragon.h>
 #include <sys/time.h>
 #include "../sound.h"
+#include "settings_menu.h"
 #include "views.h"
 
 #define MAX(a,b)  ({ typeof(a) _a = a; typeof(b) _b = b; _a > _b ? _a : _b; })
@@ -99,7 +100,7 @@ void rtc_ui_component_editdatetime_draw ( struct tm t, rtc_field_t selected_fiel
 static void process (menu_t *menu) {
     if (menu->actions.back && !is_editing_mode) {
         sound_play_effect(SFX_EXIT);
-        menu->next_mode = MENU_MODE_BROWSER;
+        menu->next_mode = settings_menu_back_mode(); // Settings, if opened from there
     }
     else if (menu->actions.enter && !is_editing_mode && menu->current_time >= 0) {
         rtc_tm = *gmtime(&menu->current_time);
