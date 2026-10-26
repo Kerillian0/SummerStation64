@@ -37,8 +37,9 @@ it on PAL consoles, the **Analogue 3D** and the **ModRetro M64**.
 > screen.
 
 <img width="640" height="480" alt="30b03931-df90-4041-984e-33ed2281a637" src="https://github.com/user-attachments/assets/afc19ab0-f940-422c-9c13-630b44eb0ab5" />
-<img width="640" height="480" alt="shot0003" src="https://github.com/user-attachments/assets/0ef95926-fc83-45f7-9089-28a5c923ce71" />
-<img width="640" height="480" alt="shot0005" src="https://github.com/user-attachments/assets/11e1ac76-b359-4dd4-ac19-371a01a089b0" />
+<img width="640" height="480" alt="shot0023" src="https://github.com/user-attachments/assets/1054fee7-7e32-4ca1-8881-fdced02fe304" />
+<img width="640" height="480" alt="shot0019" src="https://github.com/user-attachments/assets/e087f54a-c77e-4d69-b5b0-5ce1bc86c0f9" />
+<img width="640" height="480" alt="shot0022" src="https://github.com/user-attachments/assets/9d4666e9-25d3-4705-94d2-99a2342f9ba8" />
 <img width="640" height="480" alt="shot0008" src="https://github.com/user-attachments/assets/9d34cba9-8be6-479b-a2c6-5ea67e2143f1" />
 <img width="640" height="480" alt="shot0001" src="https://github.com/user-attachments/assets/26081a8c-d606-4dd4-bca0-5e4516004837" />
 
