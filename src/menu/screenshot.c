@@ -220,11 +220,7 @@ bool screenshot_button (joypad_port_t port, joypad_buttons_t *pressed) {
         return false;
     }
     l_down[port] = r_down[port] = false;
-    if (port == JOYPAD_PORT_2 && pressed->start) {
-        wanted = true;
-        return true;
-    }
-    /* Any other controller: START counts on release, unless it was held long enough for a picture. */
+    /* START counts on release, unless it was held long enough for a picture. */
     bool down = joypad_get_buttons(port).start;     /* the state now: "held" is false on the frame it goes down */
     if (pressed->start) {
         pressed->start = 0;

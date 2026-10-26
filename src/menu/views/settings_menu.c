@@ -340,7 +340,7 @@ static const item_t system_items[] = {
         "For testing: a strip at the bottom of the screen shows the frame time (33.4 ms is on time), how long the graphics chip took, and free memory."),
     FEATURE("Screenshots", FEATURE_SCREENSHOTS, "Hold the Screenshot Button for a second to save the screen as a picture in menu/screenshots on the SD card. The menu pauses a moment while it saves."),
     CHOICES("Screenshot Button", OPTION_SHOT_BUTTON, SCREENSHOT_BUTTON_COUNT, screenshot_button_name, NULL,
-        "Hold START: a tap of START then works when it is let go (START on controller 2 takes a picture at once). Hold L + R: for controllers whose START switches them off, such as the 8BitDo mod kit; L and R then work when let go."),
+        "Hold START: a tap of START then works when it is let go. Hold L + R: for controllers whose START switches them off, such as the 8BitDo mod kit; L and R then work when let go."),
     CHOICES("Screenshot Size", OPTION_SHOT_SIZE, 2, screenshot_size_name, NULL,
         "Full keeps the menu's whole 640 x 480 picture. Half is 320 x 240, about what a 240p TV shows, with much smaller files."),
     CHOICES("Screenshot Dither", OPTION_SHOT_DITHER, 2, screenshot_dither_name, NULL,

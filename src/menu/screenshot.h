@@ -2,8 +2,7 @@
  * @file screenshot.h
  * @brief Saves the screen as a picture on the SD card.
  *
- * Hold START for a second, or press START on a controller in port 2
- * (feature `screenshots`). With screenshots on, a tap of START still does
+ * Hold START for a second on any controller (feature `screenshots`). With screenshots on, a tap of START still does
  * what START does, but when it is let go. Option `shot_button` can ask for
  * L and R held together for a second instead (for controllers whose START
  * is their power button, such as the 8BitDo mod kit): then L and R act when
