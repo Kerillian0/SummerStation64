@@ -30,6 +30,7 @@
 #define LIST_WIDTH      (460)
 
 static bool showing = false;
+static bool warning = false;        /* "Cheats need the Expansion Pak" is up, before the list */
 static bool changed = false;
 static char file_path[256];
 static char *text = NULL;           /* the file as read, one line each, '\0' at each line end */
@@ -184,6 +185,7 @@ void cheat_menu_open (menu_t *menu) {
         return;
     }
     showing = true;
+    warning = !is_memory_expanded();    /* say so first, as a 64DD disk without its cartridge does */
     changed = false;
     row = 0;
     first_row = 0;
@@ -211,6 +213,17 @@ static void close_list (menu_t *menu) {
 bool cheat_menu_process (menu_t *menu) {
     if (!showing) {
         return false;
+    }
+    if (warning) {
+        if (menu->actions.enter) {
+            warning = false;    /* the list anyway: choices are kept for a console with the Pak */
+            sound_play_effect(SFX_ENTER);
+        } else if (menu->actions.back || menu->actions.lz_context) {
+            showing = false;
+            forget();
+            sound_play_effect(SFX_EXIT);
+        }
+        return true;
     }
     int step = menu->actions.go_fast ? ROWS_SHOWN : 1;
     if (menu->actions.go_up && row > 0) {
@@ -240,14 +253,22 @@ void cheat_menu_draw (void) {
     if (!showing) {
         return;
     }
+    if (warning) {
+        ui_components_messagebox_draw(
+            "Cheats need the Expansion Pak.\n\n"
+            "Without it they don't run, and Use Cheats stays off.\n"
+            "Choices made in the list are kept for a console with one.\n\n"
+            "^%02XA: Open the list anyway^00    ^%02XB: Back^00",
+            STL_RED, STL_GREEN);
+        return;
+    }
     int shown = (cheat_count < ROWS_SHOWN) ? cheat_count : ROWS_SHOWN;
     int height = 40 + (shown * ROW_HEIGHT) + 34;
     ui_components_dialog_draw(LIST_WIDTH, height);
     int x0 = DISPLAY_CENTER_X - (LIST_WIDTH / 2);
     int y0 = DISPLAY_CENTER_Y - (height / 2);
     rdpq_text_printf(&(rdpq_textparms_t) { .width = LIST_WIDTH, .height = 26, .align = ALIGN_CENTER, .valign = VALIGN_CENTER,
-        .style_id = STL_GRAY }, FNT_DEFAULT, x0, y0 + 6, is_memory_expanded() ? "Cheats: %d of %d on" : "Cheats need the Expansion Pak",
-        on_count(), cheat_count);
+        .style_id = STL_GRAY }, FNT_DEFAULT, x0, y0 + 6, "Cheats: %d of %d on", on_count(), cheat_count);
     for (int i = 0; i < shown; i++) {
         int r = first_row + i;
         int y = y0 + 34 + (i * ROW_HEIGHT);
@@ -257,7 +278,7 @@ void cheat_menu_draw (void) {
         rdpq_text_printf(&(rdpq_textparms_t) { .width = 24, .height = ROW_HEIGHT, .valign = VALIGN_CENTER, .style_id = STL_GREEN },
             FNT_DEFAULT, x0 + 20, y, "%s", cheats[r].on ? "✓" : "");
         rdpq_text_printf(&(rdpq_textparms_t) { .width = LIST_WIDTH - 96, .height = ROW_HEIGHT, .valign = VALIGN_CENTER,
-            .wrap = WRAP_ELLIPSES, .style_id = cheats[r].on ? STL_DEFAULT : STL_GRAY }, FNT_DEFAULT, x0 + 48, y, "%s", cheats[r].name);
+            .wrap = WRAP_ELLIPSES, .style_id = cheats[r].on ? STL_GREEN : STL_GRAY }, FNT_DEFAULT, x0 + 48, y, "%s", cheats[r].name);
     }
     if (first_row > 0) {
         rdpq_text_printf(&(rdpq_textparms_t) { .width = 20, .height = ROW_HEIGHT, .valign = VALIGN_CENTER }, FNT_DEFAULT,
