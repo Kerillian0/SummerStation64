@@ -20,6 +20,11 @@ typedef enum {
     GAMES_TAB_HOMEBREW,
     GAMES_TAB_COLLECTIONS,
     GAMES_TAB_RETRO,
+    GAMES_TAB_HACKS,
+    GAMES_TAB_PINNED1,      /* a collection of its own on the bar, in the first place (tabs.h) */
+    GAMES_TAB_PINNED2,
+    GAMES_TAB_PINNED3,
+    GAMES_TAB_PINNED4,
     GAMES_TAB_COUNT
 } games_tab_t;
 

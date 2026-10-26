@@ -285,6 +285,8 @@ static const item_t library_items[] = {
         "One Cover shows a game kept in several regions once under All, and A lists the copies to choose from. Start another region's copy three times in a row and it becomes that game's cover. The region filters still show each copy."),
     CHOICES("Homebrew on Games", OPTION_HOMEBREW_ON_GAMES, HOMEBREW_ON_GAMES_COUNT, games_filter_homebrew_name, resort_browser,
         "Hide keeps homebrew off the Games tab and its filters, on the Homebrew tab only (add it in Settings > Tabs). Folders, Recent, Favorites and your own collections still show it."),
+    CHOICES("Hacks on Games", OPTION_HACKS_ON_GAMES, HACKS_ON_GAMES_COUNT, games_filter_homebrew_name, resort_browser,
+        "Hide keeps ROM hacks off the Games tab, on the Hacks tab (add it in Settings > Tabs) and the Hacks step only. Folders, Recent, Favorites and your own collections still show them."),
     CHOICES("Preferred Region", OPTION_PREFERRED_REGION, PREFERRED_COUNT, region_pick_preferred_name, change_preferred_region,
         "Whose copy gives a game's cover with Region Copies on One Cover. Changing it also forgets each game's own choice."),
     CHOICES("Sort By", OPTION_SORT_ORDER, SORT_COUNT, sort_order_name, resort_browser,
@@ -315,14 +317,14 @@ static const item_t file_items[] = {
 };
 
 static const item_t tab_items[] = {
-    CHOICES("First Tab", OPTION_TAB1, TAB_CHOICE_COUNT, tabs_choice_name, NULL,
+    CHOICES("First Tab", OPTION_TAB1, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
         "What the first place on the tab bar holds. The menu opens on this tab. L and R step through the tabs."),
-    CHOICES("Second Tab", OPTION_TAB2, TAB_CHOICE_COUNT, tabs_choice_name, NULL,
+    CHOICES("Second Tab", OPTION_TAB2, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
         "What the second place on the tab bar holds. None leaves it out."),
-    CHOICES("Third Tab", OPTION_TAB3, TAB_CHOICE_COUNT, tabs_choice_name, NULL,
+    CHOICES("Third Tab", OPTION_TAB3, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
         "What the third place on the tab bar holds. None leaves it out."),
-    CHOICES("Fourth Tab", OPTION_TAB4, TAB_CHOICE_COUNT, tabs_choice_name, NULL,
-        "What the fourth place on the tab bar holds. Choose Recent here to add the games you played last, Homebrew for homebrew games, Collections for series and multiplayer games, or Retro for NES, SNES and Game Boy games."),
+    CHOICES("Fourth Tab", OPTION_TAB4, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
+        "What the fourth place on the tab bar holds. Choose Recent here to add the games you played last, Homebrew for homebrew games, Collections for series and multiplayer games, Retro for NES, SNES and Game Boy games, Hacks for ROM hacks, or any one collection (after Hacks) to give it a tab of its own."),
 };
 
 static const item_t system_items[] = {
@@ -389,6 +391,111 @@ static bool *switch_value (menu_t *menu, const item_t *it) {
     return (bool *) ((char *) &menu->settings + it->offset);
 }
 
+/* A choice with more than four values opens a list to pick from instead of
+   stepping through them one A press at a time. */
+#define PICK_DIRECT_MAX     (4)
+#define PICK_VALUES_MAX     (128)
+#define PICK_ROWS_SHOWN     (9)
+#define PICK_ROW_HEIGHT     (26)
+#define PICK_WIDTH          (360)
+
+static const item_t *picking = NULL;    /* the setting whose list is open */
+static int pick_values[PICK_VALUES_MAX];    /* its values in use (those with a name) */
+static int pick_count = 0;
+static int pick_row = 0, pick_first = 0;
+
+/* The values of a choice that are in use. */
+static int choice_values (const item_t *it, int *out, int most) {
+    int n = 0;
+    for (int v = 0; v < it->choice_count && n < most; v++) {
+        if (it->choice_name(v)[0]) {
+            out[n++] = v;
+        }
+    }
+    return n;
+}
+
+static bool pick_open (const item_t *it) {
+    pick_count = choice_values(it, pick_values, PICK_VALUES_MAX);
+    if (pick_count <= PICK_DIRECT_MAX) {
+        return false;
+    }
+    picking = it;
+    pick_row = 0;
+    for (int i = 0; i < pick_count; i++) {
+        if (pick_values[i] == options_get(it->option)) {
+            pick_row = i;
+        }
+    }
+    pick_first = (pick_row >= PICK_ROWS_SHOWN) ? pick_row - (PICK_ROWS_SHOWN / 2) : 0;
+    if (pick_first > pick_count - PICK_ROWS_SHOWN) {
+        pick_first = pick_count - PICK_ROWS_SHOWN;
+    }
+    return true;
+}
+
+static void pick_process (menu_t *menu) {
+    int step = menu->actions.go_fast ? PICK_ROWS_SHOWN : 1;
+    if (menu->actions.go_up && pick_row > 0) {
+        pick_row = (pick_row - step < 0) ? 0 : pick_row - step;
+        sound_play_effect(SFX_CURSOR);
+    } else if (menu->actions.go_down && pick_row < pick_count - 1) {
+        pick_row = (pick_row + step >= pick_count) ? pick_count - 1 : pick_row + step;
+        sound_play_effect(SFX_CURSOR);
+    } else if (menu->actions.enter) {
+        options_change(picking->option, pick_values[pick_row]);
+        if (picking->changed) {
+            picking->changed(menu);
+        }
+        unsaved = true;
+        changed_at = get_ticks_ms();
+        picking = NULL;
+        sound_play_effect(SFX_SETTING);
+        return;
+    } else if (menu->actions.back) {
+        picking = NULL;
+        sound_play_effect(SFX_EXIT);
+        return;
+    }
+    if (pick_row < pick_first) {
+        pick_first = pick_row;
+    } else if (pick_row >= pick_first + PICK_ROWS_SHOWN) {
+        pick_first = pick_row - PICK_ROWS_SHOWN + 1;
+    }
+}
+
+static void pick_draw (void) {
+    if (!picking) {
+        return;
+    }
+    int shown = (pick_count < PICK_ROWS_SHOWN) ? pick_count : PICK_ROWS_SHOWN;
+    int height = 40 + (shown * PICK_ROW_HEIGHT) + 8;
+    ui_components_dialog_draw(PICK_WIDTH, height);
+    int x0 = DISPLAY_CENTER_X - (PICK_WIDTH / 2);
+    int y0 = DISPLAY_CENTER_Y - (height / 2);
+    rdpq_text_printf(&(rdpq_textparms_t) { .width = PICK_WIDTH, .height = 26, .align = ALIGN_CENTER, .valign = VALIGN_CENTER,
+        .wrap = WRAP_ELLIPSES, .style_id = STL_GRAY }, FNT_DEFAULT, x0, y0 + 6, "%s", picking->label);
+    int current = options_get(picking->option);
+    for (int i = 0; i < shown; i++) {
+        int r = pick_first + i;
+        int y = y0 + 34 + (i * PICK_ROW_HEIGHT);
+        if (r == pick_row) {
+            ui_components_box_draw(x0 + 8, y, x0 + PICK_WIDTH - 8, y + PICK_ROW_HEIGHT, CONTEXT_MENU_HIGHLIGHT_COLOR);
+        }
+        rdpq_text_printf(&(rdpq_textparms_t) { .width = PICK_WIDTH - 72, .height = PICK_ROW_HEIGHT, .valign = VALIGN_CENTER,
+            .wrap = WRAP_ELLIPSES, .style_id = (pick_values[r] == current) ? STL_GREEN : STL_DEFAULT },
+            FNT_DEFAULT, x0 + 24, y, "%s", picking->choice_name(pick_values[r]));
+    }
+    if (pick_first > 0) {
+        rdpq_text_printf(&(rdpq_textparms_t) { .width = 20, .height = PICK_ROW_HEIGHT, .valign = VALIGN_CENTER }, FNT_DEFAULT,
+            x0 + PICK_WIDTH - 36, y0 + 34, "▲");
+    }
+    if (pick_first + shown < pick_count) {
+        rdpq_text_printf(&(rdpq_textparms_t) { .width = 20, .height = PICK_ROW_HEIGHT, .valign = VALIGN_CENTER }, FNT_DEFAULT,
+            x0 + PICK_WIDTH - 36, y0 + 34 + ((shown - 1) * PICK_ROW_HEIGHT), "▼");
+    }
+}
+
 static void change_item (menu_t *menu, const item_t *it) {
     switch (it->type) {
         case ITEM_SWITCH: {
@@ -408,7 +515,13 @@ static void change_item (menu_t *menu, const item_t *it) {
             break;
         }
         case ITEM_CHOICE: {
-            int next = (options_get(it->option) + 1) % it->choice_count;
+            int next = options_get(it->option);
+            for (int tries = 0; tries < it->choice_count; tries++) {
+                next = (next + 1) % it->choice_count;
+                if (it->choice_name(next)[0]) {
+                    break;      /* a value with no name is not in use (a tab for a collection there isn't) */
+                }
+            }
             options_change(it->option, next);
             if (it->changed) {
                 it->changed(menu);
@@ -427,6 +540,10 @@ static void change_item (menu_t *menu, const item_t *it) {
 }
 
 static void process (menu_t *menu) {
+    if (picking) {
+        pick_process(menu);     /* a setting's list of values is open */
+        return;
+    }
     if (confirm_reset) {
         if (menu->actions.enter) {
             confirm_reset = false;
@@ -470,6 +587,10 @@ static void process (menu_t *menu) {
         item++;
         sound_play_effect(SFX_CURSOR);
     } else if (menu->actions.enter) {
+        if (cat->items[item].type == ITEM_CHOICE && pick_open(&cat->items[item])) {
+            sound_play_effect(SFX_ENTER);   /* more than four values: a list to pick from */
+            return;
+        }
         change_item(menu, &cat->items[item]);
         sound_play_effect(SFX_SETTING);
     } else if (menu->actions.back || menu->actions.go_left) {
@@ -677,6 +798,8 @@ static void draw (menu_t *menu, surface_t *d) {
         );
     }
 
+    pick_draw();
+
     if (confirm_reset) {
         ui_components_messagebox_draw(
             "Reset settings?\n\n"
@@ -692,6 +815,7 @@ static void draw (menu_t *menu, surface_t *d) {
 void view_settings_menu_init (menu_t *menu) {
     (void) menu;
     confirm_reset = false;
+    picking = NULL;
     bool back_from_tool = tool_open;
     tool_open = false;
 

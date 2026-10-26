@@ -70,11 +70,28 @@ static bool homebrew_tab = false;           // the Games list on its homebrew sh
 static bool retro_tab = false;              // ... or on its Retro shelf: emulator games (retro.h)
 static bool collections_tab = false;        // the Collections tab: its row of cards (collections_ui.h), or one collection on the Games list
 static int collection_open = -1;            // ... the collection shown, by its number, or -1 while the cards show
+static bool hacks_tab = false;              // the Games list on its Hacks shelf
+static games_tab_t pinned_tab = GAMES_TAB_COUNT;    // a collection's own tab (tabs.h), showing collection_open; GAMES_TAB_COUNT for none
 static path_t *folders_directory = NULL;    // where the Folders tab was left
-static char left_on[5][256] = { "", "", "", "", "" };   // the entry the Games [0], Folders [1], Homebrew [2], Collections [3] and Retro [4] tabs were left on, to go back to it (while the console is on)
+static char left_on[10][256];   // the entry the Games [0], Folders [1], Homebrew [2], Collections [3], Retro [4], Hacks [5] and collection tabs [6-9] were left on, to go back to it (while the console is on)
 
 static int tab_slot (void) {
-    return folders_tab ? 1 : (homebrew_tab ? 2 : (collections_tab ? 3 : (retro_tab ? 4 : 0)));
+    if (!folders_tab && pinned_tab != GAMES_TAB_COUNT) {
+        return 6 + (pinned_tab - GAMES_TAB_PINNED1);
+    }
+    return folders_tab ? 1 : (homebrew_tab ? 2 : (collections_tab ? 3 : (retro_tab ? 4 : (hacks_tab ? 5 : 0))));
+}
+
+// The tab showing now.
+static games_tab_t here_tab (void) {
+    if (folders_tab) {
+        return GAMES_TAB_FOLDERS;
+    }
+    if (pinned_tab != GAMES_TAB_COUNT) {
+        return pinned_tab;
+    }
+    return homebrew_tab ? GAMES_TAB_HOMEBREW : (collections_tab ? GAMES_TAB_COLLECTIONS
+         : (retro_tab ? GAMES_TAB_RETRO : (hacks_tab ? GAMES_TAB_HACKS : GAMES_TAB_GAMES)));
 }
 
 // The Collections tab's row of cards is showing (no collection open).
@@ -1074,8 +1091,8 @@ static void select_left_on (menu_t *menu) {
 
 // Switch the Games list between the Games, Homebrew and Retro tabs. The list
 // stays; only what it shows changes, so nothing is read from the card.
-static void browser_show_shelf (menu_t *menu, bool homebrew, bool retro) {
-    if (homebrew == homebrew_tab && retro == retro_tab) {
+static void browser_show_shelf (menu_t *menu, bool homebrew, bool retro, bool hacks) {
+    if (homebrew == homebrew_tab && retro == retro_tab && hacks == hacks_tab) {
         return;
     }
     bool loaded = menu->browser.valid && !folders_tab;
@@ -1087,7 +1104,8 @@ static void browser_show_shelf (menu_t *menu, bool homebrew, bool retro) {
     }
     homebrew_tab = homebrew;
     retro_tab = retro;
-    games_filter_shelf(menu, homebrew ? GAMES_SHELF_HOMEBREW : (retro ? GAMES_SHELF_RETRO : GAMES_SHELF_NONE), loaded);
+    hacks_tab = hacks;
+    games_filter_shelf(menu, homebrew ? GAMES_SHELF_HOMEBREW : (retro ? GAMES_SHELF_RETRO : (hacks ? GAMES_SHELF_HACKS : GAMES_SHELF_NONE)), loaded);
     if (loaded) {
         select_left_on(menu);
     }
@@ -1102,10 +1120,40 @@ static void collection_show (menu_t *menu, int which) {
     games_filter_collection(menu, which, menu->browser.valid && !folders_tab);
 }
 
+// Switch to or from a collection's own tab (tabs.h): the Games list showing
+// that one collection, with no cards to go back to.
+static void browser_show_pinned (menu_t *menu, games_tab_t tab) {
+    int id = tabs_pinned_collection(tab);
+    if (tab == pinned_tab && (id < 0 || (collections_tab && collection_open == id))) {
+        return;
+    }
+    bool loaded = menu->browser.valid && !folders_tab;
+    if (loaded && pinned_tab != GAMES_TAB_COUNT) {
+        snprintf(left_on[tab_slot()], sizeof(left_on[0]), "%s", menu->browser.entry ? menu->browser.entry->name : "");
+    }
+    if (id >= 0) {
+        if (collections_tab && pinned_tab == GAMES_TAB_COUNT && loaded) {
+            snprintf(left_on[3], sizeof(left_on[0]), "%s", menu->browser.entry ? menu->browser.entry->name : "");
+        }
+        collections_ui_free();
+        pinned_tab = tab;
+        collections_tab = true;
+        collection_show(menu, id);
+        if (loaded) {
+            select_left_on(menu);
+        }
+    } else if (pinned_tab != GAMES_TAB_COUNT) {
+        pinned_tab = GAMES_TAB_COUNT;
+        collection_show(menu, -1);
+        collections_ui_free();
+        collections_tab = false;
+    }
+}
+
 // Switch to or from the Collections tab. The Games list stays.
 static void browser_show_collections (menu_t *menu, bool on) {
-    if (on == collections_tab) {
-        return;
+    if (on == collections_tab || pinned_tab != GAMES_TAB_COUNT) {
+        return;     // a collection's own tab is browser_show_pinned()'s
     }
     if (collection_open >= 0) {
         collection_show(menu, -1);
@@ -1116,7 +1164,7 @@ static void browser_show_collections (menu_t *menu, bool on) {
 
 // L or R: the tab before or after this one, in the player's order.
 static void browser_step_tab (menu_t *menu, int direction) {
-    games_tab_t here = folders_tab ? GAMES_TAB_FOLDERS : (homebrew_tab ? GAMES_TAB_HOMEBREW : (collections_tab ? GAMES_TAB_COLLECTIONS : (retro_tab ? GAMES_TAB_RETRO : GAMES_TAB_GAMES)));
+    games_tab_t here = here_tab();
     games_tab_t next = tabs_step(here, direction);
     if (next == here) {
         return;
@@ -1183,7 +1231,7 @@ static void process (menu_t *menu) {
         }
         return;
     }
-    if (collections_tab && !folders_tab && collections_ui_back_tap()) {
+    if (collections_tab && pinned_tab == GAMES_TAB_COUNT && !folders_tab && collections_ui_back_tap()) {
         collection_show(menu, -1);
         sound_play_effect(SFX_EXIT);
         return;
@@ -1909,7 +1957,7 @@ static void carousel_hints_draw (menu_t *menu) {
     }
 
     games_ui_hint_right_draw(0, "START", "Settings");
-    games_ui_hint_right_draw(1, "C", (homebrew_tab || collections_tab) ? "Scroll ◀▶" : "Scroll ◀▶ Filter ▲▼"); // the Homebrew and Collections tabs have no filter steps (Retro steps through its systems)
+    games_ui_hint_right_draw(1, "C", (homebrew_tab || collections_tab || hacks_tab) ? "Scroll ◀▶" : "Scroll ◀▶ Filter ▲▼"); // the Homebrew, Hacks and Collections tabs have no filter steps (Retro steps through its systems)
 }
 #endif
 
@@ -1956,6 +2004,19 @@ static void draw (menu_t *menu, surface_t *d) {
             "No emulator games found.\n\n"
             "NES, SNES, Game Boy and Game Boy Color games show here. Put them in a folder the Games tab reads, "
             "and the emulators in menu/emulators (see the menu's guide).");
+    } else if (hacks_tab && menu->browser.entries <= 0) {
+        games_ui_topbar_draw(menu, GAMES_TAB_HACKS);
+        rdpq_text_printf(&(rdpq_textparms_t) {
+            .width = DISPLAY_WIDTH - (2 * GAMES_UI_CONTENT_X0),
+            .height = 200,
+            .align = ALIGN_CENTER,
+            .valign = VALIGN_CENTER,
+            .wrap = WRAP_WORD,
+            .style_id = STL_GRAY,
+        }, FNT_DEFAULT, GAMES_UI_CONTENT_X0, 100,
+            "No ROM hacks found.\n\n"
+            "Hacks are found by their file names (\"hack\", \"redux\", [h1]) and by sharing a game's code with it. "
+            "A folder can be marked as holding hacks in the Folders tab (Z).");
     } else if (homebrew_tab && menu->browser.entries <= 0) {
         games_ui_topbar_draw(menu, GAMES_TAB_HOMEBREW);
         rdpq_text_printf(&(rdpq_textparms_t) {
@@ -1976,7 +2037,7 @@ static void draw (menu_t *menu, surface_t *d) {
         games_ui_topbar_draw(menu, GAMES_TAB_COLLECTIONS);
         collections_ui_draw(menu);  // the row of cards, with its own hints
     } else {
-        games_ui_topbar_draw(menu, homebrew_tab ? GAMES_TAB_HOMEBREW : (collections_tab ? GAMES_TAB_COLLECTIONS : (retro_tab ? GAMES_TAB_RETRO : GAMES_TAB_GAMES)));
+        games_ui_topbar_draw(menu, here_tab());
         carousel_draw(menu);
         if (menu->browser.entries <= 0) {
             rdpq_text_printf(&(rdpq_textparms_t) {
@@ -2079,7 +2140,8 @@ void view_browser_init (menu_t *menu) {
     games_ui_set_origin(MENU_MODE_BROWSER); // where B on a game's info screen comes back to
     if (menu->browser.select_file) tabs_browser_show_folders(true); // being sent to a particular file: that is the Folders tab's job
     browser_show_tab(menu, tabs_browser_shows_folders());
-    browser_show_shelf(menu, tabs_browser_shows_homebrew(), tabs_browser_shows_retro()); // Games <-> Homebrew <-> Retro: the same list, shown differently
+    browser_show_shelf(menu, tabs_browser_shows_homebrew(), tabs_browser_shows_retro(), tabs_browser_shows_hacks()); // Games <-> Homebrew <-> Retro <-> Hacks: the same list, shown differently
+    browser_show_pinned(menu, tabs_browser_pinned()); // ... a collection's own tab
     browser_show_collections(menu, tabs_browser_shows_collections()); // ... and Collections: its cards, or one collection
     if (!folders_tab && !path_is_root(menu->browser.directory)) {
         // The Games tab reads its folders from the top of the card (games_folders.h).
@@ -2140,7 +2202,7 @@ void view_browser_init (menu_t *menu) {
 
 void view_browser_display (menu_t *menu, surface_t *display) {
     process(menu);
-    folder_memory_use_key(folders_tab ? NULL : (homebrew_tab ? "homebrew:" : (collections_tab ? "collections:" : (retro_tab ? "retro:" : "games:")))); // the Games, Homebrew and Collections tabs keep their own places
+    folder_memory_use_key(folders_tab ? NULL : (homebrew_tab ? "homebrew:" : (collections_tab ? "collections:" : (retro_tab ? "retro:" : (hacks_tab ? "hacks:" : "games:"))))); // the Games, Homebrew, Hacks and Collections tabs keep their own places
     folder_memory_update(menu); // put the selection back where it was left in this folder
 
     draw(menu, display);

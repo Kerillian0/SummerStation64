@@ -75,7 +75,7 @@ const char *games_filter_label (void);
  * idle reader finds while the shelf shows is added when it finishes.
  * @param list_loaded The Games list is loaded now (else the next load applies it).
  */
-typedef enum { GAMES_SHELF_NONE, GAMES_SHELF_HOMEBREW, GAMES_SHELF_RETRO } games_shelf_t;
+typedef enum { GAMES_SHELF_NONE, GAMES_SHELF_HOMEBREW, GAMES_SHELF_RETRO, GAMES_SHELF_HACKS } games_shelf_t;
 
 void games_filter_shelf (menu_t *menu, games_shelf_t which, bool list_loaded);
 
@@ -114,6 +114,13 @@ typedef enum {
 
 /** Name of a homebrew_on_games_t choice, for Settings. */
 const char *games_filter_homebrew_name (int choice);
+
+/** Hacks on Games (option `hacks_on_games`): the same two choices, for ROM hacks and the Hacks tab. */
+typedef enum {
+    HACKS_ON_GAMES_SHOW,        /**< hacks on the Games tab too (the default) */
+    HACKS_ON_GAMES_HIDE,        /**< hacks on the Hacks tab and the Hacks step only */
+    HACKS_ON_GAMES_COUNT
+} hacks_on_games_t;
 
 /**
  * With Game Versions grouped, or Region Copies on One Cover under All: how

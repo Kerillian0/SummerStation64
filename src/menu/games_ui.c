@@ -199,13 +199,12 @@ static void controller_marks_draw (void) {
 }
 
 void games_ui_topbar_draw (menu_t *menu, games_tab_t selected) {
-    static const char *const labels[GAMES_TAB_COUNT] = { "Games", "Recent", "Favorites", "Folders", "Homebrew", "Collections", "Retro" };
     games_tab_t shown[GAMES_TAB_COUNT];
     int count = tabs_list(shown);
 
     int x = TABS_X;
     for (int i = 0; i < count; i++) {
-        pill(x, TOPBAR_TAB_WIDTH, labels[shown[i]], shown[i] == selected);
+        pill(x, TOPBAR_TAB_WIDTH, tabs_label(shown[i]), shown[i] == selected);    /* a long collection name ends in ... */
         x += TOPBAR_TAB_WIDTH + TOPBAR_TAB_GAP;
     }
 

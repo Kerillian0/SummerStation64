@@ -38,6 +38,7 @@ typedef enum {
     OPTION_CLIP_FPS,    /**< a clip_fps_t value */
     OPTION_CLIP_DITHER, /**< a screenshot_dither_t value, for clips */
     OPTION_HOMEBREW_ON_GAMES, /**< a homebrew_on_games_t value (see games_filter.h) */
+    OPTION_HACKS_ON_GAMES, /**< a hacks_on_games_t value (see games_filter.h) */
     OPTION_PARTY_TEST,  /**< hidden, for testing: count this many controllers (see party.h); 0 counts the real ones */
     OPTION_COUNT
 } option_t;

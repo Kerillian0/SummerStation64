@@ -49,6 +49,15 @@ const char *collections_name (int id);
 /** The place of the player's own collection with this number (my_collections.h), or -1 for a built-in one. */
 int collections_mine (int id);
 
+/** Collection numbers run from 0 to COLLECTIONS_IDS - 1 (not all in use). */
+#define COLLECTIONS_IDS     (24 + 4 + 32)
+
+/** The number of the player's own collection at place k (my_collections.h). */
+int collections_mine_id (int k);
+
+/** True if a collection with this number exists now (offered, or the player's own). */
+bool collections_exists (int id);
+
 /** True if this entry of the Games list is in the collection with this number. */
 bool collections_has (int id, const entry_t *e);
 

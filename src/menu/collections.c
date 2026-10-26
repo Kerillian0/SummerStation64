@@ -41,6 +41,7 @@ static const char *const multi_names[MULTI_COUNT] = { "2+ Players", "4 Players",
    while empty), then those of the others that have games. */
 #define MINE_FIRST      (SERIES_MAX + MULTI_COUNT)
 #define ALL_COLLECTIONS (MINE_FIRST + MY_COLLECTIONS_MAX)
+_Static_assert(ALL_COLLECTIONS == COLLECTIONS_IDS, "COLLECTIONS_IDS in collections.h");
 static int offered[COLLECTIONS_MAX];
 static int offered_count = 0;
 
@@ -170,6 +171,7 @@ int collections_id (int place) {
 }
 
 const char *collections_name (int id) {
+    load_series();      /* a collection's tab is named before the Games list has been read */
     if (id >= 0 && id < series_count) {
         return series_names[id];
     }
@@ -180,6 +182,22 @@ const char *collections_name (int id) {
         return my_collections_name(id - MINE_FIRST);
     }
     return "";
+}
+
+int collections_mine_id (int k) {
+    return MINE_FIRST + k;
+}
+
+bool collections_exists (int id) {
+    if (collections_mine(id) >= 0) {
+        return true;
+    }
+    for (int i = 0; i < offered_count; i++) {
+        if (offered[i] == id) {
+            return true;
+        }
+    }
+    return false;
 }
 
 int collections_mine (int id) {

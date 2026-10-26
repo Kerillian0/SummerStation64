@@ -6,12 +6,17 @@
 #include <libdragon.h>
 #include "menu_features.h"
 #include "menu_options.h"
+#include "collections.h"
 #include "tabs.h"
 
 static bool folders_wanted = false;
 static bool homebrew_wanted = false;
 static bool collections_wanted = false;
 static bool retro_wanted = false;
+static bool hacks_wanted = false;
+static games_tab_t pinned_wanted = GAMES_TAB_COUNT;
+
+static const option_t places[] = { OPTION_TAB1, OPTION_TAB2, OPTION_TAB3, OPTION_TAB4 };
 
 const char *tabs_choice_name (int choice) {
     switch (choice) {
@@ -22,18 +27,59 @@ const char *tabs_choice_name (int choice) {
         case TAB_CHOICE_HOMEBREW: return "Homebrew";
         case TAB_CHOICE_COLLECTIONS: return "Collections";
         case TAB_CHOICE_RETRO: return "Retro";
-        default: return "None";
+        case TAB_CHOICE_HACKS: return "Hacks";
+        case TAB_CHOICE_NONE: return "None";
+        default: break;
     }
+    int id = choice - TAB_CHOICE_COLLECTION;
+    if (id < 0 || id >= COLLECTIONS_IDS) {
+        return "";
+    }
+    /* Once the Games list has been read, only collections that have games (or are the player's own). */
+    bool known = (collections_count() > 0) ? collections_exists(id) : (collections_name(id)[0] != '\0');
+    return known ? collections_name(id) : "";
+}
+
+int tabs_pinned_collection (games_tab_t tab) {
+    if (tab < GAMES_TAB_PINNED1 || tab > GAMES_TAB_PINNED4) {
+        return -1;
+    }
+    int id = options_get(places[tab - GAMES_TAB_PINNED1]) - TAB_CHOICE_COLLECTION;
+    return (id >= 0 && id < COLLECTIONS_IDS) ? id : -1;
+}
+
+const char *tabs_label (games_tab_t tab) {
+    static const char *const labels[GAMES_TAB_PINNED1] = { "Games", "Recent", "Favorites", "Folders", "Homebrew", "Collections", "Retro", "Hacks" };
+    if (tab >= 0 && tab < GAMES_TAB_PINNED1) {
+        return labels[tab];
+    }
+    int id = tabs_pinned_collection(tab);
+    return (id >= 0) ? collections_name(id) : "";
+}
+
+void tabs_collection_deleted (int id) {
+    for (int i = 0; i < 4; i++) {
+        int value = options_get(places[i]);
+        int other = value - TAB_CHOICE_COLLECTION;
+        if (other == id) {
+            options_change(places[i], TAB_CHOICE_NONE);
+        } else if (other > id && collections_mine(other - 1) >= 0) {
+            options_change(places[i], value - 1);   /* the player's own collections after it move up one */
+        }
+    }
+    options_flush();
 }
 
 int tabs_list (games_tab_t *out) {
-    static const option_t places[] = { OPTION_TAB1, OPTION_TAB2, OPTION_TAB3, OPTION_TAB4 };
     bool seen[GAMES_TAB_COUNT] = { false };
+    int seen_values[4];
     int count = 0;
 
     for (int i = 0; i < (int) (sizeof(places) / sizeof(places[0])); i++) {
         games_tab_t tab;
-        switch (options_get(places[i])) {
+        int value = options_get(places[i]);
+        seen_values[i] = value;
+        switch (value) {
             case TAB_CHOICE_GAMES: tab = GAMES_TAB_GAMES; break;
             case TAB_CHOICE_FAVORITES: tab = GAMES_TAB_FAVORITES; break;
             case TAB_CHOICE_FOLDERS: tab = GAMES_TAB_FOLDERS; break;
@@ -41,7 +87,22 @@ int tabs_list (games_tab_t *out) {
             case TAB_CHOICE_HOMEBREW: tab = GAMES_TAB_HOMEBREW; break;
             case TAB_CHOICE_COLLECTIONS: tab = GAMES_TAB_COLLECTIONS; break;
             case TAB_CHOICE_RETRO: tab = GAMES_TAB_RETRO; break;
-            default: continue;
+            case TAB_CHOICE_HACKS: tab = GAMES_TAB_HACKS; break;
+            default: {
+                int id = value - TAB_CHOICE_COLLECTION;
+                if (id < 0 || id >= COLLECTIONS_IDS || !collections_name(id)[0]) {
+                    continue;
+                }
+                bool twice = false;     /* the same collection in two places counts once */
+                for (int j = 0; j < i; j++) {
+                    twice |= (seen_values[j] == value);
+                }
+                if (twice) {
+                    continue;
+                }
+                tab = (games_tab_t) (GAMES_TAB_PINNED1 + i);
+                break;
+            }
         }
         if (!seen[tab]) {
             seen[tab] = true;
@@ -130,6 +191,12 @@ float tabs_slide_folders (void) {
 }
 
 void tabs_open (menu_t *menu, games_tab_t tab) {
+    folders_wanted = (tab == GAMES_TAB_FOLDERS);
+    homebrew_wanted = (tab == GAMES_TAB_HOMEBREW);
+    collections_wanted = (tab == GAMES_TAB_COLLECTIONS);
+    retro_wanted = (tab == GAMES_TAB_RETRO);
+    hacks_wanted = (tab == GAMES_TAB_HACKS);
+    pinned_wanted = (tabs_pinned_collection(tab) >= 0) ? tab : GAMES_TAB_COUNT;
     switch (tab) {
         case GAMES_TAB_RECENT:
             menu->next_mode = MENU_MODE_HISTORY;
@@ -137,40 +204,8 @@ void tabs_open (menu_t *menu, games_tab_t tab) {
         case GAMES_TAB_FAVORITES:
             menu->next_mode = MENU_MODE_FAVORITE;
             break;
-        case GAMES_TAB_FOLDERS:
-            folders_wanted = true;
-            homebrew_wanted = false;
-            collections_wanted = false;
-            retro_wanted = false;
-            menu->next_mode = MENU_MODE_BROWSER;
-            break;
-        case GAMES_TAB_HOMEBREW:
-            folders_wanted = false;
-            homebrew_wanted = true;
-            collections_wanted = false;
-            retro_wanted = false;
-            menu->next_mode = MENU_MODE_BROWSER;
-            break;
-        case GAMES_TAB_RETRO:
-            folders_wanted = false;
-            homebrew_wanted = false;
-            collections_wanted = false;
-            retro_wanted = true;
-            menu->next_mode = MENU_MODE_BROWSER;
-            break;
-        case GAMES_TAB_COLLECTIONS:
-            folders_wanted = false;
-            homebrew_wanted = false;
-            collections_wanted = true;
-            retro_wanted = false;
-            menu->next_mode = MENU_MODE_BROWSER;
-            break;
         default:
-            folders_wanted = false;
-            homebrew_wanted = false;
-            collections_wanted = false;
-            retro_wanted = false;
-            menu->next_mode = MENU_MODE_BROWSER;
+            menu->next_mode = MENU_MODE_BROWSER;    /* Games, Folders and the shelves are one screen */
             break;
     }
 }
@@ -185,6 +220,8 @@ void tabs_browser_show_folders (bool folders) {
         homebrew_wanted = false;
         collections_wanted = false;
         retro_wanted = false;
+        hacks_wanted = false;
+        pinned_wanted = GAMES_TAB_COUNT;
     }
 }
 
@@ -198,4 +235,12 @@ bool tabs_browser_shows_collections (void) {
 
 bool tabs_browser_shows_retro (void) {
     return retro_wanted && !folders_wanted;
+}
+
+bool tabs_browser_shows_hacks (void) {
+    return hacks_wanted && !folders_wanted;
+}
+
+games_tab_t tabs_browser_pinned (void) {
+    return folders_wanted ? GAMES_TAB_COUNT : pinned_wanted;
 }

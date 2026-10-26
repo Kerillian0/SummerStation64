@@ -187,6 +187,10 @@ static bool matches (const entry_t *e, filter_t f) {
     if (f == FILTER_RETRO && e->index >= 0 && e->index < marks_count && retro_step != RETRO_OTHER && retro_system(e->name) != retro_step) {
         return false;   /* another system's game */
     }
+    if (f < FILTER_STEPS && f != FILTER_HACKS && e->index >= 0 && e->index < marks_count
+        && options_get(OPTION_HACKS_ON_GAMES) == HACKS_ON_GAMES_HIDE && (marks[e->index] & (1 << FILTER_HACKS))) {
+        return false;   /* hacks kept to the Hacks tab and the Hacks step */
+    }
     if (f < FILTER_STEPS && e->index >= 0 && e->index < marks_count && options_get(OPTION_HOMEBREW_ON_GAMES) == HOMEBREW_ON_GAMES_HIDE
         && (marks[e->index] & ((1 << FILTER_HOMEBREW) | (1 << FILTER_HACKS))) == (1 << FILTER_HOMEBREW)) {
         return false;   /* homebrew kept to the Homebrew tab (a hack stays) */
@@ -647,7 +651,8 @@ void games_filter_shelf (menu_t *menu, games_shelf_t which, bool list_loaded) {
     if (current == FILTER_COLLECTION) {
         games_filter_collection(menu, -1, list_loaded && which == GAMES_SHELF_NONE);   /* from a collection straight to a shelf or Games */
     }
-    filter_t wanted = (which == GAMES_SHELF_HOMEBREW) ? FILTER_HOMEBREW : (which == GAMES_SHELF_RETRO) ? FILTER_RETRO : FILTER_ALL;
+    filter_t wanted = (which == GAMES_SHELF_HOMEBREW) ? FILTER_HOMEBREW : (which == GAMES_SHELF_RETRO) ? FILTER_RETRO
+                    : (which == GAMES_SHELF_HACKS) ? FILTER_HACKS : FILTER_ALL;
     if ((which != GAMES_SHELF_NONE) == shelf && (!shelf || current == wanted)) {
         return;
     }

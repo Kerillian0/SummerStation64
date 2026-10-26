@@ -9,6 +9,8 @@
 #include <libdragon.h>
 
 #include "collection_edit.h"
+#include "collections.h"
+#include "tabs.h"
 #include "collections_ui.h"
 #include "dump_check.h"
 #include "fonts.h"
@@ -113,6 +115,7 @@ bool collection_edit_process (menu_t *menu) {
         case DELETING:
             if (menu->actions.enter) {
                 my_collections_delete(target);
+                tabs_collection_deleted(collections_mine_id(target));  /* its tab goes; later ones keep theirs */
                 showing = NONE;
                 sound_play_effect(SFX_SETTING);
                 changed(menu);

@@ -4,7 +4,7 @@
  *
  * The bar has up to four places. The player picks what goes in each
  * (Settings > Tabs): Games, Favorites, Folders, Recent, Homebrew,
- * Collections, or nothing. Out of the box it is Games, Favorites, Folders. L and R step
+ * Collections, Retro, Hacks, one collection of its own, or nothing. Out of the box it is Games, Favorites, Folders. L and R step
  * through them.
  *
  * Games, Homebrew, Collections and Folders are the same screen (the file
@@ -30,11 +30,23 @@ typedef enum {
     TAB_CHOICE_HOMEBREW,
     TAB_CHOICE_COLLECTIONS,
     TAB_CHOICE_RETRO,
-    TAB_CHOICE_COUNT
+    TAB_CHOICE_HACKS,
+    TAB_CHOICE_COUNT,
+    TAB_CHOICE_COLLECTION = 16,     /* 16 + a collection's number (collections.h): that collection as a tab */
+    TAB_CHOICE_VALUES = TAB_CHOICE_COLLECTION + 64
 } tab_choice_t;
 
-/** Name of a choice, for the settings screen. */
+/** Name of a choice, for the settings screen ("" for a value not in use: Settings skips it). */
 const char *tabs_choice_name (int choice);
+
+/** The collection a GAMES_TAB_PINNED tab shows (its number), or -1. */
+int tabs_pinned_collection (games_tab_t tab);
+
+/** A tab's name on the bar. */
+const char *tabs_label (games_tab_t tab);
+
+/** One of the player's own collections was deleted: tabs that showed it go, later ones keep theirs. */
+void tabs_collection_deleted (int id);
 
 /**
  * The tabs on the bar, in order. A tab chosen twice counts once; if nothing
@@ -83,5 +95,11 @@ bool tabs_browser_shows_collections (void);
 
 /** Whether the browser should show the Games list on its Retro shelf (retro.h). */
 bool tabs_browser_shows_retro (void);
+
+/** Whether the browser should show the Games list on its Hacks shelf. */
+bool tabs_browser_shows_hacks (void);
+
+/** The collection tab the browser should show (GAMES_TAB_PINNED1..4), or GAMES_TAB_COUNT for none. */
+games_tab_t tabs_browser_pinned (void);
 
 #endif /* TABS_H__ */
