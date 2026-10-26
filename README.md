@@ -73,8 +73,8 @@ built in.
 
 ## 📚 Documentation
 
-- **[Release notes and install guide](docs/RELEASE_NOTES_v0.3.md)**
-  ([v0.2](docs/RELEASE_NOTES_v0.2.md), [v0.1](docs/RELEASE_NOTES_v0.1.md)): what's
+- **[Release notes and install guide](docs/RELEASE_NOTES_v0.3a.md)**
+  ([v0.3](docs/RELEASE_NOTES_v0.3.md), [v0.2](docs/RELEASE_NOTES_v0.2.md), [v0.1](docs/RELEASE_NOTES_v0.1.md)): what's
   new, installing, first steps, controls, settings and known limitations.
 - **[SummerStation64 Companion](https://kerillian0.github.io/SummerStation64/companion/)**:
   the Theme Maker, Card Prep (checks your games against known good dumps),
@@ -97,6 +97,10 @@ built in.
   dial, one cover per game for hacks and other regions' copies, Homebrew and
   Retro (NES, SNES, Game Boy) tabs, 64DD disks with their cartridge, party
   mode, clips turned into GIFs, and four new Companion tabs.
+- **v0.3a** ✅ released: from your feedback: 50 favorites, favorite from any
+  cover, simpler Z menus, START straight to Settings, a Hold L + R screenshot
+  button (8BitDo mod kit), homebrew kept to its tab, easier 64DD pairing, and
+  a box art guide.
 - **v0.4** themes: theme picker, sound and font packs, more seasonal themes.
 - **v0.5** polish: setup wizard, CRT test patterns, accessibility, and a
   versions screen where a game's copies and hacks unfold into a column of
