@@ -118,6 +118,8 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
 .tool .go.quiet.small{padding:3px 10px}
 .tool .go:disabled{opacity:.45;cursor:not-allowed}
 .tool .line{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.tool .pager{margin-top:10px;justify-content:center}
+.tool .pager:empty{display:none}
 .tool .status{margin-top:0}
 .tool .status b{color:var(--ink)}
 .tool .bad{color:var(--n-red)}
@@ -716,6 +718,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
         <thead><tr><th>Game</th><th>Cheats</th><th></th></tr></thead>
         <tbody id="chtRows"><tr><td colspan="3" class="U">Pick the card first.</td></tr></tbody>
       </table></div>
+      <div class="line pager" id="chtRowsPager"></div>
     </section>
 
     <section id="chtEdit" class="hidden">
@@ -735,6 +738,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
         <thead><tr><th></th><th>Cheat</th><th>Codes</th></tr></thead>
         <tbody id="chtCodes"></tbody>
       </table></div>
+      <div class="line pager" id="chtCodesPager"></div>
       <h3 style="margin-top:16px">Add your own</h3>
       <p class="hint">One code per line: 8 characters, a space, 4 characters, then a name if you like
         (<code>8033B21D 0064 Infinite lives</code>). Lines without a name join the cheat above them.</p>
@@ -5884,6 +5888,12 @@ function chtCandidates(listNames, noIntro, fileName) {
   });
   return out.concat(same);
 }
+// One page of a list already searched: page counted from 0, kept in range.
+function pageOf(items, page, size) {
+  var pages = Math.max(1, Math.ceil(items.length / size));
+  var p = Math.min(Math.max(0, page), pages - 1);
+  return { items: items.slice(p * size, (p + 1) * size), page: p, pages: pages };
+}
 // --- end cheats logic ---
 
 var T = window.cardTools, P = window.cardPrep, F = window.cardFolders;
@@ -5892,6 +5902,23 @@ var card = null;        // { root, files: lower path -> File (fallback), all: [p
 var listNames = null;   // libretro's N64 cheat list names, read once
 var open = null;        // the game being edited
 var edits = new Map();  // game name -> its cheats as edited
+var PAGE_SIZE = 50;
+var rowsPage = 0, codesPage = 0;
+
+// Prev / "Page 2 of 9 (430)" / Next under a table; empty when one page holds it all.
+function drawPager(id, shown, total, onPage) {
+  var bar = $(id);
+  bar.textContent = '';
+  if (shown.pages <= 1) return;
+  var prev = button('Previous', true, function () { onPage(shown.page - 1); });
+  prev.disabled = shown.page === 0;
+  var next = button('Next', true, function () { onPage(shown.page + 1); });
+  next.disabled = shown.page >= shown.pages - 1;
+  var label = document.createElement('span');
+  label.className = 'status';
+  label.textContent = 'Page ' + (shown.page + 1) + ' of ' + shown.pages + ' (' + total + ')';
+  bar.append(prev, label, next);
+}
 
 function esc(text) {
   return String(text).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; });
@@ -5970,10 +5997,13 @@ function renderRows() {
   var body = $('chtRows');
   body.textContent = '';
   if (!card) { body.innerHTML = '<tr><td colspan="3" class="U">Pick the card first.</td></tr>'; return; }
-  var q = $('chtSearch').value.trim().toLowerCase(), shown = 0;
-  card.games.forEach(function (g) {
-    if (q && g.title.toLowerCase().indexOf(q) < 0 && g.name.toLowerCase().indexOf(q) < 0) return;
-    if (++shown > 300) return;
+  var q = $('chtSearch').value.trim().toLowerCase();
+  var found = card.games.filter(function (g) {     // the whole list is searched, then split into pages
+    return !q || g.title.toLowerCase().indexOf(q) >= 0 || g.name.toLowerCase().indexOf(q) >= 0;
+  });
+  var shown = pageOf(found, rowsPage, PAGE_SIZE);
+  rowsPage = shown.page;
+  shown.items.forEach(function (g) {
     var tr = document.createElement('tr');
     var a = document.createElement('td'); a.className = 'file'; a.textContent = g.title;
     var b = document.createElement('td');
@@ -5984,9 +6014,10 @@ function renderRows() {
     tr.append(a, b, c);
     body.appendChild(tr);
   });
-  if (!shown) body.innerHTML = '<tr><td colspan="3" class="U">No game matches.</td></tr>';
+  if (!found.length) body.innerHTML = '<tr><td colspan="3" class="U">No game matches.</td></tr>';
+  drawPager('chtRowsPager', shown, found.length, function (p) { rowsPage = p; renderRows(); });
 }
-$('chtSearch').addEventListener('input', renderRows);
+$('chtSearch').addEventListener('input', function () { rowsPage = 0; renderRows(); });
 
 function button(text, quiet, onClick) {
   var b = document.createElement('button');
@@ -6008,6 +6039,7 @@ async function libretroNames() {
 }
 
 async function loadSource(name) {
+  codesPage = 0;
   if (!name) { renderCodes(); return; }
   $('chtSourceStatus').textContent = 'Fetching...';
   try {
@@ -6028,6 +6060,7 @@ async function openEditor(g) {
   $('chtTitle').textContent = g.title;
   $('chtEditStatus').textContent = '';
   $('chtFilter').value = '';
+  codesPage = 0;
   if (!edits.has(g.name)) {
     var text = g.hasDatel ? await cardText(datelPath(g)) : null;
     edits.set(g.name, text ? parseDatel(text) : []);
@@ -6056,8 +6089,12 @@ $('chtSource').addEventListener('change', function () { loadSource(this.value); 
 function renderCodes() {
   var list = edits.get(open.name) || [], body = $('chtCodes'), q = $('chtFilter').value.trim().toLowerCase();
   body.textContent = '';
-  list.forEach(function (c) {
-    if (q && c.desc.toLowerCase().indexOf(q) < 0) return;
+  var found = list.filter(function (c) {           // the whole list is searched, then split into pages
+    return !q || c.desc.toLowerCase().indexOf(q) >= 0;
+  });
+  var shown = pageOf(found, codesPage, PAGE_SIZE);
+  codesPage = shown.page;
+  shown.items.forEach(function (c) {
     var tr = document.createElement('tr');
     var a = document.createElement('td');
     var box = document.createElement('input'); box.type = 'checkbox'; box.checked = c.on; box.setAttribute('aria-label', c.desc);
@@ -6078,10 +6115,11 @@ function renderCodes() {
     tr.append(a, b, d);
     body.appendChild(tr);
   });
-  if (!body.children.length) body.innerHTML = '<tr><td colspan="3" class="U">' + (list.length ? 'No cheat matches.' : 'No codes yet.') + '</td></tr>';
+  if (!found.length) body.innerHTML = '<tr><td colspan="3" class="U">' + (list.length ? 'No cheat matches.' : 'No codes yet.') + '</td></tr>';
+  drawPager('chtCodesPager', shown, found.length, function (p) { codesPage = p; renderCodes(); $('chtCodes').scrollIntoView({ block: 'nearest' }); });
   updateCount();
 }
-$('chtFilter').addEventListener('input', renderCodes);
+$('chtFilter').addEventListener('input', function () { codesPage = 0; renderCodes(); });
 
 function updateCount() {
   var n = linesUsed(edits.get(open.name) || []);
