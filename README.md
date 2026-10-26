@@ -80,6 +80,9 @@ built in.
   the Theme Maker, Card Prep (checks your games against known good dumps),
   Hacks, Missing Metadata, Collections, Clips (GIFs) and a setup guide, in
   your web browser. Source: [docs/companion/](docs/companion/).
+- **[Adding box art and details](https://kerillian0.github.io/SummerStation64/companion/#guide-art)**:
+  step by step, for games without built-in art, homebrew, 64DD disks and NES,
+  SNES and Game Boy games. Also: [64DD disks and their cartridge](https://kerillian0.github.io/SummerStation64/companion/#guide-64dd).
 - **[N64FlashcartMenu's documentation](docs/00_index.md)**: still describes
   the file browser, ROM settings, cheats, 64DD and the other stock features.
 

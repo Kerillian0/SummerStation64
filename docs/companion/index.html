@@ -688,9 +688,12 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
 <div class="wrap">
   <header>
     <h1 class="page-title">Guide</h1>
-    <p>Setting up a card, the hardware that works best, handy tools, and what to do when something is off.</p>
+    <p>Setting up a card, adding box art and details, 64DD disks, the hardware that works best, handy tools, and what to do
+      when something is off.</p>
     <nav class="toc" aria-label="Guide sections">
       <a href="#guide-setup">SD card setup</a>
+      <a href="#guide-art">Box art and details</a>
+      <a href="#guide-64dd">64DD disks</a>
       <a href="#guide-hardware">Hardware</a>
       <a href="#guide-tools">Tools</a>
       <a href="#guide-help">Troubleshooting</a>
@@ -720,6 +723,105 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
         <code>saves/backups/</code> (five per game); a game's Options menu has <b>Restore save</b>.</p>
     </section>
 
+    <section id="guide-art">
+      <h2><i style="background:var(--n-yellow)"></i>Box art and details</h2>
+      <p>Every game can have its own pictures (front, back, top label, cartridge) and details (developer, release date,
+        description). The Art Edition has them built in for most N64 games; for the rest, and for 64DD disks, NES, SNES,
+        Game Boy and homebrew, you add your own. The console finds what is missing and this page fills it in.</p>
+      <h3>Step by step</h3>
+      <ol>
+        <li><b>Make the list on the console.</b> Open <b>Settings &gt; Library &gt; Find Missing Metadata</b> and stay on
+          that page until it says it is done (a few seconds). <b>Missing Metadata</b> underneath says how many games lack
+          something. The list is saved as <code>menu/missingart.txt</code> on the card.</li>
+        <li><b>Put the card in your computer</b> (switch the console off first).</li>
+        <li><b>Open the <a href="#art">Missing Metadata</a> tab</b> and press <b>Choose SD card</b>. Pick the
+          <b>top folder of the card</b>, the one holding <code>sc64menu.n64</code> and the <code>menu</code> folder.
+          <ul>
+            <li><b>Chrome or Edge</b> can save straight to the card: allow it to edit the folder when asked.</li>
+            <li><b>Firefox, Safari and others</b> ask to "upload" the folder. Nothing leaves your computer: the page only
+              reads it. They can't write to the card, so you get a <code>.zip</code> to copy at the end.</li>
+          </ul>
+          The page lists every game with what it lacks. Pick a system or "Missing the front cover" to narrow it.</li>
+        <li><b>Fill in details automatically (optional).</b> <b>Fill details from libretro</b> fills NES, SNES and Game Boy
+          games' developer, date, genre and players. <b>Fill from LaunchBox's Metadata.zip</b> also has descriptions and
+          covers N64 and 64DD games: download <code>Metadata.zip</code> from the
+          <a href="https://gamesdb.launchbox-app.com/" target="_blank" rel="noopener">LaunchBox Games Database</a> yourself
+          and choose it. Only what is missing is filled in.</li>
+        <li><b>Fill in a game.</b> Press <b>Fill in</b> beside it. Choose a picture for each slot from your computer (PNG or
+          JPG, any size: the page shrinks it to fit). For a top label or spine, the frame editor lets you zoom, move and
+          turn it until it fits; <b>Use for the other edges too</b> puts it on the box's other sides. Type the developer,
+          date and description if you have them. Press <b>Keep</b>. Do the same for other games.</li>
+        <li><b>Save.</b> Press <b>Save to card</b>. With Firefox and others, unzip <code>art-for-sd-card.zip</code> into the
+          card's <b>top folder</b> (it holds a <code>menu</code> folder that merges with yours).</li>
+        <li><b>Check on the console.</b> Run <b>Find Missing Metadata</b> again: the games you filled in drop off the list.</li>
+      </ol>
+      <h3>The pictures</h3>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Slot</th><th>File</th><th>What it is</th></tr></thead>
+        <tbody>
+          <tr><td>Front cover</td><td><code>boxart_front.png</code></td><td>The box's front: the cover on the row and in Game info.</td></tr>
+          <tr><td>Back of the box</td><td><code>boxart_back.png</code></td><td>Shown when the box is turned over, and on the 3D box's back.</td></tr>
+          <tr><td>Top label</td><td><code>boxart_top.png</code></td><td>The strip on the 3D box's top (and bottom). A long, thin picture.</td></tr>
+          <tr><td>Cartridge</td><td><code>gamepak_front.png</code></td><td>For <b>Show Games As: Cartridges</b>. Cut out, with a see-through background.</td></tr>
+          <tr><td>Spine</td><td><code>boxart_spine.png</code></td><td>NES, SNES and Game Boy boxes: both sides of the 3D box.</td></tr>
+          <tr><td>Cartridge back</td><td><code>gamepak_back.png</code></td><td>NES, SNES and Game Boy cartridges turned over.</td></tr>
+        </tbody>
+      </table></div>
+      <p>Details go in <code>metadata.ini</code> beside the pictures, and a long description in <code>description.txt</code>.</p>
+      <h3>Where the files go (to do it by hand)</h3>
+      <ul>
+        <li><b>N64 games:</b> <code>menu/metadata/</code> and the four letters of the game's code, one folder each:
+          code <code>NSME</code> goes in <code>menu/metadata/N/S/M/E/</code>. A game's code is in its Game info, <b>START</b>
+          (Details).</li>
+        <li><b>64DD disks:</b> the same, with the disk's ID (in its Details): <code>menu/metadata/E/F/Z/J/</code>.</li>
+        <li><b>NES, SNES, Game Boy:</b> <code>menu/metadata/nes/</code> (or <code>snes</code>, <code>gb</code>,
+          <code>gbc</code>) and a folder named like the game's file without its ending:
+          <code>Super Metroid (USA).sfc</code> → <code>menu/metadata/snes/Super Metroid (USA)/</code>.</li>
+        <li><b>Homebrew:</b> pictures in <code>menu/metadata/homebrew/</code> and the title the game gives itself; details
+          in a file beside the game named like it, ending <code>.metadata.ini</code>
+          (<code>Game.z64</code> → <code>Game.metadata.ini</code>). The page does this for you.</li>
+        <li><b>ROM hacks</b> share their original's code, and so its cover. To give a hack its own, set it up in the
+          <a href="#hacks">Hacks</a> tab first, then run Find Missing Metadata.</li>
+      </ul>
+      <p>A <code>metadata.ini</code> looks like this:</p>
+      <pre><code>[meta]
+name = Super Mario 64
+author = Nintendo EAD | Nintendo
+release-date = 1996-06-23
+genre = Platform
+num-players = 1
+short-desc = Mario explores Princess Peach's castle.</code></pre>
+      <div class="qa"><b>My picture doesn't show</b>
+        <p>Check the file name (all lower case, <code>.png</code>; the menu reads PNG only, so convert a JPG made by hand) and
+          the folder. On the <b>Art Edition</b>, built-in covers come first: a picture on the card only shows for games without
+          one. To use your own art for every game, use the <b>Standard</b> edition.</p></div>
+      <div class="qa"><b>The page says there's no menu/missingart.txt</b>
+        <p>Run Find Missing Metadata on the console first, and pick the card's top folder (picking the <code>menu</code> folder
+          works too, but then 64DD and emulator games can't be found).</p></div>
+    </section>
+
+    <section id="guide-64dd">
+      <h2><i style="background:var(--n-red)"></i>64DD disks</h2>
+      <p>Put <code>.ndd</code> disk images in a folder and add it to the Games tab like any other (Folders tab, <b>Z</b>,
+        <b>Add this folder to Games</b>). Disks show as covers, under the <b>64DD</b> filter step (C-up / C-down).</p>
+      <h3>Expansion disks and their cartridge</h3>
+      <p>Some disks add to a cartridge game and need that cartridge to play: the <b>F-Zero X Expansion Kit</b> needs
+        <b>F-Zero X</b>. The menu pairs them by itself when the cartridge is in one of the Games tab's folders, and
+        <b>A</b> on the disk starts both.</p>
+      <ol>
+        <li>Put the cartridge (F-Zero X, Japanese or US) in a Games folder, and the disk in a Games folder too.</li>
+        <li>Open the disk's Game info. The third box says <b>Plays with</b> and the cartridge, in green. If it says
+          <b>Needs (not found)</b> in orange, the cartridge isn't on the Games tab.</li>
+        <li>To choose a cartridge yourself, press <b>Z</b> on the disk's Game info (or <b>Z</b> on its cover, then
+          <b>Pair with a cartridge...</b>). Cartridges that match the disk are listed first, in blue. <b>Automatic</b> goes
+          back to the menu's own choice; <b>No cartridge</b> plays the disk alone.</li>
+        <li><b>A</b> plays the disk with its cartridge. <b>L</b> (or Options, <b>Play the disk alone</b>) starts the disk
+          without it.</li>
+      </ol>
+      <p class="note">Starting an expansion disk without its cartridge shows a warning first: <b>Z</b> there pairs it,
+        <b>A</b> starts the disk anyway.</p>
+    </section>
+
     <section id="guide-hardware">
       <h2><i style="background:var(--n-green)"></i>Hardware</h2>
       <h3>Expansion Pak or Jumper Pak</h3>
@@ -728,7 +830,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
         says what was left out. Some games need the Expansion Pak themselves (Majora's Mask, Donkey Kong 64, most of Perfect Dark); the menu
         warns before starting them. Third-party Expansion Paks work the same as Nintendo's.</p>
       <h3>SD card</h3>
-      <p>Any reliable card will do; speed matters little, because the menu reads small files. Size: the Art Edition is about 27 MB and games are
+      <p>Any reliable card will do; speed matters little, because the menu reads small files. Size: the Art Edition is about 35 MB and games are
         4 to 64 MB each, so even a small card holds a full library. Buy from a trusted seller: fake cards that report more space than they have
         are common and lose files.</p>
       <h3>Picture</h3>
@@ -740,7 +842,9 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
         <li><b>Analogue 3D</b> and <b>ModRetro M64</b>: players report v0.1 working on both. Not tested here, so reports of anything odd are very welcome.</li>
       </ul>
       <h3>Controllers</h3>
-      <p>The menu answers to any controller. <b>START on the controller in port 2</b> saves a screenshot to <code>menu/screenshots/</code>.</p>
+      <p>The menu answers to any controller. <b>Hold START for a second</b> to save a screenshot to <code>menu/screenshots/</code>
+        (START on a controller in port 2 does it at once). With two or more controllers plugged in, the Games tab gets a
+        <b>Party</b> filter step for games that many can play.</p>
     </section>
 
     <section id="guide-tools">
@@ -775,7 +879,8 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
           deployer. To go back, copy your old <code>sc64menu.n64</code> over it.</p></div>
       <div class="qa"><b>A game has no cover, or the wrong one</b>
         <p>The Art Edition has covers for the games in the metadata pack; others show a plain box. With the Standard edition, check that the pack is
-          in <code>menu/metadata/</code>. A few games share a code with another region's game and can show its cover; this is being fixed.</p></div>
+          in <code>menu/metadata/</code>. To add a missing one, see <a href="#guide-art">Box art and details</a>. A few games share a code with
+          another region's game and can show its cover; this is being fixed.</p></div>
       <div class="qa"><b>What do the ✓, ? and ✗ marks mean?</b>
         <p>They come from Card Prep. <b>✓</b>: exactly a known good dump. <b>?</b>: the file differs from the known dump. Often that is harmless
           (an old tool changed a header byte, or the file is padded), but if the game misbehaves, try another copy. <b>✗</b>: the file name marks it
