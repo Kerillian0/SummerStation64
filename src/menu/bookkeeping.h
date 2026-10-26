@@ -9,7 +9,7 @@
 
 #include "path.h"
 
-#define FAVORITES_COUNT 8 /**< Maximum number of favorite items */
+#define FAVORITES_COUNT 50 /**< Maximum number of favorite items (8 in the stock menu; 3 ini lines each, so INI_MAX_PAIRS must hold 150) */
 #define HISTORY_COUNT 8 /**< Maximum number of history items */
 
 /** @brief Bookkeeping item types enumeration */

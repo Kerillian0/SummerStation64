@@ -18,7 +18,7 @@
 #include "sound.h"
 #include "ui_components/constants.h"
 
-#define ROW_MAX     (16)
+#define ROW_MAX     (50)      /* FAVORITES_COUNT */
 
 static bookkeeping_item_t *row_items = NULL;
 static entry_t row_entries[ROW_MAX];
