@@ -32,6 +32,7 @@
 #include "../collection_edit.h"
 #include "../dd_pair.h"
 #include "../favorite_toggle.h"
+#include "../file_rename.h"
 #include "../retro.h"
 #include "../game_learn.h"
 #include "../sort_order.h"
@@ -910,6 +911,13 @@ static void hide_now (menu_t *menu) {
     }
 }
 
+// Rename a file (file_rename.h): its save, settings and everything the menu keeps by its name go along.
+static void rename_entry (menu_t *menu, void *arg) {
+    path_t *path = path_clone_push(menu->browser.directory, menu->browser.entry->name);
+    file_rename_begin(menu, path_get(path), menu->browser.entry->size);
+    path_free(path);
+}
+
 static void folders_hide (menu_t *menu, void *arg) {
     path_t *path = path_clone_push(menu->browser.directory, menu->browser.entry->name);
     bool hide = !hidden_games_is(path_get(path));
@@ -965,6 +973,7 @@ static void card_menu_show (void) {
         { .text = "Add to collection...", .action = add_to_collection }, \
         { .text = "Hide this game", .action = hide_game }, \
         { .text = "Hide this game", .action = folders_hide }, \
+        { .text = "Rename...", .action = rename_entry }, \
         { .text = "Show entry properties", .action = show_properties }, \
         { .text = "Delete selected entry", .action = delete_entry }, \
         { .text = "Set current directory as default", .action = set_default_directory }, \
@@ -992,7 +1001,8 @@ static void entry_menu_fill (menu_t *menu) {
                 || (row.action == toggle_favorite && !favorite_toggle_allowed(e))) {
                 continue;
             }
-        } else if ((cover_row && row.action != show_game_info) || (row.action == folders_hide && !game)) {
+        } else if ((cover_row && row.action != show_game_info) || (row.action == folders_hide && !game)
+                   || (row.action == rename_entry && (!e || e->type == ENTRY_TYPE_DIR))) {
             continue;   // the Folders tab: the file browser's rows, and hiding a game there
         }
         if (row.action == toggle_favorite) {
@@ -1178,6 +1188,9 @@ static void browser_step_tab (menu_t *menu, int direction) {
 }
 
 static void process (menu_t *menu) {
+    if (file_rename_process(menu)) {
+        return;     // spelling a file's new name
+    }
     if (dd_pair_process(menu)) {
         return;     // choosing a disk's cartridge
     }
@@ -2116,6 +2129,7 @@ static void draw (menu_t *menu, surface_t *d) {
     ui_components_context_menu_draw(&card_menu);
     collection_edit_draw(); // the list of the player's collections, or "Delete this collection?"
     dd_pair_draw(); // a disk's cartridge being chosen
+    file_rename_draw(); // a file's new name being spelled
     ui_components_context_menu_draw(&hide_menu);
     if (hide_count == 1) {
         ui_components_messagebox_draw("Hide from the cover tabs?\n\n%s\n\n^%02XA: Hide^00    ^%02XB: Keep^00\nZ in the Folders tab unhides it.",

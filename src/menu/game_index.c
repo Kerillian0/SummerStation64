@@ -469,3 +469,13 @@ void game_index_flush (void) {
         debugf("game index: saved %d games\n", count);
     }
 }
+
+void game_index_rename (const char *old_path, const char *new_path, int64_t size) {
+    load();
+    note_t *n = find(path_key(old_path), size);
+    if (n && !find(path_key(new_path), size)) {
+        n->key = path_key(new_path);
+        dirty = true;
+        game_index_flush();
+    }
+}

@@ -85,6 +85,7 @@ SRCS = \
 	menu/favorite_toggle.c \
 	menu/cheat_ready.c \
 	menu/cheat_menu.c \
+	menu/file_rename.c \
 	menu/shot_png.c \
 	menu/party.c \
 	menu/dd_pair.c \

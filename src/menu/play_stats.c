@@ -210,3 +210,12 @@ int play_stats_get (const char *rom_path, time_t *last) {
     }
     return (int) s->count;
 }
+
+void play_stats_rename (const char *old_path, const char *new_path) {
+    load();
+    stat_t *s = find(path_hash(old_path));
+    if (s && !find(path_hash(new_path))) {
+        s->key = path_hash(new_path);
+        save();
+    }
+}

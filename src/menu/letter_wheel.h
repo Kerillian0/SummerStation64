@@ -50,6 +50,14 @@ void letter_wheel_close (void);
  */
 void letter_wheel_name_begin (const char *prompt, const char *start, void (*done) (menu_t *menu, const char *name));
 
+/**
+ * Spell a file name: as letter_wheel_name_begin(), but with a-z and the
+ * symbols ( ) [ ] - _ ' . , & ! + as well, up to 100 characters, kept as
+ * typed (no Title Case), and a cursor that L and R move through the name.
+ * B with the cursor at the start gives up.
+ */
+void letter_wheel_file_name_begin (const char *prompt, const char *start, void (*done) (menu_t *menu, const char *name));
+
 /** True while a name is being spelled: the screen hands its buttons to letter_wheel_name_process(). */
 bool letter_wheel_naming (void);
 

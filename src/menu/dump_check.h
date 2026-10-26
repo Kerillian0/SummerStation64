@@ -39,4 +39,7 @@ bool dump_check_crc (const char *path, int64_t size, uint32_t *crc);
 /** A short word for the state ("Verified", ...), or NULL for DUMP_NONE. */
 const char *dump_check_label (dump_state_t state);
 
+/** A file was renamed (file_rename.h): its line in verified.txt follows, so its mark stays. */
+void dump_check_rename (const char *old_path, const char *new_path, uint32_t size);
+
 #endif /* DUMP_CHECK_H__ */

@@ -60,4 +60,7 @@ bool my_collections_set (int k, const char *path, bool in);
 /** Which collections the game is in: bit k for collection k. */
 uint32_t my_collections_of (const char *path);
 
+/** A game's file was renamed (file_rename.h): it stays in its collections. */
+void my_collections_rename_game (const char *old_path, const char *new_path);
+
 #endif /* MY_COLLECTIONS_H__ */

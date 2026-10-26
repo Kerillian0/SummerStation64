@@ -43,6 +43,9 @@ const char *retro_kind (retro_system_t system);
 /** The shape of the system's box, width over height. */
 float retro_aspect (retro_system_t system);
 
+/** The system's art folder under menu/metadata ("nes"), or NULL for systems without one. */
+const char *retro_folder (retro_system_t system);
+
 /**
  * Start decoding a picture of an emulator game (`name` from the top of the
  * card, or a full path). Uses the PNG decoder, like the stock box art.

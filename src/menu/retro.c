@@ -54,6 +54,10 @@ const char *retro_kind (retro_system_t system) {
     return systems[valid(system)].kind;
 }
 
+const char *retro_folder (retro_system_t system) {
+    return systems[valid(system)].folder;
+}
+
 float retro_aspect (retro_system_t system) {
     return systems[valid(system)].aspect;
 }

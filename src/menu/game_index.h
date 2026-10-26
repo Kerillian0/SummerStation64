@@ -130,4 +130,7 @@ void game_index_flush (void);
 /** True if something was added since the last save. */
 bool game_index_changed (void);
 
+/** A game's file was renamed (file_rename.h): its note goes with it, saved at once. */
+void game_index_rename (const char *old_path, const char *new_path, int64_t size);
+
 #endif /* GAME_INDEX_H__ */

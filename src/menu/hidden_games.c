@@ -130,3 +130,18 @@ void hidden_games_clear (void) {
     save();
     debugf("hidden games: all shown again\n");
 }
+
+void hidden_games_rename (const char *old_path, const char *new_path) {
+    load();
+    for (int i = 0; i < count; i++) {
+        if (strcmp(names[i], from_top(old_path)) == 0) {
+            char *copy = strdup(from_top(new_path));
+            if (copy) {
+                free(names[i]);
+                names[i] = copy;
+                save();
+            }
+            return;
+        }
+    }
+}

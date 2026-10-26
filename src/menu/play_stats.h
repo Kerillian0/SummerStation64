@@ -47,4 +47,7 @@ uint32_t play_stats_seconds (const char *rom_path);
  */
 int play_stats_get (const char *rom_path, time_t *last);
 
+/** A game's file was renamed (file_rename.h): its counts go with it. */
+void play_stats_rename (const char *old_path, const char *new_path);
+
 #endif /* PLAY_STATS_H__ */

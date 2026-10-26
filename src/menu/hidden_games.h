@@ -37,4 +37,7 @@ int hidden_games_count (void);
 /** Show every hidden game again, and save. */
 void hidden_games_clear (void);
 
+/** A game's file was renamed (file_rename.h): it stays hidden under its new name. */
+void hidden_games_rename (const char *old_path, const char *new_path);
+
 #endif /* HIDDEN_GAMES_H__ */

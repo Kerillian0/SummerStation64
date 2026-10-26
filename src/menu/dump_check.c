@@ -11,8 +11,10 @@
 #include "dump_check.h"
 #include "menu_features.h"
 #include "rom_hacks.h"
+#include "safe_file.h"
 
 #define VERIFIED_PATH   "sd:/menu/verified.txt"
+#define VERIFIED_TMP_PATH "sd:/menu/verified.tmp"
 #define VERIFIED_HEADER "verified 1"
 #define MAX_FILES       (768)       /* 13 bytes each: about 10 KB */
 
@@ -129,5 +131,40 @@ const char *dump_check_label (dump_state_t state) {
         case DUMP_UNVERIFIED: return "Not verified";
         case DUMP_BAD: return "Bad dump";
         default: return NULL;
+    }
+}
+
+/* verified.txt is Card Prep's, but its lines are keyed by the file's path:
+   a renamed file keeps its mark by having its key changed in place. */
+void dump_check_rename (const char *old_path, const char *new_path, uint32_t size) {
+    load();
+    uint32_t from = path_key(old_path), to = path_key(new_path);
+    int at = -1;
+    for (int i = 0; i < count; i++) {
+        if (keys[i] == from && sizes[i] == size) {
+            at = i;
+        }
+    }
+    if (at < 0) {
+        return;
+    }
+    FILE *in = fopen(VERIFIED_PATH, "r");
+    FILE *out = in ? fopen(VERIFIED_TMP_PATH, "w") : NULL;
+    if (!out) {
+        if (in) fclose(in);
+        return;
+    }
+    char line[512];
+    while (fgets(line, sizeof(line), in)) {
+        unsigned long key, line_size;
+        if (sscanf(line, "%lx %lu", &key, &line_size) == 2 && (uint32_t) key == from && (uint32_t) line_size == size) {
+            fprintf(out, "%08lx%s", (unsigned long) to, line + 8);
+        } else {
+            fputs(line, out);
+        }
+    }
+    fclose(in);
+    if (fclose(out) == 0 && safe_file_replace(VERIFIED_TMP_PATH, VERIFIED_PATH)) {
+        keys[at] = to;
     }
 }

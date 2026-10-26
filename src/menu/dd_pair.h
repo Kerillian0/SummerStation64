@@ -62,4 +62,7 @@ bool dd_pair_process (menu_t *menu);
 /** Draw the choice while it shows. */
 void dd_pair_draw (void);
 
+/** A disk's or cartridge's file was renamed (file_rename.h): its pairs follow. */
+void dd_pair_rename (const char *old_path, const char *new_path);
+
 #endif /* DD_PAIR_H__ */

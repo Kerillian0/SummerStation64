@@ -223,3 +223,21 @@ uint32_t my_collections_of (const char *path) {
     }
     return in;
 }
+
+void my_collections_rename_game (const char *old_path, const char *new_path) {
+    load();
+    bool changed = false;
+    for (int k = 0; k < count; k++) {
+        int i = find(list[k], from_top(old_path));
+        char *copy = (i >= 0) ? strdup(from_top(new_path)) : NULL;
+        if (copy) {
+            free(list[k]->games[i]);
+            list[k]->games[i] = copy;
+            list[k]->keys[i] = key_of(copy);
+            changed = true;
+        }
+    }
+    if (changed) {
+        save();
+    }
+}

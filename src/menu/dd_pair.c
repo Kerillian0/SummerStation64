@@ -479,3 +479,29 @@ void dd_pair_draw (void) {
         rdpq_text_printf(&(rdpq_textparms_t) { .width = 20, .height = ROW_HEIGHT, .valign = VALIGN_CENTER }, FNT_DEFAULT, x0 + LIST_WIDTH - 32, y0 + 34 + ((shown - 1) * ROW_HEIGHT), "▼");
     }
 }
+
+void dd_pair_rename (const char *old_path, const char *new_path) {
+    load();
+    const char *from = from_top(old_path), *to = from_top(new_path);
+    bool changed = false;
+    for (int i = 0; i < pairs_count; i++) {
+        if (strcmp(pairs[i].disk, from) == 0) {
+            snprintf(pairs[i].disk, NAME_LENGTH, "%s", to);
+            changed = true;
+        }
+        if (strcmp(pairs[i].cart, from) == 0) {
+            snprintf(pairs[i].cart, NAME_LENGTH, "%s", to);
+            changed = true;
+        }
+    }
+    const char *id = known_id(from);
+    if (id) {
+        char keep[4];
+        memcpy(keep, id, 4);
+        note_id(to, keep);
+    }
+    text_known = false;
+    if (changed) {
+        save();
+    }
+}
