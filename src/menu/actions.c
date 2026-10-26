@@ -108,6 +108,7 @@ static void actions_update_buttons (menu_t *menu) {
             break;
         }
     }
+    screenshot_note_pressed(pressed);   // what our own button readers see (screenshot.h)
 
     if (pressed.a) {
         menu->actions.enter = true;

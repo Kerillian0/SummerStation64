@@ -11,6 +11,7 @@
 #include "baked_art.h"
 #include "collections.h"
 #include "collections_ui.h"
+#include "screenshot.h"
 #include "fonts.h"
 #include "game_index.h"
 #include "games_filter.h"
@@ -87,13 +88,7 @@ collections_ui_action_t collections_ui_process (menu_t *menu) {
         selected = (count > 0) ? count - 1 : 0;
     }
 
-    joypad_buttons_t pressed = {0};
-    JOYPAD_PORT_FOREACH (i) {
-        pressed = joypad_get_buttons_pressed(i);
-        if (pressed.raw) {
-            break;
-        }
-    }
+    joypad_buttons_t pressed = screenshot_pressed();  /* as the menu sees them: "Hold L + R" holds L and R back */
     if (pressed.l) {
         return COLLECTIONS_UI_TAB_LEFT;
     }

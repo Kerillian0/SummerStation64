@@ -28,8 +28,63 @@ static bool start_down[JOYPAD_PORT_COUNT];
 static uint64_t start_down_at[JOYPAD_PORT_COUNT];
 static bool start_shot[JOYPAD_PORT_COUNT];
 
+/* L and R on each controller, with "Hold L + R": whether each is down, whether
+   both were down together since they were last both up (then neither acts),
+   since when, and whether that hold took a picture. */
+static bool l_down[JOYPAD_PORT_COUNT], r_down[JOYPAD_PORT_COUNT];
+static bool lr_together[JOYPAD_PORT_COUNT], lr_shot[JOYPAD_PORT_COUNT];
+static uint64_t lr_since[JOYPAD_PORT_COUNT];
+
+static joypad_buttons_t frame_pressed;
+
+joypad_buttons_t screenshot_pressed (void) {
+    return frame_pressed;
+}
+
+void screenshot_note_pressed (joypad_buttons_t pressed) {
+    frame_pressed = pressed;
+}
+
+/* "Hold L + R": L and R act when let go, unless they were held together. */
+static void lr_button (joypad_port_t port, joypad_buttons_t *pressed) {
+    joypad_buttons_t now = joypad_get_buttons(port);
+    if (pressed->l) {
+        pressed->l = 0;
+        l_down[port] = true;
+    }
+    if (pressed->r) {
+        pressed->r = 0;
+        r_down[port] = true;
+    }
+    if (l_down[port] && r_down[port] && now.l && now.r) {
+        if (!lr_together[port]) {
+            lr_together[port] = true;
+            lr_since[port] = get_ticks_ms();
+        } else if (!lr_shot[port] && (get_ticks_ms() - lr_since[port]) >= HOLD_MS) {
+            lr_shot[port] = true;
+            wanted = true;
+        }
+    }
+    if (l_down[port] && !now.l) {
+        l_down[port] = false;
+        pressed->l = !lr_together[port];
+    }
+    if (r_down[port] && !now.r) {
+        r_down[port] = false;
+        pressed->r = !lr_together[port];
+    }
+    if (!l_down[port] && !r_down[port]) {
+        lr_together[port] = false;
+        lr_shot[port] = false;
+    }
+}
+
 const char *screenshot_size_name (int value) {
     return value == SCREENSHOT_HALF ? "Half (320 x 240)" : "Full (640 x 480)";
+}
+
+const char *screenshot_button_name (int value) {
+    return value == SCREENSHOT_BUTTON_LR ? "Hold L + R" : "Hold START";
 }
 
 const char *screenshot_dither_name (int value) {
@@ -156,8 +211,15 @@ bool screenshot_write (const char *path, surface_t *display, bool half, bool smo
 bool screenshot_button (joypad_port_t port, joypad_buttons_t *pressed) {
     if (!features_enabled(FEATURE_SCREENSHOTS)) {
         start_down[port] = false;
+        l_down[port] = r_down[port] = false;
         return false;
     }
+    if (options_get(OPTION_SHOT_BUTTON) == SCREENSHOT_BUTTON_LR) {
+        start_down[port] = false;
+        lr_button(port, pressed);
+        return false;
+    }
+    l_down[port] = r_down[port] = false;
     if (port == JOYPAD_PORT_2 && pressed->start) {
         wanted = true;
         return true;

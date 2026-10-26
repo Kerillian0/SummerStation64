@@ -32,6 +32,7 @@ typedef enum {
     OPTION_PREFERRED_REGION, /**< a preferred_region_t value (see region_pick.h) */
     OPTION_SHOT_SIZE,   /**< a screenshot_size_t value (see screenshot.h) */
     OPTION_SHOT_DITHER, /**< a screenshot_dither_t value (see screenshot.h) */
+    OPTION_SHOT_BUTTON, /**< a screenshot_button_t value (see screenshot.h) */
     OPTION_CLIP_LENGTH, /**< a clip_length_t value (see clip.h) */
     OPTION_CLIP_SIZE,   /**< a screenshot_size_t value, for clips */
     OPTION_CLIP_FPS,    /**< a clip_fps_t value */

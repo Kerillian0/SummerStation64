@@ -2,6 +2,7 @@
 #include <libdragon.h>
 
 #include "controls.h"
+#include "screenshot.h"
 #include "letter_wheel.h"
 #include "menu_features.h"
 #include "box_motion.h"
@@ -147,14 +148,7 @@ void controls_remap_tabs (menu_t *menu, bool horizontal) {
         was_vertical = vertical_is_held();
         return;
     }
-    joypad_buttons_t pressed = {0};
-
-    JOYPAD_PORT_FOREACH (i) {
-        pressed = joypad_get_buttons_pressed(i);
-        if (pressed.raw) {
-            break;
-        }
-    }
+    joypad_buttons_t pressed = screenshot_pressed();  /* as the menu sees them: "Hold L + R" holds L and R back */
 
     filter_request = pressed.c_up ? 1 : (pressed.c_down ? -1 : 0);
 

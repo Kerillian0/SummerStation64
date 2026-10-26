@@ -38,6 +38,7 @@ static const option_info_t option_info[OPTION_COUNT] = {
     [OPTION_PREFERRED_REGION] = { "preferred_region", 0 }, /* USA */
     [OPTION_SHOT_SIZE] = { "shot_size", 0 }, /* full */
     [OPTION_SHOT_DITHER] = { "shot_dither", 0 }, /* smooth */
+    [OPTION_SHOT_BUTTON] = { "shot_button", 0 }, /* hold START */
     [OPTION_CLIP_LENGTH] = { "clip_length", 1 }, /* 10 seconds */
     [OPTION_CLIP_SIZE] = { "clip_size", 1 }, /* half */
     [OPTION_CLIP_FPS] = { "clip_fps", 0 }, /* 15 a second */
