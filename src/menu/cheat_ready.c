@@ -25,6 +25,10 @@ void cheat_ready_note (const char *rom_path) {
     loaded_for = key_of(rom_path);
 }
 
+void cheat_ready_forget (void) {
+    loaded_for = 0;
+}
+
 void cheat_ready_load (const char *rom_path) {
     if (loaded_for == key_of(rom_path)) {
         return;     /* the editor has them, as the player left them */

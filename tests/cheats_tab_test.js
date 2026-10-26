@@ -9,7 +9,7 @@ const path = require('path');
 const html = fs.readFileSync(path.join(__dirname, '..', 'docs', 'companion', 'index.html'), 'utf8');
 const a = html.indexOf('// --- cheats logic'), b = html.indexOf('// --- end cheats logic ---');
 if (a < 0 || b < 0) throw new Error('Could not find the logic block in the Cheats tab; did it change?');
-const t = new Function(html.slice(a, b) + 'return {parseCode, parseCht, parseDatel, formatDatel, linesUsed, cheatNote, mergeCheats, plainName, chtCandidates, pageOf};')();
+const t = new Function(html.slice(a, b) + 'return {parseCode, parseCht, parseDatel, formatDatel, linesUsed, cheatNote, mergeCheats, plainName, chtCandidates, pageOf, setTicked};')();
 
 let checks = 0, failures = 0;
 function check(cond, what) {
@@ -38,6 +38,15 @@ const off = t.parseDatel(': 8033B21D 0064 Lives\n8033B21E 0001\n');
 check(off.length === 1 && !off[0].on && off[0].codes.length === 2, '": " marks a cheat switched off; a nameless line joins it');
 check(t.linesUsed(list) === 3, 'three code lines ticked');
 check(t.parseDatel('8033b21d:0064 lower case\n// comment\n; another\n').length === 1, 'lower case and a colon are read; comments skipped');
+
+const mixed = t.parseDatel('8033B21D 0064 Lives\n: 80207723 0001 Stars\n: 8020770B 00C7\n');
+check(t.formatDatel(mixed).trim().split('\n').slice(1).join('|') === '8033B21D 0064 Lives|: 80207723 0001 Stars|: 8020770B 00C7',
+  'a cheat switched off on the console stays in the file, switched off');
+check(t.linesUsed(mixed) === 3, 'switched-off lines count toward the 64');
+t.setTicked(mixed[1], false);
+check(t.formatDatel(mixed).indexOf('80207723') < 0, 'unticking takes it out of the file');
+t.setTicked(mixed[1], true);
+check(mixed[1].off && !mixed[1].on, 'ticking it again puts it back as it was: off');
 
 console.log('Notes and merging');
 check(t.cheatNote({ desc: 'Enable Code (Must Be On)', codes: [{ addr: 'F1096820', val: '2400' }] }) === 'enable', 'an enable code');

@@ -25,6 +25,7 @@ typedef struct {
     bool patches;               /**< patches switched on for this game */
     bool clear_rdram;           /**< "clear memory before start" switched on */
     bool front_picture;         /**< the picture being shown is the front cover */
+    const char *z_hint;         /**< Z's hint ("Cheats"), or NULL */
 } game_info_view_t;
 
 /**

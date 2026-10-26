@@ -1,3 +1,4 @@
+#include "../cheat_menu.h"
 #include "../cheat_ready.h"
 #include "../debug_stats.h"
 #include "../bookkeeping.h"
@@ -619,7 +620,22 @@ static bool rom_requires_missing_expansion_pak (menu_t *menu) {
     return (menu->load.rom_info.features.expansion_pak == EXPANSION_PAK_REQUIRED) && !is_memory_expanded();
 }
 
+static bool has_cheat_file = false;    // a cheat file beside the game: Z lists its cheats (cheat_menu.h); checked once, when the screen opens
+
+// Z, not L: both come in as lz_context.
+static bool z_pressed (void) {
+    JOYPAD_PORT_FOREACH (port) {
+        if (joypad_get_buttons_pressed(port).z) {
+            return true;
+        }
+    }
+    return false;
+}
+
 static void process (menu_t *menu) {
+    if (cheat_menu_process(menu)) { // the game's cheats list is open
+        return;
+    }
     if (ui_components_context_menu_process(menu, &options_context_menu)) {
         return;
     }
@@ -654,6 +670,9 @@ static void process (menu_t *menu) {
     } else if (menu->actions.back) {
         sound_play_effect(SFX_EXIT);
         menu->next_mode = games_ui_origin(); // back to the tab this was opened from
+    } else if (menu->actions.lz_context && has_cheat_file && z_pressed()) {
+        cheat_menu_open(menu); // Z: the game's cheats, on and off
+        sound_play_effect(SFX_ENTER);
     } else if (menu->actions.options) {
         save_backup_menu_fill(menu, &restore_save_context_menu); // the dates under "Restore save"
         options_menu_fill(); // the advanced rows only when Settings asks for them
@@ -689,6 +708,7 @@ static void draw (menu_t *menu, surface_t *d) {
             .save = format_rom_save_type(rom_info_get_save_type(&menu->load.rom_info), menu->load.rom_info.features.controller_pak),
             .tv = format_rom_tv_type(rom_info_get_tv_type(&menu->load.rom_info)),
             .cheats = menu->load.rom_info.settings.cheats_enabled,
+            .z_hint = has_cheat_file ? "Cheats" : NULL,
             .patches = menu->load.rom_info.settings.patches_enabled,
             .clear_rdram = menu->load.rom_info.settings.clear_rdram_enabled,
             .front_picture = (current_metadata_image_index == 0),
@@ -814,6 +834,7 @@ static void draw (menu_t *menu, surface_t *d) {
 
         save_backup_prompt_draw(); // restoring a save: the question, or how it went
         ui_components_context_menu_draw(&options_context_menu);
+        cheat_menu_draw();
 #ifdef FEATURE_AUTOLOAD_ROM_ENABLED
     }
 #endif
@@ -992,6 +1013,7 @@ void view_load_rom_init (menu_t *menu) {
 #ifdef FEATURE_AUTOLOAD_ROM_ENABLED
     }
 #endif
+    has_cheat_file = cheat_menu_available(path_get(menu->load.rom_path));
 
     if (controls_consume_launch_request() && !rom_requires_missing_expansion_pak(menu)) menu->load_pending.rom_file = true; // quick launch
 }

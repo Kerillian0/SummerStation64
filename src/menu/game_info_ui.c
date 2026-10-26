@@ -625,7 +625,10 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
     games_ui_hints_backdrop_draw();
     x = games_ui_hint_draw(GAMES_UI_HINTS_X, 0, "A", "Play");
     games_ui_hint_draw(x, 0, "B", "Back");
-    games_ui_hint_draw(GAMES_UI_HINTS_X, 1, "R", "Options");
+    x = games_ui_hint_draw(GAMES_UI_HINTS_X, 1, "R", "Options");
+    if (view->z_hint) {
+        games_ui_hint_draw(x, 1, "Z", view->z_hint);
+    }
     games_ui_hint_right_draw(0, "START", "Details");
     games_ui_hint_right_draw(1, "◀▶", "Pictures");
     if (dump != DUMP_NONE) {

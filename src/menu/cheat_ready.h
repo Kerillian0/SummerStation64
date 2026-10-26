@@ -15,6 +15,9 @@
 /** The Datel Code Editor has loaded the cheats of the game at this full path. */
 void cheat_ready_note (const char *rom_path);
 
+/** The cheat file changed (cheat_menu.h): read it again at the next start. */
+void cheat_ready_forget (void);
+
 /** Just before the game at this path starts: its cheats from the file, if not loaded already. */
 void cheat_ready_load (const char *rom_path);
 

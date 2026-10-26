@@ -728,7 +728,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
         <select id="chtSource" aria-label="Cheat list from libretro" style="width:auto;max-width:420px"></select>
         <span class="status" id="chtSourceStatus"></span>
       </div>
-      <p class="hint">Tick the codes you want. Keep any <b>enable code</b> ("Must be on", codes starting F1, FF, EE or DE)
+      <p class="hint">Tick the cheats to put on the card; on the console, Game info's <b>Z</b> lists them to switch on and off. Keep any <b>enable code</b> ("Must be on", codes starting F1, FF, EE or DE)
         ticked when a list has one. Codes that need a button held may not work yet. At most 64 code lines in all.</p>
       <div class="line" style="margin-top:8px">
         <input type="text" id="chtFilter" placeholder="Search codes" aria-label="Search codes" style="max-width:280px">
@@ -752,8 +752,8 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
 
     <section>
       <h2><span class="n">4</span>Save to the card</h2>
-      <p>Writes each game's ticked codes beside it as <code>Game.datel</code>. Then on the console: the game's Game info,
-        <b>R</b>, <b>Use Cheats: Enabled</b>. Cheats need the <b>Expansion Pak</b>.</p>
+      <p>Writes each game's ticked codes beside it as <code>Game.datel</code>. Then on the console, the game's Game info:
+        <b>Z</b> lists its cheats; switching any on turns <b>Use Cheats</b> on. Cheats need the <b>Expansion Pak</b>.</p>
       <ul class="listed" id="chtListed"></ul>
       <div class="line">
         <button class="go" id="chtSave" disabled>Save to card</button>
@@ -913,9 +913,11 @@ short-desc = Mario explores Princess Peach's castle.</code></pre>
           tick the ones you want (and any <b>enable code</b> the list has), or paste codes from elsewhere, such as
           <a href="https://gamehacking.org" target="_blank" rel="noopener">GameHacking.org</a>. <b>Save to card</b> writes
           <code>Game.datel</code> beside the game.</li>
-        <li><b>Switch them on for that game.</b> On the console, open the game's Game info, press <b>R</b> and set
-          <b>Use Cheats</b> to <b>Enabled</b>. An orange <b>Cheats</b> badge shows on the page.</li>
-        <li><b>Play.</b> The ticked codes run from the start. To stop, set Use Cheats back to Disabled.</li>
+        <li><b>Switch them on.</b> On the console, open the game's Game info and press <b>Z</b> (Cheats): a list of the
+          game's cheats. <b>A</b> switches one on or off (✓), <b>B</b> closes the list and saves. Switching any cheat on
+          turns <b>Use Cheats</b> on for the game; switching them all off turns it off. An orange <b>Cheats</b> badge
+          shows on the page while they're on.</li>
+        <li><b>Play.</b> The cheats that are on run from the start.</li>
       </ol>
       <h3>By hand</h3>
       <p>The file is named like the game with <code>.datel</code> at the end (<code>Super Mario 64 (USA).z64</code> →
@@ -923,9 +925,9 @@ short-desc = Mario explores Princess Peach's castle.</code></pre>
       <pre><code>8033B21D 0064 Infinite lives
 80207723 0001 120 stars
 8020770B 00C7</code></pre>
-      <p>A line starting <code>:</code> is a code switched off; <code>#</code> starts a comment. To switch single codes on
-        and off on the console, turn on <b>Settings &gt; System &gt; Advanced Game Options</b>: Game info's R menu then has
-        the <b>Datel Code Editor</b>.</p>
+      <p>A line starting <code>:</code> is a code switched off (the console's list writes these); <code>#</code> starts a
+        comment. To type codes in on the console, turn on <b>Settings &gt; System &gt; Advanced Game Options</b>: Game
+        info's R menu then has the <b>Datel Code Editor</b>.</p>
       <div class="qa"><b>A cheat doesn't work</b>
         <p>Keep the list's enable code ticked ("Must be on", or codes starting F1, FF or EE). Codes that need a button held
           (starting D0 to D3) may not work yet, and codes starting DE are skipped. The menu reads up to 64 code lines per
@@ -5808,7 +5810,8 @@ function parseCht(text) {
 }
 
 // A .datel file (or pasted lines): "AAAAAAAA VVVV name"; ": " in front is a
-// code switched off; lines without a name join the cheat above.
+// cheat switched off (on the console's cheat list); lines without a name join
+// the cheat above. A switched-off cheat stays in the file, switched off.
 function parseDatel(text, on) {
   var out = [], cur = null;
   String(text).split(/\r?\n/).forEach(function (line) {
@@ -5819,7 +5822,7 @@ function parseDatel(text, on) {
     if (!m) return;
     var code = { addr: m[1].toUpperCase(), val: m[2].toUpperCase() };
     if (m[3] || !cur) {
-      cur = { desc: (m[3] || '').trim() || ('Cheat ' + (out.length + 1)), codes: [], bad: 0, on: on !== false && !off };
+      cur = { desc: (m[3] || '').trim() || ('Cheat ' + (out.length + 1)), codes: [], bad: 0, on: on !== false && !off, off: off, wasOff: off };
       out.push(cur);
     }
     cur.codes.push(code);
@@ -5827,20 +5830,28 @@ function parseDatel(text, on) {
   return out;
 }
 
-// The .datel file for the ticked cheats: the name on each cheat's first line.
+// The .datel file for the ticked cheats: the name on each cheat's first line;
+// ": " in front of a cheat switched off on the console.
 function formatDatel(cheats) {
-  var lines = ['# Cheats for SummerStation64 (GameShark / Action Replay codes). Use Cheats: Game info, R.'];
+  var lines = ['# Cheats for SummerStation64 (GameShark / Action Replay codes). On the console: Game info, Z.'];
   cheats.forEach(function (c) {
-    if (!c.on) return;
+    if (!c.on && !c.off) return;
     c.codes.forEach(function (code, i) {
-      lines.push(code.addr + ' ' + code.val + (i === 0 ? ' ' + c.desc.replace(/[\r\n]+/g, ' ') : ''));
+      lines.push((c.on ? '' : ': ') + code.addr + ' ' + code.val + (i === 0 ? ' ' + c.desc.replace(/[\r\n]+/g, ' ') : ''));
     });
   });
   return lines.join('\n') + '\n';
 }
 
+// Code lines in the file: switched-off ones count too (the menu reads 64 lines in all).
 function linesUsed(cheats) {
-  return cheats.reduce(function (n, c) { return n + (c.on ? c.codes.length : 0); }, 0);
+  return cheats.reduce(function (n, c) { return n + ((c.on || c.off) ? c.codes.length : 0); }, 0);
+}
+
+// Ticking a cheat puts it in the file (as it was on the card, else on); unticking takes it out.
+function setTicked(c, ticked) {
+  c.on = ticked && !c.wasOff;
+  c.off = ticked && !!c.wasOff;
 }
 
 // What to say about a cheat: an enable code, one that needs a button, one the menu skips.
@@ -6097,11 +6108,17 @@ function renderCodes() {
   shown.items.forEach(function (c) {
     var tr = document.createElement('tr');
     var a = document.createElement('td');
-    var box = document.createElement('input'); box.type = 'checkbox'; box.checked = c.on; box.setAttribute('aria-label', c.desc);
-    box.addEventListener('change', function () { c.on = box.checked; updateCount(); renderRows(); renderListed(); });
+    var box = document.createElement('input'); box.type = 'checkbox'; box.checked = c.on || c.off; box.setAttribute('aria-label', c.desc);
+    box.addEventListener('change', function () { setTicked(c, box.checked); renderCodes(); renderRows(); renderListed(); });
     a.appendChild(box);
     var b = document.createElement('td');
     b.textContent = c.desc;
+    if (c.off) {
+      var o = document.createElement('span');
+      o.className = 'U';
+      o.textContent = '  switched off on the console';
+      b.appendChild(o);
+    }
     var note = cheatNote(c);
     if (note) {
       var s = document.createElement('span');
@@ -6168,7 +6185,7 @@ $('chtSave').addEventListener('click', async function () {
         f.game.hasDatel = true;
       }
       edits.clear();
-      $('chtSaveStatus').textContent = 'Saved ' + out.length + ' cheat file' + (out.length === 1 ? '' : 's') + '. On the console: Game info, R, Use Cheats: Enabled.';
+      $('chtSaveStatus').textContent = 'Saved ' + out.length + ' cheat file' + (out.length === 1 ? '' : 's') + '. On the console: Game info, Z.';
     } catch (e) {
       $('chtSaveStatus').innerHTML = '<span class="bad">Could not write to the card: ' + esc(e.message) + '</span>';
       return;
