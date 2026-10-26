@@ -83,6 +83,7 @@ SRCS = \
 	menu/settings.c \
 	menu/sound.c \
 	menu/favorite_toggle.c \
+	menu/cheat_ready.c \
 	menu/shot_png.c \
 	menu/party.c \
 	menu/dd_pair.c \

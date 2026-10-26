@@ -198,6 +198,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
     <a href="#art" data-tab="art">Missing Metadata</a>
     <a href="#coll" data-tab="coll">Collections</a>
     <a href="#clips" data-tab="clips">Clips</a>
+    <a href="#cheats" data-tab="cheats">Cheats</a>
     <a href="#guide" data-tab="guide">Guide</a>
   </nav>
 </div></div>
@@ -684,6 +685,81 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
 </div>
 </div>
 
+<div class="tabpane tool" id="cheats" hidden>
+<div class="wrap">
+  <header>
+    <h1 class="page-title">Cheats</h1>
+    <p>Put GameShark / Action Replay codes on the card for a game. Codes come from
+      <a href="https://github.com/libretro/libretro-database" target="_blank" rel="noopener">libretro-database</a>
+      (fetched when you open a game, never bundled), or paste your own. Everything else happens in this browser.</p>
+  </header>
+
+  <div class="panel">
+    <section>
+      <h2><span class="n">1</span>Pick your SD card</h2>
+      <p>Choose the top folder of the card (the one with <code>sc64menu.n64</code> in it). The games are read from the
+        same folders as the console's Games tab. Run <a href="#prep">Card Prep</a> first and the right cheat list is found
+        by each game's exact dump.</p>
+      <div class="line">
+        <button class="go" id="chtPick">Choose SD card</button>
+        <input type="file" id="chtPickOld" webkitdirectory class="hidden">
+        <span class="status" id="chtCardStatus">No card chosen yet.</span>
+      </div>
+    </section>
+
+    <section>
+      <h2><span class="n">2</span>Choose a game</h2>
+      <div class="line">
+        <input type="text" id="chtSearch" placeholder="Search games" aria-label="Search games" style="max-width:280px">
+      </div>
+      <div class="tablewrap" style="margin-top:10px"><table>
+        <thead><tr><th>Game</th><th>Cheats</th><th></th></tr></thead>
+        <tbody id="chtRows"><tr><td colspan="3" class="U">Pick the card first.</td></tr></tbody>
+      </table></div>
+    </section>
+
+    <section id="chtEdit" class="hidden">
+      <h2><span class="n">3</span><span id="chtTitle"></span></h2>
+      <div class="line">
+        <label for="chtSource" class="l" style="width:auto">Cheat list</label>
+        <select id="chtSource" aria-label="Cheat list from libretro" style="width:auto;max-width:420px"></select>
+        <span class="status" id="chtSourceStatus"></span>
+      </div>
+      <p class="hint">Tick the codes you want. Keep any <b>enable code</b> ("Must be on", codes starting F1, FF, EE or DE)
+        ticked when a list has one. Codes that need a button held may not work yet. At most 64 code lines in all.</p>
+      <div class="line" style="margin-top:8px">
+        <input type="text" id="chtFilter" placeholder="Search codes" aria-label="Search codes" style="max-width:280px">
+        <span class="status" id="chtCount"></span>
+      </div>
+      <div class="tablewrap" style="margin-top:10px"><table>
+        <thead><tr><th></th><th>Cheat</th><th>Codes</th></tr></thead>
+        <tbody id="chtCodes"></tbody>
+      </table></div>
+      <h3 style="margin-top:16px">Add your own</h3>
+      <p class="hint">One code per line: 8 characters, a space, 4 characters, then a name if you like
+        (<code>8033B21D 0064 Infinite lives</code>). Lines without a name join the cheat above them.</p>
+      <textarea id="chtPaste" rows="5" aria-label="Codes to add" style="font-family:monospace"></textarea>
+      <div class="actions">
+        <button class="go small" type="button" id="chtAdd">Add these</button>
+        <button class="go small quiet" type="button" id="chtClose">Done</button>
+        <span class="status" id="chtEditStatus"></span>
+      </div>
+    </section>
+
+    <section>
+      <h2><span class="n">4</span>Save to the card</h2>
+      <p>Writes each game's ticked codes beside it as <code>Game.datel</code>. Then on the console: the game's Game info,
+        <b>R</b>, <b>Use Cheats: Enabled</b>. Cheats need the <b>Expansion Pak</b>.</p>
+      <ul class="listed" id="chtListed"></ul>
+      <div class="line">
+        <button class="go" id="chtSave" disabled>Save to card</button>
+        <span class="status" id="chtSaveStatus"></span>
+      </div>
+    </section>
+  </div>
+</div>
+</div>
+
 <div class="tabpane" id="guide" hidden>
 <div class="wrap">
   <header>
@@ -694,6 +770,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
       <a href="#guide-setup">SD card setup</a>
       <a href="#guide-art">Box art and details</a>
       <a href="#guide-64dd">64DD disks</a>
+      <a href="#guide-cheats">Cheats</a>
       <a href="#guide-hardware">Hardware</a>
       <a href="#guide-tools">Tools</a>
       <a href="#guide-help">Troubleshooting</a>
@@ -822,6 +899,36 @@ short-desc = Mario explores Princess Peach's castle.</code></pre>
         <b>A</b> starts the disk anyway.</p>
     </section>
 
+    <section id="guide-cheats">
+      <h2><i style="background:var(--n-green)"></i>Cheats</h2>
+      <p>The menu runs <b>GameShark</b> and <b>Action Replay</b> codes. They need the <b>Expansion Pak</b> (the codes live in
+        its memory). The cart doesn't come with any: each game's codes go in a small text file beside it.</p>
+      <ol>
+        <li><b>Put codes on the card.</b> Open the <a href="#cheats">Cheats</a> tab, pick the card and a game. The page fetches
+          that game's codes from <a href="https://github.com/libretro/libretro-database" target="_blank" rel="noopener">libretro-database</a>;
+          tick the ones you want (and any <b>enable code</b> the list has), or paste codes from elsewhere, such as
+          <a href="https://gamehacking.org" target="_blank" rel="noopener">GameHacking.org</a>. <b>Save to card</b> writes
+          <code>Game.datel</code> beside the game.</li>
+        <li><b>Switch them on for that game.</b> On the console, open the game's Game info, press <b>R</b> and set
+          <b>Use Cheats</b> to <b>Enabled</b>. An orange <b>Cheats</b> badge shows on the page.</li>
+        <li><b>Play.</b> The ticked codes run from the start. To stop, set Use Cheats back to Disabled.</li>
+      </ol>
+      <h3>By hand</h3>
+      <p>The file is named like the game with <code>.datel</code> at the end (<code>Super Mario 64 (USA).z64</code> →
+        <code>Super Mario 64 (USA).datel</code>), one code per line, an optional name after it:</p>
+      <pre><code>8033B21D 0064 Infinite lives
+80207723 0001 120 stars
+8020770B 00C7</code></pre>
+      <p>A line starting <code>:</code> is a code switched off; <code>#</code> starts a comment. To switch single codes on
+        and off on the console, turn on <b>Settings &gt; System &gt; Advanced Game Options</b>: Game info's R menu then has
+        the <b>Datel Code Editor</b>.</p>
+      <div class="qa"><b>A cheat doesn't work</b>
+        <p>Keep the list's enable code ticked ("Must be on", or codes starting F1, FF or EE). Codes that need a button held
+          (starting D0 to D3) may not work yet, and codes starting DE are skipped. The menu reads up to 64 code lines per
+          game. Some games, mostly new homebrew, can't take cheats at all. Codes from a list made for another region or
+          version of the game usually don't work: pick the list that matches your copy.</p></div>
+    </section>
+
     <section id="guide-hardware">
       <h2><i style="background:var(--n-green)"></i>Hardware</h2>
       <h3>Expansion Pak or Jumper Pak</h3>
@@ -901,7 +1008,7 @@ short-desc = Mario explores Princess Peach's castle.</code></pre>
 <footer class="foot">
   <p>An unofficial fan project, not made or approved by Nintendo.
     <a href="https://github.com/Kerillian0/SummerStation64">SummerStation64 on GitHub</a> ·
-    Card Prep reads No-Intro's Nintendo 64 list from <a href="https://github.com/libretro/libretro-database">libretro-database</a> (CC-BY-SA 4.0).
+    Card Prep reads No-Intro's Nintendo 64 list, and Cheats its cheat lists, from <a href="https://github.com/libretro/libretro-database">libretro-database</a> (CC-BY-SA 4.0).
     Nothing you open here leaves your browser.</p>
 </footer>
 
@@ -5661,10 +5768,411 @@ $('clipMake').addEventListener('click', async function () {
 </script>
 
 <script>
-/* Tabs: one per address (#themes, #prep, #hacks, #art, #coll, #clips, #guide, or a Guide section such as
+(function(){
+'use strict';
+// --- cheats logic (also run by tests/cheats_tab_test.js) ---
+var CHT_BASE = 'https://raw.githubusercontent.com/libretro/libretro-database/master/cht/Nintendo%20-%20Nintendo%2064/';
+var CHT_MAX_LINES = 64;     // MAX_CHEAT_CODES in src/menu/datel_codes.h
+
+// "8033b21d:0064", "8033B21D0064" or "8033B21D 0064" -> { addr, val }, or null.
+function parseCode(text) {
+  var m = /^([0-9A-Fa-f]{8})[\s:\-]*([0-9A-Fa-f]{4})$/.exec(String(text).trim());
+  return m ? { addr: m[1].toUpperCase(), val: m[2].toUpperCase() } : null;
+}
+
+// RetroArch's .cht: cheats = N, then cheatK_desc / cheatK_code ("A V+A V") / cheatK_enable.
+function parseCht(text) {
+  var keys = {}, out = [];
+  String(text).split(/\r?\n/).forEach(function (line) {
+    var m = /^\s*(\w+)\s*=\s*"?(.*?)"?\s*$/.exec(line);
+    if (m) keys[m[1]] = m[2];
+  });
+  var n = parseInt(keys.cheats, 10) || 0;
+  for (var k = 0; k < n; k++) {
+    var raw = keys['cheat' + k + '_code'];
+    if (raw === undefined) continue;
+    var codes = [], bad = 0;
+    raw.split(/[+,;]/).forEach(function (part) {
+      if (!part.trim()) return;
+      var c = parseCode(part);
+      if (c) codes.push(c); else bad++;
+    });
+    if (!codes.length) continue;
+    out.push({ desc: (keys['cheat' + k + '_desc'] || ('Cheat ' + (k + 1))).trim(), codes: codes, bad: bad, on: false });
+  }
+  return out;
+}
+
+// A .datel file (or pasted lines): "AAAAAAAA VVVV name"; ": " in front is a
+// code switched off; lines without a name join the cheat above.
+function parseDatel(text, on) {
+  var out = [], cur = null;
+  String(text).split(/\r?\n/).forEach(function (line) {
+    var t = line.trim(), off = false;
+    if (!t || t[0] === '#' || t[0] === ';' || t.slice(0, 2) === '//') return;
+    if (t[0] === ':') { off = true; t = t.slice(1).trim(); }
+    var m = /^([0-9A-Fa-f]{8})[\s:\-]*([0-9A-Fa-f]{4})(?:\s+(.*))?$/.exec(t);
+    if (!m) return;
+    var code = { addr: m[1].toUpperCase(), val: m[2].toUpperCase() };
+    if (m[3] || !cur) {
+      cur = { desc: (m[3] || '').trim() || ('Cheat ' + (out.length + 1)), codes: [], bad: 0, on: on !== false && !off };
+      out.push(cur);
+    }
+    cur.codes.push(code);
+  });
+  return out;
+}
+
+// The .datel file for the ticked cheats: the name on each cheat's first line.
+function formatDatel(cheats) {
+  var lines = ['# Cheats for SummerStation64 (GameShark / Action Replay codes). Use Cheats: Game info, R.'];
+  cheats.forEach(function (c) {
+    if (!c.on) return;
+    c.codes.forEach(function (code, i) {
+      lines.push(code.addr + ' ' + code.val + (i === 0 ? ' ' + c.desc.replace(/[\r\n]+/g, ' ') : ''));
+    });
+  });
+  return lines.join('\n') + '\n';
+}
+
+function linesUsed(cheats) {
+  return cheats.reduce(function (n, c) { return n + (c.on ? c.codes.length : 0); }, 0);
+}
+
+// What to say about a cheat: an enable code, one that needs a button, one the menu skips.
+function cheatNote(c) {
+  var first = c.codes[0].addr.slice(0, 2);
+  if (/must be on|enable code|activator|master code/i.test(c.desc) || first === 'F1' || first === 'FF' || first === 'EE') return 'enable';
+  if (c.codes.some(function (x) { return x.addr.slice(0, 2) === 'DE'; })) return 'skipped';
+  if (c.codes.some(function (x) { return /^D[0-3]$/.test(x.addr.slice(0, 2)); })) return 'button';
+  return '';
+}
+
+// Two cheats are the same when their codes are.
+function sameCodes(a, b) {
+  return a.codes.length === b.codes.length && a.codes.every(function (x, i) { return x.addr === b.codes[i].addr && x.val === b.codes[i].val; });
+}
+
+// Add cheats to a list, leaving out ones already in it (those get ticked if the new one is).
+function mergeCheats(list, more) {
+  more.forEach(function (c) {
+    var have = list.find(function (x) { return sameCodes(x, c); });
+    if (have) { have.on = have.on || c.on; return; }
+    list.push(c);
+  });
+  return list;
+}
+
+// For matching file names: lower case, letters and digits, no brackets, extension or list number ("0222 - ").
+function plainName(name) {
+  return String(name).replace(/\.[A-Za-z0-9]{2,4}$/, '').replace(/^\d{1,4}\s*-\s*/, '').replace(/[\(\[][^\)\]]*[\)\]]/g, ' ')
+    .replace(/^(.*?), (The|A|An)\b/i, '$2 $1').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '');
+}
+
+// libretro's cheat lists that could be this game's, best first: the exact
+// No-Intro name (from Card Prep), then lists with the same plain name,
+// preferring the game's own region.
+function chtCandidates(listNames, noIntro, fileName) {
+  var out = [];
+  if (noIntro && listNames.indexOf(noIntro + '.cht') >= 0) out.push(noIntro + '.cht');
+  var want = plainName(noIntro || fileName), region = /\((?:U|USA)\b|\(.*USA/i.test(noIntro || fileName) ? 'usa'
+    : /\((?:J|Japan)\b|\(.*Japan/i.test(noIntro || fileName) ? 'japan' : /\((?:E|Europe|PAL)\b|\(.*Europe/i.test(noIntro || fileName) ? 'europe' : '';
+  var same = listNames.filter(function (n) { return plainName(n) === want && out.indexOf(n) < 0; });
+  same.sort(function (a, b) {
+    var ra = region && a.toLowerCase().indexOf(region) >= 0 ? 0 : 1, rb = region && b.toLowerCase().indexOf(region) >= 0 ? 0 : 1;
+    return ra - rb || a.length - b.length || a.localeCompare(b);
+  });
+  return out.concat(same);
+}
+// --- end cheats logic ---
+
+var T = window.cardTools, P = window.cardPrep, F = window.cardFolders;
+var $ = function (id) { return document.getElementById(id); };
+var card = null;        // { root, files: lower path -> File (fallback), all: [paths], games: [{name, folder, file, title}] }
+var listNames = null;   // libretro's N64 cheat list names, read once
+var open = null;        // the game being edited
+var edits = new Map();  // game name -> its cheats as edited
+
+function esc(text) {
+  return String(text).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; });
+}
+async function dirAt(path) {
+  var dir = card.root;
+  for (var part of path.split('/').filter(Boolean)) {
+    var next = null;
+    try { next = await dir.getDirectoryHandle(part); } catch (e) {
+      for await (var [name, h] of dir.entries()) {
+        if (h.kind === 'directory' && name.toLowerCase() === part.toLowerCase()) { next = h; break; }
+      }
+    }
+    if (!next) return null;
+    dir = next;
+  }
+  return dir;
+}
+async function cardFile(path) {
+  if (!card.root) return card.files.get(path.toLowerCase()) || null;
+  var slash = path.lastIndexOf('/'), dir = await dirAt(slash >= 0 ? path.slice(0, slash) : '');
+  if (!dir) return null;
+  try { return await (await dir.getFileHandle(path.slice(slash + 1))).getFile(); } catch (e) { return null; }
+}
+async function cardText(path) { var f = await cardFile(path); return f ? f.text() : null; }
+function datelPath(game) { return game.name.replace(/\.[^./]+$/, '') + '.datel'; }
+
+async function cardChosen(root, files, all) {
+  card = { root: root, files: files, all: all, games: [] };
+  edits.clear();
+  closeEditor();
+  $('chtCardStatus').textContent = 'Reading the card...';
+  var folders = F.gameFolders(await cardText('menu/config.ini'), await cardText('menu/gamefolders.txt'));
+  var verifiedText = await cardText('menu/verified.txt'), named = new Map();
+  if (verifiedText) {
+    verifiedText.split(/\r?\n/).forEach(function (line) {
+      var m = /^([0-9a-f]{8}) (\d+) [0-9a-f]{8} [VMU] (.+)$/.exec(line.trim());
+      if (m) named.set(m[1] + ' ' + m[2], m[3]);
+    });
+  }
+  var seen = new Set();
+  for (var folder of folders) {
+    var names = [];
+    if (!root) {
+      var pre = folder === '/' ? '' : folder.slice(1).toLowerCase() + '/';
+      all.forEach(function (p) {
+        if (p.toLowerCase().indexOf(pre) === 0 && p.slice(pre.length).indexOf('/') < 0) names.push(p.slice(pre.length));
+      });
+    } else {
+      var dir = await dirAt(folder);
+      if (dir) for await (var [n, h] of dir.entries()) if (h.kind === 'file') names.push(n);
+    }
+    var lower = names.map(function (n) { return n.toLowerCase(); });
+    for (var file of names) {
+      if (!/\.(z64|n64|v64)$/i.test(file)) continue;
+      var name = F.entryName(folder, file);
+      if (seen.has(name)) continue;
+      seen.add(name);
+      var game = { name: name, folder: folder, file: file, title: T.tidyName(file) || file, noIntro: '' };
+      game.hasDatel = lower.indexOf(file.replace(/\.[^.]+$/, '').toLowerCase() + '.datel') >= 0;
+      var f = await cardFile(name);
+      if (f) game.noIntro = named.get(P.hex8(P.pathKey('sd:/' + name)) + ' ' + f.size) || '';
+      card.games.push(game);
+    }
+  }
+  card.games.sort(function (a, b) { return a.title.localeCompare(b.title) || a.name.localeCompare(b.name); });
+  var exact = card.games.filter(function (g) { return g.noIntro; }).length;
+  $('chtCardStatus').innerHTML = '<b>' + card.games.length + '</b> N64 game' + (card.games.length === 1 ? '' : 's') +
+    (verifiedText ? ', ' + exact + ' known to Card Prep.' : '. <a href="#prep">Card Prep</a> hasn\'t been run, so lists are matched by file name.') +
+    (root ? '' : ' This browser can\'t write to the card: you\'ll get a .zip to copy.');
+  renderRows();
+  renderListed();
+}
+
+function renderRows() {
+  var body = $('chtRows');
+  body.textContent = '';
+  if (!card) { body.innerHTML = '<tr><td colspan="3" class="U">Pick the card first.</td></tr>'; return; }
+  var q = $('chtSearch').value.trim().toLowerCase(), shown = 0;
+  card.games.forEach(function (g) {
+    if (q && g.title.toLowerCase().indexOf(q) < 0 && g.name.toLowerCase().indexOf(q) < 0) return;
+    if (++shown > 300) return;
+    var tr = document.createElement('tr');
+    var a = document.createElement('td'); a.className = 'file'; a.textContent = g.title;
+    var b = document.createElement('td');
+    var e = edits.get(g.name);
+    b.textContent = e ? linesUsed(e) + ' code lines ticked (to save)' : (g.hasDatel ? 'On the card' : '');
+    var c = document.createElement('td'); c.className = 'act';
+    c.appendChild(button(e || g.hasDatel ? 'Change' : 'Choose cheats', !!(e || g.hasDatel), function () { openEditor(g); }));
+    tr.append(a, b, c);
+    body.appendChild(tr);
+  });
+  if (!shown) body.innerHTML = '<tr><td colspan="3" class="U">No game matches.</td></tr>';
+}
+$('chtSearch').addEventListener('input', renderRows);
+
+function button(text, quiet, onClick) {
+  var b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'go small' + (quiet ? ' quiet' : '');
+  b.textContent = text;
+  b.addEventListener('click', onClick);
+  return b;
+}
+
+async function libretroNames() {
+  if (listNames) return listNames;
+  var top = await (await fetch('https://api.github.com/repos/libretro/libretro-database/contents/cht')).json();
+  var n64 = top.find(function (x) { return x.name === 'Nintendo - Nintendo 64'; });
+  if (!n64) throw new Error('libretro has no Nintendo 64 cheat folder');
+  var tree = await (await fetch('https://api.github.com/repos/libretro/libretro-database/git/trees/' + n64.sha)).json();
+  listNames = (tree.tree || []).map(function (x) { return x.path; }).filter(function (p) { return /\.cht$/i.test(p); });
+  return listNames;
+}
+
+async function loadSource(name) {
+  if (!name) { renderCodes(); return; }
+  $('chtSourceStatus').textContent = 'Fetching...';
+  try {
+    var res = await fetch(CHT_BASE + encodeURIComponent(name));
+    if (!res.ok) throw new Error('not found (' + res.status + ')');
+    var found = parseCht(await res.text());
+    mergeCheats(edits.get(open.name), found);
+    $('chtSourceStatus').textContent = found.length + ' cheats in this list.';
+  } catch (e) {
+    $('chtSourceStatus').innerHTML = '<span class="bad">Could not fetch it: ' + esc(e.message) + '</span>';
+  }
+  renderCodes();
+}
+
+async function openEditor(g) {
+  open = g;
+  $('chtEdit').classList.remove('hidden');
+  $('chtTitle').textContent = g.title;
+  $('chtEditStatus').textContent = '';
+  $('chtFilter').value = '';
+  if (!edits.has(g.name)) {
+    var text = g.hasDatel ? await cardText(datelPath(g)) : null;
+    edits.set(g.name, text ? parseDatel(text) : []);
+  }
+  renderCodes();
+  var sel = $('chtSource');
+  sel.innerHTML = '<option value="">Looking for lists...</option>';
+  $('chtSourceStatus').textContent = '';
+  var names;
+  try { names = await libretroNames(); } catch (e) {
+    sel.innerHTML = '<option value="">None (offline?)</option>';
+    $('chtSourceStatus').innerHTML = '<span class="bad">Could not reach libretro: ' + esc(e.message) + '. You can still paste codes.</span>';
+    return;
+  }
+  var found = chtCandidates(names, g.noIntro, g.file);
+  sel.innerHTML = '';
+  found.forEach(function (n) { var o = document.createElement('option'); o.value = n; o.textContent = n.replace(/\.cht$/i, ''); sel.appendChild(o); });
+  var none = document.createElement('option'); none.value = ''; none.textContent = found.length ? 'None' : 'None found for this game';
+  sel.appendChild(none);
+  if (found.length) await loadSource(found[0]);
+  else $('chtSourceStatus').textContent = 'libretro has no list matching this game; paste codes below.';
+  $('chtEdit').scrollIntoView({ behavior: 'smooth' });
+}
+$('chtSource').addEventListener('change', function () { loadSource(this.value); });
+
+function renderCodes() {
+  var list = edits.get(open.name) || [], body = $('chtCodes'), q = $('chtFilter').value.trim().toLowerCase();
+  body.textContent = '';
+  list.forEach(function (c) {
+    if (q && c.desc.toLowerCase().indexOf(q) < 0) return;
+    var tr = document.createElement('tr');
+    var a = document.createElement('td');
+    var box = document.createElement('input'); box.type = 'checkbox'; box.checked = c.on; box.setAttribute('aria-label', c.desc);
+    box.addEventListener('change', function () { c.on = box.checked; updateCount(); renderRows(); renderListed(); });
+    a.appendChild(box);
+    var b = document.createElement('td');
+    b.textContent = c.desc;
+    var note = cheatNote(c);
+    if (note) {
+      var s = document.createElement('span');
+      s.className = note === 'enable' ? 'own' : 'bad';
+      s.textContent = note === 'enable' ? '  enable code: keep it on' : note === 'button' ? '  needs a button: may not work' : '  the menu skips DE codes';
+      b.appendChild(s);
+    }
+    var d = document.createElement('td');
+    d.style.fontFamily = 'monospace';
+    d.textContent = c.codes.map(function (x) { return x.addr + ' ' + x.val; }).join('  ');
+    tr.append(a, b, d);
+    body.appendChild(tr);
+  });
+  if (!body.children.length) body.innerHTML = '<tr><td colspan="3" class="U">' + (list.length ? 'No cheat matches.' : 'No codes yet.') + '</td></tr>';
+  updateCount();
+}
+$('chtFilter').addEventListener('input', renderCodes);
+
+function updateCount() {
+  var n = linesUsed(edits.get(open.name) || []);
+  $('chtCount').innerHTML = n > CHT_MAX_LINES ? '<span class="bad">' + n + ' code lines ticked: the menu reads the first ' + CHT_MAX_LINES + '.</span>'
+                                              : n + ' of ' + CHT_MAX_LINES + ' code lines ticked.';
+}
+
+$('chtAdd').addEventListener('click', function () {
+  if (!open) return;
+  var added = parseDatel($('chtPaste').value, true);
+  if (!added.length) { $('chtEditStatus').innerHTML = '<span class="bad">No codes found: each line needs 8 characters, a space and 4 characters.</span>'; return; }
+  mergeCheats(edits.get(open.name), added);
+  $('chtPaste').value = '';
+  $('chtEditStatus').textContent = added.length + ' added, ticked.';
+  renderCodes(); renderRows(); renderListed();
+});
+function closeEditor() { open = null; $('chtEdit').classList.add('hidden'); }
+$('chtClose').addEventListener('click', function () { closeEditor(); renderRows(); });
+
+function renderListed() {
+  var ul = $('chtListed');
+  ul.textContent = '';
+  var any = false;
+  if (card) card.games.forEach(function (g) {
+    var e = edits.get(g.name);
+    if (!e) return;
+    any = true;
+    var li = document.createElement('li');
+    li.textContent = g.title + ': ' + linesUsed(e) + ' code lines' + (linesUsed(e) ? '' : ' (its file is emptied)');
+    ul.appendChild(li);
+  });
+  $('chtSave').disabled = !any;
+}
+
+$('chtSave').addEventListener('click', async function () {
+  var out = [], enc = new TextEncoder();
+  card.games.forEach(function (g) { if (edits.has(g.name)) out.push({ path: datelPath(g), bytes: enc.encode(formatDatel(edits.get(g.name))), game: g }); });
+  if (!out.length) return;
+  if (card.root) {
+    try {
+      for (var f of out) {
+        var slash = f.path.lastIndexOf('/'), dir = await dirAt(slash >= 0 ? f.path.slice(0, slash) : '');
+        var w = await (await dir.getFileHandle(f.path.slice(slash + 1), { create: true })).createWritable();
+        await w.write(f.bytes);
+        await w.close();
+        f.game.hasDatel = true;
+      }
+      edits.clear();
+      $('chtSaveStatus').textContent = 'Saved ' + out.length + ' cheat file' + (out.length === 1 ? '' : 's') + '. On the console: Game info, R, Use Cheats: Enabled.';
+    } catch (e) {
+      $('chtSaveStatus').innerHTML = '<span class="bad">Could not write to the card: ' + esc(e.message) + '</span>';
+      return;
+    }
+  } else {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([T.zipStore(out, T.crcOf)], { type: 'application/zip' }));
+    a.download = 'cheats-for-sd-card.zip';
+    a.click();
+    $('chtSaveStatus').innerHTML = 'Unzip <b>cheats-for-sd-card.zip</b> into the card\'s top folder: each file lands beside its game.';
+  }
+  closeEditor();
+  renderRows();
+  renderListed();
+});
+
+$('chtPick').addEventListener('click', async function () {
+  if (!window.showDirectoryPicker) { $('chtPickOld').click(); return; }
+  try {
+    var root = await window.showDirectoryPicker({ mode: 'readwrite' });
+    await cardChosen(root, null, null);
+  } catch (e) {
+    if (e.name !== 'AbortError') $('chtCardStatus').innerHTML = '<span class="bad">Could not open that folder: ' + esc(e.message) + '</span>';
+  }
+});
+$('chtPickOld').addEventListener('change', function () {
+  var files = new Map(), all = [];
+  Array.prototype.forEach.call(this.files, function (f) {
+    var path = f.webkitRelativePath.split('/').slice(1).join('/');
+    all.push(path);
+    files.set(path.toLowerCase(), f);
+  });
+  cardChosen(null, files, all);
+});
+})();
+</script>
+
+<script>
+/* Tabs: one per address (#themes, #prep, #hacks, #art, #coll, #clips, #cheats, #guide, or a Guide section such as
    #guide-tools), so each can be linked to directly. */
 (function () {
-  var panes = ['themes', 'prep', 'hacks', 'art', 'coll', 'clips', 'guide'];
+  var panes = ['themes', 'prep', 'hacks', 'art', 'coll', 'clips', 'cheats', 'guide'];
   function show() {
     var hash = (location.hash || '#themes').slice(1);
     var tab = hash.indexOf('guide') === 0 ? 'guide' : (panes.indexOf(hash) >= 0 ? hash : 'themes');

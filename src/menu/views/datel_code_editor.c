@@ -6,6 +6,7 @@
  */
 
 #include "../ui_components/constants.h"
+#include "../cheat_ready.h"
 #include "../datel_codes.h"
 #include "../sound.h"
 #include "views.h"
@@ -480,7 +481,7 @@ void view_datel_code_editor_init (menu_t *menu) {
 
     path_free(rom_datel_filepath);
     path_free(rom_datel_txt_filepath);
-
+    cheat_ready_note(path_get(menu->load.rom_path)); // the codes in memory are this game's now (cheat_ready.h)
 }
 
 void view_datel_code_editor_display (menu_t *menu, surface_t *display) {

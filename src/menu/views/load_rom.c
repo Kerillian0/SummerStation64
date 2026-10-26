@@ -1,3 +1,4 @@
+#include "../cheat_ready.h"
 #include "../debug_stats.h"
 #include "../bookkeeping.h"
 #include "../cart_load.h"
@@ -886,6 +887,7 @@ static void load (menu_t *menu) {
 
     // Handle cheat codes only if Expansion Pak is present and cheats are enabled
     if (is_memory_expanded() && menu->load.rom_info.settings.cheats_enabled) {
+        cheat_ready_load(path_get(menu->load.rom_path)); // the game's cheat file, unless the editor has its codes (cheat_ready.h)
         uint32_t tmp_cheats[MAX_CHEAT_CODE_ARRAYLIST_SIZE];
         size_t cheat_item_count = generate_enabled_cheats_array(get_cheat_codes(), tmp_cheats);
 
