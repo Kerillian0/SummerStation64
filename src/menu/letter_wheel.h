@@ -42,20 +42,17 @@ void letter_wheel_draw (void);
 void letter_wheel_close (void);
 
 /**
- * Spell a name with the dial (a new collection's, for one): it stays open
- * by itself until START keeps the name (in Title Case) or B with nothing
- * left gives up, and then calls `done` with the name, or NULL.
- * @param prompt Shown above the name ("New collection").
+ * Spell a name with the dial (a collection's, for one), up to 27
+ * characters: pages A-Z, a-z, 0-9 and the symbols ( ) [ ] - _ ' . , & ! +
+ * (C-up / C-down), kept as typed, with a cursor that L and R move. It stays
+ * open by itself until START keeps the name or B with the cursor at the
+ * start gives up, and then calls `done` with the name, or NULL.
+ * @param prompt Shown in the middle ("New collection").
  * @param start The name to start from, or NULL.
  */
 void letter_wheel_name_begin (const char *prompt, const char *start, void (*done) (menu_t *menu, const char *name));
 
-/**
- * Spell a file name: as letter_wheel_name_begin(), but with a-z and the
- * symbols ( ) [ ] - _ ' . , & ! + as well, up to 100 characters, kept as
- * typed (no Title Case), and a cursor that L and R move through the name.
- * B with the cursor at the start gives up.
- */
+/** The same for a file name (file_rename.h): up to 100 characters. */
 void letter_wheel_file_name_begin (const char *prompt, const char *start, void (*done) (menu_t *menu, const char *name));
 
 /** True while a name is being spelled: the screen hands its buttons to letter_wheel_name_process(). */

@@ -38,10 +38,9 @@ static bool has_games[SLOTS];   /* slots that some name has after the prefix */
 static int start_selected = 0;  /* where the dial opened, for B with nothing typed */
 static sprite_t *disc = NULL;
 
-/* Naming something (letter_wheel_name_begin()): the dial stays open by
-   itself and spells a name: Space and A-Z, or 0-9 after C-up / C-down.
-   A file name (letter_wheel_file_name_begin()) also has a-z and symbols,
-   keeps its case, and has a cursor that L and R move. */
+/* Naming something (letter_wheel_name_begin(), letter_wheel_file_name_begin()):
+   the dial stays open by itself and spells a name on four pages (A-Z, a-z,
+   0-9, symbols), kept as typed, with a cursor that L and R move. */
 #define NAME_MAX        (27)
 #define FILE_NAME_MAX   (100)
 #define DIGIT_SLOTS     (10)
@@ -49,16 +48,13 @@ static sprite_t *disc = NULL;
 #define SYMBOL_SLOTS    ((int) sizeof(SYMBOLS) - 1)
 typedef enum { PAGE_UPPER, PAGE_LOWER, PAGE_DIGITS, PAGE_SYMBOLS, PAGE_COUNT } page_t;
 static bool naming = false;
-static bool file_mode = false;      /* a file name: four pages, its own case, a cursor */
+static int name_limit = NAME_MAX;   /* longest name allowed: NAME_MAX, or FILE_NAME_MAX for a file */
 static page_t page = PAGE_UPPER;
 static char name_text[FILE_NAME_MAX + 1];
 static int cursor = 0;              /* where A puts the next character (file names; otherwise the end) */
 static const char *name_prompt = "";
 static void (*name_done) (menu_t *menu, const char *name) = NULL;
 
-static int name_max (void) {
-    return file_mode ? FILE_NAME_MAX : NAME_MAX;
-}
 
 static int slot_total (void) {
     if (!naming) {
@@ -342,24 +338,9 @@ static void disc_draw (int x, int y, int radius, color_t color) {
     rdpq_mode_pop();
 }
 
-/* "COUCH CO OP" as typed -> "Couch Co Op". */
-static void title_case (const char *in, char *out, size_t size) {
-    size_t at = 0;
-    bool word_start = true;
-    for (const char *c = in; *c && at + 1 < size; c++) {
-        char ch = *c;
-        out[at++] = word_start ? (char) toupper((unsigned char) ch) : (char) tolower((unsigned char) ch);
-        word_start = (ch == ' ');
-    }
-    out[at] = '\0';
-}
-
-void letter_wheel_name_begin (const char *prompt, const char *start, void (*done) (menu_t *menu, const char *name)) {
-    file_mode = false;
-    snprintf(name_text, NAME_MAX + 1, "%s", start ? start : "");
-    for (char *c = name_text; *c; c++) {
-        *c = (char) toupper((unsigned char) *c);
-    }
+static void name_begin (const char *prompt, const char *start, int limit, void (*done) (menu_t *menu, const char *name)) {
+    name_limit = limit;
+    snprintf(name_text, (size_t) limit + 1, "%s", start ? start : "");
     cursor = (int) strlen(name_text);
     name_prompt = prompt ? prompt : "";
     name_done = done;
@@ -371,11 +352,12 @@ void letter_wheel_name_begin (const char *prompt, const char *start, void (*done
     }
 }
 
+void letter_wheel_name_begin (const char *prompt, const char *start, void (*done) (menu_t *menu, const char *name)) {
+    name_begin(prompt, start, NAME_MAX, done);
+}
+
 void letter_wheel_file_name_begin (const char *prompt, const char *start, void (*done) (menu_t *menu, const char *name)) {
-    letter_wheel_name_begin(prompt, NULL, done);
-    file_mode = true;
-    snprintf(name_text, sizeof(name_text), "%s", start ? start : "");
-    cursor = (int) strlen(name_text);
+    name_begin(prompt, start, FILE_NAME_MAX, done);
 }
 
 bool letter_wheel_naming (void) {
@@ -397,23 +379,19 @@ void letter_wheel_name_process (menu_t *menu) {
         sound_play_effect(SFX_CURSOR);
     }
     if (pressed.c_up || pressed.c_down) {
-        if (file_mode) {
-            page = (page_t) ((page + (pressed.c_down ? 1 : PAGE_COUNT - 1)) % PAGE_COUNT);
-        } else {
-            page = (page == PAGE_DIGITS) ? PAGE_UPPER : PAGE_DIGITS;
-        }
+        page = (page_t) ((page + (pressed.c_down ? 1 : PAGE_COUNT - 1)) % PAGE_COUNT);
         pointed = (page == PAGE_UPPER || page == PAGE_LOWER) ? 1 : 0;
         sound_play_effect(SFX_CURSOR);
     }
     int n = (int) strlen(name_text);
-    if (file_mode && (pressed.l || pressed.r)) {
+    if (pressed.l || pressed.r) {
         int to = cursor + (pressed.r ? 1 : -1);
         if (to >= 0 && to <= n) {
             cursor = to;
             sound_play_effect(SFX_CURSOR);
         }
     }
-    if (pressed.a && n < name_max() && !(cursor == 0 && slot_char(pointed) == ' ')) {
+    if (pressed.a && n < name_limit && !(cursor == 0 && slot_char(pointed) == ' ')) {
         memmove(name_text + cursor + 1, name_text + cursor, (size_t) (n - cursor + 1));
         name_text[cursor++] = slot_char(pointed);
         sound_play_effect(SFX_SETTING);
@@ -422,8 +400,8 @@ void letter_wheel_name_process (menu_t *menu) {
         if (cursor > 0) {
             memmove(name_text + cursor - 1, name_text + cursor, (size_t) (n - cursor + 1));
             cursor--;
-        } else if (n == 0 || file_mode) {
-            naming = false;     /* nothing typed, or a file name's cursor at its start: give up */
+        } else {
+            naming = false;     /* the cursor at the start: give up */
             if (name_done) name_done(menu, NULL);
         }
     } else if (menu->actions.settings && n > 0) {     /* START as the menu sees it: one press, also when a tap acts on release (screenshot.h) */
@@ -431,18 +409,14 @@ void letter_wheel_name_process (menu_t *menu) {
             name_text[--n] = '\0';
         }
         char name[FILE_NAME_MAX + 1];
-        if (file_mode) {
-            snprintf(name, sizeof(name), "%s", name_text);     /* a file keeps its case */
-        } else {
-            title_case(name_text, name, sizeof(name));
-        }
+        snprintf(name, sizeof(name), "%s", name_text);     /* as typed */
         naming = false;
         sound_play_effect(SFX_ENTER);
         if (name_done) name_done(menu, name);
     }
 }
 
-/* A file name: the page's name and the buttons in the middle of the dial,
+/* A name being spelled: the page's name and the buttons in the middle of the dial,
    the name itself in a band under it, a cursor where A puts the next
    character. A long name shows the part round the cursor. */
 #define FILE_BAND_Y     (CENTER_Y + DISC_RADIUS + 12)
@@ -475,7 +449,7 @@ static void file_name_draw (const theme_t *t) {
     rdpq_text_printf(&(rdpq_textparms_t) { .width = x1 - x0 - 16, .height = 30, .align = ALIGN_CENTER, .valign = VALIGN_CENTER,
         .wrap = WRAP_NONE, .style_id = STL_DEFAULT }, FNT_DEFAULT, x0 + 8, FILE_BAND_Y, "%s", shown);
     rdpq_text_printf(&(rdpq_textparms_t) { .width = x1 - x0, .height = 26, .align = ALIGN_CENTER, .valign = VALIGN_CENTER,
-        .style_id = STL_GRAY }, FNT_DEFAULT, x0, FILE_BAND_Y + 32, "START: rename    B at the start: cancel");
+        .style_id = STL_GRAY }, FNT_DEFAULT, x0, FILE_BAND_Y + 32, "START: done    B at the start: cancel");
 }
 
 static void ring_draw (const theme_t *t) {
@@ -505,19 +479,7 @@ void letter_wheel_draw (void) {
     ring_draw(t);
 
     if (naming) {
-        /* In the middle: what it is for, the name so far (its end, if long), and the buttons. */
-        if (file_mode) {
-            file_name_draw(t);
-            return;
-        }
-        char shown[NAME_MAX + 1];
-        title_case(name_text, shown, sizeof(shown));
-        int n = (int) strlen(shown);
-        const char *tail = (n > 14) ? shown + n - 14 : shown;
-        letter(CENTER_X, CENTER_Y - 44, 170, STL_GRAY, FNT_DEFAULT, name_prompt);
-        letter(CENTER_X, CENTER_Y - 12, 170, STL_DEFAULT, FNT_DEFAULT, n ? tail : "_");
-        letter(CENTER_X, CENTER_Y + 18, 170, STL_GRAY, FNT_DEFAULT, "A add  B erase");
-        letter(CENTER_X, CENTER_Y + 40, 170, STL_GRAY, FNT_DEFAULT, (page == PAGE_DIGITS) ? "C\u25B2\u25BC A-Z  START ok" : "C\u25B2\u25BC 0-9  START ok");
+        file_name_draw(t);  /* the page and buttons in the middle, the name in a band under the dial */
         return;
     }
 
