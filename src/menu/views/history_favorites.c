@@ -14,6 +14,7 @@
 #include "../cover_row.h"
 #include "../tabs.h"
 #include "../start_menu.h"
+#include "../favorite_toggle.h"
 
 
 typedef enum {
@@ -26,37 +27,58 @@ typedef enum {
 // Both tabs are rows of covers now. 0 brings the stock text lists back.
 #define COVER_ROWS  (1)
 
+static bookkeeping_tab_context_t tab_context = BOOKKEEPING_TAB_CONTEXT_NONE;
+static int selected_item = -1;
+static bookkeeping_item_t *item_list;
+static uint16_t item_max = 0;
+
 static bool confirm_remove = false;  // "Remove this favorite?" is showing
 static bool confirm_hide = false;    // "Hide from the cover tabs?" is showing
 
-// Z on the cover rows: a short Options menu. Recent has the first row only.
+// Z on the cover rows: the same Options as on the Games tab.
 static void row_random (menu_t *menu, void *arg) {
     cover_row_random();
-}
-static void row_ask_remove (menu_t *menu, void *arg) {
-    confirm_remove = true;
 }
 static void row_ask_hide (menu_t *menu, void *arg) {
     confirm_hide = true;
 }
 static void row_add_to_collection (menu_t *menu, void *arg);
+static void row_favorite (menu_t *menu, void *arg);
+static void row_game_info (menu_t *menu, void *arg);
 static component_context_menu_t row_context_menu = { .list = {
     { .text = "Random game", .action = row_random },
+    { .text = "Add to Favorites", .action = row_favorite },
+    { .text = "Game info", .action = row_game_info },
     { .text = "Add to collection...", .action = row_add_to_collection },
     { .text = "Hide this game", .action = row_ask_hide },
-    { .text = "Remove from Favorites", .action = row_ask_remove },
     COMPONENT_CONTEXT_MENU_LIST_END,
 }};
-static void row_menu_show (bool favorites) {
-    row_context_menu.list[3].text = favorites ? "Remove from Favorites" : NULL;   // the list ends at the first row without text
+static void row_menu_show (menu_t *menu, bool favorites) {
+    // On Favorites every game is one, and taking it out asks first.
+    row_context_menu.list[1].text = favorites ? "Remove from Favorites"
+        : favorite_toggle_text(menu, path_get(item_list[selected_item].primary_path));
     ui_components_context_menu_init(&row_context_menu);     // counts the rows
     ui_components_context_menu_show(&row_context_menu);
 }
 
-static bookkeeping_tab_context_t tab_context = BOOKKEEPING_TAB_CONTEXT_NONE;
-static int selected_item = -1;
-static bookkeeping_item_t *item_list;
-static uint16_t item_max = 0;
+static void open_selected (menu_t *menu);
+
+static void row_game_info (menu_t *menu, void *arg) {
+    if (selected_item != -1) {
+        open_selected(menu);
+    }
+}
+
+static void row_favorite (menu_t *menu, void *arg) {
+    if (selected_item == -1) {
+        return;
+    }
+    if (tab_context == BOOKKEEPING_TAB_CONTEXT_FAVORITE) {
+        confirm_remove = true;
+        return;
+    }
+    favorite_toggle(menu, path_get(item_list[selected_item].primary_path), item_list[selected_item].bookkeeping_type == BOOKKEEPING_TYPE_DISK);
+}
 
 // Put the selected game in the player's own collections (collection_edit.h).
 static void row_add_to_collection (menu_t *menu, void *arg) {
@@ -108,6 +130,24 @@ static void item_move_previous() {
             break;
         }
     } while (true);
+}
+
+static void open_selected (menu_t *menu) {
+    if(tab_context == BOOKKEEPING_TAB_CONTEXT_FAVORITE) {
+        menu->load.load_favorite_id = selected_item;
+        menu->load.load_history_id = -1;
+    } else if(tab_context == BOOKKEEPING_TAB_CONTEXT_HISTORY) {
+        menu->load.load_history_id = selected_item;
+        menu->load.load_favorite_id = -1;
+    }           
+
+    if(item_list[selected_item].bookkeeping_type == BOOKKEEPING_TYPE_DISK) {
+        menu->next_mode = MENU_MODE_LOAD_DISK;
+        sound_play_effect(SFX_ENTER);
+    } else if(item_list[selected_item].bookkeeping_type == BOOKKEEPING_TYPE_ROM) {
+        menu->next_mode = MENU_MODE_LOAD_ROM;
+        sound_play_effect(SFX_ENTER);
+    }
 }
 
 static void process(menu_t *menu) {
@@ -165,22 +205,7 @@ static void process(menu_t *menu) {
     } else if(menu->actions.go_up) {
         item_move_previous();
     } else if(menu->actions.enter && selected_item != -1) {
-                
-        if(tab_context == BOOKKEEPING_TAB_CONTEXT_FAVORITE) {
-            menu->load.load_favorite_id = selected_item;
-            menu->load.load_history_id = -1;
-        } else if(tab_context == BOOKKEEPING_TAB_CONTEXT_HISTORY) {
-            menu->load.load_history_id = selected_item;
-            menu->load.load_favorite_id = -1;
-        }           
-
-        if(item_list[selected_item].bookkeeping_type == BOOKKEEPING_TYPE_DISK) {
-            menu->next_mode = MENU_MODE_LOAD_DISK;
-            sound_play_effect(SFX_ENTER);
-        } else if(item_list[selected_item].bookkeeping_type == BOOKKEEPING_TYPE_ROM) {
-            menu->next_mode = MENU_MODE_LOAD_ROM;
-            sound_play_effect(SFX_ENTER);
-        }
+        open_selected(menu);
     } else if (menu->actions.go_left || menu->actions.go_right) {
         // L and R: the tab before or after this one, in the player's order.
         games_tab_t here = (tab_context == BOOKKEEPING_TAB_CONTEXT_FAVORITE) ? GAMES_TAB_FAVORITES : GAMES_TAB_RECENT;
@@ -190,7 +215,7 @@ static void process(menu_t *menu) {
     } else if (menu->actions.settings) {
         start_menu_show();
     } else if (COVER_ROWS && menu->actions.options && selected_item != -1) {
-        row_menu_show(tab_context == BOOKKEEPING_TAB_CONTEXT_FAVORITE);
+        row_menu_show(menu, tab_context == BOOKKEEPING_TAB_CONTEXT_FAVORITE);
         sound_play_effect(SFX_SETTING);
     } else if (tab_context == BOOKKEEPING_TAB_CONTEXT_FAVORITE && menu->actions.options && selected_item != -1) {
         confirm_remove = true;

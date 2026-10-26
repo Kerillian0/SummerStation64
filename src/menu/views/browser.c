@@ -31,6 +31,7 @@
 #include "../collections.h"
 #include "../collection_edit.h"
 #include "../dd_pair.h"
+#include "../favorite_toggle.h"
 #include "../retro.h"
 #include "../game_learn.h"
 #include "../sort_order.h"
@@ -589,9 +590,23 @@ static void show_properties (menu_t *menu, void *arg) {
     menu->next_mode = menu->browser.entry->type == ENTRY_TYPE_ARCHIVED ? MENU_MODE_EXTRACT_FILE : MENU_MODE_FILE_INFO;
 }
 
+static void note_show (const char *text);
+
+static void toggle_favorite (menu_t *menu, void *arg) {
+    entry_t *e = menu->browser.entry;
+    path_t *path = path_clone_push(menu->browser.directory, e->name);
+    bool now = favorite_toggle(menu, path_get(path), e->type == ENTRY_TYPE_DISK);
+    path_free(path);
+    note_show(now ? "Added to Favorites." : "Removed from Favorites.");
+}
+
 static void show_game_info (menu_t *menu, void *arg) {
     if (menu->browser.entry->type == ENTRY_TYPE_ROM) {
         menu->next_mode = MENU_MODE_LOAD_ROM;
+    } else if (menu->browser.entry->type == ENTRY_TYPE_DISK) {
+        menu->next_mode = MENU_MODE_LOAD_DISK;
+    } else if (menu->browser.entry->type == ENTRY_TYPE_EMULATOR) {
+        menu->next_mode = MENU_MODE_LOAD_EMULATOR;
     } else {
         show_properties(menu, arg);
     }
@@ -889,24 +904,11 @@ static void folders_hide (menu_t *menu, void *arg) {
     path_free(path);
 }
 
-// 64DD pairing (dd_pair.h): Z on a disk chooses the cartridge it is played with.
-static void pair_disk (menu_t *menu, void *arg) {
-    path_t *path = path_clone_push(menu->browser.directory, menu->browser.entry->name);
-    dd_pair_pick(menu, path_get(path));
-    path_free(path);
-}
-
 // The player's own collections (my_collections.h, collection_edit.h): Z on a
-// game puts it in or out of them; inside one of them, Z can take it out.
+// game puts it in or out of them (a tick per collection).
 static void add_to_collection (menu_t *menu, void *arg) {
     path_t *path = path_clone_push(menu->browser.directory, menu->browser.entry->name);
     collection_edit_pick(path_get(path));
-    path_free(path);
-}
-
-static void remove_from_collection (menu_t *menu, void *arg) {
-    path_t *path = path_clone_push(menu->browser.directory, menu->browser.entry->name);
-    collection_edit_remove(menu, collections_mine(collection_open), path_get(path));
     path_free(path);
 }
 
@@ -937,77 +939,54 @@ static void card_menu_show (void) {
 }
 
 // Every row the Options menu can have. entry_menu_fill() copies the ones
-// that suit the tab into entry_context_menu each time it is opened.
-static component_context_menu_t entry_menu_rows = {
-    .list = {
-        { .text = "Random game", .action = random_game },
-        { .text = "Game info", .action = show_game_info },
-        { .text = "Add to collection...", .action = add_to_collection },
-        { .text = "Remove from this collection", .action = remove_from_collection },
-        { .text = "Pair with a cartridge...", .action = pair_disk },
-        { .text = "Hide this game", .action = hide_game },
-        { .text = "Hide this game", .action = folders_hide },
-        { .text = "Show entry properties", .action = show_properties },
-        { .text = "Delete selected entry", .action = delete_entry },
-        { .text = "Set current directory as default", .action = set_default_directory },
-        { .text = "Add this folder to Games", .action = add_games_folder },
-        { .text = "Remove this folder from Games", .action = remove_games_folder },
-        { .text = "Mark this folder as hacks", .action = mark_hacks_folder },
-        { .text = "Unmark this folder as hacks", .action = unmark_hacks_folder },
+// that suit the tab into entry_context_menu each time it is opened: on the
+// cover tabs the first five (a game's own), on the Folders tab the rest.
+#define ENTRY_MENU_ROWS \
+        { .text = "Random game", .action = random_game }, \
+        { .text = "Add to Favorites", .action = toggle_favorite }, \
+        { .text = "Game info", .action = show_game_info }, \
+        { .text = "Add to collection...", .action = add_to_collection }, \
+        { .text = "Hide this game", .action = hide_game }, \
+        { .text = "Hide this game", .action = folders_hide }, \
+        { .text = "Show entry properties", .action = show_properties }, \
+        { .text = "Delete selected entry", .action = delete_entry }, \
+        { .text = "Set current directory as default", .action = set_default_directory }, \
+        { .text = "Add this folder to Games", .action = add_games_folder }, \
+        { .text = "Remove this folder from Games", .action = remove_games_folder }, \
+        { .text = "Mark this folder as hacks", .action = mark_hacks_folder }, \
+        { .text = "Unmark this folder as hacks", .action = unmark_hacks_folder }, \
         COMPONENT_CONTEXT_MENU_LIST_END,
-    }
-};
 
-static component_context_menu_t entry_context_menu = {
-    .list = {
-        { .text = "Random game", .action = random_game },
-        { .text = "Game info", .action = show_game_info },
-        { .text = "Add to collection...", .action = add_to_collection },
-        { .text = "Remove from this collection", .action = remove_from_collection },
-        { .text = "Pair with a cartridge...", .action = pair_disk },
-        { .text = "Hide this game", .action = hide_game },
-        { .text = "Hide this game", .action = folders_hide },
-        { .text = "Show entry properties", .action = show_properties },
-        { .text = "Delete selected entry", .action = delete_entry },
-        { .text = "Set current directory as default", .action = set_default_directory },
-        { .text = "Add this folder to Games", .action = add_games_folder },
-        { .text = "Remove this folder from Games", .action = remove_games_folder },
-        { .text = "Mark this folder as hacks", .action = mark_hacks_folder },
-        { .text = "Unmark this folder as hacks", .action = unmark_hacks_folder },
-        COMPONENT_CONTEXT_MENU_LIST_END,
-    }
-};
+static component_context_menu_t entry_menu_rows = { .list = { ENTRY_MENU_ROWS } };
+static component_context_menu_t entry_context_menu = { .list = { ENTRY_MENU_ROWS } };
 
 static void entry_menu_fill (menu_t *menu) {
     int rows = 0;
     entry_t *e = menu->browser.entry;
     bool game = e && (e->type == ENTRY_TYPE_ROM || e->type == ENTRY_TYPE_DISK || e->type == ENTRY_TYPE_EMULATOR);
-    bool hidden = false;
-    if (game && folders_tab) {
-        path_t *path = path_clone_push(menu->browser.directory, e->name);
-        hidden = hidden_games_is(path_get(path));
-        path_free(path);
-    }
+    path_t *path = (game) ? path_clone_push(menu->browser.directory, e->name) : NULL;
     for (int i = 0; entry_menu_rows.list[i].text != NULL; i++) {
         __typeof__(entry_menu_rows.list[0]) row = entry_menu_rows.list[i];
-        if (folders_tab && row.action == random_game) {
-            continue;   // a random pick is for the row of games
+        bool cover_row = (row.action == random_game || row.action == toggle_favorite || row.action == show_game_info
+                          || row.action == add_to_collection || row.action == hide_game);
+        if (!folders_tab) {
+            // A cover tab: the game's own rows only.
+            if (!cover_row || (row.action != random_game && !game)
+                || (row.action == toggle_favorite && !favorite_toggle_allowed(e))) {
+                continue;
+            }
+        } else if ((cover_row && row.action != show_game_info) || (row.action == folders_hide && !game)) {
+            continue;   // the Folders tab: the file browser's rows, and hiding a game there
         }
-        if ((row.action == hide_game && (folders_tab || !game)) || (row.action == folders_hide && (!folders_tab || !game))) {
-            continue;   // hiding: from a cover, or a game in the Folders tab
+        if (row.action == toggle_favorite) {
+            row.text = favorite_toggle_text(menu, path_get(path));
         }
-        if ((row.action == add_to_collection && (folders_tab || !game))
-            || (row.action == remove_from_collection && !(collections_tab && game && collections_mine(collection_open) >= 0))) {
-            continue;   // collections: games on a cover tab; taking out, inside the player's own collection
-        }
-        if (row.action == pair_disk && (folders_tab || !e || e->type != ENTRY_TYPE_DISK)) {
-            continue;   // a 64DD disk on a cover tab, where the cartridges are the Games list
-        }
-        if (row.action == folders_hide && hidden) {
+        if (row.action == folders_hide && hidden_games_is(path_get(path))) {
             row.text = "Unhide this game";
         }
         entry_context_menu.list[rows++] = row;
     }
+    path_free(path);
     entry_context_menu.list[rows].text = NULL;
     ui_components_context_menu_init(&entry_context_menu);   // counts the rows again
 }

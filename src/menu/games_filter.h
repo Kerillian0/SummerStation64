@@ -105,6 +105,16 @@ typedef enum {
 /** Name of a game_versions_t choice, for Settings. */
 const char *games_filter_versions_name (int choice);
 
+/** Homebrew on Games (option `homebrew_on_games`). */
+typedef enum {
+    HOMEBREW_ON_GAMES_SHOW,     /**< homebrew on the Games tab too (the default) */
+    HOMEBREW_ON_GAMES_HIDE,     /**< homebrew on the Homebrew tab only */
+    HOMEBREW_ON_GAMES_COUNT
+} homebrew_on_games_t;
+
+/** Name of a homebrew_on_games_t choice, for Settings. */
+const char *games_filter_homebrew_name (int choice);
+
 /**
  * With Game Versions grouped, or Region Copies on One Cover under All: how
  * many files this cover stands for (1 when it stands for itself only, or

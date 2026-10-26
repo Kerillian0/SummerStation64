@@ -222,7 +222,7 @@ static void draw_cover (surface_t *image) {
 }
 
 /* A labelled fact in a dark box: a dim caption with the value under it. */
-static void draw_fact (int index, const char *caption, const char *value) {
+static void draw_fact_styled (int index, const char *caption, const char *value, menu_font_style_t style) {
     int width = (X1 - X0 - (FACTS_GAP * 2)) / 3;
     int x = X0 + index * (width + FACTS_GAP);
 
@@ -241,7 +241,12 @@ static void draw_fact (int index, const char *caption, const char *value) {
         .height = FACTS_HEIGHT / 2,
         .valign = VALIGN_CENTER,
         .wrap = WRAP_ELLIPSES,
+        .style_id = style,
     }, FNT_DEFAULT, x + PAD, FACTS_Y + (FACTS_HEIGHT / 2) - 2, "%s", value);
+}
+
+static void draw_fact (int index, const char *caption, const char *value) {
+    draw_fact_styled(index, caption, value, STL_DEFAULT);
 }
 
 static const char *month_names[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
@@ -656,7 +661,7 @@ void game_info_ui_draw_page (menu_t *menu, component_boxart_t *art, const game_i
     }
 
     draw_played(menu, page->path);
-    draw_fact(2, page->fact_caption ? page->fact_caption : "", page->fact_value ? page->fact_value : "");
+    draw_fact_styled(2, page->fact_caption ? page->fact_caption : "", page->fact_value ? page->fact_value : "", page->fact_style);
 
     fill(X0, DESC_Y, X1, DESC_Y + DESC_HEIGHT, panel_color());
     draw_description((page->description && page->description[0]) ? page->description : "No description available.", DESC_HEIGHT - 30);

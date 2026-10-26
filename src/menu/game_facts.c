@@ -49,6 +49,14 @@ void game_facts_reset (void) {
     saves_forget();     /* saves may be made or deleted while away: read the folders again */
 }
 
+void game_facts_recheck (void) {
+    watched_entry = NULL;
+    watched_index = -1;
+    watched_hash = 0;
+    pending = false;
+    known = false;
+}
+
 /* Facts that never change for a file are remembered, so coming back to a
    game costs no card access. Newest entry replaces the oldest. */
 #define REMEMBERED  (32)

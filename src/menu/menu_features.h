@@ -48,6 +48,7 @@ typedef enum {
     FEATURE_SIDE_BOXES,
     FEATURE_CONTROLLER_MARKS,
     FEATURE_FILL_BOX_EDGES,
+    FEATURE_ADVANCED_OPTIONS,   /**< Game info's Options also offers CIC, save and TV type, the Datel editor, Clear RDRAM */
     FEATURE_COUNT
 } feature_t;
 

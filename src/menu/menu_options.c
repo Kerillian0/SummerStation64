@@ -42,6 +42,7 @@ static const option_info_t option_info[OPTION_COUNT] = {
     [OPTION_CLIP_SIZE] = { "clip_size", 1 }, /* half */
     [OPTION_CLIP_FPS] = { "clip_fps", 0 }, /* 15 a second */
     [OPTION_CLIP_DITHER] = { "clip_dither", 0 }, /* smooth */
+    [OPTION_HOMEBREW_ON_GAMES] = { "homebrew_on_games", 0 }, /* show */
     [OPTION_PARTY_TEST] = { "party_test", 0 }, /* count the real controllers */
 };
 

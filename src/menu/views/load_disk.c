@@ -49,14 +49,65 @@ static void add_favorite (menu_t *menu, void *arg) {
     bookkeeping_favorite_add(&menu->bookkeeping, menu->load.disk_slots.primary.disk_path, menu->load.rom_path, BOOKKEEPING_TYPE_DISK);
 }
 
+static void pair_disk (menu_t *menu, void *arg) {
+    dd_pair_pick(menu, path_get(menu->load.disk_slots.primary.disk_path));
+}
+
+static bool alone_warning = false;     // an expansion disk about to start without its cartridge (dd_pair_needs())
+
+// Options: the disk without its cartridge (also L); an expansion disk warns first.
+static void play_disk_alone (menu_t *menu, void *arg) {
+    if (dd_pair_needs(menu->load.disk_slots.primary.disk_info.id)) {
+        alone_warning = true;
+        sound_play_effect(SFX_ERROR);
+        return;
+    }
+    menu->load_pending.disk_file = true;
+    menu->load.combined_disk_rom = false;
+}
+
 static component_context_menu_t options_context_menu = { .list = {
+    { .text = "Pair with a cartridge...", .action = pair_disk },
+    { .text = "Play the disk alone", .action = play_disk_alone },
     { .text = "Add to favorites", .action = add_favorite },
     COMPONENT_CONTEXT_MENU_LIST_END,
 }};
 
-static bool alone_warning = false;     // an expansion disk about to start without its cartridge (dd_pair_needs())
+static bool load_rom(menu_t* menu, path_t* rom_path);
+
+// The disk's own cartridge (dd_pair.h), or none: not whichever game was opened last.
+static bool use_paired_cart (menu_t *menu) {
+    path_t *cart = dd_pair_cart(menu, path_get(menu->load.disk_slots.primary.disk_path), menu->load.disk_slots.primary.disk_info.id);
+    if (cart) {
+        bool ok = load_rom(menu, cart);
+        path_free(cart);
+        return ok;
+    }
+    if (menu->load.rom_path) {
+        rom_info_free_meta(&menu->load.rom_info);
+        path_free(menu->load.rom_path);
+        menu->load.rom_path = NULL;
+    }
+    return true;
+}
+
+// Z, not L: both come in as lz_context.
+static bool z_pressed (void) {
+    JOYPAD_PORT_FOREACH (port) {
+        if (joypad_get_buttons_pressed(port).z) {
+            return true;
+        }
+    }
+    return false;
+}
 
 static void process (menu_t *menu) {
+    if (dd_pair_process(menu)) {    // the cartridge list has the controls while it shows
+        if (dd_pair_take_change()) {
+            use_paired_cart(menu);
+        }
+        return;
+    }
     if (ui_components_context_menu_process(menu, &options_context_menu)) {
         return;
     }
@@ -79,7 +130,11 @@ static void process (menu_t *menu) {
     }
 
     if (alone_warning) {
-        if (menu->actions.enter) {
+        if (menu->actions.lz_context && z_pressed()) {
+            alone_warning = false;
+            pair_disk(menu, NULL);
+            sound_play_effect(SFX_SETTING);
+        } else if (menu->actions.enter) {
             alone_warning = false;
             menu->load_pending.disk_file = true;
             menu->load.combined_disk_rom = false;
@@ -90,8 +145,8 @@ static void process (menu_t *menu) {
         return;
     }
 
-    // With a cartridge (dd_pair.h), A starts both and L|Z the disk alone; an
-    // expansion disk alone asks first.
+    // With a cartridge (dd_pair.h), A starts both and L the disk alone; an
+    // expansion disk alone asks first. Z chooses the cartridge.
     bool needs_cart = dd_pair_needs(menu->load.disk_slots.primary.disk_info.id) != NULL;
     if (menu->actions.enter) {
         if (!menu->load.rom_path && needs_cart) {
@@ -101,6 +156,9 @@ static void process (menu_t *menu) {
         }
         menu->load_pending.disk_file = true;
         menu->load.combined_disk_rom = (menu->load.rom_path != NULL);
+    } else if (menu->actions.lz_context && z_pressed()) {
+        pair_disk(menu, NULL);
+        sound_play_effect(SFX_SETTING);
     } else if (menu->actions.lz_context && menu->load.rom_path) {
         if (needs_cart) {
             alone_warning = true;
@@ -202,7 +260,8 @@ static void draw (menu_t *menu, surface_t *d) {
         (void) format_disk_region; // only the stock page uses it
         game_info_more_draw_disk(menu, &menu->load.disk_slots.primary.disk_info, swap_disk_count,
                                  menu->load.rom_path ? path_last_get(menu->load.rom_path) : NULL,
-                                 dd_pair_needs(menu->load.disk_slots.primary.disk_info.id));
+                                 dd_pair_needs(menu->load.disk_slots.primary.disk_info.id),
+                                 dd_pair_alone(path_get(menu->load.disk_slots.primary.disk_path)));
 #else
         ui_components_layout_draw();
 
@@ -295,6 +354,7 @@ static void draw (menu_t *menu, surface_t *d) {
 #endif
 
         ui_components_context_menu_draw(&options_context_menu);
+        dd_pair_draw();
 
         if (alone_warning) {
             const char *game = dd_pair_needs(menu->load.disk_slots.primary.disk_info.id);
@@ -305,9 +365,10 @@ static void draw (menu_t *menu, surface_t *d) {
                 snprintf(needs, sizeof(needs), "This disk is an expansion for a cartridge game\nand needs that cartridge to play.");
             }
             ui_components_messagebox_draw(
-                "%s\n\nTo pair them: on the disk's cover press Z,\nthen Pair with a cartridge...\n\n"
+                "%s\n\n"
+                "^%02XZ: Pair with a cartridge^00\n"
                 "^%02XA: Start the disk anyway^00    ^%02XB: Back^00",
-                needs, STL_RED, STL_GREEN);
+                needs, STL_BLUE, STL_RED, STL_GREEN);
         }
     }
 
@@ -456,20 +517,8 @@ void view_load_disk_init (menu_t *menu) {
         return;
     }
 
-    // The disk's own cartridge (dd_pair.h), or none: not whichever game was opened last.
-    if (!cart_given) {
-        path_t *cart = dd_pair_cart(menu, path_get(menu->load.disk_slots.primary.disk_path), menu->load.disk_slots.primary.disk_info.id);
-        if (cart) {
-            bool ok = load_rom(menu, cart);
-            path_free(cart);
-            if (!ok) {
-                return;
-            }
-        } else if (menu->load.rom_path) {
-            rom_info_free_meta(&menu->load.rom_info);
-            path_free(menu->load.rom_path);
-            menu->load.rom_path = NULL;
-        }
+    if (!cart_given && !use_paired_cart(menu)) {
+        return;
     }
 
     // Scan for swap disks in the same directory

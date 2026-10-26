@@ -49,6 +49,7 @@ static const feature_info_t feature_info[FEATURE_COUNT] = {
     [FEATURE_SIDE_BOXES]          = { "side_boxes",          true,  false },
     [FEATURE_CONTROLLER_MARKS]    = { "controller_marks",    true,  false },
     [FEATURE_FILL_BOX_EDGES]      = { "fill_box_edges",      true,  false },
+    [FEATURE_ADVANCED_OPTIONS]    = { "advanced_options",    false, false },
 };
 
 #define FEATURES_USER_PATH      "sd:/menu/features.ini"

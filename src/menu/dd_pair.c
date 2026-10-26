@@ -176,6 +176,8 @@ static const entry_t *entry_named (menu_t *menu, const char *name) {
     return NULL;
 }
 
+static const entry_t *rule_cart (menu_t *menu, const char *id);
+
 /* The disk's cartridge in the Games list, or NULL. `chosen` says whether the player chose it (or chose none). */
 static const entry_t *find_cart (menu_t *menu, const char *disk, const char *id, bool *chosen) {
     int p = find_pair(disk);
@@ -183,6 +185,11 @@ static const entry_t *find_cart (menu_t *menu, const char *disk, const char *id,
     if (p >= 0) {
         return strcmp(pairs[p].cart, "-") ? entry_named(menu, pairs[p].cart) : NULL;
     }
+    return rule_cart(menu, id);
+}
+
+/* The cartridge the rule picks for this ID in the Games list, or NULL. */
+static const entry_t *rule_cart (menu_t *menu, const char *id) {
     if (!id || !menu->browser.list) {
         return NULL;
     }
@@ -307,48 +314,97 @@ void dd_pair_after_draw (menu_t *menu, const entry_t *selected) {
 #define CARTS_MAX       (512)
 
 static bool showing = false;
+static bool changed = false;        /* a choice was made since dd_pair_take_change() last asked */
 static char picking[NAME_LENGTH];   /* the disk, from the top of the card */
-static const entry_t **carts = NULL;    /* the cartridges, by name */
+static const entry_t **carts = NULL;    /* the cartridges: those the rule matches first, then the rest by name */
 static int carts_count = 0;
-static int row = 0, first_row = 0;  /* 0 Automatic, 1 No cartridge, then the cartridges */
+static int suggested = 0;           /* how many of carts the rule matches */
+static const entry_t *automatic = NULL;     /* what Automatic plays it with */
+static int row = 0, first_row = 0;  /* 0 Automatic, the suggested, No cartridge, then the others */
 static int current_row = 0;         /* the row in use now */
+
+/* Row r's cartridge, or NULL for Automatic (r 0) and No cartridge. */
+static const entry_t *cart_at (int r) {
+    if (r <= 0 || r == suggested + 1) {
+        return NULL;
+    }
+    return carts[(r <= suggested) ? r - 1 : r - 2];
+}
+
+static int row_of_none (void) {
+    return suggested + 1;
+}
 
 void dd_pair_pick (menu_t *menu, const char *disk_path) {
     snprintf(picking, sizeof(picking), "%s", from_top(disk_path));
     free(carts);
     carts_count = 0;
+    suggested = 0;
+    const char *id = known_id(picking);
+    automatic = rule_cart(menu, id);
     int all = games_filter_all_entries(menu->browser.entries);
     carts = malloc(((all < CARTS_MAX) ? all : CARTS_MAX) * sizeof(entry_t *) + 1);
-    for (int i = 0; carts && i < all && carts_count < CARTS_MAX; i++) {
-        if (menu->browser.list[i].type == ENTRY_TYPE_ROM) {
-            carts[carts_count++] = &menu->browser.list[i];
+    bool *matched = malloc(((all < CARTS_MAX) ? all : CARTS_MAX) + 1);
+    for (int i = 0; carts && matched && i < all && carts_count < CARTS_MAX; i++) {
+        const entry_t *e = &menu->browser.list[i];
+        if (e->type != ENTRY_TYPE_ROM) {
+            continue;
         }
+        bool match = false;
+        if (id) {
+            path_t *path = path_clone_push(menu->browser.directory, e->name);
+            const game_index_entry_t *known = game_index_find(path_get(path), e->size);
+            path_free(path);
+            match = known && rule_matches(id, known->code);
+        }
+        matched[carts_count] = match;
+        carts[carts_count++] = e;
+        suggested += match ? 1 : 0;
     }
-    /* display_name() keeps one name at a time, so names are compared two copies at a time. */
-    for (int i = 1; i < carts_count; i++) {
+    /* Matching ones first, each part by name. display_name() keeps one name
+       at a time, so names are compared two copies at a time. */
+    for (int i = 1; carts && matched && i < carts_count; i++) {
         const entry_t *e = carts[i];
+        bool m = matched[i];
         char name[128];
         snprintf(name, sizeof(name), "%s", display_name(e));
         int j = i - 1;
-        while (j >= 0 && strcasecmp(display_name(carts[j]), name) > 0) {
+        while (j >= 0 && (matched[j] < m || (matched[j] == m && strcasecmp(display_name(carts[j]), name) > 0))) {
             carts[j + 1] = carts[j];
+            matched[j + 1] = matched[j];
             j--;
         }
         carts[j + 1] = e;
+        matched[j + 1] = m;
+    }
+    free(matched);
+    if (!carts) {
+        carts_count = suggested = 0;
     }
     int p = find_pair(picking);
     current_row = 0;
     if (p >= 0) {
-        current_row = 1;
-        for (int i = 0; strcmp(pairs[p].cart, "-") && i < carts_count; i++) {
-            if (strcmp(carts[i]->name, pairs[p].cart) == 0) {
-                current_row = 2 + i;
+        current_row = row_of_none();
+        for (int r = 1; strcmp(pairs[p].cart, "-") && r < 2 + carts_count; r++) {
+            if (cart_at(r) && strcmp(cart_at(r)->name, pairs[p].cart) == 0) {
+                current_row = r;
             }
         }
     }
     row = current_row;
     first_row = (row >= ROWS_SHOWN) ? row - (ROWS_SHOWN / 2) : 0;
     showing = true;
+}
+
+bool dd_pair_alone (const char *disk_path) {
+    int p = find_pair(from_top(disk_path));
+    return p >= 0 && strcmp(pairs[p].cart, "-") == 0;
+}
+
+bool dd_pair_take_change (void) {
+    bool was = changed;
+    changed = false;
+    return was;
 }
 
 static void close_pick (void) {
@@ -375,8 +431,9 @@ bool dd_pair_process (menu_t *menu) {
         sound_play_effect(SFX_EXIT);
         return true;
     } else if (menu->actions.enter) {
-        set_pair(picking, (row == 0) ? NULL : (row == 1) ? "-" : carts[row - 2]->name);
+        set_pair(picking, (row == 0) ? NULL : cart_at(row) ? cart_at(row)->name : "-");
         text_known = false;
+        changed = true;
         close_pick();
         sound_play_effect(SFX_SETTING);
         return true;
@@ -407,9 +464,13 @@ void dd_pair_draw (void) {
         if (r == row) {
             ui_components_box_draw(x0 + 8, y, x0 + LIST_WIDTH - 8, y + ROW_HEIGHT, CONTEXT_MENU_HIGHLIGHT_COLOR);
         }
-        const char *label = (r == 0) ? "Automatic (matching cartridge)" : (r == 1) ? "No cartridge (disk alone)" : display_name(carts[r - 2]);
+        char automatic_label[160];
+        if (r == 0) {
+            snprintf(automatic_label, sizeof(automatic_label), "Automatic: %s", automatic ? display_name(automatic) : "none found");
+        }
+        const char *label = (r == 0) ? automatic_label : cart_at(r) ? display_name(cart_at(r)) : "No cartridge (disk alone)";
         rdpq_text_printf(&(rdpq_textparms_t) { .width = LIST_WIDTH - 80, .height = ROW_HEIGHT, .valign = VALIGN_CENTER, .wrap = WRAP_ELLIPSES,
-            .style_id = (r == current_row) ? STL_GREEN : STL_DEFAULT }, FNT_DEFAULT, x0 + 24, y, "%s", label);
+            .style_id = (r == current_row) ? STL_GREEN : (r >= 1 && r <= suggested) ? STL_BLUE : STL_DEFAULT }, FNT_DEFAULT, x0 + 24, y, "%s", label);
     }
     if (first_row > 0) {
         rdpq_text_printf(&(rdpq_textparms_t) { .width = 20, .height = ROW_HEIGHT, .valign = VALIGN_CENTER }, FNT_DEFAULT, x0 + LIST_WIDTH - 32, y0 + 34, "▲");

@@ -58,6 +58,7 @@ typedef struct {
     menu_font_style_t badge_styles[GAME_INFO_PAGE_BADGES];
     const char *fact_caption;   /**< the third box */
     const char *fact_value;
+    menu_font_style_t fact_style;   /**< the value's color (STL_DEFAULT unless set) */
     const char *description;    /**< NULL: "No description available." */
     const char *a_hint;         /**< NULL: "Play" */
     const char *r_hint, *z_hint, *start_hint;   /**< NULL: not shown */

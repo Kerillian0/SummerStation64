@@ -9,12 +9,13 @@
  * plus Dezaemon 3D's prototype disk DEZA. A cartridge with a 'C' code
  * (made for the 64DD) is chosen over others, an original over a hack.
  *
- * The player can pair a disk with any cartridge, or with none, from its Z
- * menu ("Pair with a cartridge..."); that wins over the rule. Kept in
+ * The player can pair a disk with any cartridge, or with none, with Z
+ * on the disk's own screen (also in its R Options, "Pair with a cartridge...")
+ * and on its warning; that wins over the rule. Kept in
  * sd:/menu/ddpairs.txt: "ddpairs 1", then "disk <tab> cartridge" per line,
  * both from the top of the card, the cartridge "-" for none.
  *
- * A paired disk's info screen starts both with A (Z: the disk alone), and
+ * A paired disk's info screen starts both with A (L: the disk alone), and
  * the cover row's title panel says "With F-Zero X". Cartridges are looked
  * for in the Games list.
  */
@@ -48,6 +49,12 @@ void dd_pair_after_draw (menu_t *menu, const entry_t *selected);
 
 /** Z menu on a disk: choose its cartridge (full path of the disk). */
 void dd_pair_pick (menu_t *menu, const char *disk_path);
+
+/** True once after a choice was made in the list (the disk screen loads the new cartridge). */
+bool dd_pair_take_change (void);
+
+/** True if the player chose to play this disk (full path) with no cartridge. */
+bool dd_pair_alone (const char *disk_path);
 
 /** While the choice is showing it has the controls: true if it took this frame's. */
 bool dd_pair_process (menu_t *menu);

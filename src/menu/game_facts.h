@@ -34,4 +34,7 @@ const game_facts_t *game_facts_update (menu_t *menu);
 /** Forget what is known, e.g. when leaving the Games screen. */
 void game_facts_reset (void);
 
+/** Look the selected game up again (its favorite heart changed); the save notes are kept. */
+void game_facts_recheck (void);
+
 #endif /* GAME_FACTS_H__ */

@@ -266,6 +266,8 @@ static const item_t library_items[] = {
         "Separate shows every file as its own cover. Grouped shows one cover per game: its hacks and other copies go under it, and A lists them to choose from. The Hacks filter still shows every hack."),
     CHOICES("Region Copies", OPTION_REGION_COPIES, REGION_COPIES_COUNT, region_pick_copies_name, resort_browser,
         "One Cover shows a game kept in several regions once under All, and A lists the copies to choose from. Start another region's copy three times in a row and it becomes that game's cover. The region filters still show each copy."),
+    CHOICES("Homebrew on Games", OPTION_HOMEBREW_ON_GAMES, HOMEBREW_ON_GAMES_COUNT, games_filter_homebrew_name, resort_browser,
+        "Hide keeps homebrew off the Games tab and its filters, on the Homebrew tab only (add it in Settings > Tabs). Folders, Recent, Favorites and your own collections still show it."),
     CHOICES("Preferred Region", OPTION_PREFERRED_REGION, PREFERRED_COUNT, region_pick_preferred_name, change_preferred_region,
         "Whose copy gives a game's cover with Region Copies on One Cover. Changing it also forgets each game's own choice."),
     CHOICES("Sort By", OPTION_SORT_ORDER, SORT_COUNT, sort_order_name, resort_browser,
@@ -333,6 +335,7 @@ static const item_t system_items[] = {
         "30 is every frame the menu draws, the smoothest. 15 halves the frames to save and the size of the GIF."),
     CHOICES("Clip Dither", OPTION_CLIP_DITHER, 2, screenshot_dither_name, NULL,
         "Smooth evens out the console's fine dot pattern, which also makes the GIF smaller; Exact keeps every pixel as drawn."),
+    FEATURE("Advanced Game Options", FEATURE_ADVANCED_OPTIONS, "Game info's Options (R) also offers Set CIC Type, Set Save Type, Set TV Type, the Datel Code Editor and Clear RDRAM on boot. For games that need them; most never do. Choices already made stay in use when this is off."),
     FEATURE("Remember Settings Page", FEATURE_REMEMBER_SETTINGS, "Reopen Settings on the page and row you last used, until the console is switched off."),
     ACTION("Reset Settings", ask_reset, "Put the stock settings back to how they were on a fresh install."),
 };

@@ -39,8 +39,9 @@ bool game_info_more_details_showing (void);
  * Draw a disk's page and, if asked, its details.
  * @param cart The cartridge it is played with (file name), or NULL.
  * @param needs The game an expansion disk needs (dd_pair_needs()), or NULL.
+ * @param alone The player chose to play it with no cartridge (dd_pair_alone()).
  */
-void game_info_more_draw_disk (menu_t *menu, const disk_info_t *disk, int swap_disks, const char *cart, const char *needs);
+void game_info_more_draw_disk (menu_t *menu, const disk_info_t *disk, int swap_disks, const char *cart, const char *needs, bool alone);
 
 /** Draw an emulator game's page and, if asked, its details. */
 void game_info_more_draw_retro (menu_t *menu, const char *system_name);

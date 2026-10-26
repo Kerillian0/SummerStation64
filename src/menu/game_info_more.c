@@ -211,7 +211,7 @@ static const char *file_name (void) {
     return slash ? slash + 1 : path;
 }
 
-void game_info_more_draw_disk (menu_t *menu, const disk_info_t *disk, int swap_disks, const char *cart, const char *needs) {
+void game_info_more_draw_disk (menu_t *menu, const disk_info_t *disk, int swap_disks, const char *cart, const char *needs, bool alone) {
     static const char *regions[] = { "Development", "Japan", "USA" };
     const char *region = (disk->region >= 0 && disk->region <= DISK_REGION_USA) ? regions[disk->region] : "Unknown";
     char with[96] = "";
@@ -223,23 +223,31 @@ void game_info_more_draw_disk (menu_t *menu, const disk_info_t *disk, int swap_d
         .fact_value = region,
         .description = description,
         .a_hint = cart ? "Play with cartridge" : "Play",
-        .z_hint = cart ? "Disk only" : NULL,
+        .z_hint = "Pair",
         .r_hint = "Options",
         .start_hint = "Details",
         .pictures = true,
         .front_picture = !back,
     };
+    /* The third box says what it plays with, once that matters: paired, or an expansion disk. */
+    if (cart) {
+        snprintf(with, sizeof(with), "%s", display_name_file(cart));
+        page.fact_caption = "Plays with";
+        page.fact_value = with;
+        page.fact_style = STL_GREEN;
+    } else if (alone) {
+        page.fact_caption = "Plays with";
+        page.fact_value = "Disk alone";
+        page.fact_style = STL_GRAY;
+    } else if (needs) {
+        snprintf(with, sizeof(with), "%s", needs[0] ? needs : "its cartridge");
+        page.fact_caption = "Needs (not found)";
+        page.fact_value = with;
+        page.fact_style = STL_ORANGE;
+    }
     int b = 0;
     page.badges[b] = "64DD disk";
     page.badge_styles[b++] = STL_DEFAULT;
-    if (cart) {
-        snprintf(with, sizeof(with), "With %s", display_name_file(cart));
-        page.badges[b] = with;
-        page.badge_styles[b++] = STL_BLUE;
-    } else if (needs) {
-        page.badges[b] = "Needs its cartridge";
-        page.badge_styles[b++] = STL_ORANGE;
-    }
     if (players_badge()) {
         page.badges[b] = players_badge();
         page.badge_styles[b++] = STL_DEFAULT;

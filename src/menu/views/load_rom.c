@@ -497,6 +497,28 @@ static component_context_menu_t restore_save_context_menu = { .list = { // fille
     COMPONENT_CONTEXT_MENU_LIST_END,
 }};
 
+// Every row Game info's Options can have; options_menu_fill() copies them
+// into options_context_menu when it opens, leaving out the advanced ones
+// unless Settings asks for them (FEATURE_ADVANCED_OPTIONS).
+static component_context_menu_t options_menu_rows = { .list = {
+    { .text = "Set CIC Type", .submenu = &set_cic_type_context_menu },
+    { .text = "Set Save Type", .submenu = &set_save_type_context_menu },
+    { .text = "Set TV Type", .submenu = &set_tv_type_context_menu },
+#ifdef FEATURE_AUTOLOAD_ROM_ENABLED
+    { .text = "Set ROM to autoload", .action = set_autoload_type },
+#endif
+    { .text = "Use Cheats", .submenu = &set_cheat_options_menu },
+    { .text = "Datel Code Editor", .action = open_datel_code_editor },
+#ifdef FEATURE_PATCHER_GUI_ENABLED
+    { .text = "Use Patches", .submenu = &set_patcher_options_menu },
+#endif
+    { .text = "Clear RDRAM on boot", .submenu = &set_clear_rdram_options_menu },
+    { .text = "Restore save", .submenu = &restore_save_context_menu },
+    { .text = "Add to favorites", .action = add_favorite },
+    { .text = "Show/hide real file name", .action = display_name_toggle_real },
+    COMPONENT_CONTEXT_MENU_LIST_END,
+}};
+
 static component_context_menu_t options_context_menu = { .list = {
     { .text = "Set CIC Type", .submenu = &set_cic_type_context_menu },
     { .text = "Set Save Type", .submenu = &set_save_type_context_menu },
@@ -515,6 +537,23 @@ static component_context_menu_t options_context_menu = { .list = {
     { .text = "Show/hide real file name", .action = display_name_toggle_real },
     COMPONENT_CONTEXT_MENU_LIST_END,
 }};
+
+static void options_menu_fill (void) {
+    bool advanced = features_enabled(FEATURE_ADVANCED_OPTIONS);
+    int rows = 0;
+    for (int i = 0; options_menu_rows.list[i].text != NULL; i++) {
+        __typeof__(options_menu_rows.list[0]) row = options_menu_rows.list[i];
+        bool is_advanced = row.submenu == &set_cic_type_context_menu || row.submenu == &set_save_type_context_menu
+            || row.submenu == &set_tv_type_context_menu || row.action == open_datel_code_editor
+            || row.submenu == &set_clear_rdram_options_menu;
+        if (is_advanced && !advanced) {
+            continue;
+        }
+        options_context_menu.list[rows++] = row;
+    }
+    options_context_menu.list[rows].text = NULL;
+    ui_components_context_menu_init(&options_context_menu);   // counts the rows again
+}
 
 // Generic helper: search context menu for item matching a target argument value.
 // Returns the index of the first matching item, or 0 if not found (default to first).
@@ -616,6 +655,7 @@ static void process (menu_t *menu) {
         menu->next_mode = games_ui_origin(); // back to the tab this was opened from
     } else if (menu->actions.options) {
         save_backup_menu_fill(menu, &restore_save_context_menu); // the dates under "Restore save"
+        options_menu_fill(); // the advanced rows only when Settings asks for them
         ui_components_context_menu_show(&options_context_menu);
         sound_play_effect(SFX_SETTING);
     } else if (menu->actions.settings) { // START: details. One pop-up now; it was two, on L and on START.

@@ -67,6 +67,11 @@ const char *games_filter_versions_name (int choice) {
     return (choice >= 0 && choice < GAME_VERSIONS_COUNT) ? versions_names[choice] : "";
 }
 
+const char *games_filter_homebrew_name (int choice) {
+    static const char *homebrew_names[HOMEBREW_ON_GAMES_COUNT] = { "Show", "Hide" };
+    return (choice >= 0 && choice < HOMEBREW_ON_GAMES_COUNT) ? homebrew_names[choice] : "";
+}
+
 /* Whether folded files are left out for this filter: with Grouped on, except
    on the Hacks step, which shows every hack. */
 static bool folding (filter_t f) {
@@ -181,6 +186,10 @@ static bool matches (const entry_t *e, filter_t f) {
     }
     if (f == FILTER_RETRO && e->index >= 0 && e->index < marks_count && retro_step != RETRO_OTHER && retro_system(e->name) != retro_step) {
         return false;   /* another system's game */
+    }
+    if (f < FILTER_STEPS && e->index >= 0 && e->index < marks_count && options_get(OPTION_HOMEBREW_ON_GAMES) == HOMEBREW_ON_GAMES_HIDE
+        && (marks[e->index] & ((1 << FILTER_HOMEBREW) | (1 << FILTER_HACKS))) == (1 << FILTER_HOMEBREW)) {
+        return false;   /* homebrew kept to the Homebrew tab (a hack stays) */
     }
     bool in = (f == FILTER_COLLECTION) ? (collections_has(collection, e))
             : (f == FILTER_PARTY) ? (players && party >= 2 && e->index >= 0 && e->index < marks_count && players[e->index] >= party)
