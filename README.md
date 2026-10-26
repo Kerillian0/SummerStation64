@@ -36,7 +36,7 @@ it on PAL consoles, the **Analogue 3D** and the **ModRetro M64**.
 > Analogue 3D or ModRetro M64) and, if something went wrong, a photo of the
 > screen.
 
-<img width="640" height="480" alt="shot0004" src="https://github.com/user-attachments/assets/a709d0db-f93b-4a62-a116-7f67c348ba06" />
+<img width="640" height="480" alt="30b03931-df90-4041-984e-33ed2281a637" src="https://github.com/user-attachments/assets/afc19ab0-f940-422c-9c13-630b44eb0ab5" />
 <img width="640" height="480" alt="shot0003" src="https://github.com/user-attachments/assets/0ef95926-fc83-45f7-9089-28a5c923ce71" />
 <img width="640" height="480" alt="shot0005" src="https://github.com/user-attachments/assets/11e1ac76-b359-4dd4-ac19-371a01a089b0" />
 <img width="640" height="480" alt="shot0008" src="https://github.com/user-attachments/assets/9d34cba9-8be6-479b-a2c6-5ea67e2143f1" />
