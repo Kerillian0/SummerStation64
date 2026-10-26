@@ -42,6 +42,27 @@ and a CRT television, with and without the Expansion Pak.
 <img width="640" height="480" alt="shot0008" src="https://github.com/user-attachments/assets/9d34cba9-8be6-479b-a2c6-5ea67e2143f1" />
 <img width="640" height="480" alt="shot0001" src="https://github.com/user-attachments/assets/26081a8c-d606-4dd4-bca0-5e4516004837" />
 
+## 💛 Free, always
+
+SummerStation64 is free and always will be, from v0.1 to v1.0 and beyond. I
+will never charge for it.
+
+**If you'd like to give money,** please support the people who made it
+possible:
+- **Polprzewodnikowy**, creator of the SummerCart64:
+  [ko-fi.com/polprzewodnikowy](https://ko-fi.com/polprzewodnikowy)
+- **networkfusion**, maintainer of N64FlashcartMenu:
+  [ko-fi.com/networkfusion](https://ko-fi.com/networkfusion)
+
+Buying your SummerCart64 from an official seller supports Polprzewodnikowy
+too.
+
+**If you'd rather give time,** help with the box art and game details every
+player sees. The
+[N64 flashcart menu metadata](https://github.com/n64-tools/n64-flashcart-menu-metadata#description)
+project welcomes new art, descriptions and fixes; its README shows how to
+start.
+
 ## ✨ Highlights
 
 | | |
