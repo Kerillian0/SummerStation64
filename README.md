@@ -47,13 +47,14 @@ and a CRT television, with and without the Expansion Pak.
 | | |
 |---|---|
 | 🎮 **Cover row** | Your games as 3D boxes or cartridges that hover; hold B to turn one round, or turn it over to see its back. Japanese and 64DD boxes keep their own shape. |
-| 🗂️ **Tabs** | Games, Favorites, Folders, Recent, Collections, Homebrew and Retro, up to four in the order you choose. Games gathers games from as many folders as you like. |
+| 🗂️ **Tabs** | Games, Favorites, Folders, Recent, Collections, Homebrew, Retro, Hacks, or any one collection, up to four in the order you choose. Games gathers games from as many folders as you like. |
 | 🔎 **Find a game** | Hold Z for a letter dial; filter by region, 64DD, hacks or party size; sort by name, recently played or added, release date or developer; or a random game. |
 | 📚 **Collections** | Series and multiplayer collections found by themselves, and your own, as cards; one cover per game with its hacks and other regions' copies underneath. |
 | 🕹️ **More than N64** | NES, SNES and Game Boy games on a Retro tab with their own box shapes; 64DD disks that start with their cartridge. |
 | 📸 **Screenshots and clips** | Hold START for a screenshot; record a clip of the menu and turn it into a GIF with the [Companion](https://kerillian0.github.io/SummerStation64/companion/#clips). |
 | 🏷️ **Badges** | Players, Expansion Pak, save found, Controller / Rumble / Transfer Pak, a Hack badge, and a ✓ for known good dumps (checked with [Card Prep](https://kerillian0.github.io/SummerStation64/companion/#prep)). |
 | 📖 **Game info** | The cover over a blurred copy of itself, a big title, genre, players and co-op/versus, times played, and the full description, scrolling. |
+| 🎯 **Cheats** | GameShark / Action Replay codes for 1,300+ games from the [Companion](https://kerillian0.github.io/SummerStation64/companion/#cheats), switched on and off from Game info (Expansion Pak). |
 | 🎨 **Themes** | Six built-in themes, or your own made with the [Theme Maker](https://kerillian0.github.io/SummerStation64/companion/#themes) and shared with a short code. |
 | 💾 **Save backups** | Each start keeps the game's save from before, dated, five per game; "Restore save" brings one back. |
 | 🛡️ **Safe by design** | Safe mode (hold Z at power-on), safe settings saves, a friendly crash screen, and it leaves extras out instead of stopping when memory is short. |
@@ -97,10 +98,11 @@ built in.
   dial, one cover per game for hacks and other regions' copies, Homebrew and
   Retro (NES, SNES, Game Boy) tabs, 64DD disks with their cartridge, party
   mode, clips turned into GIFs, and four new Companion tabs.
-- **v0.3a** ✅ released: from your feedback: 50 favorites, favorite from any
-  cover, simpler Z menus, START straight to Settings, a Hold L + R screenshot
-  button (8BitDo mod kit), homebrew kept to its tab, easier 64DD pairing, and
-  a box art guide.
+- **v0.3a** ✅ released: from your feedback: cheats switched on and off from
+  Game info (codes from the Companion), renaming files, a Hacks tab and any
+  collection as a tab, 50 favorites, simpler menus, START straight to
+  Settings, a Hold L + R screenshot button (8BitDo mod kit), easier 64DD
+  pairing, and step-by-step guides.
 - **v0.4** themes: theme picker, sound and font packs, more seasonal themes.
 - **v0.5** polish: setup wizard, CRT test patterns, accessibility, and a
   versions screen where a game's copies and hacks unfold into a column of

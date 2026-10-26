@@ -7,11 +7,13 @@
   <img src="https://img.shields.io/badge/licence-AGPL--3.0-1c54d8" alt="Licence AGPL-3.0">
 </p>
 
-**v0.3a** is an update made from your feedback on v0.3: 50 favorites, a
-favorite button on every cover, simpler menus, START straight to Settings,
-a screenshot button that suits the 8BitDo mod kit, homebrew kept to its own
-tab if you like, easier 64DD pairing, and a step-by-step guide to adding box
-art. Thank you to everyone who tried v0.3 and wrote in!
+**v0.3a** is an update made from your feedback on v0.3: **cheats** you can
+switch on and off from Game info (with codes for 1,300+ games in the
+Companion), **rename files** on the console, a **Hacks tab** and **any
+collection as a tab**, 50 favorites with a favorite button on every cover,
+simpler menus, START straight to Settings, a screenshot button that suits
+the 8BitDo mod kit, easier 64DD pairing, and step-by-step guides. Thank you
+to everyone who tried v0.3 and wrote in!
 
 New here? Everything v0.3 brought (3D boxes and cartridges, collections, the
 letter dial, the Retro and Homebrew tabs, party mode, clips) is in the
@@ -32,6 +34,45 @@ letter dial, the Retro and Homebrew tabs, party mode, clips) is in the
 ---
 
 ## ✨ What's new
+
+### 🎯 Cheats
+- **Codes for your games:** the Companion's new
+  **[Cheats](https://kerillian0.github.io/SummerStation64/companion/#cheats)** tab
+  fetches GameShark / Action Replay codes from
+  [libretro-database](https://github.com/libretro/libretro-database) (lists for
+  over 1,300 N64 games, found by your copy's exact dump with Card Prep, else by
+  its name), or takes codes you paste. Tick the ones you want and save: they go
+  beside the game as `Game.datel`.
+- **Switch them on and off on the console:** a game with cheats shows **Z
+  Cheats** on its Game info. **A** switches a cheat on (green ✓) or off (grey);
+  **B** closes the list and saves. Any cheat on turns **Use Cheats** on for the
+  game, all off turns it off.
+- **Cheats now run without opening the Datel Code Editor:** the menu reads the
+  game's cheat file as it starts the game (before, Use Cheats alone started it
+  with no codes, or the last game's).
+- Cheats need the **Expansion Pak**; without one the list says so first.
+
+### ✏️ Rename files
+- **Folders tab, Z, Rename...** on any file. The name is typed with the letter
+  dial, now with four pages (**A-Z, a-z, 0-9** and symbols **( ) [ ] - _ ' . , &
+  ! +**, C-up / C-down) and a **cursor** (L / R). START renames; B at the start
+  cancels; a name already in the folder is refused.
+- **Everything goes with it:** its save (also in the saves folder) and dated save
+  backups, per-game settings, cheats and details, a Retro game's art folder, and
+  what the menu remembers: play counts and time played, favorites and recent,
+  your collections, hidden games, 64DD pairs and Card Prep's ✓.
+- **Collection names** use the same dial: small letters and symbols, kept as
+  typed (no more forced Title Case).
+
+### 🗂️ Tabs
+- **A Hacks tab** (Settings > Tabs): every ROM hack, on a tab of its own.
+- **Any collection as a tab:** each of the four places can hold one of your own
+  collections, a series or a multiplayer one. It opens straight onto its covers;
+  a long name ends in "…" on the bar.
+- **Hacks on Games: Hide** (Settings > Library) keeps hacks off the Games tab,
+  like **Homebrew on Games** below.
+- **Settings with many choices open a list** to pick from (the tab places, Sort
+  By, Theme) instead of stepping through them one press at a time.
 
 ### ⭐ Favorites
 - **Up to 50 favorites** (was 8).
@@ -76,11 +117,13 @@ letter dial, the Retro and Homebrew tabs, party mode, clips) is in the
   cartridge.
 
 ### 🧰 The Companion
+- **Cheats** tab (see above), with games and codes in pages of 50.
 - **Missing Metadata** finds `menu/missingart.txt` whichever folder you pick
   (the top of the card, or the `menu` folder) and works better in **Firefox**.
 - New **Guide** sections:
   **[Adding box art and details, step by step](https://kerillian0.github.io/SummerStation64/companion/#guide-art)**
-  and **[64DD disks and their cartridge](https://kerillian0.github.io/SummerStation64/companion/#guide-64dd)**.
+  **[64DD disks and their cartridge](https://kerillian0.github.io/SummerStation64/companion/#guide-64dd)**
+  and **[Cheats](https://kerillian0.github.io/SummerStation64/companion/#guide-cheats)**.
 
 ---
 
@@ -147,8 +190,8 @@ tab puts everything in the right place for you.
 SHA-1 of each `sc64menu.n64`, to check your download:
 
 ```
-e829da39207a23bc6277f215770ed4bfaa5fb6cc  sc64menu.n64 (Art Edition)
-7b7af4fee2612ecf33000d238bd0f9119ce81c1c  sc64menu.n64 in SummerStation64-v0.3a-Standard.zip
+6702c035f6bcc44cad0637de94e8aa2247a8baac  sc64menu.n64 (Art Edition)
+db29662dfd2fc54c2dec940041daa62abe29a4cf  sc64menu.n64 in SummerStation64-v0.3a-Standard.zip
 ```
 </details>
 
@@ -160,6 +203,15 @@ e829da39207a23bc6277f215770ed4bfaa5fb6cc  sc64menu.n64 (Art Edition)
   only your first 8 favorites, and drops the rest the next time it saves.
 - **Emulator games** (NES, SNES, Game Boy) can't be favorited: the Favorites
   list has no place for them yet.
+- **Cheats:** codes that need a button held (starting D0 to D3) may not work
+  yet, and the menu reads up to 64 code lines per game. Some games, mostly new
+  homebrew, can't take cheats at all.
+- **Collection tabs** point to a collection by its place: reordering or deleting
+  your own collections in the Companion can change which one a tab shows
+  (deleting on the console keeps them right).
+- **Renaming** a hack set up in the Companion's Hacks tab without Card Prep
+  having been run breaks its link (it is matched by file name then); save the
+  Hacks tab again.
 - **Tested on:** every build on an NTSC N64 on a CRT, with an Expansion Pak
   and with a Jumper Pak (4MB). Players report it working on the **Analogue 3D**,
   the **ModRetro M64** and **PAL** consoles, thank you!
@@ -179,12 +231,14 @@ SummerStation64 is made with **Claude**, an AI model by Anthropic, used
 through **Claude Code** inside Visual Studio Code.
 
 - **Model:** Claude Opus 5.5, as recorded on the commits.
-- **How much, in v0.3a:** all 8 commits since v0.3 are co-authored by Claude
-  (October 25 and 26, 2026): about 600 changed lines of menu code (one new
-  source file), the Companion's fixes and Guide sections, and these notes.
+- **How much, in v0.3a:** all 16 commits since v0.3 are co-authored by Claude
+  (October 25 and 26, 2026): about 1,900 changed lines of menu code (4 new
+  source files), the Companion's Cheats tab, fixes and Guide sections, the
+  tests, and these notes.
 - **What the owner (Kerillian) did:** gathered the players' requests,
-  decided which to build and how each should behave, edited the popular
-  hacks list, and **tested every build on a real N64 and CRT**. Nothing was
+  decided which to build and how each should behave (the cheats list on Game
+  info and the paged lists were the owner's ideas), edited the popular hacks
+  list, and **tested every build on a real N64 and CRT**. Nothing was
   committed until it passed on the console.
 - **Not made by AI:** the music and interface sounds, the fonts, the box art
   and game details (a community pack), the game data (libretro), and
