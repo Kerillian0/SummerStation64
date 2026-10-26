@@ -431,6 +431,9 @@ static bool pick_open (const item_t *it) {
     if (pick_first > pick_count - PICK_ROWS_SHOWN) {
         pick_first = pick_count - PICK_ROWS_SHOWN;
     }
+    if (pick_first < 0) {
+        pick_first = 0;     /* a list shorter than the window */
+    }
     return true;
 }
 
