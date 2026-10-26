@@ -11,7 +11,8 @@ SummerStation64 is an unofficial game menu for the **SummerCart64** flashcart,
 made as a fork of [N64FlashcartMenu](https://github.com/Polprzewodnikowy/N64FlashcartMenu).
 It turns the file list into a row of box covers, with tabs, themes, badges,
 save backups and an intro, and every build is tested on a real Nintendo 64
-and a CRT television, with and without the Expansion Pak.
+and a CRT television, with and without the Expansion Pak. Players also run
+it on PAL consoles, the **Analogue 3D** and the **ModRetro M64**.
 
 <!-- Screenshots: drag pictures into GitHub's editor for this file, so they
      are stored on GitHub's image server rather than in the repository. -->
@@ -23,18 +24,17 @@ and a CRT television, with and without the Expansion Pak.
 > details are built in.
 
 > [!IMPORTANT]
-> This is a first release. **Back up your SD card**, and keep your current
+> **Back up your SD card** before trying a new menu, and keep your current
 > `sc64menu.n64` somewhere safe so you can go back.
 
 > [!NOTE]
-> **💬 Feedback wanted!** This is the first release, and I'd love to hear
-> how it runs on your console: what works, what doesn't, and what you'd
-> like to see next.
+> **💬 Feedback wanted!** Most of what's new since v0.3 came from players'
+> requests. I'd love to hear how it runs on your console: what works, what
+> doesn't, and what you'd like to see next.
 > Please [open an issue](https://github.com/Kerillian0/SummerStation64/issues)
-> with your console setup (Expansion Pak or Jumper Pak, NTSC or PAL) and,
-> if something went wrong, a photo of the screen.
->--Please test on Analogue 3D! I don't have one and need some testers for it!--
->--I'd like to create an exclusive theme for it. Sounds, Theme, and Analogue 3D check in the top right.--
+> with your console setup (Expansion Pak or Jumper Pak, NTSC or PAL,
+> Analogue 3D or ModRetro M64) and, if something went wrong, a photo of the
+> screen.
 
 <img width="640" height="480" alt="shot0004" src="https://github.com/user-attachments/assets/a709d0db-f93b-4a62-a116-7f67c348ba06" />
 <img width="640" height="480" alt="shot0003" src="https://github.com/user-attachments/assets/0ef95926-fc83-45f7-9089-28a5c923ce71" />
@@ -69,10 +69,13 @@ start.
 |---|---|
 | 🎮 **Cover row** | Your games as 3D boxes or cartridges that hover; hold B to turn one round, or turn it over to see its back. Japanese and 64DD boxes keep their own shape. |
 | 🗂️ **Tabs** | Games, Favorites, Folders, Recent, Collections, Homebrew, Retro, Hacks, or any one collection, up to four in the order you choose. Games gathers games from as many folders as you like. |
+| ⭐ **Favorites** | Up to 50; add or remove one from any cover with Z, without opening Game info. |
 | 🔎 **Find a game** | Hold Z for a letter dial; filter by region, 64DD, hacks or party size; sort by name, recently played or added, release date or developer; or a random game. |
 | 📚 **Collections** | Series and multiplayer collections found by themselves, and your own, as cards; one cover per game with its hacks and other regions' copies underneath. |
 | 🕹️ **More than N64** | NES, SNES and Game Boy games on a Retro tab with their own box shapes; 64DD disks that start with their cartridge. |
-| 📸 **Screenshots and clips** | Hold START for a screenshot; record a clip of the menu and turn it into a GIF with the [Companion](https://kerillian0.github.io/SummerStation64/companion/#clips). |
+| 📁 **Files** | Rename any file on the console, with its save, backups, cheats, play time and everything else that goes by its name; the Folders tab keeps the full file browser. |
+| ⚙️ **Settings** | START opens Settings at once, with the menu's information screens, the Controller Pak Manager and the clock inside; settings with many choices open a list. |
+| 📸 **Screenshots and clips** | Hold START (or L + R, for the 8BitDo mod kit) for a screenshot; record a clip of the menu and turn it into a GIF with the [Companion](https://kerillian0.github.io/SummerStation64/companion/#clips). |
 | 🏷️ **Badges** | Players, Expansion Pak, save found, Controller / Rumble / Transfer Pak, a Hack badge, and a ✓ for known good dumps (checked with [Card Prep](https://kerillian0.github.io/SummerStation64/companion/#prep)). |
 | 📖 **Game info** | The cover over a blurred copy of itself, a big title, genre, players and co-op/versus, times played, and the full description, scrolling. |
 | 🎯 **Cheats** | GameShark / Action Replay codes for 1,300+ games from the [Companion](https://kerillian0.github.io/SummerStation64/companion/#cheats), switched on and off from Game info (Expansion Pak). |
@@ -160,13 +163,13 @@ Code.
 
 - **Model:** Claude Opus 5.5, as recorded on the commits.
 - **How much:** Claude wrote nearly all of this fork's code and text.
-  - 121 of the 123 commits between N64FlashcartMenu V0.3.4 and v0.1 are
-    co-authored by Claude (October 4 to 20, 2026).
-  - About 10,900 lines of menu code in 82 new source files. The original
-    menu's own files were changed only with small hooks that call the new
-    code.
-  - Also the build and art scripts, the PC-side tests, the Theme Maker, and
-    the documentation, these release notes included.
+  - 230 of this fork's 235 commits, from v0.1 to v0.3b, are co-authored by
+    Claude (October 4 to 26, 2026).
+  - About 21,000 lines of menu code, most of it in 130 new source files.
+    The original menu's own files were changed only with small hooks that
+    call the new code.
+  - Also the build and art scripts, the PC-side tests, the Companion web
+    page, and the documentation, this README included.
 - **What the owner (Kerillian) did:** decided what to build and in what
   order, supplied the design mockups, made every choice along the way
   (features, layout, colours, sounds, art and licensing questions), and
