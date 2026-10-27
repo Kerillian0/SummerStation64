@@ -97,6 +97,13 @@ Each [release](https://github.com/Kerillian0/SummerStation64/releases) comes in 
 Both have the game details (descriptions, release dates, developers, players)
 built in.
 
+> [!WARNING]
+> **"Watchdog timeout" at power-on?** The SummerCart64 gives the menu file 5
+> seconds to load, and the Art Edition (about 33 MB) can take longer on some
+> SD cards. Use the **Standard** edition instead: it loads as fast as the
+> stock menu. A fix that keeps the built-in covers is coming in the next
+> release.
+
 ## 📚 Documentation
 
 - **[Release notes and install guide](docs/RELEASE_NOTES_v0.3b.md)**

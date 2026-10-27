@@ -158,6 +158,13 @@ letter dial, the Retro and Homebrew tabs, party mode, clips) is in the
    in `sd:/menu/metadata/`.
 3. **Switch the N64 on.**
 
+> [!WARNING]
+> **"Watchdog timeout" at power-on?** The SummerCart64 gives the menu file 5
+> seconds to load, and the Art Edition (about 33 MB) can take longer on some
+> SD cards. Use the **Standard** edition instead: it loads as fast as the
+> stock menu. A fix that keeps the built-in covers is coming in the next
+> release.
+
 New to SummerStation64? The Companion's
 **[Guide](https://kerillian0.github.io/SummerStation64/companion/#guide-setup)**
 walks through setting up a card, including adding your game folders.
