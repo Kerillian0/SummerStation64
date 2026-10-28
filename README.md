@@ -147,6 +147,9 @@ built in.
 - **After v0.5:** extra support for the **ModRetro M64** and **Analogue 3D**:
   32-bit color, 60 frames a second, a layout that uses the safe area of HDMI
   displays, and widescreen if needed.
+- **Later:** save states (Expansion Pak only), building on
+  [sc64-savestates](https://github.com/john-steinmeyer/sc64-savestates) by
+  john-steinmeyer, if its author agrees, with full credit.
 
 ## 🔧 Building from source
 
