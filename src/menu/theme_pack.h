@@ -16,6 +16,8 @@
  * Button sounds and the intro tune are read into memory whole (at most 48 KB
  * each and 160 KB on a 4MB console, 128 KB and 768 KB with the Expansion
  * Pak); music is read ahead a piece at a time (card_music.h).
+ * Only music.wav64 should loop; the others are meant to play once (the intro
+ * is told not to loop, but a file made with a loop point may still repeat).
  * Sounds are wav64 files, made from any audio file by the Companion's
  * Sound Pack tool (or libdragon's audioconv64). A file is checked before
  * it is used; one the menu can't play is skipped, so a bad file never

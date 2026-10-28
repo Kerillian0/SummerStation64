@@ -245,6 +245,7 @@ static const item_t sound_items[] = {
 /* ---------- profiles ---------- */
 
 static int confirm_delete = -1;     /* the profile asked about, or -1 */
+static const char *notice = NULL;     /* a short message shown over Settings until any button is pressed */
 static int renaming = -1;           /* the profile being renamed, or -1 for a new one */
 static char profiles_text[32];
 
@@ -255,7 +256,7 @@ static const char *playing_info (menu_t *menu) {
 
 static void next_profile (menu_t *menu) {
     if (profiles_count() < 2) {
-        menu_show_error(menu, "Add a profile first, with New Profile.");
+        notice = "Add a profile first, with New Profile.";   /* stays on Settings (the error screen went back to the tabs) */
         return;
     }
     profiles_switch((profiles_current() + 1) % profiles_count());
@@ -282,7 +283,7 @@ static void profile_named (menu_t *menu, const char *name) {
 
 static void new_profile (menu_t *menu) {
     if (profiles_count() >= PROFILES_MAX) {
-        menu_show_error(menu, "There are four profiles already.");
+        notice = "There are four profiles already.";
         return;
     }
     renaming = -1;
@@ -309,7 +310,7 @@ static void next_color (menu_t *menu) {
 
 static void delete_profile (menu_t *menu) {
     if (profiles_current() == 0) {
-        menu_show_error(menu, "The first profile can't be deleted: it keeps the saves the menu always had.");
+        notice = "The first profile can't be deleted: it keeps the saves the menu always had.";
         return;
     }
     confirm_delete = profiles_current();
@@ -649,6 +650,14 @@ static void process (menu_t *menu) {
         pick_process(menu);     /* a setting's list of values is open */
         return;
     }
+    if (notice) {
+        if (menu->actions.enter || menu->actions.back || menu->actions.options || menu->actions.settings || menu->actions.lz_context
+            || menu->actions.go_up || menu->actions.go_down || menu->actions.go_left || menu->actions.go_right) {
+            notice = NULL;  /* any button */
+            sound_play_effect(SFX_EXIT);
+        }
+        return;
+    }
     if (letter_wheel_naming()) {
         letter_wheel_name_process(menu);    /* naming a profile */
         return;
@@ -670,7 +679,7 @@ static void process (menu_t *menu) {
             confirm_reset = false;
             settings_dirty = false; // don't write the old values back over the reset
             settings_reset_to_defaults();
-            menu_show_error(menu, "Reboot N64 to take effect!");
+            notice = "Reboot N64 to take effect!";
             sound_play_effect(SFX_SETTING);
         } else if (menu->actions.back) {
             confirm_reset = false;
@@ -978,6 +987,10 @@ static void draw (menu_t *menu, surface_t *d) {
         );
     }
 
+    if (notice) {
+        ui_components_messagebox_draw("%s\n\nPress any button.", notice);
+    }
+
     debug_stats_overlay_draw(); // Performance Overlay, if it is on
 
     rdpq_detach_show();
@@ -987,6 +1000,7 @@ void view_settings_menu_init (menu_t *menu) {
     (void) menu;
     confirm_reset = false;
     confirm_delete = -1;
+    notice = NULL;
     picking = NULL;
     bool back_from_tool = tool_open;
     tool_open = false;

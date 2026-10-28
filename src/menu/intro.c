@@ -348,13 +348,15 @@ bool intro_display (menu_t *menu, surface_t *display) {
         started_at = get_ticks_ms();
         /* The tune is opened even when it won't be heard, to learn its length. */
         tune = theme_pack_intro();     /* a card tune is read into memory whole: streamed, it crunched */
+        wav64_set_loop(tune, false);    /* once only, even if the file asks to loop (a tune shorter than the intro then ends early) */
         tune_open = true;
         if ((tune->wave.len > 0) && (tune->wave.frequency > 0.0f)) {
             total_ms = (int) ((tune->wave.len * 1000.0f) / tune->wave.frequency);
         }
         if (total_ms < INTRO_SHORTEST_MS) total_ms = INTRO_SHORTEST_MS;
         if (total_ms > INTRO_LONGEST_MS) total_ms = INTRO_LONGEST_MS;
-        debugf("intro: tune lasts %d ms\n", total_ms);
+        debugf("intro: tune lasts %d ms (%d samples at %d Hz, loop %d)\n", total_ms,
+            (int) tune->wave.len, (int) tune->wave.frequency, (int) tune->wave.loop_len);
         if (menu->settings.soundfx_enabled) {
             mixer_ch_set_vol(INTRO_CHANNEL, volume_effects(), volume_effects());
             wav64_play(tune, INTRO_CHANNEL);

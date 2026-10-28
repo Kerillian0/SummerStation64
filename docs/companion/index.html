@@ -709,6 +709,10 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
       <p>Pick only the ones you want to change; the menu uses its own for the rest. Music loops; long files are cut
         (music after 3 minutes, the intro after 8 seconds, button sounds after 1.5 seconds). Button sounds are kept in the
         console's memory, so keep them short: under 0.75 seconds also works on consoles without the Expansion Pak.</p>
+      <p class="hint"><b>Only the music should loop.</b> The files this page makes never ask to loop; the menu loops the
+        music itself. If you make a <code>.wav64</code> another way (libdragon's audioconv64), leave out any loop for the
+        intro and the button sounds: a WAV with a loop point (a <code>smpl</code> marker, set in some audio editors) keeps
+        it, and that sound may then repeat.</p>
       <div class="tablewrap"><table>
         <thead><tr><th>Sound</th><th>File</th><th>Ready</th></tr></thead>
         <tbody id="sndRows"></tbody>
@@ -1072,7 +1076,7 @@ short-desc = Mario explores Princess Peach's castle.</code></pre>
     {key:'quick_launch',  label:'Quick Launch',         def:false, hint:'Tap A starts the game, hold A shows its info.'},
     {key:'hold_launch',   label:'Hold A To Launch',     def:false, hint:'Tap A shows the game info, hold A starts it.'},
     {key:'side_covers',   label:'Previous/Next Covers', def:true,  hint:'Smaller covers either side of the selected one.'},
-    {key:'frame_borders', label:'Frame Borders',        def:true,  hint:'The outer frame on the older screens. The Games tabs have none.'},
+    {key:'frame_borders', label:'Frame Borders',        def:false, hint:'The outer frame on the older screens. The Games tabs have none.'},
     {key:'updown_scroll', label:'Up/Down Also Scroll',  def:false, hint:'Up and down move the carousel too.'},
     {key:'cover_art',     label:'Cover Art',            def:true,  hint:'Box art on the covers.'},
     {key:'carousel_animation', label:'Cover Slide',      def:true,  hint:'Covers slide into place when you move left or right.'},

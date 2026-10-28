@@ -49,6 +49,9 @@ static bool sound_ok (const char *path) {
     if (!good) {
         debugf("theme pack: %s is not a sound the menu can play, using its own\n", path);
     }
+    if (good && loop_len > 0 && strstr(path, "/music.wav64") == NULL) {
+        debugf("theme pack: %s asks to loop (%d of %d samples); only music should\n", path, (int) loop_len, (int) len);
+    }
     return good;
 }
 
