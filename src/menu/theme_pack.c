@@ -1,5 +1,6 @@
 #include <libdragon.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "card_themes.h"
@@ -14,6 +15,7 @@
 #define EFFECT_MAX_8MB      (128 * 1024)
 #define FONT_MAX_8MB        (1024 * 1024)
 #define INTRO_MAX_4MB       (160 * 1024)    /* the intro tune, kept in memory while it plays: about 1.8 s of 22 kHz stereo */
+#define RESIDENT_MAX        (512 * 1024 - 4096)     /* libdragon plays a sound kept in memory only up to 512 KB */
 #define INTRO_MAX_8MB       (768 * 1024)    /* the longest intro (8 s) at 22 kHz stereo */
 
 /* The wav64 reader stops the menu on a file it doesn't like, so look at the
@@ -108,8 +110,105 @@ wav64_t *theme_pack_effect (const char *file_name, const char *rom_path) {
     return load_whole(file_name, rom_path, EFFECT_MAX_4MB, EFFECT_MAX_8MB);
 }
 
-wav64_t *theme_pack_intro (void) {
-    return load_whole("intro.wav64", "rom:/intro.wav64", INTRO_MAX_4MB, INTRO_MAX_8MB);
+/* The intro tune. libdragon plays a sound kept whole in memory straight
+   from there, but counts its place in a way that only reaches 512 KB: a
+   7.3 s stereo tune (641 KB) went back to its start after 5.9 s (the
+   owner's, 2026-10-28). So a card tune is read into memory here and handed
+   to the mixer a piece at a time, which has no such limit. */
+static wav64_t *intro_wav = NULL;   /* the menu's tune, or a compressed card one */
+static uint8_t *intro_data = NULL;  /* or a plain card tune's samples */
+static int intro_frame_bytes;
+static waveform_t intro_wave;
+
+static void intro_read (void *ctx, samplebuffer_t *sbuf, int wpos, int wlen, bool seeking) {
+    (void) ctx;
+    (void) seeking;
+    while (wlen > 0) {
+        int n = (wlen < SAMPLEBUFFER_MARGIN_UNITS) ? wlen : SAMPLEBUFFER_MARGIN_UNITS;
+        uint8_t *out = samplebuffer_append(sbuf, n);
+        int have = intro_wave.len - wpos;
+        have = (have < 0) ? 0 : ((have > n) ? n : have);
+        memcpy(out, intro_data + ((size_t) wpos * intro_frame_bytes), have * intro_frame_bytes);
+        memset(out + (have * intro_frame_bytes), 0, (n - have) * intro_frame_bytes);     /* past the end: silence */
+        wpos += n;
+        wlen -= n;
+    }
+}
+
+static bool intro_from_card (const char *path, long most) {
+    FILE *f = fopen(path, "rb");
+    if (!f) {
+        return false;
+    }
+    uint8_t h[WAV64_HEADER_SIZE];
+    bool ok = fread(h, 1, sizeof(h), f) == sizeof(h) && h[5] == 0 && h[7] == 16;    /* plain 16-bit (what the Companion makes) */
+    #define BE32(p) ((int32_t) (((uint32_t) (p)[0] << 24) | ((uint32_t) (p)[1] << 16) | ((uint32_t) (p)[2] << 8) | (p)[3]))
+    int channels = h[6];
+    int32_t freq = BE32(h + 8), len = BE32(h + 12);
+    uint32_t start = (uint32_t) BE32(h + 24);
+    #undef BE32
+    long bytes = (long) len * channels * 2;
+    if (ok && bytes > most) {
+        debugf("theme pack: %s left out (%ld bytes, at most %ld kept in memory here)\n", path, bytes, most);
+        ok = false;
+    }
+    if (ok) {
+        intro_data = malloc(bytes);
+        ok = intro_data && fseek(f, start, SEEK_SET) == 0 && (long) fread(intro_data, 1, bytes, f) == bytes;
+        if (!ok) {
+            free(intro_data);
+            intro_data = NULL;
+        }
+    }
+    fclose(f);
+    if (!ok) {
+        return false;
+    }
+    intro_frame_bytes = channels * 2;
+    memset(&intro_wave, 0, sizeof(intro_wave));
+    intro_wave.name = "intro";
+    intro_wave.bits = 16;
+    intro_wave.channels = channels;
+    intro_wave.frequency = freq;
+    intro_wave.len = len;
+    intro_wave.loop_len = 0;    /* once */
+    intro_wave.read = intro_read;
+    return true;
+}
+
+waveform_t *theme_pack_intro (void) {
+    theme_pack_intro_free();
+    const char *path = theme_pack_sound("intro.wav64", "rom:/intro.wav64");
+    if (strncmp(path, "rom:", 4) != 0) {
+        long most = (get_memory_size() > 0x400000) ? INTRO_MAX_8MB : INTRO_MAX_4MB;
+        if (intro_from_card(path, most)) {
+            return &intro_wave;
+        }
+        long size = file_size(path);
+        if (size > 0 && size <= most && size <= RESIDENT_MAX) {
+            intro_wav = wav64_load(path, &(wav64_loadparms_t) { .streaming_mode = WAV64_STREAMING_NONE });   /* compressed: small */
+        }
+        if (!intro_wav) {
+            path = "rom:/intro.wav64";
+        }
+    }
+    if (!intro_wav) {
+        intro_wav = wav64_load(path, NULL);
+    }
+    wav64_set_loop(intro_wav, false);   /* once only, even if the file asks to loop */
+    return &intro_wav->wave;
+}
+
+void theme_pack_intro_free (void) {
+    if (intro_wav) {
+        wav64_close(intro_wav);
+        intro_wav = NULL;
+    }
+    if (intro_data) {
+        rspq_highpri_sync();    /* the mixer may still be reading it */
+        free(intro_data);
+        intro_data = NULL;
+    }
 }
 
 void theme_pack_note_mixing (int ms) {

@@ -35,8 +35,11 @@ const char *theme_pack_sound (const char *file_name, const char *rom_path);
 /** A button sound: the theme's own read into memory whole (if it fits), else `rom_path` streamed as before. */
 wav64_t *theme_pack_effect (const char *file_name, const char *rom_path);
 
-/** The intro tune: the theme's own read into memory whole (if it fits), else the menu's (rom, streamed). */
-wav64_t *theme_pack_intro (void);
+/** The intro tune to play (once): the theme's own read into memory whole if it fits, else the menu's. Call theme_pack_intro_free() after stopping its channel. */
+waveform_t *theme_pack_intro (void);
+
+/** Free the intro tune. */
+void theme_pack_intro_free (void);
 
 /** Note how long one round of sound mixing took; the log gets the worst each second when it is 8 ms or more. */
 void theme_pack_note_mixing (int ms);

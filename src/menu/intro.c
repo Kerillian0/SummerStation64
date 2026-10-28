@@ -72,7 +72,7 @@ static bool power_on = true;    /* this start was after the power switch (intro_
 static bool started = false;
 static uint64_t started_at;
 static menu_mode_t after;       /* the screen to open when the intro ends */
-static wav64_t *tune = NULL;
+static waveform_t *tune = NULL;
 static bool tune_open = false;
 static sprite_t *wordmark = NULL;
 static int total_ms = INTRO_SHORTEST_MS;
@@ -88,7 +88,7 @@ static void music_volume (float volume) {
 static void finish (menu_t *menu) {
     if (tune_open) {
         mixer_ch_stop(INTRO_CHANNEL);
-        wav64_close(tune);
+        theme_pack_intro_free();
         tune = NULL;
         tune_open = false;
     }
@@ -345,21 +345,22 @@ bool intro_display (menu_t *menu, surface_t *display) {
         fade_ask();
     } else if (!started) {
         started = true;
-        started_at = get_ticks_ms();
         /* The tune is opened even when it won't be heard, to learn its length. */
+        uint64_t opening = get_ticks_ms();
         tune = theme_pack_intro();     /* a card tune is read into memory whole: streamed, it crunched */
-        wav64_set_loop(tune, false);    /* once only, even if the file asks to loop (a tune shorter than the intro then ends early) */
+        debugf("intro: tune ready in %d ms\n", (int) (get_ticks_ms() - opening));
+        started_at = get_ticks_ms();    /* after reading it (a second for a long card tune), so the picture keeps time with the tune */
         tune_open = true;
-        if ((tune->wave.len > 0) && (tune->wave.frequency > 0.0f)) {
-            total_ms = (int) ((tune->wave.len * 1000.0f) / tune->wave.frequency);
+        if ((tune->len > 0) && (tune->frequency > 0.0f)) {
+            total_ms = (int) ((tune->len * 1000.0f) / tune->frequency);
         }
         if (total_ms < INTRO_SHORTEST_MS) total_ms = INTRO_SHORTEST_MS;
         if (total_ms > INTRO_LONGEST_MS) total_ms = INTRO_LONGEST_MS;
         debugf("intro: tune lasts %d ms (%d samples at %d Hz, loop %d)\n", total_ms,
-            (int) tune->wave.len, (int) tune->wave.frequency, (int) tune->wave.loop_len);
+            (int) tune->len, (int) tune->frequency, (int) tune->loop_len);
         if (menu->settings.soundfx_enabled) {
             mixer_ch_set_vol(INTRO_CHANNEL, volume_effects(), volume_effects());
-            wav64_play(tune, INTRO_CHANNEL);
+            mixer_ch_play(INTRO_CHANNEL, tune);
         }
     }
 
