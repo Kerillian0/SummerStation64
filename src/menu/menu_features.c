@@ -4,6 +4,7 @@
 #include <strings.h>
 
 #include "ini_parser.h"
+#include "profiles.h"
 #include "menu_features.h"
 #include "safe_file.h"
 #include "safe_mode.h"
@@ -54,11 +55,12 @@ static const feature_info_t feature_info[FEATURE_COUNT] = {
     [FEATURE_TRIM_EDGES]          = { "trim_edges",          true,  false },
 };
 
-#define FEATURES_USER_PATH      "sd:/menu/features.ini"
-#define FEATURES_USER_TMP_PATH  "sd:/menu/features.tmp"
+#define FEATURES_USER_PATH      profiles_file("features.ini")  /* the playing profile's */
+#define FEATURES_USER_TMP_PATH  profiles_file("features.tmp")
 
 static int8_t user[FEATURE_COUNT];
 static bool user_loaded = false;
+static int user_for = 0;        /* profiles_generation() when loaded */
 static bool user_dirty = false;
 
 static bool detected = false;
@@ -148,10 +150,11 @@ bool features_enabled (feature_t feature) {
 }
 
 static void features_user_load (void) {
-    if (user_loaded) {
+    if (user_loaded && user_for == profiles_generation()) {
         return;
     }
     user_loaded = true;
+    user_for = profiles_generation();   /* another player: their own choices */
 
     /* If power was cut between remove and rename, the temp file is the good copy. */
     ini_t *ini = ini_load(FEATURES_USER_PATH);

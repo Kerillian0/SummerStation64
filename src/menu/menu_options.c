@@ -3,10 +3,13 @@
 
 #include "ini_parser.h"
 #include "menu_options.h"
+#include "profiles.h"
 #include "safe_file.h"
 
-#define OPTIONS_PATH        "sd:/menu/options.ini"
-#define OPTIONS_TMP_PATH    "sd:/menu/options.tmp"
+#define OPTIONS_PATH        profiles_file("options.ini")   /* the playing profile's */
+#define OPTIONS_TMP_PATH    profiles_file("options.tmp")
+#define SHARED_PATH         "sd:/menu/options.ini"         /* the first profile's, which also holds the console's own */
+#define SHARED_TMP_PATH     "sd:/menu/options.tmp"
 
 typedef struct {
     const char *key;
@@ -53,13 +56,28 @@ static const option_info_t option_info[OPTION_COUNT] = {
 
 static int values[OPTION_COUNT];
 static bool loaded = false;
+static int loaded_for = 0;      /* profiles_generation() when loaded */
 static bool dirty = false;
+static bool shared_dirty = false;
+
+/* Options that belong to the console, not the player: the same for every
+   profile, kept in the first profile's file. Character Set applies at a
+   restart, before anyone is asked who is playing. */
+static bool shared (int option) {
+    return option == OPTION_FONT || option == OPTION_FRAME_RATE || option == OPTION_PARTY_TEST;
+}
+
+static ini_t *shared_load (void) {
+    ini_t *ini = ini_load(SHARED_PATH);
+    return ini ? ini : ini_try_load(SHARED_TMP_PATH);
+}
 
 static void load (void) {
-    if (loaded) {
+    if (loaded && loaded_for == profiles_generation()) {
         return;
     }
     loaded = true;
+    loaded_for = profiles_generation();     /* another player: their own choices */
 
     /* If power was cut between remove and rename, the temp file is the good copy. */
     ini_t *ini = ini_load(OPTIONS_PATH);
@@ -70,6 +88,15 @@ static void load (void) {
         values[i] = ini_get_int(ini, "options", option_info[i].key, option_info[i].default_value);
     }
     ini_free(ini);
+    if (profiles_current() > 0) {
+        ini_t *first = shared_load();
+        for (int i = 0; i < OPTION_COUNT; i++) {
+            if (shared(i)) {
+                values[i] = ini_get_int(first, "options", option_info[i].key, option_info[i].default_value);
+            }
+        }
+        ini_free(first);
+    }
 }
 
 int options_get (option_t option) {
@@ -87,6 +114,9 @@ void options_change (option_t option, int value) {
     load();
     values[option] = value;
     dirty = true;
+    if (shared(option) && profiles_current() > 0) {
+        shared_dirty = true;
+    }
 }
 
 void options_set (option_t option, int value) {
@@ -113,4 +143,22 @@ void options_flush (void) {
         debugf("options: could not write %s\n", OPTIONS_TMP_PATH);
     }
     ini_free(ini);
+
+    /* A console option changed by another player: into the first profile's file too. */
+    if (shared_dirty) {
+        shared_dirty = false;
+        ini_t *first = shared_load();
+        if (!first) {
+            first = ini_create();
+        }
+        for (int i = 0; i < OPTION_COUNT; i++) {
+            if (shared(i)) {
+                ini_set_int(first, "options", option_info[i].key, values[i]);
+            }
+        }
+        if (!ini_save(first, SHARED_TMP_PATH) || !safe_file_replace(SHARED_TMP_PATH, SHARED_PATH)) {
+            debugf("options: could not write %s\n", SHARED_PATH);
+        }
+        ini_free(first);
+    }
 }

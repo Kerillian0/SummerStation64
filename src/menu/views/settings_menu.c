@@ -860,11 +860,16 @@ static void draw_item (menu_t *menu, const item_t *it, int y) {
 
 static void draw_help (menu_t *menu, const item_t *it) {
     const char *note = "";
-    char stock[32];
+    char stock[64];
+    bool console = (it->type == ITEM_SWITCH) || (it->type == ITEM_CHOICE && it->option == OPTION_FONT)
+        || (it->type == ITEM_INFO && it->info == default_folder);     /* config.ini and Character Set: not per profile */
 
     if (it->type == ITEM_SWITCH) {
-        snprintf(stock, sizeof(stock), "\nStock value: %s", switch_text(it, it->stock_default));
+        snprintf(stock, sizeof(stock), "\nStock value: %s%s", switch_text(it, it->stock_default),
+            (profiles_count() >= 2) ? ". Same for every player." : "");
         note = stock;
+    } else if (console && profiles_count() >= 2) {
+        note = "\nSame for every player.";
     } else if (it->type == ITEM_FEATURE) {
         if (!features_available(it->feature)) {
             note = "\nNeeds the Expansion Pak.";

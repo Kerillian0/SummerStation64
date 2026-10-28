@@ -4,6 +4,9 @@
 #include <string.h>
 #include <strings.h>
 
+#include "folder_memory.h"
+#include "menu_features.h"
+#include "menu_options.h"
 #include "profiles.h"
 #include "safe_file.h"
 #include "utils/fs.h"
@@ -111,6 +114,13 @@ static void load (void) {
     debugf("profiles: %d, playing as %s\n", count, list[current].name);
 }
 
+/* Anything the last player changed and not yet written goes into their files, before the paths change. */
+static void flush_lists (void) {
+    options_flush();
+    features_user_flush();
+    folder_memory_flush();
+}
+
 /* Players other than the first keep their lists in a folder of their own. */
 static void lists_folder_make (void) {
     if (current > 0) {
@@ -176,6 +186,7 @@ void profiles_next_color (int profile) {
 void profiles_switch (int profile) {
     load();
     if (profile >= 0 && profile < count && profile != current) {
+        flush_lists();
         current = profile;
         generation++;
         debugf("profiles: playing as %s\n", list[current].name);
@@ -263,6 +274,9 @@ bool profiles_delete (int profile) {
     load();
     if (profile <= 0 || profile >= count) {
         return false;   /* the first profile owns the saves the menu always had */
+    }
+    if (current == profile) {
+        flush_lists();  /* while the paths are still this player's */
     }
     if (retired_count < RETIRED_MAX) {
         snprintf(retired[retired_count++], NAME_LENGTH, "%s", list[profile].folder);

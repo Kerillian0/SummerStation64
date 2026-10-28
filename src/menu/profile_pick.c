@@ -3,6 +3,8 @@
 #include "bookkeeping.h"
 #include "fonts.h"
 #include "games_filter.h"
+#include "tabs.h"
+#include "volume.h"
 #include "games_ui.h"
 #include "intro.h"
 #include "profile_pick.h"
@@ -73,7 +75,11 @@ void profile_pick_refresh (menu_t *menu) {
             }
         }
     }
-    menu->browser.reload = true;                /* hidden games and own collections are the new player's */
+    theme_reload();                             /* the new player's look, sounds and volumes */
+    sound_reload_files();
+    fonts_restyle();
+    volume_apply();
+    menu->browser.reload = true;                /* hidden games, own collections, sort order: the new player's */
     games_filter_collections_changed(menu);
     debugf("profiles: lists of %s read\n", profiles_name(profiles_current()));
 }
@@ -95,6 +101,9 @@ static void process (menu_t *menu) {
         debugf("profiles: %s is playing\n", profiles_name(selected));
         showing = false;
         menu->next_mode = after;
+        if (after == MENU_MODE_BROWSER || after == MENU_MODE_HISTORY || after == MENU_MODE_FAVORITE) {
+            tabs_open(menu, tabs_first());  /* the chosen player's first tab */
+        }
     }
 }
 
