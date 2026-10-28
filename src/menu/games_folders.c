@@ -194,7 +194,16 @@ bool games_folders_entry_in_hacks (const char *name) {
     if (length == 0) {
         folder[1] = '\0';
     }
-    return find(&hacks, folder) >= 0;
+    if (find(&hacks, folder) >= 0) {
+        return true;
+    }
+    /* A game one folder down ("N64 Hacks/Zelda/Game.z64"): its folder's folder may be marked. */
+    char *up = strrchr(folder, '/');
+    if (up && up != folder) {
+        *up = '\0';
+        return find(&hacks, folder) >= 0;
+    }
+    return false;
 }
 
 const char *entry_file_name (const char *name) {

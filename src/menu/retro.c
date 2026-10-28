@@ -11,6 +11,7 @@
 
 #include "png_decoder.h"
 #include "retro.h"
+#include "art_trim.h"
 #include "ui_components/constants.h"
 #include "utils/fs.h"
 
@@ -66,6 +67,7 @@ static void decoded (png_err_t err, surface_t *image, void *data) {
     component_boxart_t *b = data;
     b->loading = false;
     b->image = image;
+    art_trim_decoded(err, image);
 }
 
 component_boxart_t *retro_art_load (const char *storage_prefix, const char *name, file_image_type_t which) {
@@ -99,6 +101,7 @@ component_boxart_t *retro_art_load (const char *storage_prefix, const char *name
     component_boxart_t *b = NULL;
     if (file_exists(path_get(path)) && (b = calloc(1, sizeof(component_boxart_t)))) {
         b->loading = true;
+        art_trim_next(which);
         if (png_decoder_start(path_get(path), BOXART_WIDTH_MAX, BOXART_HEIGHT_MAX, decoded, b) != PNG_OK) {
             free(b);
             b = NULL;

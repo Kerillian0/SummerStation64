@@ -2,6 +2,7 @@
 #include <math.h>
 #include <miniz.h>
 #include <miniz_zip.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -477,6 +478,51 @@ static int scan_folder (menu_t *menu, path_t *path, const char *prefix) {
     return result;
 }
 
+// The Games tab also reads the folders directly inside an added folder
+// (one per game: "Games/Zelda/zelda.z64"), not deeper. Left out: folders
+// the player added themselves (read once already), the menu's own and save
+// folders, and hidden ones.
+#define SUBFOLDERS_MAX  (64)
+
+static int scan_subfolders (menu_t *menu, const char *folder, const char **added, int added_count) {
+    char *names[SUBFOLDERS_MAX];
+    int count = 0;
+    path_t *path = path_init(menu->storage_prefix, (char *) folder);
+    dir_t info;
+    int result = dir_findfirst(path_get(path), &info);
+    while (result == 0 && count < SUBFOLDERS_MAX) {
+        if (info.d_type == DT_DIR && info.d_name[0] != '.'
+            && strcasecmp(info.d_name, SAVE_DIRECTORY_NAME) != 0 && strcasecmp(info.d_name, "menu") != 0
+            && strcasecmp(info.d_name, "backups") != 0) {
+            path_push(path, info.d_name);
+            bool hidden = !menu->settings.show_protected_entries && path_is_hidden(path);
+            path_pop(path);
+            if (!hidden && (names[count] = strdup(info.d_name)) != NULL) {
+                count++;
+            }
+        }
+        result = dir_findnext(path_get(path), &info);
+    }
+    path_free(path);
+
+    int r = 0;
+    for (int i = 0; i < count; i++) {
+        char *sub = name_with_prefix(folder, names[i]);    // "/Games" + "Zelda" -> "/Games/Zelda"
+        bool skip = !sub;
+        for (int j = 0; j < added_count && !skip; j++) {
+            skip = (strcasecmp(added[j], sub) == 0);
+        }
+        if (!skip && r != -2) {
+            path_t *sub_path = path_init(menu->storage_prefix, sub);
+            r = scan_folder(menu, sub_path, sub + 1);
+            path_free(sub_path);
+        }
+        free(sub);
+        free(names[i]);
+    }
+    return (r == -2) ? -2 : 0;
+}
+
 static bool load_directory (menu_t *menu) {
     int result;
 
@@ -497,6 +543,9 @@ static bool load_directory (menu_t *menu) {
             path_t *path = path_init(menu->storage_prefix, (char *) folders[i]);
             int r = scan_folder(menu, path, folders[i] + 1); // without the leading '/'
             path_free(path);
+            if (i > 0 && r != -2) {
+                r = scan_subfolders(menu, folders[i], folders, count); // an added folder: one level down too
+            }
             if (r == -2) {
                 result = r;
                 break;
@@ -670,11 +719,19 @@ static void set_default_directory (menu_t *menu, void *arg) {
 }
 
 // A short note over the screen after a folder is added or removed.
-static char note_text[96] = "";
+static char note_text[192] = "";
 static uint64_t note_until_ms = 0;
 
 static void note_show (const char *text) {
     snprintf(note_text, sizeof(note_text), "%s", text);
+    note_until_ms = get_ticks_ms() + 2000;
+}
+
+static void note_showf (const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    vsnprintf(note_text, sizeof(note_text), format, args);
+    va_end(args);
     note_until_ms = get_ticks_ms() + 2000;
 }
 
@@ -684,53 +741,76 @@ static void note_draw (void) {
     }
 }
 
+// The folder the Folders tab's folder rows act on: the highlighted folder,
+// else the one shown. Free with path_free().
+static path_t *folder_target (menu_t *menu) {
+    entry_t *e = menu->browser.entry;
+    if (e && e->type == ENTRY_TYPE_DIR) {
+        return path_clone_push(menu->browser.directory, e->name);
+    }
+    return path_clone(menu->browser.directory);
+}
+
+static bool folder_is_start (menu_t *menu, path_t *path) {
+    return path_is_root(path)
+        || strcasecmp(path_get(path) + 3, menu->settings.default_directory ? menu->settings.default_directory : "") == 0;
+}
+
 static void add_games_folder (menu_t *menu, void *arg) {
+    path_t *target = folder_target(menu);
     if (!folders_tab) {
         note_show("Go to the folder in the Folders tab first.");
-    } else if (games_folders_add(path_get(menu->browser.directory))) {
-        note_show("Added. Its games now show in the Games tab.");
+    } else if (folder_is_start(menu, target) && !path_is_root(target)) {
+        note_show("This is the start folder: the Games tab always shows it.");
+    } else if (games_folders_add(path_get(target))) {
+        note_showf("Added \"%s\".\nIts games, and those in the folders inside it,\nnow show in the Games tab.", path_last_get(target));
     } else if (games_folders_count() >= GAMES_FOLDERS_MAX) {
         note_show("The Games tab already shows the most folders it can.");
     } else {
-        note_show("This folder is already in the Games tab.");
+        note_showf("\"%s\" is already in the Games tab.", path_last_get(target));
     }
+    path_free(target);
 }
 
 static void remove_games_folder (menu_t *menu, void *arg) {
+    path_t *target = folder_target(menu);
     if (!folders_tab) {
         note_show("Go to the folder in the Folders tab first.");
-    } else if (games_folders_remove(path_get(menu->browser.directory))) {
-        note_show("Removed from the Games tab.");
+    } else if (games_folders_remove(path_get(target))) {
+        note_showf("Removed \"%s\" from the Games tab.", path_last_get(target));
     } else {
         note_show("This folder was not added to the Games tab.\n(The start folder is always shown.)");
     }
+    path_free(target);
 }
 
-// Folders tab, Options: mark the folder shown as holding hacks (games_folders.h).
+// Folders tab, Options: mark a folder as holding hacks (games_folders.h).
 static void mark_hacks_folder (menu_t *menu, void *arg) {
-    const char *here = path_get(menu->browser.directory);
+    path_t *target = folder_target(menu);
+    const char *here = path_get(target);
     if (!folders_tab) {
         note_show("Go to the folder in the Folders tab first.");
     } else if (games_folders_is_hacks(here)) {
         note_show("This folder is already marked as hacks.");
-    } else if (!games_folders_has(here) && !path_is_root(menu->browser.directory)
-               && strcasecmp(here + 3, menu->settings.default_directory ? menu->settings.default_directory : "") != 0
-               && !games_folders_add(here)) {
+    } else if (!games_folders_has(here) && !folder_is_start(menu, target) && !games_folders_add(here)) {
         note_show("The Games tab already shows the most folders it can.");
     } else {
         games_folders_mark_hacks(here, true);
-        note_show("Marked. Its games are hacks in the Games tab.");
+        note_showf("Marked \"%s\". Its games are hacks in the Games tab.", path_last_get(target));
     }
+    path_free(target);
 }
 
 static void unmark_hacks_folder (menu_t *menu, void *arg) {
+    path_t *target = folder_target(menu);
     if (!folders_tab) {
         note_show("Go to the folder in the Folders tab first.");
-    } else if (games_folders_mark_hacks(path_get(menu->browser.directory), false)) {
+    } else if (games_folders_mark_hacks(path_get(target), false)) {
         note_show("No longer marked as hacks.");
     } else {
         note_show("This folder was not marked as hacks.");
     }
+    path_free(target);
 }
 
 // Game Versions: Grouped, or Region Copies: One Cover. A on a cover that
@@ -1004,6 +1084,27 @@ static void entry_menu_fill (menu_t *menu) {
         } else if ((cover_row && row.action != show_game_info) || (row.action == folders_hide && !game)
                    || (row.action == rename_entry && (!e || e->type == ENTRY_TYPE_DIR))) {
             continue;   // the Folders tab: the file browser's rows, and hiding a game there
+        }
+        if (folders_tab && (row.action == add_games_folder || row.action == remove_games_folder
+                            || row.action == mark_hacks_folder || row.action == unmark_hacks_folder)) {
+            // Only the rows that apply to the folder they act on (the highlighted one, else this one).
+            path_t *target = folder_target(menu);
+            bool in_games = games_folders_has(path_get(target));
+            bool hacks = games_folders_is_hacks(path_get(target));
+            bool start = folder_is_start(menu, target);
+            path_free(target);
+            if ((row.action == add_games_folder && (in_games || start)) || (row.action == remove_games_folder && !in_games)
+                || (row.action == mark_hacks_folder && hacks) || (row.action == unmark_hacks_folder && !hacks)) {
+                continue;
+            }
+            if (e && e->type == ENTRY_TYPE_DIR) {
+                static char texts[4][48];
+                int k = (row.action == add_games_folder) ? 0 : (row.action == remove_games_folder) ? 1 : (row.action == mark_hacks_folder) ? 2 : 3;
+                static const char *formats[4] = { "Add \"%.20s\" to Games", "Remove \"%.20s\" from Games",
+                                                   "Mark \"%.20s\" as hacks", "Unmark \"%.20s\" as hacks" };
+                snprintf(texts[k], sizeof(texts[k]), formats[k], entry_file_name(e->name));
+                row.text = texts[k];
+            }
         }
         if (row.action == toggle_favorite) {
             row.text = favorite_toggle_text(menu, path_get(path));

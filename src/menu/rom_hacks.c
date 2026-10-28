@@ -12,10 +12,14 @@
 #define WORD_LENGTH     (20)
 #define GROUP_MOST      (24)
 
-/* Is `word` in `text`, whatever the capitals? */
+/* Does a word of `text` start with `word`, whatever the capitals? Only at
+   the start of a word, so "Love Shack" is no hack. */
 static bool has_word (const char *text, const char *word) {
     size_t length = strlen(word);
     for (const char *t = text; *t; t++) {
+        if (t > text && isalpha((unsigned char) t[-1])) {
+            continue;
+        }
         size_t i = 0;
         while (i < length && t[i] && tolower((unsigned char) t[i]) == word[i]) {
             i++;
@@ -38,7 +42,7 @@ static bool has_hack_tag (const char *name) {
 }
 
 bool rom_hacks_name_says (const char *file_name) {
-    return has_word(file_name, "hack") || has_word(file_name, "redux") || has_hack_tag(file_name);
+    return has_word(file_name, "hack") || has_word(file_name, "romhack") || has_word(file_name, "redux") || has_hack_tag(file_name);
 }
 
 /* The words of a game's name, for comparing names: in small letters,

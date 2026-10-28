@@ -50,6 +50,8 @@ static const feature_info_t feature_info[FEATURE_COUNT] = {
     [FEATURE_CONTROLLER_MARKS]    = { "controller_marks",    true,  false },
     [FEATURE_FILL_BOX_EDGES]      = { "fill_box_edges",      true,  false },
     [FEATURE_ADVANCED_OPTIONS]    = { "advanced_options",    false, false },
+    [FEATURE_NAME_SCROLL]         = { "name_scroll",         true,  false },
+    [FEATURE_TRIM_EDGES]          = { "trim_edges",          true,  false },
 };
 
 #define FEATURES_USER_PATH      "sd:/menu/features.ini"

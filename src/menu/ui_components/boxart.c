@@ -10,6 +10,7 @@
 #include "../path.h"
 #include "../png_decoder.h"
 #include "constants.h"
+#include "../art_trim.h"
 #include "utils/fs.h"
 
 #define OLD_BOXART_DIRECTORY       "menu/boxart"
@@ -29,6 +30,7 @@ static void png_decoder_callback(png_err_t err, surface_t *decoded_image, void *
     component_boxart_t *b = (component_boxart_t *)(callback_data);
     b->loading = false;
     b->image = decoded_image;
+    art_trim_decoded(err, decoded_image);   // SummerStation64: the scan's black frame left out
 }
 
 /**
@@ -88,6 +90,7 @@ component_boxart_t *ui_components_boxart_init(const char *storage_prefix, const 
     debugf("Boxart: Using path %s\n", boxart_path);
 
     if (directory_exists(path_get(path))) {
+        art_trim_next(current_image_view);   // SummerStation64
         switch (current_image_view) {
             case IMAGE_GAMEPAK_FRONT:
                 path_push(path, "gamepak_front.png");

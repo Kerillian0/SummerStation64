@@ -82,6 +82,7 @@ SRCS = \
 	menu/rom_info.c \
 	menu/settings.c \
 	menu/sound.c \
+	menu/art_trim.c \
 	menu/favorite_toggle.c \
 	menu/cheat_ready.c \
 	menu/cheat_menu.c \

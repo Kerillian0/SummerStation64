@@ -72,6 +72,9 @@ int main (void) {
         { "Smash Remix ROMHACK.z64", "", 64, true, true },
         { "Chameleon Twist (U) [!].z64", "NCTE", 8, true, false },
         { "Hack notes.txt", "", 0, false, false },
+        { "South Park - Chef's Love Shack (USA).z64", "NLSE", 8, true, false },  /* a player's report, 2026-10-26 */
+        { "Smash_Remix_romhack_v1.z64", "", 64, true, true },
+        { "Hacked Game.z64", "", 8, true, true },
     };
     RUN("The file name says it is a hack", by_name);
 

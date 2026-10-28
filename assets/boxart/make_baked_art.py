@@ -13,7 +13,8 @@ A folder without the region letter that sits beside folders with one is
 baked as the European (P) version: that is whose cover it is.
 
 Each picture is shrunk to the size the menu shows it at (to fit 158 x 158)
-and stored in the console's own 16-bit format, so the console only has to
+(fronts and backs first lose the black frame many scans carry) and
+stored in the console's own 16-bit format, so the console only has to
 copy it in. Run from the project's top folder. See README.md here.
 """
 import os
@@ -31,6 +32,29 @@ SIDES = {"boxart_front.png": "f", "boxart_back.png": "b",
          "boxart_top.png": "t", "boxart_left.png": "l", "boxart_right.png": "r",
          # the cartridge, cut out (its see-through edges are kept)
          "gamepak_front.png": "p"}
+# The black frame some scans carry (about half the pack's fronts and backs,
+# 2-4 px): edge lines near-black almost all the way across are cut off, at
+# most a twentieth of the picture per side, so covers black by design keep
+# their shape. The same rule as src/menu/art_trim.c, for art read from the card.
+DARK_SUM = 96
+DARK_PERCENT = 97
+
+
+def trim_black_frame(picture):
+    w, h = picture.size
+    px = picture.load()
+    def dark_line(points):
+        n = sum(1 for p in points if p[0] + p[1] + p[2] < DARK_SUM)
+        return n * 100 >= DARK_PERCENT * len(points)
+    most = lambda size: max(2, size // 20)
+    top = bottom = left = right = 0
+    while top < most(h) and dark_line([px[x, top] for x in range(w)]): top += 1
+    while bottom < most(h) and dark_line([px[x, h - 1 - bottom] for x in range(w)]): bottom += 1
+    while left < most(w) and dark_line([px[left, y] for y in range(h)]): left += 1
+    while right < most(w) and dark_line([px[w - 1 - right, y] for y in range(h)]): right += 1
+    return picture.crop((left, top, w - right, h - bottom))
+
+
 MKSPRITE = os.path.join(os.environ.get("N64_INST", "/opt/libdragon"), "bin", "mksprite")
 
 if not os.path.isdir(SOURCE):
@@ -67,6 +91,8 @@ with tempfile.TemporaryDirectory() as work:
                 continue
             try:
                 picture = Image.open(os.path.join(folder, name)).convert("RGBA" if side == "p" else "RGB")
+                if side in ("f", "b") and picture.width >= 16 and picture.height >= 16:
+                    picture = trim_black_frame(picture)
                 if side == "p":
                     # trim the see-through margin, so the 3D cartridge's edges meet its front
                     picture = picture.crop(picture.getchannel("A").getbbox() or (0, 0, picture.width, picture.height))

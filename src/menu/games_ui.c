@@ -322,6 +322,32 @@ const char *games_ui_selection_name (int choice) {
     return (choice >= 0 && choice < SELECTION_COUNT) ? names[choice] : "";
 }
 
+/* How far a name too long for the title panel has slid, `ms` after it was
+   first shown: it rests, slides left until its end shows, rests, slides
+   back, and so on. Even steps only, so the letters don't shimmer on 240p. */
+#define NAME_REST_MS        (2000)
+#define NAME_END_REST_MS    (1500)
+#define NAME_SPEED          (30)    /* pixels a second */
+
+static int name_scroll_offset (uint64_t ms, int travel) {
+    if (travel <= 0) {
+        return 0;
+    }
+    uint64_t slide = ((uint64_t) travel * 1000) / NAME_SPEED;
+    uint64_t t = ms % (NAME_REST_MS + slide + NAME_END_REST_MS + slide);
+    int offset;
+    if (t < NAME_REST_MS) {
+        offset = 0;
+    } else if ((t -= NAME_REST_MS) < slide) {
+        offset = (int) ((t * NAME_SPEED) / 1000);
+    } else if ((t -= slide) < NAME_END_REST_MS) {
+        offset = travel;
+    } else {
+        offset = travel - (int) (((t - NAME_END_REST_MS) * NAME_SPEED) / 1000);
+    }
+    return offset & ~1;
+}
+
 void games_ui_title_panel_draw (const char *title, const char *detail, const char *lead, bool hack, bool is_new, const char *with, const game_facts_t *facts) {
     const theme_t *t = theme_get();
     int x0 = GAMES_UI_CONTENT_X0;
@@ -343,26 +369,58 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const cha
     static rdpq_paragraph_t *title_layout = NULL;
     static uint32_t title_key = 0;
     static int title_layout_width = 0;
+    static bool title_scrolls = false;      /* laid out whole, too long for the panel: it slides (name_scroll) */
+    static uint64_t title_since = 0;        /* when this name was first shown */
+    bool scroll = features_enabled(FEATURE_NAME_SCROLL);
     uint32_t key = 2166136261u;
     for (const unsigned char *c = (const unsigned char *) title; *c; c++) {
         key = (key ^ *c) * 16777619u;
     }
-    if (!title_layout || key != title_key || title_width != title_layout_width) {
+    if (!title_layout || key != title_key || title_width != title_layout_width || (title_scrolls && !scroll)) {
         if (title_layout) {
             rdpq_paragraph_free(title_layout);
         }
-        int title_bytes = strlen(title);
-        title_layout = rdpq_paragraph_build(&(rdpq_textparms_t) {
-            .width = title_width,
-            .height = PANEL_TITLE,
-            .valign = VALIGN_CENTER,
-            .wrap = WRAP_ELLIPSES,
-        }, title_font_pick(title, title_width), title, &title_bytes);
+        uint8_t font = title_font_pick(title, title_width);
+        title_layout = NULL;
+        title_scrolls = false;
+        if (scroll && font == FNT_DEFAULT) {
+            /* Laid out on one line as long as it is; kept only if it is too long. */
+            int title_bytes = strlen(title);
+            title_layout = rdpq_paragraph_build(&(rdpq_textparms_t) {
+                .height = PANEL_TITLE,
+                .valign = VALIGN_CENTER,
+                .wrap = WRAP_NONE,
+            }, font, title, &title_bytes);
+            title_scrolls = (title_layout->bbox.x1 > title_width);
+            if (!title_scrolls) {
+                rdpq_paragraph_free(title_layout);
+                title_layout = NULL;
+            }
+        }
+        if (!title_layout) {
+            int title_bytes = strlen(title);
+            title_layout = rdpq_paragraph_build(&(rdpq_textparms_t) {
+                .width = title_width,
+                .height = PANEL_TITLE,
+                .valign = VALIGN_CENTER,
+                .wrap = WRAP_ELLIPSES,
+            }, font, title, &title_bytes);
+        }
         title_key = key;
         title_layout_width = title_width;
+        title_since = get_ticks_ms();
     }
-    rdpq_paragraph_render(title_layout, x0 + 12, PANEL_Y + 2);
-    int title_end = x0 + 12 + (int) title_layout->bbox.x1;
+    int title_end;
+    if (title_scrolls) {
+        int offset = name_scroll_offset(get_ticks_ms() - title_since, (int) title_layout->bbox.x1 - title_width);
+        rdpq_set_scissor(x0 + 12, PANEL_Y, x0 + 12 + title_width, PANEL_Y + PANEL_HEIGHT);
+        rdpq_paragraph_render(title_layout, x0 + 12 - offset, PANEL_Y + 2);
+        rdpq_set_scissor(0, 0, display_get_width(), display_get_height());
+        title_end = x0 + 12 + title_width;
+    } else {
+        rdpq_paragraph_render(title_layout, x0 + 12, PANEL_Y + 2);
+        title_end = x0 + 12 + (int) title_layout->bbox.x1;
+    }
 
     if (heart && facts && facts->favorite) {
         heart_draw(title_end + HEART_GAP, PANEL_Y + 2 + ((PANEL_TITLE - HEART_HEIGHT) / 2));

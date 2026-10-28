@@ -81,6 +81,11 @@ static void draw (menu_t *menu, surface_t *d) {
             "\nGame data:\n\n"
             "\tGenres and player counts from\n"
             "\tlibretro-database (CC-BY-SA 4.0)\n"
+            "\nSummerStation64 is free, always.\n"
+            "To donate: ko-fi.com/polprzewodnikowy\n"
+            "\tand ko-fi.com/networkfusion\n"
+            "To help with time: the metadata pack,\n"
+            "\tgithub.com/n64-tools\n"
         );
     }
 
