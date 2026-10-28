@@ -9,7 +9,8 @@
 static bool trim_next = false;
 
 void art_trim_next (file_image_type_t which) {
-    trim_next = (which == IMAGE_BOXART_FRONT || which == IMAGE_BOXART_BACK);
+    trim_next = (which == IMAGE_BOXART_FRONT || which == IMAGE_BOXART_BACK || which == IMAGE_BOXART_TOP
+              || which == IMAGE_BOXART_BOTTOM || which == IMAGE_BOXART_LEFT || which == IMAGE_BOXART_RIGHT);
 }
 
 static bool dark (const surface_t *image, int x, int y) {

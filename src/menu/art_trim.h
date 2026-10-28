@@ -4,13 +4,14 @@
  *
  * About half the covers in the metadata pack have a near-black border of
  * 2-4 pixels (a few up to 7), which showed as dark lines down the edges of
- * the cover and the 3D box. When a box front or back has been unpacked from
- * the card, any edge row or column that is near-black almost all the way
+ * the cover and the 3D box; every top label in the pack has a dark line at
+ * one end. When a box picture (front, back, top or side) has been unpacked
+ * from the card, any edge row or column that is near-black almost all the way
  * across is left out, at most a twentieth of the picture on each side, so
  * covers black by design (the PAL Ocarina of Time box) keep their shape.
  * The picture is moved up in its own memory: nothing is copied or added.
  * The bake script (assets/boxart/make_baked_art.py) trims baked art the
- * same way. Cartridges and edge strips are left alone. Feature `trim_edges`.
+ * same way. Cartridges are left alone. Feature `trim_edges`.
  */
 
 #ifndef ART_TRIM_H__

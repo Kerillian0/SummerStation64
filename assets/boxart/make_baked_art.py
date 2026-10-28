@@ -91,7 +91,7 @@ with tempfile.TemporaryDirectory() as work:
                 continue
             try:
                 picture = Image.open(os.path.join(folder, name)).convert("RGBA" if side == "p" else "RGB")
-                if side in ("f", "b") and picture.width >= 16 and picture.height >= 16:
+                if side in ("f", "b", "t", "l", "r") and picture.width >= 16 and picture.height >= 16:
                     picture = trim_black_frame(picture)
                 if side == "p":
                     # trim the see-through margin, so the 3D cartridge's edges meet its front
