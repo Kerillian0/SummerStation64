@@ -29,6 +29,7 @@
 #include "../settings.h"
 #include "../sound.h"
 #include "../theme.h"
+#include "../volume.h"
 #include "../ui_components/constants.h"
 #include "settings_menu.h"
 #include "views.h"
@@ -41,6 +42,7 @@ typedef enum {
     ITEM_CHOICE,    /* one of several named values; A moves to the next */
     ITEM_ACTION,    /* does something when A is pressed */
     ITEM_INFO,      /* shows a value, can't be changed here */
+    ITEM_SLIDER,    /* a number from 0 to VOLUME_STEPS in an option; left and right move it */
 } item_type_t;
 
 typedef struct {
@@ -81,6 +83,8 @@ typedef struct {
     { .label = text, .help = about, .type = ITEM_ACTION, .action = func, .info = info_func }
 #define INFO(text, func, about) \
     { .label = text, .help = about, .type = ITEM_INFO, .info = func }
+#define SLIDER(text, id, hook, about) \
+    { .label = text, .help = about, .type = ITEM_SLIDER, .option = id, .changed = hook }
 #define COUNT(list) ((int) (sizeof(list) / sizeof(list[0])))
 
 /* ---------- extra work after some changes ---------- */
@@ -130,6 +134,11 @@ static void apply_theme (menu_t *menu) {
 
 static void apply_soundfx (menu_t *menu) {
     sound_use_sfx(menu->settings.soundfx_enabled);
+}
+
+static void apply_volume (menu_t *menu) {
+    (void) menu;
+    volume_apply();
 }
 
 static void apply_bgm (menu_t *menu) {
@@ -226,6 +235,8 @@ static const item_t control_items[] = {
 static const item_t sound_items[] = {
     SWITCH("Sound Effects", soundfx_enabled, false, apply_soundfx, "Play sounds when moving around the menu."),
     SWITCH("Background Music", bgm_enabled, false, apply_bgm, "Play music in the menu."),
+    SLIDER("Music Volume", OPTION_MUSIC_VOLUME, apply_volume, "How loud the menu's music plays. 5 is the usual level, 10 twice as loud. Left and right change it."),
+    SLIDER("Sound Volume", OPTION_SOUND_VOLUME, apply_volume, "How loud the button sounds and the intro tune play. 5 is the usual level, 10 twice as loud. Left and right change it."),
 };
 
 static char games_folders_text[16];
@@ -540,6 +551,7 @@ static void change_item (menu_t *menu, const item_t *it) {
             it->action(menu);
             break;
         case ITEM_INFO:
+        case ITEM_SLIDER:
             break;
     }
 
@@ -594,7 +606,20 @@ static void process (menu_t *menu) {
     } else if (menu->actions.go_down && item < cat->count - 1) {
         item++;
         sound_play_effect(SFX_CURSOR);
+    } else if (cat->items[item].type == ITEM_SLIDER && (menu->actions.go_left || menu->actions.go_right)) {
+        const item_t *it = &cat->items[item];
+        int v = options_get(it->option) + (menu->actions.go_right ? 1 : -1);
+        if (v >= 0 && v <= VOLUME_STEPS) {
+            options_change(it->option, v);
+            it->changed(menu);
+            unsaved = true;
+            changed_at = get_ticks_ms();
+            sound_play_effect(SFX_SETTING);     /* heard at the new level */
+        }
     } else if (menu->actions.enter) {
+        if (cat->items[item].type == ITEM_SLIDER) {
+            return;
+        }
         if (cat->items[item].type == ITEM_CHOICE && pick_open(&cat->items[item])) {
             sound_play_effect(SFX_ENTER);   /* more than four values: a list to pick from */
             return;
@@ -661,6 +686,26 @@ static const char *switch_text (const item_t *it, bool on) {
     return text ? text : on_off(on);
 }
 
+#define SLIDER_WIDTH    (150)
+#define SLIDER_NUMBER   (36)    /* room for "10" after the bar */
+
+/* A bar in ten steps, filled up to the value, and the value after it. */
+static void draw_slider (const item_t *it, int y) {
+    int v = options_get(it->option);
+    char number[8];
+    snprintf(number, sizeof(number), "%d", v);
+    draw_text(ITEMS_X, y, ITEMS_WIDTH, ALIGN_LEFT, STL_DEFAULT, it->label);
+    draw_text(ITEMS_X, y, ITEMS_WIDTH, ALIGN_RIGHT, STL_DEFAULT, number);
+    int x1 = ITEMS_X + ITEMS_WIDTH - ROW_PADDING - SLIDER_NUMBER;
+    int x0 = x1 - SLIDER_WIDTH;
+    int step = SLIDER_WIDTH / VOLUME_STEPS;
+    int y0 = y + (ROW_HEIGHT / 2) - 5;
+    for (int i = 0; i < VOLUME_STEPS; i++) {
+        int sx = x0 + i * step;
+        draw_fill(sx, y0, sx + step - 4, y0 + 10, (i < v) ? theme_get()->accent : theme_get()->tab_inactive);
+    }
+}
+
 static void draw_item (menu_t *menu, const item_t *it, int y) {
     const char *value = "";
     menu_font_style_t style = STL_DEFAULT;
@@ -695,6 +740,9 @@ static void draw_item (menu_t *menu, const item_t *it, int y) {
             value = it->info(menu);
             style = STL_GRAY;
             break;
+        case ITEM_SLIDER:
+            draw_slider(it, y);
+            return;
     }
 
     if (it->type == ITEM_INFO) {
@@ -795,7 +843,7 @@ static void draw (menu_t *menu, surface_t *d) {
             ALIGN_LEFT, VALIGN_TOP,
             "%s\n"
             "B: Back",
-            (it->type == ITEM_ACTION) ? "A: Select" : (it->type == ITEM_INFO) ? "" : "A: Change"
+            (it->type == ITEM_ACTION) ? "A: Select" : (it->type == ITEM_INFO) ? "" : (it->type == ITEM_SLIDER) ? "Left/Right: Change" : "A: Change"
         );
     } else {
         ui_components_actions_bar_text_draw(

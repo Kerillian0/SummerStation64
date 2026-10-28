@@ -5,6 +5,7 @@
 
 #include <libdragon.h>
 #include "theme_pack.h"
+#include "volume.h"
 #include "memory_note.h"
 #include "flashcart/flashcart.h"
 #include "fonts.h"
@@ -27,7 +28,6 @@
 #define INTRO_LONGEST_MS    (8000)  /* and never more than this, however long the tune is */
 
 #define INTRO_CHANNEL       (SOUND_SFX_CHANNEL + 2)     /* sound effect channels the menu doesn't use (a stereo tune takes two) */
-#define INTRO_VOLUME        (0.5f)
 
 /* The fade-in (option `fade`): when the first screen appears, with or
    without the intro before it, the picture comes up from black and the
@@ -35,7 +35,6 @@
 #define FADE_MS             (2000)
 #define FADE_FAST_MS        (1000)
 #define FADE_WAIT_MS        (1000)  /* if no screen has drawn the fade by then, the music starts rising anyway */
-#define MUSIC_VOLUME        (0.1f)  /* the level sound.c plays it at */
 
 /* The logo turns steadily the whole time, as it does at the start of
    Ocarina of Time. */
@@ -104,7 +103,7 @@ static void finish (menu_t *menu) {
 /* Ask for the fade-in. It starts on the first frame the next screen draws. */
 static void fade_ask (void) {
     if (options_get(OPTION_FADE) == FADE_OFF) {
-        music_volume(MUSIC_VOLUME);
+        music_volume(volume_music());
         return;
     }
     music_volume(0.0f);
@@ -199,7 +198,7 @@ void intro_poll (void) {
         fade_from = get_ticks_ms();
     }
     float t = fade_progress();
-    music_volume(MUSIC_VOLUME * t);
+    music_volume(volume_music() * t);
     if (t >= 1.0f) {
         fading = false;
     }
@@ -336,7 +335,7 @@ bool intro_display (menu_t *menu, surface_t *display) {
         if (total_ms > INTRO_LONGEST_MS) total_ms = INTRO_LONGEST_MS;
         debugf("intro: tune lasts %d ms\n", total_ms);
         if (menu->settings.soundfx_enabled) {
-            mixer_ch_set_vol(INTRO_CHANNEL, INTRO_VOLUME, INTRO_VOLUME);
+            mixer_ch_set_vol(INTRO_CHANNEL, volume_effects(), volume_effects());
             wav64_play(&tune, INTRO_CHANNEL);
         }
     }

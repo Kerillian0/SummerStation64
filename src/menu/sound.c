@@ -11,6 +11,7 @@
 #include "card_music.h"
 #include "sound.h"
 #include "theme_pack.h"
+#include "volume.h"
 
 #define DEFAULT_FREQUENCY   (44100)
 #define NUM_BUFFERS         (4)
@@ -85,7 +86,7 @@ void sound_init_audioplayer_playback (void) {
  * @brief Initialize the sound effects.
  */
 void sound_init_sfx (void) {
-    mixer_ch_set_vol(SOUND_SFX_CHANNEL, 0.5f, 0.5f);
+    mixer_ch_set_vol(SOUND_SFX_CHANNEL, volume_effects(), volume_effects());   // SummerStation64: Settings > Sound
     // SummerStation64: a card theme may bring its own sounds (theme_pack.h)
     sfx_cursor = theme_pack_effect("move.wav64", "rom:/cursorsound.wav64");
     sfx_exit = theme_pack_effect("back.wav64", "rom:/back.wav64");
@@ -109,7 +110,7 @@ void sound_init_bgm (void) {
         wav64_set_loop(&bgm, true);
         bgm_wave = &bgm.wave;
     }
-    mixer_ch_set_vol(SOUND_BGM_CHANNEL, 0.1f, 0.1f);
+    mixer_ch_set_vol(SOUND_BGM_CHANNEL, volume_music(), volume_music());   // SummerStation64: Settings > Sound
     bgm_opened = true;
 }
 

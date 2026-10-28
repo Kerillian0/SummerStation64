@@ -46,6 +46,8 @@ static const option_info_t option_info[OPTION_COUNT] = {
     [OPTION_HOMEBREW_ON_GAMES] = { "homebrew_on_games", 0 }, /* show */
     [OPTION_HACKS_ON_GAMES] = { "hacks_on_games", 0 }, /* show */
     [OPTION_THEME_KEY] = { "theme_key", 0 },
+    [OPTION_MUSIC_VOLUME] = { "music_volume", 5 }, /* the stock level */
+    [OPTION_SOUND_VOLUME] = { "sound_volume", 5 },
     [OPTION_PARTY_TEST] = { "party_test", 0 }, /* count the real controllers */
 };
 

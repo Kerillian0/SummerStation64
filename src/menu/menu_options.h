@@ -40,6 +40,8 @@ typedef enum {
     OPTION_HOMEBREW_ON_GAMES, /**< a homebrew_on_games_t value (see games_filter.h) */
     OPTION_HACKS_ON_GAMES, /**< a hacks_on_games_t value (see games_filter.h) */
     OPTION_THEME_KEY,   /**< which card theme option `theme` means, by its folder name (see card_themes.h) */
+    OPTION_MUSIC_VOLUME, /**< 0-10, see volume.h */
+    OPTION_SOUND_VOLUME, /**< 0-10, see volume.h */
     OPTION_PARTY_TEST,  /**< hidden, for testing: count this many controllers (see party.h); 0 counts the real ones */
     OPTION_COUNT
 } option_t;

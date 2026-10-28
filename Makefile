@@ -86,6 +86,7 @@ SRCS = \
 	menu/card_themes.c \
 	menu/theme_pack.c \
 	menu/card_music.c \
+	menu/volume.c \
 	menu/favorite_toggle.c \
 	menu/cheat_ready.c \
 	menu/cheat_menu.c \
