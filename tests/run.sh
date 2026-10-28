@@ -48,6 +48,9 @@ if command -v node >/dev/null 2>&1; then
     echo "== cheats tab =="
     node "$here/cheats_tab_test.js" || status=1
     echo
+    echo "== sounds tab (compared with audioconv64) =="
+    node "$here/sounds_tab_test.js" || status=1
+    echo
     echo "== clips tab (GIFs decoded with Pillow) =="
     node "$here/clips_tab_test.js" "$out" && python3 "$here/clips_gif_check.py" "$out" || status=1
 else

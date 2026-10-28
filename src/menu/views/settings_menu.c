@@ -124,6 +124,7 @@ static void apply_theme (menu_t *menu) {
     (void) menu;
     card_themes_note_choice();
     theme_reload();
+    sound_reload_files();   /* the theme's own sounds, or the menu's */
     fonts_restyle();
 }
 

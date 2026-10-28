@@ -4,6 +4,7 @@
 #include "font_choice.h"
 #include "title_font.h"
 #include "theme.h"
+#include "theme_pack.h"
 #include "utils/fs.h"
 
 
@@ -12,6 +13,10 @@ static rdpq_font_t *body_font = NULL;
 static void load_default_font (char *custom_font_path) {
     char *font_path = (char *) font_choice_path(); // full or small built-in font
 
+    const char *theme_font = theme_pack_font();  // SummerStation64: a card theme's font.font64
+    if (theme_font) {
+        font_path = (char *) theme_font;
+    }
     if (custom_font_path != NULL && strlen(custom_font_path) > 0) {
         // Only check file_exists if custom_font_path is a valid filesystem path (not rom:/)
         if (strncmp(custom_font_path, "rom:/", 5) != 0 && file_exists(custom_font_path)) {

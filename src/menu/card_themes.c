@@ -106,6 +106,16 @@ void card_themes_note_choice (void) {
     }
 }
 
+const char *card_themes_folder (void) {
+    static char folder[120];
+    int i = slot_in_use();
+    if (i < 0) {
+        return NULL;
+    }
+    snprintf(folder, sizeof(folder), "%s/%s", CARD_THEMES_DIR, names[i]);
+    return folder;
+}
+
 const char *card_themes_path (void) {
     static char path[160];
     int i = slot_in_use();

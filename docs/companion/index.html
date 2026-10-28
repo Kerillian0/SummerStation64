@@ -200,6 +200,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
     <a href="#art" data-tab="art">Missing Metadata</a>
     <a href="#coll" data-tab="coll">Collections</a>
     <a href="#clips" data-tab="clips">Clips</a>
+    <a href="#sounds" data-tab="sounds">Sounds</a>
     <a href="#cheats" data-tab="cheats">Cheats</a>
     <a href="#guide" data-tab="guide">Guide</a>
   </nav>
@@ -682,6 +683,47 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
         <img id="clipImage" alt="The GIF made from the clip">
         <div class="line" style="margin-top:8px"><a class="go" id="clipDownload" href="#" download="clip.gif">Download GIF</a></div>
       </div>
+    </section>
+  </div>
+</div>
+</div>
+
+<div class="tabpane tool" id="sounds" hidden>
+<div class="wrap">
+  <header>
+    <h1 class="page-title">Sounds</h1>
+    <p>Give a theme its own music and button sounds. Pick any audio files your browser can play (MP3, WAV, OGG, M4A...);
+      they are turned into the console's sound files here. Everything happens in this browser: nothing is uploaded anywhere.</p>
+  </header>
+
+  <div class="panel">
+    <section>
+      <h2><span class="n">1</span>Name the theme</h2>
+      <p>Sounds belong to a theme on the card, in its own folder: <code>menu/themes/<b>name</b>/</code>, beside its
+        <code>theme.ini</code> (make one in the <a href="#themes">Theme Maker</a>). Use the theme's folder name exactly.</p>
+      <div class="line"><label>Theme folder <input type="text" id="sndTheme" value="My Theme" maxlength="40" style="width:240px"></label></div>
+    </section>
+
+    <section>
+      <h2><span class="n">2</span>Pick the sounds</h2>
+      <p>Pick only the ones you want to change; the menu uses its own for the rest. Music loops; long files are cut
+        (music after 3 minutes, the intro after 8 seconds, button sounds after 1.5 seconds). Button sounds are kept in the
+        console's memory, so keep them short: under 0.75 seconds also works on consoles without the Expansion Pak.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Sound</th><th>File</th><th>Ready</th></tr></thead>
+        <tbody id="sndRows"></tbody>
+      </table></div>
+    </section>
+
+    <section>
+      <h2><span class="n">3</span>Put them on the card</h2>
+      <div class="line">
+        <button class="go" id="sndMake" disabled>Download sound pack (.zip)</button>
+        <span class="status" id="sndStatus">Pick at least one sound.</span>
+      </div>
+      <p class="hint">Unzip it at the top of the SD card: the files land in <code>menu/themes/<b>name</b>/</code>. Then choose
+        the theme in <b>Settings &gt; Display &gt; Theme</b>. A theme can also carry its own text font as
+        <code>font.font64</code>, made with libdragon's mkfont (it applies after a restart).</p>
     </section>
   </div>
 </div>
@@ -6224,10 +6266,149 @@ $('chtPickOld').addEventListener('change', function () {
 </script>
 
 <script>
-/* Tabs: one per address (#themes, #prep, #hacks, #art, #coll, #clips, #cheats, #guide, or a Guide section such as
+(function(){
+'use strict';
+// --- sounds logic (also run by tests/sounds_tab_test.js) ---
+var SND_RATE = 22050;          // music and the intro, streamed from the card
+var SND_EFFECT_RATE = 32000;   // button sounds, kept in the console's memory: sharper
+var SND_EFFECT_4MB = 48 * 1024; // the most a button sound may take without the Expansion Pak (src/menu/theme_pack.c)
+// The sounds a theme can bring (src/menu/theme_pack.h): file, label, longest, channels, rate.
+var SND_SLOTS = [
+  { file: 'music.wav64',   label: 'Background music', seconds: 180, channels: 2, rate: SND_RATE },
+  { file: 'intro.wav64',   label: 'Power-on tune',    seconds: 8,   channels: 2, rate: SND_RATE },
+  { file: 'move.wav64',    label: 'Move',             seconds: 1.5, channels: 1, rate: SND_EFFECT_RATE },
+  { file: 'select.wav64',  label: 'Select',           seconds: 1.5, channels: 1, rate: SND_EFFECT_RATE },
+  { file: 'back.wav64',    label: 'Back',             seconds: 1.5, channels: 1, rate: SND_EFFECT_RATE },
+  { file: 'setting.wav64', label: 'Change a setting', seconds: 1.5, channels: 1, rate: SND_EFFECT_RATE },
+  { file: 'error.wav64',   label: 'Error',            seconds: 1.5, channels: 1, rate: SND_EFFECT_RATE }
+];
+
+// An uncompressed wav64, as libdragon's audioconv64 --wav-compress 0 writes it:
+// a 32-byte big-endian header, then 16-bit big-endian samples, channels interleaved.
+// `channels` is an array of Float32Arrays (-1..1) of equal length.
+function wav64Raw(channels, rate) {
+  var ch = channels.length, n = channels[0].length;
+  var out = new Uint8Array(32 + n * ch * 2), v = new DataView(out.buffer);
+  out.set([0x57, 0x56, 0x36, 0x34], 0);   // "WV64"
+  v.setInt8(4, 10);        // version
+  v.setInt8(5, 0);         // format: raw
+  v.setInt8(6, ch);
+  v.setInt8(7, 16);        // bits
+  v.setInt32(8, rate);
+  v.setInt32(12, n);       // length in samples
+  v.setInt32(16, 0);       // loop length (the menu loops the music itself)
+  v.setInt32(20, 0);       // loop end
+  v.setUint32(24, 32);     // where the samples start
+  v.setUint32(28, 0);      // state size: none for raw
+  var at = 32;
+  for (var i = 0; i < n; i++) {
+    for (var c = 0; c < ch; c++) {
+      var x = channels[c][i];
+      x = x > 1 ? 1 : (x < -1 ? -1 : x);
+      v.setInt16(at, Math.round(x * 32767));
+      at += 2;
+    }
+  }
+  return out;
+}
+
+// A cut sound fades out over its last `ms` instead of stopping with a click.
+function fadeTail(channels, rate, ms) {
+  var n = channels[0].length, k = Math.min(n, Math.round(rate * ms / 1000));
+  channels.forEach(function (d) { for (var i = 0; i < k; i++) d[n - k + i] *= 1 - (i + 1) / k; });
+  return channels;
+}
+
+// A theme folder name the console will find: no slashes or characters a card can't hold.
+function themeFolderName(text) {
+  return String(text || '').replace(/[\\/:*?"<>|]/g, '').trim().slice(0, 40);
+}
+// --- end sounds logic ---
+if (typeof document === 'undefined') { module.exports = { wav64Raw: wav64Raw, fadeTail: fadeTail, themeFolderName: themeFolderName, SND_SLOTS: SND_SLOTS, SND_RATE: SND_RATE }; return; }
+
+var T = window.cardTools;
+var $ = function (id) { return document.getElementById(id); };
+var made = {};      // file -> { bytes, seconds, cut }
+
+function status(text) { $('sndStatus').textContent = text; }
+
+function refresh() {
+  var n = Object.keys(made).length, name = themeFolderName($('sndTheme').value);
+  $('sndMake').disabled = n === 0 || !name;
+  if (!name) status('Type the theme\'s folder name.');
+  else if (n === 0) status('Pick at least one sound.');
+  else {
+    var bytes = Object.keys(made).reduce(function (s, k) { return s + made[k].bytes.length; }, 0);
+    status(n + ' sound' + (n === 1 ? '' : 's') + ' ready, ' + (bytes / 1048576).toFixed(1) + ' MB on the card.');
+  }
+}
+
+async function convert(file, slot) {
+  var ctx = new (window.AudioContext || window.webkitAudioContext)();
+  var decoded;
+  try { decoded = await ctx.decodeAudioData(await file.arrayBuffer()); }
+  finally { if (ctx.close) ctx.close(); }
+  var seconds = Math.min(decoded.duration, slot.seconds), cut = decoded.duration > slot.seconds + 0.01;
+  var ch = Math.min(slot.channels, decoded.numberOfChannels);
+  var frames = Math.max(1, Math.round(seconds * slot.rate));
+  var off = new OfflineAudioContext(ch, frames, slot.rate);
+  var src = off.createBufferSource();
+  src.buffer = decoded; src.connect(off.destination); src.start();
+  var done = await off.startRendering();
+  var data = [];
+  for (var c = 0; c < ch; c++) data.push(new Float32Array(done.getChannelData(c)));
+  if (cut) fadeTail(data, slot.rate, slot.channels === 1 ? 50 : 1500);
+  return { bytes: wav64Raw(data, slot.rate), seconds: seconds, cut: cut };
+}
+
+SND_SLOTS.forEach(function (slot) {
+  var tr = document.createElement('tr');
+  var name = document.createElement('td'); name.textContent = slot.label;
+  var pick = document.createElement('td');
+  var input = document.createElement('input'); input.type = 'file'; input.accept = 'audio/*';
+  input.setAttribute('aria-label', slot.label);
+  pick.appendChild(input);
+  var ready = document.createElement('td'); ready.className = 'U'; ready.textContent = 'Menu\'s own';
+  input.addEventListener('change', async function () {
+    var f = input.files[0];
+    delete made[slot.file];
+    if (!f) { ready.textContent = 'Menu\'s own'; ready.className = 'U'; refresh(); return; }
+    ready.textContent = 'Working...'; ready.className = 'U';
+    try {
+      var r = await convert(f, slot);
+      made[slot.file] = r;
+      var big = slot.channels === 1 && r.bytes.length > SND_EFFECT_4MB;
+      ready.textContent = r.seconds.toFixed(1) + ' s' + (r.cut ? ' (cut)' : '') + ', ' + Math.ceil(r.bytes.length / 1024) + ' KB' +
+        (big ? ': consoles without the Expansion Pak use the menu\'s own (keep it under 0.75 s)' : '');
+      ready.className = big ? 'M' : 'V';
+    } catch (e) {
+      ready.textContent = 'This browser can\'t read that file.'; ready.className = 'M';
+    }
+    refresh();
+  });
+  tr.append(name, pick, ready);
+  $('sndRows').appendChild(tr);
+});
+
+$('sndTheme').addEventListener('input', refresh);
+$('sndMake').addEventListener('click', function () {
+  var folder = 'menu/themes/' + themeFolderName($('sndTheme').value) + '/';
+  var files = Object.keys(made).map(function (k) { return { path: folder + k, bytes: made[k].bytes }; });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([T.zipStore(files, T.crcOf)], { type: 'application/zip' }));
+  a.download = themeFolderName($('sndTheme').value) + ' sounds.zip';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  status('Downloaded. Unzip it at the top of the SD card.');
+});
+})();
+</script>
+
+<script>
+/* Tabs: one per address (#themes, #prep, #hacks, #art, #coll, #clips, #sounds, #cheats, #guide, or a Guide section such as
    #guide-tools), so each can be linked to directly. */
 (function () {
-  var panes = ['themes', 'prep', 'hacks', 'art', 'coll', 'clips', 'cheats', 'guide'];
+  var panes = ['themes', 'prep', 'hacks', 'art', 'coll', 'clips', 'sounds', 'cheats', 'guide'];
   function show() {
     var hash = (location.hash || '#themes').slice(1);
     var tab = hash.indexOf('guide') === 0 ? 'guide' : (panes.indexOf(hash) >= 0 ? hash : 'themes');

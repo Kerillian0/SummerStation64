@@ -82,6 +82,9 @@ void sound_use_bgm(bool enable);
  */
 void sound_play_effect(sound_effect_t sfx);
 
+/** Open the sounds again, after the theme changed (SummerStation64). */
+void sound_reload_files(void);
+
 /**
  * @brief Deinitialize the sound system.
  * 

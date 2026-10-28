@@ -4,6 +4,7 @@
  */
 
 #include <libdragon.h>
+#include "theme_pack.h"
 #include "memory_note.h"
 #include "flashcart/flashcart.h"
 #include "fonts.h"
@@ -326,7 +327,7 @@ bool intro_display (menu_t *menu, surface_t *display) {
         started = true;
         started_at = get_ticks_ms();
         /* The tune is opened even when it won't be heard, to learn its length. */
-        wav64_open(&tune, "rom:/intro.wav64");
+        wav64_open(&tune, theme_pack_sound("intro.wav64", "rom:/intro.wav64"));
         tune_open = true;
         if ((tune.wave.len > 0) && (tune.wave.frequency > 0.0f)) {
             total_ms = (int) ((tune.wave.len * 1000.0f) / tune.wave.frequency);

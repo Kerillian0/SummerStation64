@@ -5,15 +5,21 @@
  */
 
 #include <stdbool.h>
+#include <string.h>
 #include <libdragon.h>
 #include "audio_player.h"
+#include "card_music.h"
 #include "sound.h"
+#include "theme_pack.h"
 
 #define DEFAULT_FREQUENCY   (44100)
 #define NUM_BUFFERS         (4)
 #define NUM_CHANNELS        (16)
 
-static wav64_t sfx_cursor, sfx_error, sfx_enter, sfx_exit, sfx_setting, bgm;
+static wav64_t *sfx_cursor, *sfx_error, *sfx_enter, *sfx_exit, *sfx_setting;   // SummerStation64: loaded by theme_pack_effect()
+static wav64_t bgm;
+static waveform_t *bgm_wave;     // SummerStation64: &bgm.wave, or a theme's music read ahead (card_music.h)
+static bool bgm_card = false;
 
 static bool sound_initialized = false;
 static bool sfx_enabled = false;
@@ -50,7 +56,7 @@ static void sound_reconfigure (int frequency) {
         }
         if (bgm_enabled) {
             sound_init_bgm();
-            wav64_play(&bgm, SOUND_BGM_CHANNEL);
+            mixer_ch_play(SOUND_BGM_CHANNEL, bgm_wave);
         }
     }
 }
@@ -80,11 +86,12 @@ void sound_init_audioplayer_playback (void) {
  */
 void sound_init_sfx (void) {
     mixer_ch_set_vol(SOUND_SFX_CHANNEL, 0.5f, 0.5f);
-    wav64_open(&sfx_cursor, "rom:/cursorsound.wav64");
-    wav64_open(&sfx_exit, "rom:/back.wav64");
-    wav64_open(&sfx_setting, "rom:/settings.wav64");
-    wav64_open(&sfx_enter, "rom:/enter.wav64");
-    wav64_open(&sfx_error, "rom:/error.wav64");
+    // SummerStation64: a card theme may bring its own sounds (theme_pack.h)
+    sfx_cursor = theme_pack_effect("move.wav64", "rom:/cursorsound.wav64");
+    sfx_exit = theme_pack_effect("back.wav64", "rom:/back.wav64");
+    sfx_setting = theme_pack_effect("setting.wav64", "rom:/settings.wav64");
+    sfx_enter = theme_pack_effect("select.wav64", "rom:/enter.wav64");
+    sfx_error = theme_pack_effect("error.wav64", "rom:/error.wav64");
     sfx_enabled = true;
     sfx_opened = true;
 }
@@ -93,10 +100,26 @@ void sound_init_sfx (void) {
  * @brief Initialize the background music.
  */
 void sound_init_bgm (void) {
-    wav64_open(&bgm, "rom:/bgm.wav64");
-    wav64_set_loop(&bgm, true);
+    const char *path = theme_pack_sound("music.wav64", "rom:/bgm.wav64");
+    bgm_card = strncmp(path, "rom:", 4) != 0 && card_music_open(path);
+    if (bgm_card) {
+        bgm_wave = card_music_wave();
+    } else {
+        wav64_open(&bgm, path);
+        wav64_set_loop(&bgm, true);
+        bgm_wave = &bgm.wave;
+    }
     mixer_ch_set_vol(SOUND_BGM_CHANNEL, 0.1f, 0.1f);
     bgm_opened = true;
+}
+
+static void sound_close_bgm (void) {
+    if (bgm_card) {
+        card_music_close();
+        bgm_card = false;
+    } else {
+        wav64_close(&bgm);
+    }
 }
 
 /**
@@ -115,8 +138,8 @@ void sound_use_sfx(bool state) {
  */
 void sound_use_bgm(bool state) {
     bgm_enabled = state;
-    if (bgm_enabled) {
-        wav64_play(&bgm, SOUND_BGM_CHANNEL);
+    if (bgm_enabled && bgm_opened) {
+        mixer_ch_play(SOUND_BGM_CHANNEL, bgm_wave);
     } else {
         mixer_ch_stop(SOUND_BGM_CHANNEL);
     }
@@ -131,23 +154,51 @@ void sound_play_effect(sound_effect_t sfx) {
     if(sfx_enabled) {
         switch (sfx) {
             case SFX_CURSOR:
-                wav64_play(&sfx_cursor, SOUND_SFX_CHANNEL);
+                wav64_play(sfx_cursor, SOUND_SFX_CHANNEL);
                 break;
             case SFX_EXIT:
-                wav64_play(&sfx_exit, SOUND_SFX_CHANNEL);
+                wav64_play(sfx_exit, SOUND_SFX_CHANNEL);
                 break;
             case SFX_SETTING:
-                wav64_play(&sfx_setting, SOUND_SFX_CHANNEL);
+                wav64_play(sfx_setting, SOUND_SFX_CHANNEL);
                 break;
             case SFX_ENTER:
-                wav64_play(&sfx_enter, SOUND_SFX_CHANNEL);
+                wav64_play(sfx_enter, SOUND_SFX_CHANNEL);
                 break;
             case SFX_ERROR:
-                wav64_play(&sfx_error, SOUND_SFX_CHANNEL);
+                wav64_play(sfx_error, SOUND_SFX_CHANNEL);
                 break;
             default:
                 break;
         } 
+    }
+}
+
+/**
+ * @brief Open the sounds again, after the theme changed (SummerStation64).
+ */
+void sound_reload_files (void) {
+    if (!sound_initialized) {
+        return;
+    }
+    if (sfx_opened) {
+        mixer_ch_stop(SOUND_SFX_CHANNEL);
+        wav64_close(sfx_cursor);
+        wav64_close(sfx_exit);
+        wav64_close(sfx_setting);
+        wav64_close(sfx_enter);
+        wav64_close(sfx_error);
+        bool was_enabled = sfx_enabled;
+        sound_init_sfx();
+        sfx_enabled = was_enabled;
+    }
+    if (bgm_opened) {
+        mixer_ch_stop(SOUND_BGM_CHANNEL);
+        sound_close_bgm();
+        sound_init_bgm();
+        if (bgm_enabled) {
+            mixer_ch_play(SOUND_BGM_CHANNEL, bgm_wave);
+        }
     }
 }
 
@@ -157,15 +208,15 @@ void sound_play_effect(sound_effect_t sfx) {
 void sound_deinit (void) {
     if (sound_initialized) {
         if (sfx_opened) {
-            wav64_close(&sfx_cursor);
-            wav64_close(&sfx_exit);
-            wav64_close(&sfx_setting);
-            wav64_close(&sfx_enter);
-            wav64_close(&sfx_error);
+            wav64_close(sfx_cursor);
+            wav64_close(sfx_exit);
+            wav64_close(sfx_setting);
+            wav64_close(sfx_enter);
+            wav64_close(sfx_error);
             sfx_opened = false;
         }
         if (bgm_opened) {
-            wav64_close(&bgm);
+            sound_close_bgm();
             bgm_opened = false;
         }
         mixer_close();
@@ -182,6 +233,11 @@ void sound_poll (void) {
         
         // Check whether one audio buffer is ready, otherwise wait for next
         // frame to perform mixing.
+        uint64_t started = get_ticks_ms();  // SummerStation64: the time mixing takes is outside the frame's own figures
+        if (bgm_card) {
+            card_music_fill();
+        }
         mixer_try_play();
+        theme_pack_note_mixing((int) (get_ticks_ms() - started));
     }
 }

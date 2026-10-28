@@ -34,6 +34,9 @@ const char *card_themes_choice_name (int choice);
 /** Note which card theme was chosen (call after option `theme` changes). */
 void card_themes_note_choice (void);
 
+/** The folder of the card theme in use (sd:/menu/themes/<name>), or NULL if the choice is not a card theme or its folder is gone. */
+const char *card_themes_folder (void);
+
 /** The theme file of the card theme in use, or NULL if the choice is not a card theme or its folder is gone. */
 const char *card_themes_path (void);
 
