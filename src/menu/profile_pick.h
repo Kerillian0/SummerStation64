@@ -25,4 +25,11 @@ void profile_pick_begin (menu_t *menu);
  */
 bool profile_pick_display (menu_t *menu, surface_t *display);
 
+/**
+ * After the player has changed (here or in Settings > Profiles): read the
+ * new player's Recent and Favorites, and have the Games list read again
+ * (hidden games, collections). Does nothing if the player is the same.
+ */
+void profile_pick_refresh (menu_t *menu);
+
 #endif /* PROFILE_PICK_H__ */

@@ -1,6 +1,8 @@
 #include <libdragon.h>
 
+#include "bookkeeping.h"
 #include "fonts.h"
+#include "games_filter.h"
 #include "games_ui.h"
 #include "intro.h"
 #include "profile_pick.h"
@@ -38,6 +40,44 @@ void profile_pick_begin (menu_t *menu) {
     debugf("profiles: asking who is playing (%d profiles, last %s)\n", profiles_count(), profiles_name(selected));
 }
 
+static void forget_items (bookkeeping_item_t *items, int n) {
+    for (int i = 0; i < n; i++) {
+        if (items[i].primary_path) {
+            path_free(items[i].primary_path);
+            items[i].primary_path = NULL;
+        }
+        if (items[i].secondary_path) {
+            path_free(items[i].secondary_path);
+            items[i].secondary_path = NULL;
+        }
+    }
+}
+
+void profile_pick_refresh (menu_t *menu) {
+    static int lists_for = 0;   /* the player whose Recent and Favorites are in memory (menu.c loads the first) */
+    if (lists_for == profiles_generation()) {
+        return;
+    }
+    lists_for = profiles_generation();
+    forget_items(menu->bookkeeping.history_items, HISTORY_COUNT);
+    forget_items(menu->bookkeeping.favorite_items, FAVORITES_COUNT);
+    bookkeeping_init((char *) profiles_file("history.ini"));
+    bookkeeping_load(&menu->bookkeeping);
+    for (int i = 0; i < FAVORITES_COUNT; i++) {     /* the file couldn't be read: empty lists, as the menu expects */
+        bookkeeping_item_t *items[2] = { (i < HISTORY_COUNT) ? &menu->bookkeeping.history_items[i] : NULL, &menu->bookkeeping.favorite_items[i] };
+        for (int k = 0; k < 2; k++) {
+            if (items[k] && !items[k]->primary_path) {
+                items[k]->primary_path = path_create("");
+                items[k]->secondary_path = path_create("");
+                items[k]->bookkeeping_type = BOOKKEEPING_TYPE_EMPTY;
+            }
+        }
+    }
+    menu->browser.reload = true;                /* hidden games and own collections are the new player's */
+    games_filter_collections_changed(menu);
+    debugf("profiles: lists of %s read\n", profiles_name(profiles_current()));
+}
+
 static void process (menu_t *menu) {
     int count = profiles_count();
     if (menu->actions.go_up || menu->actions.go_left) {
@@ -50,6 +90,7 @@ static void process (menu_t *menu) {
         sound_play_effect(SFX_ENTER);
         if (selected != profiles_current()) {
             profiles_switch(selected);
+            profile_pick_refresh(menu);
         }
         debugf("profiles: %s is playing\n", profiles_name(selected));
         showing = false;

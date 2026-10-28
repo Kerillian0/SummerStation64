@@ -6,10 +6,11 @@
 #include "ini_parser.h"
 #include "menu_features.h"
 #include "path.h"
+#include "profiles.h"
 #include "safe_file.h"
 
-#define FOLDER_MEMORY_PATH      "sd:/menu/folders.ini"
-#define FOLDER_MEMORY_TMP_PATH  "sd:/menu/folders.tmp"
+#define FOLDER_MEMORY_PATH  profiles_file("folders.ini")   /* the playing profile's */
+#define FOLDER_MEMORY_TMP_PATH  profiles_file("folders.tmp")
 
 /* Also save once the selection has rested this long, so switching the
    console off on the Files screen doesn't lose the position. */
@@ -26,6 +27,7 @@ typedef struct {
 static folder_t folders[MAX_FOLDERS];
 static int folder_count = 0;
 static bool loaded = false;
+static int loaded_for = 0;     /* profiles_generation() when loaded */
 static bool dirty = false;
 
 /* The folder being shown, and the selection last recorded for it. */
@@ -40,10 +42,13 @@ static void copy_text (char *dst, const char *src) {
 }
 
 static void load (void) {
-    if (loaded) {
+    if (loaded && loaded_for == profiles_generation()) {
         return;
     }
     loaded = true;
+    loaded_for = profiles_generation();   /* another player: forget the last one's */
+    folder_count = 0;
+    dirty = false;
 
     /* If power was cut between remove and rename, the temp file is the good copy. */
     ini_t *ini = ini_load(FOLDER_MEMORY_PATH);

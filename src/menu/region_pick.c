@@ -6,10 +6,11 @@
 #include "games_filter.h"
 #include "menu_options.h"
 #include "region_pick.h"
+#include "profiles.h"
 #include "safe_file.h"
 
-#define PICKS_PATH      "sd:/menu/regionpicks.txt"
-#define PICKS_TMP_PATH  "sd:/menu/regionpicks.tmp"
+#define PICKS_PATH  profiles_file("regionpicks.txt")   /* the playing profile's */
+#define PICKS_TMP_PATH  profiles_file("regionpicks.tmp")
 
 /* 6 bytes a game. When full, the game changed longest ago makes way. */
 #define MAX_PICKS       (64)
@@ -27,6 +28,7 @@ typedef struct {
 static pick_t picks[MAX_PICKS];
 static int pick_count = 0;
 static bool loaded = false;
+static int loaded_for = 0;     /* profiles_generation() when loaded */
 
 const char *region_pick_copies_name (int choice) {
     static const char *names[REGION_COPIES_COUNT] = { "Separate", "One Cover" };
@@ -61,10 +63,12 @@ static char preferred (void) {
 /* One game per line: its three letters, the region last started, how many
    in a row, and its own choice ('-' for none). */
 static void load (void) {
-    if (loaded) {
+    if (loaded && loaded_for == profiles_generation()) {
         return;
     }
     loaded = true;
+    loaded_for = profiles_generation();   /* another player: forget the last one's */
+    pick_count = 0;
 
     /* If power was cut between remove and rename, the temp file is the good copy. */
     FILE *f = fopen(PICKS_PATH, "r");

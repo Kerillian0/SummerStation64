@@ -14,6 +14,7 @@
 #define NAME_LENGTH         (28)    /* the naming dial spells up to 27 characters */
 #define RETIRED_MAX         (16)    /* folders of deleted profiles, never handed out again */
 #define FIRST_FOLDER        "-"     /* the first profile: saves where they always were */
+#define LISTS_DIR           "sd:/menu/profiles"     /* players 2-4: Recent, Favorites, play counts, ... in <folder>/ here */
 
 typedef struct {
     char name[NAME_LENGTH];
@@ -27,6 +28,7 @@ static int current = 0;
 static char retired[RETIRED_MAX][NAME_LENGTH];
 static int retired_count = 0;
 static bool loaded = false;
+static int generation = 0;     /* goes up whenever the player changes, so lists read the new player's files */
 
 /* Blue, red, green, yellow: the colors of the four controller ports on many pads. */
 static const color_t colors[PROFILE_COLORS] = {
@@ -109,6 +111,36 @@ static void load (void) {
     debugf("profiles: %d, playing as %s\n", count, list[current].name);
 }
 
+/* Players other than the first keep their lists in a folder of their own. */
+static void lists_folder_make (void) {
+    if (current > 0) {
+        char folder[96];
+        snprintf(folder, sizeof(folder), LISTS_DIR "/%s", list[current].folder);
+        if (!directory_exists(folder) && directory_create(folder)) {
+            debugf("profiles: could not make %s\n", folder);
+        }
+    }
+}
+
+int profiles_generation (void) {
+    load();
+    return generation;
+}
+
+const char *profiles_file (const char *name) {
+    static char paths[4][128];
+    static int turn = 0;
+    load();
+    char *out = paths[turn];
+    turn = (turn + 1) % 4;
+    if (current == 0) {
+        snprintf(out, sizeof(paths[0]), "sd:/menu/%s", name);
+    } else {
+        snprintf(out, sizeof(paths[0]), LISTS_DIR "/%s/%s", list[current].folder, name);
+    }
+    return out;
+}
+
 int profiles_count (void) {
     load();
     return count;
@@ -145,7 +177,9 @@ void profiles_switch (int profile) {
     load();
     if (profile >= 0 && profile < count && profile != current) {
         current = profile;
+        generation++;
         debugf("profiles: playing as %s\n", list[current].name);
+        lists_folder_make();
         save();
     }
 }
@@ -238,6 +272,7 @@ bool profiles_delete (int profile) {
     count--;
     if (current == profile) {
         current = 0;
+        generation++;
     } else if (current > profile) {
         current--;
     }

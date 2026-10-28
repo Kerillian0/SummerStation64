@@ -31,6 +31,7 @@
 #include "../theme.h"
 #include "../letter_wheel.h"
 #include "../profiles.h"
+#include "../profile_pick.h"
 #include "../volume.h"
 #include "../ui_components/constants.h"
 #include "settings_menu.h"
@@ -258,6 +259,7 @@ static void next_profile (menu_t *menu) {
         return;
     }
     profiles_switch((profiles_current() + 1) % profiles_count());
+    profile_pick_refresh(menu);
 }
 
 static const char *new_profile_info (menu_t *menu) {
@@ -272,6 +274,7 @@ static void profile_named (menu_t *menu, const char *name) {
             profiles_rename(renaming, name);
         } else if (profiles_add(name)) {
             profiles_switch(profiles_count() - 1);  /* the new player is the one setting it up */
+            profile_pick_refresh(menu);
         }
         sound_play_effect(SFX_SETTING);
     }
@@ -653,6 +656,7 @@ static void process (menu_t *menu) {
     if (confirm_delete >= 0) {
         if (menu->actions.enter) {
             profiles_delete(confirm_delete);
+            profile_pick_refresh(menu);     /* deleting the player in use goes back to the first */
             confirm_delete = -1;
             sound_play_effect(SFX_SETTING);
         } else if (menu->actions.back) {

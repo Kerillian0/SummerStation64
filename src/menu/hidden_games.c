@@ -4,15 +4,17 @@
 #include <string.h>
 
 #include "hidden_games.h"
+#include "profiles.h"
 #include "safe_file.h"
 
-#define HIDDEN_PATH     "sd:/menu/hidden.txt"
-#define HIDDEN_TMP_PATH "sd:/menu/hidden.tmp"
+#define HIDDEN_PATH  profiles_file("hidden.txt")   /* the playing profile's */
+#define HIDDEN_TMP_PATH  profiles_file("hidden.tmp")
 #define HIDDEN_HEADER   "hidden 1"
 
 static char *names[HIDDEN_GAMES_MAX];
 static int count = 0;
 static bool loaded = false;
+static int loaded_for = 0;     /* profiles_generation() when loaded */
 
 /* "sd:/N64(US)/Game.z64" -> "N64(US)/Game.z64"; other names as they are. */
 static const char *from_top (const char *path) {
@@ -21,10 +23,12 @@ static const char *from_top (const char *path) {
 }
 
 static void load (void) {
-    if (loaded) {
+    if (loaded && loaded_for == profiles_generation()) {
         return;
     }
     loaded = true;
+    loaded_for = profiles_generation();   /* another player: forget the last one's */
+    count = 0;
 
     /* If power was cut between remove and rename, the temp file is the good copy. */
     FILE *f = fopen(HIDDEN_PATH, "r");

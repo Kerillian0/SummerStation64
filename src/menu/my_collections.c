@@ -9,10 +9,11 @@
 #include <libdragon.h>
 
 #include "my_collections.h"
+#include "profiles.h"
 #include "safe_file.h"
 
-#define FILE_PATH       "sd:/menu/collections.txt"
-#define FILE_TMP_PATH   "sd:/menu/collections.tmp"
+#define FILE_PATH  profiles_file("collections.txt")   /* the playing profile's */
+#define FILE_TMP_PATH  profiles_file("collections.tmp")
 #define FILE_HEADER     "collections 1"
 
 typedef struct {
@@ -25,6 +26,7 @@ typedef struct {
 static collection_t *list[MY_COLLECTIONS_MAX];  /* allocated as they are made: none costs nothing */
 static int count = 0;
 static bool loaded = false;
+static int loaded_for = 0;     /* profiles_generation() when loaded */
 
 /* "sd:/N64(US)/Game.z64" -> "N64(US)/Game.z64"; other names as they are. */
 static const char *from_top (const char *path) {
@@ -63,10 +65,19 @@ static bool add_game (collection_t *c, const char *name) {
 }
 
 static void load (void) {
-    if (loaded) {
+    if (loaded && loaded_for == profiles_generation()) {
         return;
     }
     loaded = true;
+    loaded_for = profiles_generation();   /* another player: forget the last one's */
+    for (int i = 0; i < count; i++) {
+        for (int g = 0; g < list[i]->count; g++) {
+            free(list[i]->games[g]);
+        }
+        free(list[i]);
+        list[i] = NULL;
+    }
+    count = 0;
 
     /* If power was cut between remove and rename, the temp file is the good copy. */
     FILE *f = fopen(FILE_PATH, "r");

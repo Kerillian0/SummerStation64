@@ -27,6 +27,7 @@
 #include "crash_screen.h"
 #include "debug_stats.h"
 #include "intro.h"
+#include "profiles.h"
 #include "frame_rate.h"
 #include "sound.h"
 #include "usb_comm.h"
@@ -94,7 +95,7 @@ static void menu_init (boot_params_t *boot_params) {
     path_pop(path);
 
     path_push(path, MENU_ROM_LOAD_HISTORY_FILE);
-    bookkeeping_init(path_get(path));
+    bookkeeping_init((char *) profiles_file(MENU_ROM_LOAD_HISTORY_FILE)); // the playing profile's Recent and Favorites (profiles.h)
     bookkeeping_load(&menu->bookkeeping);
     menu->load.load_history_id = -1;
     menu->load.load_favorite_id = -1;

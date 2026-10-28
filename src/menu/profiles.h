@@ -8,6 +8,10 @@
  * (<game folder>/saves/<profile folder>/), so a new profile starts each
  * game with a fresh save and never touches another player's.
  *
+ * Each player also has their own Recent, Favorites, play counts, own
+ * collections, hidden games, region picks and folder places: the first
+ * profile in sd:/menu/ as always, the others in sd:/menu/profiles/<folder>/.
+ *
  * A profile's folder is named after the player when it is made and keeps
  * that name when the profile is renamed. Deleting a profile only takes it
  * off the list: its saves stay on the card, and its folder name is never
@@ -52,6 +56,12 @@ void profiles_rename (int profile, const char *name);
 
 /** Take a profile off the list (never the first); its saves stay on the card. */
 bool profiles_delete (int profile);
+
+/** The playing profile's copy of one of the menu's list files: "history.ini" is sd:/menu/history.ini for the first profile, sd:/menu/profiles/<folder>/history.ini for the others. A few may be in use at once. */
+const char *profiles_file (const char *name);
+
+/** A number that changes whenever the player changes: a list loaded under another number was the last player's and must be read again. */
+int profiles_generation (void);
 
 /**
  * Point a save file's path at the playing profile's own saves folder:

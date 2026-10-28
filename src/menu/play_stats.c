@@ -6,11 +6,12 @@
 
 #include "menu_features.h"
 #include "play_stats.h"
+#include "profiles.h"
 #include "safe_file.h"
 
 /* Not profile-aware yet. */
-#define STATS_PATH      "sd:/menu/playstats.txt"
-#define STATS_TMP_PATH  "sd:/menu/playstats.tmp"
+#define STATS_PATH  profiles_file("playstats.txt")   /* the playing profile's */
+#define STATS_TMP_PATH  profiles_file("playstats.tmp")
 
 /* 16 bytes a game in memory. When full, the game played longest ago makes way. */
 #define MAX_GAMES       (512)
@@ -33,6 +34,7 @@ typedef struct {
 static stat_t stats[MAX_GAMES];
 static int stat_count = 0;
 static bool loaded = false;
+static int loaded_for = 0;     /* profiles_generation() when loaded */
 
 /* The session begun at the last game start, until the menu settles it. */
 static struct {
@@ -54,10 +56,13 @@ static uint32_t path_hash (const char *path) {
    on a line of its own: "session <start> <game path>" (a first build also
    wrote the save's path and a tab before the game's). */
 static void load (void) {
-    if (loaded) {
+    if (loaded && loaded_for == profiles_generation()) {
         return;
     }
     loaded = true;
+    loaded_for = profiles_generation();   /* another player: forget the last one's */
+    stat_count = 0;
+    session.open = false;
 
     /* If power was cut between remove and rename, the temp file is the good copy. */
     FILE *f = fopen(STATS_PATH, "r");
