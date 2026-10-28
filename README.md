@@ -99,10 +99,12 @@ built in.
 
 > [!WARNING]
 > **"Watchdog timeout" at power-on?** The SummerCart64 gives the menu file 5
-> seconds to load, and the Art Edition (about 33 MB) can take longer on some
-> SD cards. Use the **Standard** edition instead: it loads as fast as the
-> stock menu. A fix that keeps the built-in covers is coming in the next
-> release.
+> seconds to load. On a card that has been used for a while, the Art Edition
+> (about 33 MB) can be scattered across it and take longer. Copy your files
+> off, reformat the card (FAT32 or exFAT, for example with the SD
+> Association's *SD Card Formatter*), and copy `sc64menu.n64` back first,
+> then everything else. If it still happens, use the **Standard** edition:
+> it loads as fast as the stock menu.
 
 ## 📚 Documentation
 
