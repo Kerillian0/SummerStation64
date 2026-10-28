@@ -503,9 +503,7 @@ void games_filter_after_load (menu_t *menu, int (*compare) (const void *, const 
     if (!shelf && current != FILTER_ALL && count_for(menu, current) == 0) {
         current = FILTER_ALL;   /* nothing of that kind any more */
     }
-    if (current != FILTER_ALL || folding(current) || region_folding(current)) {
-        apply(menu, false); /* the caller sorts next */
-    }
+    apply(menu, false);     /* also under All: Hacks / Homebrew on Games may leave some out; the caller sorts next */
 }
 
 /* The Retro shelf's own steps: All, NES, SNES, Game Boy, Game Boy Color, skipping systems with no games. */
