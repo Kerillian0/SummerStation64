@@ -110,6 +110,10 @@ static void text (int x, int y, int width, int height, rdpq_align_t align, menu_
     }, FNT_DEFAULT, x, y, "%s", string);
 }
 
+void games_ui_round_fill (int x0, int y0, int x1, int y1, color_t color) {
+    round_fill(x0, y0, x1, y1, color);
+}
+
 /* A small labelled box: a tab, a button badge or the clock. */
 static void pill (int x, int width, const char *label, bool active) {
     const theme_t *t = theme_get();

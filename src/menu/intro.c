@@ -170,6 +170,26 @@ void intro_begin (menu_t *menu) {
     music_volume(0.0f);
 }
 
+menu_mode_t intro_hold (menu_t *menu) {
+    menu_mode_t was;
+    if (playing) {
+        was = after;
+        after = MENU_MODE_STARTUP;
+    } else {
+        was = menu->next_mode;
+        menu->next_mode = MENU_MODE_STARTUP;
+    }
+    return was;
+}
+
+void intro_fade_wait (void) {
+    if (fading) {
+        fade_running = false;
+        fade_asked_at = get_ticks_ms();
+        music_volume(0.0f);
+    }
+}
+
 const char *intro_choice_name (int choice) {
     switch (choice) {
         case INTRO_OFF: return "Off";

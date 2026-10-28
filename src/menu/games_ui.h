@@ -94,6 +94,9 @@ void games_ui_position_draw (const char *title, int selected, int count, const c
 #define GAMES_UI_CONTENT_X0 (VISIBLE_AREA_X0 + 48)
 #define GAMES_UI_CONTENT_X1 (VISIBLE_AREA_X1 - 48)
 
+/** A box with rounded corners (when Rounded Corners is on) in any color, see-through ones too. */
+void games_ui_round_fill (int x0, int y0, int x1, int y1, color_t color);
+
 /** Left edge of the button hints along the bottom. They sit in two rows. */
 /** The lowest the memory badge under the clock reaches. */
 #define GAMES_UI_MEMORY_BOTTOM  (GAMES_UI_TOPBAR_BOTTOM + 36)

@@ -31,6 +31,16 @@ void intro_begin (menu_t *menu);
 bool intro_power_on (void);
 
 /**
+ * Keep the startup screen up after the intro (or at once, with no intro), for
+ * another screen shown before the first tab (the profile picker).
+ * @return the screen the menu was going to open; set next_mode to it when done.
+ */
+menu_mode_t intro_hold (menu_t *menu);
+
+/** Call each frame while holding: the fade-in (picture and music) waits and starts when the first tab shows. */
+void intro_fade_wait (void);
+
+/**
  * Draw one frame of the intro.
  * @return false if the intro is not playing (the caller draws as usual).
  */
