@@ -614,7 +614,9 @@ static void process (menu_t *menu) {
             it->changed(menu);
             unsaved = true;
             changed_at = get_ticks_ms();
-            sound_play_effect(SFX_SETTING);     /* heard at the new level */
+            if (it->option == OPTION_SOUND_VOLUME) {
+                sound_play_effect(SFX_SETTING);     /* heard at the new level; the music slider stays quiet so the music can be heard */
+            }
         }
     } else if (menu->actions.enter) {
         if (cat->items[item].type == ITEM_SLIDER) {
