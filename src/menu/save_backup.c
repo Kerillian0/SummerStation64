@@ -14,6 +14,7 @@
 #include "menu_features.h"
 #include "path.h"
 #include "play_stats.h"
+#include "profiles.h"
 #include "save_backup.h"
 #include "sound.h"
 #include "utils/fs.h"
@@ -57,6 +58,7 @@ static bool locate (menu_t *menu) {
     if (menu->settings.use_saves_folder) {
         path_push_subdir(path, SAVE_DIRECTORY_NAME);
     }
+    profiles_save_path(path, false);
     snprintf(save, sizeof(save), "%s", path_get(path));
     path_free(path);
 

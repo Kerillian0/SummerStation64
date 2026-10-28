@@ -9,6 +9,7 @@
 #include "dump_check.h"
 #include "game_data.h"
 #include "game_facts.h"
+#include "profiles.h"
 #include "ini_parser.h"
 #include "path.h"
 #include "rom_info.h"
@@ -266,6 +267,7 @@ static void lookup (menu_t *menu, int index) {
             if (menu->settings.use_saves_folder) {
                 path_push_subdir(path, SAVE_DIRECTORY_NAME);
             }
+            profiles_save_path(path, false);
             facts.save_found = save_exists(path);
         }
     }

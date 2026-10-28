@@ -29,6 +29,8 @@
 #include "../settings.h"
 #include "../sound.h"
 #include "../theme.h"
+#include "../letter_wheel.h"
+#include "../profiles.h"
 #include "../volume.h"
 #include "../ui_components/constants.h"
 #include "settings_menu.h"
@@ -239,6 +241,85 @@ static const item_t sound_items[] = {
     SLIDER("Sound Volume", OPTION_SOUND_VOLUME, apply_volume, "How loud the button sounds and the intro tune play. 5 is the usual level, 10 twice as loud. Left and right change it."),
 };
 
+/* ---------- profiles ---------- */
+
+static int confirm_delete = -1;     /* the profile asked about, or -1 */
+static int renaming = -1;           /* the profile being renamed, or -1 for a new one */
+static char profiles_text[32];
+
+static const char *playing_info (menu_t *menu) {
+    (void) menu;
+    return profiles_name(profiles_current());
+}
+
+static void next_profile (menu_t *menu) {
+    if (profiles_count() < 2) {
+        menu_show_error(menu, "Add a profile first, with New Profile.");
+        return;
+    }
+    profiles_switch((profiles_current() + 1) % profiles_count());
+}
+
+static const char *new_profile_info (menu_t *menu) {
+    (void) menu;
+    snprintf(profiles_text, sizeof(profiles_text), "%d of %d", profiles_count(), PROFILES_MAX);
+    return profiles_text;
+}
+
+static void profile_named (menu_t *menu, const char *name) {
+    if (name && name[0]) {
+        if (renaming >= 0) {
+            profiles_rename(renaming, name);
+        } else if (profiles_add(name)) {
+            profiles_switch(profiles_count() - 1);  /* the new player is the one setting it up */
+        }
+        sound_play_effect(SFX_SETTING);
+    }
+}
+
+static void new_profile (menu_t *menu) {
+    if (profiles_count() >= PROFILES_MAX) {
+        menu_show_error(menu, "There are four profiles already.");
+        return;
+    }
+    renaming = -1;
+    letter_wheel_name_begin("New profile", NULL, profile_named);
+}
+
+static void rename_profile (menu_t *menu) {
+    (void) menu;
+    renaming = profiles_current();
+    letter_wheel_name_begin("Rename", profiles_name(renaming), profile_named);
+}
+
+static const char *color_names[PROFILE_COLORS] = { "Blue", "Red", "Green", "Yellow" };
+
+static const char *color_info (menu_t *menu) {
+    (void) menu;
+    return color_names[profiles_color_index(profiles_current())];
+}
+
+static void next_color (menu_t *menu) {
+    (void) menu;
+    profiles_next_color(profiles_current());
+}
+
+static void delete_profile (menu_t *menu) {
+    if (profiles_current() == 0) {
+        menu_show_error(menu, "The first profile can't be deleted: it keeps the saves the menu always had.");
+        return;
+    }
+    confirm_delete = profiles_current();
+}
+
+static const item_t profile_items[] = {
+    ACTION_INFO("Playing As", next_profile, playing_info, "Who is playing. Each profile has its own game saves: a new profile starts every game fresh. A switches to the next profile."),
+    ACTION_INFO("New Profile", new_profile, new_profile_info, "Add a player (up to four), named with the letter dial. The new profile is switched to."),
+    ACTION("Rename Profile", rename_profile, "Give the profile that is playing a new name. Its saves stay where they are."),
+    ACTION_INFO("Profile Color", next_color, color_info, "The color shown beside the player's name. A picks the next one."),
+    ACTION("Delete Profile", delete_profile, "Take the profile that is playing off the list. Its saves stay on the SD card (in each saves folder, under its name), so nothing is lost. The first profile can't be deleted."),
+};
+
 static char games_folders_text[16];
 
 static const char *memory_note_info (menu_t *menu) {
@@ -389,6 +470,7 @@ static const category_t categories[] = {
     { "Display", display_items, COUNT(display_items) },
     { "Controls", control_items, COUNT(control_items) },
     { "Sound", sound_items, COUNT(sound_items) },
+    { "Profiles", profile_items, COUNT(profile_items) },
     { "Tabs", tab_items, COUNT(tab_items) },
     { "Library", library_items, COUNT(library_items) },
     { "Files", file_items, COUNT(file_items) },
@@ -562,6 +644,21 @@ static void change_item (menu_t *menu, const item_t *it) {
 static void process (menu_t *menu) {
     if (picking) {
         pick_process(menu);     /* a setting's list of values is open */
+        return;
+    }
+    if (letter_wheel_naming()) {
+        letter_wheel_name_process(menu);    /* naming a profile */
+        return;
+    }
+    if (confirm_delete >= 0) {
+        if (menu->actions.enter) {
+            profiles_delete(confirm_delete);
+            confirm_delete = -1;
+            sound_play_effect(SFX_SETTING);
+        } else if (menu->actions.back) {
+            confirm_delete = -1;
+            sound_play_effect(SFX_EXIT);
+        }
         return;
     }
     if (confirm_reset) {
@@ -858,6 +955,13 @@ static void draw (menu_t *menu, surface_t *d) {
 
     pick_draw();
 
+    if (confirm_delete >= 0) {
+        ui_components_messagebox_draw("Delete this profile?\n\n%s\n\n^%02XA: Delete^00    ^%02XB: Keep^00\nIts saves stay on the SD card.",
+                                      profiles_name(confirm_delete), STL_RED, STL_GREEN);
+    }
+
+    letter_wheel_draw();    // naming a profile
+
     if (confirm_reset) {
         ui_components_messagebox_draw(
             "Reset settings?\n\n"
@@ -873,6 +977,7 @@ static void draw (menu_t *menu, surface_t *d) {
 void view_settings_menu_init (menu_t *menu) {
     (void) menu;
     confirm_reset = false;
+    confirm_delete = -1;
     picking = NULL;
     bool back_from_tool = tool_open;
     tool_open = false;

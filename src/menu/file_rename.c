@@ -20,6 +20,7 @@
 #include "letter_wheel.h"
 #include "my_collections.h"
 #include "play_stats.h"
+#include "profiles.h"
 #include "retro.h"
 #include "sound.h"
 #include "utils/fs.h"
@@ -156,6 +157,10 @@ static void named (menu_t *menu, const char *name) {
         snprintf(where, sizeof(where), "%s/" SAVE_DIRECTORY_NAME, folder);
         if (strcmp(beside[i], ".sav") == 0) {
             move_along(where, from_name, to_name);
+            for (int k = 1; profiles_folder_of(k); k++) {   /* every player's own save */
+                snprintf(where, sizeof(where), "%s/" SAVE_DIRECTORY_NAME "/%s", folder, profiles_folder_of(k));
+                move_along(where, from_name, to_name);
+            }
         }
     }
     char from_backup[PATH_LENGTH], to_backup[PATH_LENGTH];
@@ -165,6 +170,10 @@ static void named (menu_t *menu, const char *name) {
     move_along(where, from_backup, to_backup);
     snprintf(where, sizeof(where), "%s/" SAVE_DIRECTORY_NAME "/backups", folder);
     move_along(where, from_backup, to_backup);
+    for (int k = 1; profiles_folder_of(k); k++) {
+        snprintf(where, sizeof(where), "%s/" SAVE_DIRECTORY_NAME "/%s/backups", folder, profiles_folder_of(k));
+        move_along(where, from_backup, to_backup);
+    }
 
     /* A Retro game's art folder is named after the file. */
     const char *system = retro_folder(retro_system(old_path));

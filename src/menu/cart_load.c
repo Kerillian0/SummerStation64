@@ -7,6 +7,7 @@
 #include <string.h>
 #include <libdragon.h>
 #include "cart_load.h"
+#include "profiles.h"
 #include "ini_parser.h"
 #include "path.h"
 #include "utils/fs.h"
@@ -119,6 +120,10 @@ cart_load_err_t cart_load_n64_rom_and_save (menu_t *menu, flashcart_progress_cal
             return CART_LOAD_ERR_CREATE_SAVES_SUBDIR_FAIL;
         }
         path_push_subdir(path, SAVE_DIRECTORY_NAME);
+    }
+    if ((save_type != FLASHCART_SAVE_TYPE_NONE) && !profiles_save_path(path, true)) {   // SummerStation64: the player's own saves
+        path_free(path);
+        return CART_LOAD_ERR_CREATE_SAVES_SUBDIR_FAIL;
     }
 
     if (save_progress && save_type != FLASHCART_SAVE_TYPE_NONE && !file_exists(path_get(path))) {
@@ -360,6 +365,10 @@ cart_load_err_t cart_load_emulator (menu_t *menu, cart_load_emu_type_t emu_type,
             return CART_LOAD_ERR_CREATE_SAVES_SUBDIR_FAIL;
         }
         path_push_subdir(path, SAVE_DIRECTORY_NAME);
+    }
+    if ((save_type != FLASHCART_SAVE_TYPE_NONE) && !profiles_save_path(path, true)) {   // SummerStation64: the player's own saves
+        path_free(path);
+        return CART_LOAD_ERR_CREATE_SAVES_SUBDIR_FAIL;
     }
 
     menu->flashcart_err = flashcart_load_save(path_get(path), save_type);

@@ -5,6 +5,7 @@
 
 #include <libdragon.h>
 
+#include "profiles.h"
 #include "fonts.h"
 #include "dump_check.h"
 #include "games_ui.h"
@@ -198,6 +199,22 @@ static void controller_marks_draw (void) {
     rdpq_mode_pop();
 }
 
+/* Under the tabs, on the left, while there are two or more profiles: who is
+   playing, as a dot in their color and their name (profiles.h). */
+#define PLAYER_Y        (GAMES_UI_TOPBAR_BOTTOM + 8)
+#define PLAYER_DOT      (16)
+#define PLAYER_WIDTH    (200)
+
+static bool player_shown (void) {
+    return profiles_count() >= 2;
+}
+
+static void player_draw (void) {
+    int p = profiles_current();
+    round_fill(TABS_X, PLAYER_Y, TABS_X + PLAYER_DOT, PLAYER_Y + PLAYER_DOT, profiles_color(p));
+    text(TABS_X + PLAYER_DOT + 8, PLAYER_Y - 4, PLAYER_WIDTH - PLAYER_DOT - 8, 24, ALIGN_LEFT, STL_DEFAULT, profiles_name(p));
+}
+
 void games_ui_topbar_draw (menu_t *menu, games_tab_t selected) {
     games_tab_t shown[GAMES_TAB_COUNT];
     int count = tabs_list(shown);
@@ -221,6 +238,9 @@ void games_ui_topbar_draw (menu_t *menu, games_tab_t selected) {
 
     /* Not on Folders: the list there starts right under the tab bar. */
     if (selected != GAMES_TAB_FOLDERS) {
+        if (player_shown()) {
+            player_draw();
+        }
         if (ports_shown()) {
             controller_marks_draw();
         } else if (features_enabled(FEATURE_MEMORY_BADGE)) {
@@ -706,6 +726,9 @@ void games_ui_fade_rects (void (*rect) (int, int, int, int), bool bare_only) {
     } else if (features_enabled(FEATURE_MEMORY_BADGE)) {
         int x1 = VISIBLE_AREA_X1 - TOPBAR_INSET;
         rect(x1 - MEMORY_TEXT - PAK_WIDTH - 4, GAMES_UI_TOPBAR_BOTTOM + 2, x1 + 2, GAMES_UI_MEMORY_BOTTOM);
+    }
+    if (player_shown()) {
+        rect(TABS_X - 2, PLAYER_Y - 4, TABS_X + PLAYER_WIDTH, PLAYER_Y + PLAYER_DOT + 4);
     }
     rect(POSITION_X0, POSITION_Y, POSITION_X1, POSITION_Y + POSITION_HEIGHT);
     if (bare_only) {
