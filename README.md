@@ -108,7 +108,7 @@ built in.
 
 ## 📚 Documentation
 
-- **[Release notes and install guide](docs/RELEASE_NOTES_v0.3b.md)**
+- **[Release notes and install guide](docs/RELEASE_NOTES_v0.3c.md)**
   ([v0.3a](docs/RELEASE_NOTES_v0.3a.md), [v0.3](docs/RELEASE_NOTES_v0.3.md), [v0.2](docs/RELEASE_NOTES_v0.2.md), [v0.1](docs/RELEASE_NOTES_v0.1.md)): what's
   new, installing, first steps, controls, settings and known limitations.
 - **[SummerStation64 Companion](https://kerillian0.github.io/SummerStation64/companion/)**:
@@ -139,6 +139,9 @@ built in.
   pairing, and step-by-step guides.
 - **v0.3b** ✅ released: a fix for Settings lists of 5 to 8 values (such as
   Theme) that could open scrolled past their top.
+- **v0.3c** ✅ released: box art without the scans' black frames, long names
+  that slide, adding folders to Games (and the folders inside them) fixed,
+  and a hack-badge fix.
 - **v0.4** themes: theme picker, sound and font packs, more seasonal themes.
 - **v0.5** polish: setup wizard, CRT test patterns, accessibility, and a
   versions screen where a game's copies and hacks unfold into a column of
@@ -176,9 +179,9 @@ Code.
 
 - **Model:** Claude Opus 5.5, as recorded on the commits.
 - **How much:** Claude wrote nearly all of this fork's code and text.
-  - 230 of this fork's 235 commits, from v0.1 to v0.3b, are co-authored by
-    Claude (October 4 to 26, 2026).
-  - About 21,000 lines of menu code, most of it in 130 new source files.
+  - 236 of this fork's 243 commits, from v0.1 to v0.3c, are co-authored by
+    Claude (October 4 to 28, 2026).
+  - About 21,500 lines of menu code, most of it in 132 new source files.
     The original menu's own files were changed only with small hooks that
     call the new code.
   - Also the build and art scripts, the PC-side tests, the Companion web
