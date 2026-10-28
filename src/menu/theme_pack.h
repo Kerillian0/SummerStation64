@@ -13,8 +13,9 @@
  *   setting.wav64  changing a setting
  *   error.wav64    something went wrong
  *   font.font64    the menu's text font (applies after a restart)
- * Button sounds are read into memory whole (at most 48 KB each on a 4MB
- * console, 128 KB with the Expansion Pak); music and the intro stream.
+ * Button sounds and the intro tune are read into memory whole (at most 48 KB
+ * each and 160 KB on a 4MB console, 128 KB and 768 KB with the Expansion
+ * Pak); music is read ahead a piece at a time (card_music.h).
  * Sounds are wav64 files, made from any audio file by the Companion's
  * Sound Pack tool (or libdragon's audioconv64). A file is checked before
  * it is used; one the menu can't play is skipped, so a bad file never
@@ -31,6 +32,9 @@ const char *theme_pack_sound (const char *file_name, const char *rom_path);
 
 /** A button sound: the theme's own read into memory whole (if it fits), else `rom_path` streamed as before. */
 wav64_t *theme_pack_effect (const char *file_name, const char *rom_path);
+
+/** The intro tune: the theme's own read into memory whole (if it fits), else the menu's (rom, streamed). */
+wav64_t *theme_pack_intro (void);
 
 /** Note how long one round of sound mixing took; the log gets the worst each second when it is 8 ms or more. */
 void theme_pack_note_mixing (int ms);

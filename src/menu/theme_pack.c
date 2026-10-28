@@ -13,6 +13,8 @@
 #define EFFECT_MAX_4MB      (48 * 1024)     /* each button sound is kept in memory: about 0.7 s at 32 kHz */
 #define EFFECT_MAX_8MB      (128 * 1024)
 #define FONT_MAX_8MB        (1024 * 1024)
+#define INTRO_MAX_4MB       (160 * 1024)    /* the intro tune, kept in memory while it plays: about 1.8 s of 22 kHz stereo */
+#define INTRO_MAX_8MB       (768 * 1024)    /* the longest intro (8 s) at 22 kHz stereo */
 
 /* The wav64 reader stops the menu on a file it doesn't like, so look at the
    header first and only hand over files it will take. */
@@ -78,13 +80,14 @@ static long file_size (const char *path) {
     return size;
 }
 
-/* Reading a button sound from the card bit by bit while it plays held up
-   frames by 50-90 ms (the owner's log, 2026-10-28), so a theme's effects are
-   read into memory once, whole. Too large for this console: the menu's own. */
-wav64_t *theme_pack_effect (const char *file_name, const char *rom_path) {
+/* Reading a sound from the card bit by bit while it plays held up frames
+   by 50-90 ms and made it crunch (the owner's logs, 2026-10-28), so a
+   theme's button sounds and intro tune are read into memory once, whole.
+   Too large for this console: the menu's own. */
+static wav64_t *load_whole (const char *file_name, const char *rom_path, long most_4mb, long most_8mb) {
     const char *path = theme_pack_sound(file_name, rom_path);
     if (strncmp(path, "rom:", 4) != 0) {
-        long most = (get_memory_size() > 0x400000) ? EFFECT_MAX_8MB : EFFECT_MAX_4MB;
+        long most = (get_memory_size() > 0x400000) ? most_8mb : most_4mb;
         long size = file_size(path);
         if (size > 0 && size <= most) {
             wav64_t *wav = wav64_load(path, &(wav64_loadparms_t) { .streaming_mode = WAV64_STREAMING_NONE });
@@ -96,6 +99,14 @@ wav64_t *theme_pack_effect (const char *file_name, const char *rom_path) {
         path = rom_path;
     }
     return wav64_load(path, NULL);
+}
+
+wav64_t *theme_pack_effect (const char *file_name, const char *rom_path) {
+    return load_whole(file_name, rom_path, EFFECT_MAX_4MB, EFFECT_MAX_8MB);
+}
+
+wav64_t *theme_pack_intro (void) {
+    return load_whole("intro.wav64", "rom:/intro.wav64", INTRO_MAX_4MB, INTRO_MAX_8MB);
 }
 
 void theme_pack_note_mixing (int ms) {

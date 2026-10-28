@@ -123,8 +123,15 @@ bool card_music_open (const char *path) {
     wave.loop_len = len;
     wave.read = wave_read;
     restart_at(0);
-    read_piece(PIECE);
-    debugf("card music: %s, read ahead %d KB at a time into %d KB\n", path, PIECE / 1024, size / 1024);
+    uint64_t began = get_ticks_ms();
+    /* Fill the ring before it plays: the frames that follow (the intro
+       starting, a theme being built) can be long, and a ring that runs dry
+       is read inside the mixing, which crunched the intro tune. */
+    for (int before = -1; ring_count < ring_size && ring_count != before; ) {
+        before = ring_count;
+        read_piece(PIECE);
+    }
+    debugf("card music: %s, read ahead %d KB at a time into %d KB (filled in %d ms)\n", path, PIECE / 1024, size / 1024, (int) (get_ticks_ms() - began));
     return true;
 }
 

@@ -20,8 +20,8 @@
 
 /** The two looks (option `intro_logo` in options.ini). */
 typedef enum {
-    INTRO_LOGO_VAPORWAVE,   /**< patterned sides, after the owner's reference picture (the default) */
-    INTRO_LOGO_CLASSIC,     /**< the console's own green, blue, red and yellow */
+    INTRO_LOGO_VAPORWAVE,   /**< patterned sides, after the owner's reference picture */
+    INTRO_LOGO_CLASSIC,     /**< the console's own green, blue, red and yellow (the default) */
     INTRO_LOGO_COUNT
 } intro_logo_t;
 

@@ -54,8 +54,8 @@ const char *games_ui_pak_badges_name (int choice);
 /** How the selected cover is marked on the cover rows (option `selection`). */
 typedef enum {
     SELECTION_RING,         /**< a frame all round it */
-    SELECTION_CORNERS,      /**< a bracket at each corner (the default) */
-    SELECTION_OFF,          /**< nothing: the selected cover stands out by its size alone */
+    SELECTION_CORNERS,      /**< a bracket at each corner */
+    SELECTION_OFF,          /**< nothing: the selected cover stands out by its size alone (the default) */
     SELECTION_COUNT
 } selection_style_t;
 
