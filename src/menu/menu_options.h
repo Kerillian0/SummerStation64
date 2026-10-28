@@ -15,7 +15,7 @@ typedef enum {
     OPTION_FRAME_RATE,  /**< a frame_rate_t value */
     OPTION_INTRO,       /**< an intro_choice_t value (see intro.h) */
     OPTION_FADE,        /**< an intro_fade_t value (see intro.h) */
-    OPTION_THEME,       /**< a builtin_theme_t value (see builtin_themes.h) */
+    OPTION_THEME,       /**< a builtin_theme_t value (see builtin_themes.h), or a card theme from THEME_CHOICE_CARD on (card_themes.h) */
     OPTION_INTRO_LOGO,  /**< an intro_logo_t value (see intro_logo.h) */
     OPTION_TAB1,        /**< first place on the tab bar: a tab_choice_t value (see tabs.h) */
     OPTION_TAB2,
@@ -39,6 +39,7 @@ typedef enum {
     OPTION_CLIP_DITHER, /**< a screenshot_dither_t value, for clips */
     OPTION_HOMEBREW_ON_GAMES, /**< a homebrew_on_games_t value (see games_filter.h) */
     OPTION_HACKS_ON_GAMES, /**< a hacks_on_games_t value (see games_filter.h) */
+    OPTION_THEME_KEY,   /**< which card theme option `theme` means, by its folder name (see card_themes.h) */
     OPTION_PARTY_TEST,  /**< hidden, for testing: count this many controllers (see party.h); 0 counts the real ones */
     OPTION_COUNT
 } option_t;

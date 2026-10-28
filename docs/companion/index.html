@@ -309,7 +309,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
         <button type="button" class="btn ghost" id="saveIni" hidden>Save as file</button>
         <button type="button" class="btn ghost" id="savePng" hidden>Save background.png</button>
       </div>
-      <p class="hint">On the SD card the file goes in menu/theme/.</p>
+      <p class="hint">On the SD card, give each theme a folder of its own in menu/themes, named as you want it listed: menu/themes/My Theme/theme.ini. Then pick it in Settings &gt; Display &gt; Theme (up to 32 themes).</p>
       <p class="hint" id="saveHint" hidden>The file saves as theme.txt because of browser limits. The menu reads theme.txt too, so renaming it is optional.</p>
       <div class="status" id="status" role="status"></div>
     </section>
@@ -798,7 +798,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
           <a href="https://github.com/n64-tools/n64-flashcart-menu-metadata/releases">metadata pack</a> and copy its <code>metadata</code> folder
           into the card's <code>menu</code> folder (<code>menu/metadata/</code>).</li>
         <li><b>Optional</b>: run <a href="#prep">Card Prep</a> once to give each game a check mark for a known good dump, and make a theme in the
-          <a href="#themes">Theme Maker</a> (it goes in <code>menu/theme/theme.ini</code>).</li>
+          <a href="#themes">Theme Maker</a> (each theme in a folder of its own, <code>menu/themes/My Theme/theme.ini</code>, then picked in Settings &gt; Display &gt; Theme).</li>
       </ol>
       <p class="note">Your saves stay where they are. Before each game starts, the menu also keeps a dated copy of its save in
         <code>saves/backups/</code> (five per game); a game's Options menu has <b>Restore save</b>.</p>
@@ -1665,11 +1665,11 @@ short-desc = Mario explores Princess Peach's castle.</code></pre>
   $('saveIni').addEventListener('click', function(){
     if (!downloads) {
       plainDownload('theme.ini', new Blob([buildIni()], {type: 'text/plain'}));
-      status('Downloaded theme.ini. Put it in menu/theme/ on the SD card.');
+      status('Downloaded theme.ini. Put it in a folder of its own in menu/themes on the SD card.');
       return;
     }
     downloads.save({filename: 'theme.txt', data: buildIni()}).then(function(r){
-      status(r.status === 'saved' ? 'Saved theme.txt. Put it in menu/theme/ on the SD card.' : 'Sent theme.txt.');
+      status(r.status === 'saved' ? 'Saved theme.txt. Put it in a folder of its own in menu/themes on the SD card.' : 'Sent theme.txt.');
     }, handleSaveError);
   });
   $('savePng').addEventListener('click', function(){

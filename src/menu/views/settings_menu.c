@@ -7,6 +7,7 @@
 #include "../font_choice.h"
 #include "../intro.h"
 #include "../builtin_themes.h"
+#include "../card_themes.h"
 #include "../intro_logo.h"
 #include "../art_tint.h"
 #include "../games_folders.h"
@@ -121,6 +122,7 @@ static void resort_browser (menu_t *menu) {
 /* A newly chosen theme shows at once: colors, text and background. */
 static void apply_theme (menu_t *menu) {
     (void) menu;
+    card_themes_note_choice();
     theme_reload();
     fonts_restyle();
 }
@@ -176,8 +178,8 @@ static const char *default_folder (menu_t *menu) {
 /* ---------- the menu itself ---------- */
 
 static const item_t display_items[] = {
-    CHOICES("Theme", OPTION_THEME, BUILTIN_THEME_COUNT, builtin_theme_name, apply_theme,
-        "The menu's colors and background. From SD Card uses your own theme file (menu/theme/theme.ini), or Midnight if there is none. The others are built in."),
+    CHOICES("Theme", OPTION_THEME, THEME_CHOICE_COUNT, card_themes_choice_name, apply_theme,
+        "The menu's colors and background: a built-in theme, or one of yours from the SD card, each in its own folder in menu/themes (up to 32). From SD Card is the older menu/theme/theme.ini, or Midnight if there is none."),
     FEATURE("Cover Art", FEATURE_COVER_ART, "Show box art on the selected cover."),
     CHOICES("Show Games As", OPTION_COVER_STYLE, COVER_STYLE_COUNT, carousel_art_style_name, NULL,
         "Boxes shows each game's box art. Cartridges shows its cartridge instead, for games the box art pack has one for; the others keep their box."),
@@ -823,6 +825,7 @@ void view_settings_menu_init (menu_t *menu) {
     picking = NULL;
     bool back_from_tool = tool_open;
     tool_open = false;
+    card_themes_rescan();   /* theme folders added on the PC since */
 
     // Start from the top, unless the player wants to come back to where they were
     // (or comes back from a screen opened here).

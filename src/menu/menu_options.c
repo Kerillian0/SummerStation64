@@ -45,6 +45,7 @@ static const option_info_t option_info[OPTION_COUNT] = {
     [OPTION_CLIP_DITHER] = { "clip_dither", 0 }, /* smooth */
     [OPTION_HOMEBREW_ON_GAMES] = { "homebrew_on_games", 0 }, /* show */
     [OPTION_HACKS_ON_GAMES] = { "hacks_on_games", 0 }, /* show */
+    [OPTION_THEME_KEY] = { "theme_key", 0 },
     [OPTION_PARTY_TEST] = { "party_test", 0 }, /* count the real controllers */
 };
 

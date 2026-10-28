@@ -9,6 +9,7 @@
 #include "theme_parse.h"
 #include "safe_mode.h"
 #include "builtin_themes.h"
+#include "card_themes.h"
 #include "menu_options.h"
 
 static theme_t theme;
@@ -499,6 +500,10 @@ void theme_init (void) {
     from_sd = false;
     if (choice == BUILTIN_THEME_FROM_CARD) {
         from_sd = theme_parse_file(&theme, THEME_INI_PATH) || theme_parse_file(&theme, THEME_TXT_PATH);
+    } else if (choice >= THEME_CHOICE_CARD) {
+        const char *path = card_themes_path();     /* a theme folder in sd:/menu/themes; gone: Midnight */
+        from_sd = path && theme_parse_file(&theme, path);
+        debugf("theme: card theme %s\n", path ? path : "(folder gone, Midnight)");
     }
 }
 
