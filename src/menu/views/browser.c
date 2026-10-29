@@ -27,7 +27,7 @@
 #include "../game_index.h"
 #include "../region_pick.h"
 #include "../hidden_games.h"
-#include "../homebrew_marks.h"
+#include "../game_marks.h"
 #include "../letter_wheel.h"
 #include "../collections_ui.h"
 #include "../collections.h"
@@ -1020,11 +1020,17 @@ static void hide_now (menu_t *menu) {
     }
 }
 
-// Z on a game: mark it as homebrew (onto the Homebrew tab) or as not
-// homebrew (homebrew_marks.h). What it would be without a mark: its code,
-// or a folder marked as homebrew.
+// Z on a game: mark it as homebrew (onto the Homebrew tab) or as a ROM
+// hack (Hack badge, Hacks tab), or take it off again (game_marks.h). What
+// it would be without a mark: its code, or a folder marked as homebrew or
+// as hacks (the Folders tab can't run the hack finder, so only the folder).
+static const char *from_card_top (const char *path) {
+    const char *colon = strstr(path, ":/");
+    return colon ? colon + 2 : path;
+}
+
 static bool homebrew_unmarked (menu_t *menu, entry_t *e, const char *path) {
-    if (games_folders_entry_in_homebrew(e->name)) {
+    if (games_folders_entry_in_homebrew(from_card_top(path))) {
         return true;
     }
     const game_index_entry_t *known = game_index_find(path, e->size);
@@ -1035,26 +1041,59 @@ static bool homebrew_now (menu_t *menu, entry_t *e, const char *path) {
     if (!folders_tab) {
         return games_filter_is_homebrew(e);     // what the Games list made of it
     }
-    int mark = homebrew_marks_get_path(path);
+    if (game_marks_get_path(GAME_MARK_HACK, path) > 0) {
+        return false;
+    }
+    int mark = game_marks_get_path(GAME_MARK_HOMEBREW, path);
     return mark ? (mark > 0) : homebrew_unmarked(menu, e, path);
+}
+
+static bool hack_now (menu_t *menu, entry_t *e, const char *path) {
+    if (!folders_tab) {
+        return games_filter_is_hack(e);
+    }
+    int mark = game_marks_get_path(GAME_MARK_HACK, path);
+    if (mark) {
+        return mark > 0;
+    }
+    return game_marks_get_path(GAME_MARK_HOMEBREW, path) <= 0 && games_folders_entry_in_hacks(from_card_top(path));
+}
+
+// After a mark: a cover tab reads its list again now (as hiding does), and the next game takes the moved one's place.
+static void marked_reload (menu_t *menu) {
+    if (!folders_tab) {
+        carousel_art_reset();
+        if (reload_directory(menu)) {
+            menu->browser.valid = false;
+            menu_show_error(menu, "Couldn't refresh the list");
+        }
+    }
 }
 
 static void toggle_homebrew (menu_t *menu, void *arg) {
     entry_t *e = menu->browser.entry;
     path_t *path = path_clone_push(menu->browser.directory, e->name);
     bool want = !homebrew_now(menu, e, path_get(path));
-    int mark = (want == homebrew_unmarked(menu, e, path_get(path))) ? 0 : (want ? 1 : -1);   // no mark needed when its code agrees
-    if (!homebrew_marks_set(path_get(path), mark)) {
+    bool natural = homebrew_unmarked(menu, e, path_get(path)) && game_marks_get_path(GAME_MARK_HACK, path_get(path)) <= 0;
+    int mark = (want == natural) ? 0 : (want ? 1 : -1);   // no mark needed when its code agrees
+    if (!game_marks_set(GAME_MARK_HOMEBREW, path_get(path), mark)) {
         note_show("The most games are marked already.");
-    } else if (folders_tab) {
-        note_show(want ? "Marked as homebrew: it shows on the Homebrew tab." : "Not homebrew: it shows on the Games tab.");
     } else {
-        note_show(want ? "Moved to the Homebrew tab." : "Moved to the Games tab.");
-        carousel_art_reset();   // read the list again now (as hiding does); the next game takes its place
-        if (reload_directory(menu)) {
-            menu->browser.valid = false;
-            menu_show_error(menu, "Couldn't refresh the list");
-        }
+        note_show(want ? "Marked as homebrew: it shows on the Homebrew tab." : "Removed from Homebrew: it shows on the Games tab.");
+        marked_reload(menu);
+    }
+    path_free(path);
+}
+
+static void toggle_hack (menu_t *menu, void *arg) {
+    entry_t *e = menu->browser.entry;
+    path_t *path = path_clone_push(menu->browser.directory, e->name);
+    bool want = !hack_now(menu, e, path_get(path));
+    if (!game_marks_set(GAME_MARK_HACK, path_get(path), want ? 1 : -1)) {
+        note_show("The most games are marked already.");
+    } else {
+        note_show(want ? "Marked as a ROM hack: it shows on the Hacks tab and step." : "Removed from Hacks.");
+        marked_reload(menu);
     }
     path_free(path);
 }
@@ -1121,6 +1160,7 @@ static void card_menu_show (void) {
         { .text = "Add to collection...", .action = add_to_collection }, \
         { .text = "Hide this game", .action = hide_game }, \
         { .text = "Mark as homebrew", .action = toggle_homebrew }, \
+        { .text = "Mark as ROM hack", .action = toggle_hack }, \
         { .text = "Hide this game", .action = folders_hide }, \
         { .text = "Rename...", .action = rename_entry }, \
         { .text = "Show entry properties", .action = show_properties }, \
@@ -1145,16 +1185,17 @@ static void entry_menu_fill (menu_t *menu) {
     for (int i = 0; entry_menu_rows.list[i].text != NULL; i++) {
         __typeof__(entry_menu_rows.list[0]) row = entry_menu_rows.list[i];
         bool cover_row = (row.action == random_game || row.action == toggle_favorite || row.action == show_game_info
-                          || row.action == add_to_collection || row.action == hide_game || row.action == toggle_homebrew);
+                          || row.action == add_to_collection || row.action == hide_game || row.action == toggle_homebrew || row.action == toggle_hack);
         if (!folders_tab) {
             // A cover tab: the game's own rows only.
             if (!cover_row || (row.action != random_game && !game)
                 || (row.action == toggle_favorite && !favorite_toggle_allowed(e))
-                || (row.action == toggle_homebrew && (e->type != ENTRY_TYPE_ROM || collections_tab || games_filter_is_hack(e)))) {
+                || ((row.action == toggle_homebrew || row.action == toggle_hack) && (e->type != ENTRY_TYPE_ROM || collections_tab))) {
                 continue;
             }
-        } else if ((cover_row && row.action != show_game_info && row.action != toggle_homebrew) || (row.action == folders_hide && !game)
-                   || (row.action == toggle_homebrew && (!e || e->type != ENTRY_TYPE_ROM))
+        } else if ((cover_row && row.action != show_game_info && row.action != toggle_homebrew && row.action != toggle_hack)
+                   || (row.action == folders_hide && !game)
+                   || ((row.action == toggle_homebrew || row.action == toggle_hack) && (!e || e->type != ENTRY_TYPE_ROM))
                    || (row.action == rename_entry && (!e || e->type == ENTRY_TYPE_DIR))) {
             continue;   // the Folders tab: the file browser's rows, and hiding a game there
         }
@@ -1188,7 +1229,10 @@ static void entry_menu_fill (menu_t *menu) {
             row.text = favorite_toggle_text(menu, path_get(path));
         }
         if (row.action == toggle_homebrew && homebrew_now(menu, e, path_get(path))) {
-            row.text = "Not homebrew";
+            row.text = "Remove from Homebrew";
+        }
+        if (row.action == toggle_hack && hack_now(menu, e, path_get(path))) {
+            row.text = "Remove from Hacks";
         }
         if (row.action == folders_hide && hidden_games_is(path_get(path))) {
             row.text = "Unhide this game";
@@ -2211,7 +2255,7 @@ static void draw (menu_t *menu, surface_t *d) {
         }, FNT_DEFAULT, GAMES_UI_CONTENT_X0, 100,
             "No ROM hacks found.\n\n"
             "Hacks are found by their file names (\"hack\", \"redux\", [h1]) and by sharing a game's code with it. "
-            "A folder can be marked as holding hacks in the Folders tab (Z).");
+            "Any game can be marked as a hack with Z, or a whole folder in the Folders tab (Z).");
     } else if (homebrew_tab && menu->browser.entries <= 0) {
         games_ui_topbar_draw(menu, GAMES_TAB_HOMEBREW);
         rdpq_text_printf(&(rdpq_textparms_t) {

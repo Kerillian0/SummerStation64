@@ -89,7 +89,7 @@ SRCS = \
 	menu/volume.c \
 	menu/profiles.c \
 	menu/profile_pick.c \
-	menu/homebrew_marks.c \
+	menu/game_marks.c \
 	menu/favorite_toggle.c \
 	menu/cheat_ready.c \
 	menu/cheat_menu.c \

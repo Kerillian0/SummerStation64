@@ -17,7 +17,7 @@
 #include "file_rename.h"
 #include "game_index.h"
 #include "hidden_games.h"
-#include "homebrew_marks.h"
+#include "game_marks.h"
 #include "letter_wheel.h"
 #include "my_collections.h"
 #include "play_stats.h"
@@ -72,7 +72,7 @@ static void update_lists (menu_t *menu, const char *new_path) {
     play_stats_rename(old_path, new_path);
     game_index_rename(old_path, new_path, file_size);
     hidden_games_rename(old_path, new_path);
-    homebrew_marks_rename(old_path, new_path);
+    game_marks_rename(old_path, new_path);
     my_collections_rename_game(old_path, new_path);
     dd_pair_rename(old_path, new_path);
     dump_check_rename(old_path, new_path, (uint32_t) file_size);

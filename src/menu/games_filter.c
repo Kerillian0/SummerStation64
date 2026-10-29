@@ -14,7 +14,7 @@
 
 #include "game_index.h"
 #include "games_filter.h"
-#include "homebrew_marks.h"
+#include "game_marks.h"
 #include "games_folders.h"
 #include "path.h"
 #include "menu_options.h"
@@ -249,8 +249,17 @@ static bool same_developer (const char *a, const char *b) {
 
 /* 1 if the player has said a game is homebrew (itself, or its folder), -1 if not, else 0. */
 static int marked_homebrew (const entry_t *e) {
-    int mark = homebrew_marks_get(e->name);
+    if (game_marks_get(GAME_MARK_HACK, e->name) > 0) {
+        return -1;      /* marked as a hack: never both */
+    }
+    int mark = game_marks_get(GAME_MARK_HOMEBREW, e->name);
     return mark ? mark : (games_folders_entry_in_homebrew(e->name) ? 1 : 0);
+}
+
+/* 1 if the player has marked a game as a hack, -1 if as not one (or as homebrew), else 0 (its name, code and folder decide). */
+static int marked_hack (const entry_t *e) {
+    int mark = game_marks_get(GAME_MARK_HACK, e->name);
+    return mark ? mark : ((game_marks_get(GAME_MARK_HOMEBREW, e->name) > 0) ? -1 : 0);
 }
 
 static void mark_hacks (menu_t *menu) {
@@ -288,7 +297,18 @@ static void mark_hacks (menu_t *menu) {
         if (in_folders > 0) {
             debugf("games filter: %d more hacks from folders marked as hacks\n", in_folders);
         }
-        /* The player's own word (homebrew_marks.h, a homebrew folder) wins over the code and the hack finder. */
+        /* The player's own word (game_marks.h, a homebrew folder) wins over the code, the hack finder and hack folders. */
+        int by_hand = 0;
+        for (int i = 0; i < total; i++) {
+            int mark = is_rom[i] ? marked_hack(&menu->browser.list[i]) : 0;
+            if (mark != 0) {
+                hack[i] = (mark > 0);
+                by_hand++;
+            }
+        }
+        if (by_hand > 0) {
+            debugf("games filter: %d games marked as hacks or not by hand\n", by_hand);
+        }
         for (int i = 0; i < total; i++) {
             entry_t *e = &menu->browser.list[i];
             int mark = is_rom[i] ? marked_homebrew(e) : 0;
