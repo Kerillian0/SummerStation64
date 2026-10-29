@@ -247,19 +247,26 @@ static bool same_developer (const char *a, const char *b) {
     return strncasecmp(shorter, longer, strlen(shorter)) == 0;
 }
 
-/* 1 if the player has said a game is homebrew (itself, or its folder), -1 if not, else 0. */
-static int marked_homebrew (const entry_t *e) {
-    if (game_marks_get(GAME_MARK_HACK, e->name) > 0) {
-        return -1;      /* marked as a hack: never both */
+game_kind_t games_filter_decide (const char *name, bool homebrew_code, bool found_hack) {
+    bool hack = found_hack || games_folders_entry_in_hacks(name);
+    bool homebrew = homebrew_code;
+    int hack_mark = game_marks_get(GAME_MARK_HACK, name);
+    int homebrew_mark = game_marks_get(GAME_MARK_HOMEBREW, name);
+    if (hack_mark > 0) {
+        return GAME_KIND_HACK;          /* the player's own word first */
     }
-    int mark = game_marks_get(GAME_MARK_HOMEBREW, e->name);
-    return mark ? mark : (games_folders_entry_in_homebrew(e->name) ? 1 : 0);
-}
-
-/* 1 if the player has marked a game as a hack, -1 if as not one (or as homebrew), else 0 (its name, code and folder decide). */
-static int marked_hack (const entry_t *e) {
-    int mark = game_marks_get(GAME_MARK_HACK, e->name);
-    return mark ? mark : ((game_marks_get(GAME_MARK_HOMEBREW, e->name) > 0) ? -1 : 0);
+    if (homebrew_mark > 0) {
+        return GAME_KIND_HOMEBREW;
+    }
+    if (hack_mark < 0) {
+        hack = false;
+    }
+    if (homebrew_mark < 0) {
+        homebrew = false;
+    } else if (games_folders_entry_in_homebrew(name)) {
+        return GAME_KIND_HOMEBREW;      /* a homebrew folder, over hack folders and the finder */
+    }
+    return hack ? GAME_KIND_HACK : (homebrew ? GAME_KIND_HOMEBREW : GAME_KIND_GAME);
 }
 
 static void mark_hacks (menu_t *menu) {
@@ -278,7 +285,7 @@ static void mark_hacks (menu_t *menu) {
             if (is_rom[i]) {
                 path_t *path = path_clone_push(menu->browser.directory, e->name);
                 const game_index_entry_t *known = game_index_find(path_get(path), e->size);
-                if (known && !game_index_is_homebrew(known->code) && marked_homebrew(e) <= 0) {
+                if (known && !game_index_is_homebrew(known->code) && games_filter_decide(e->name, false, false) != GAME_KIND_HOMEBREW) {
                     memcpy(codes[i], known->code, 4);   /* unrelated homebrew shares one code: no hacks or versions by it */
                     developers[i] = known->developer;
                 }
@@ -286,37 +293,18 @@ static void mark_hacks (menu_t *menu) {
             }
         }
         rom_hacks_find(names, codes, is_rom, total, hack);
-        /* Every game in a folder the player marked as holding hacks. */
-        int in_folders = 0;
-        for (int i = 0; i < total; i++) {
-            if (is_rom[i] && games_folders_entry_in_hacks(menu->browser.list[i].name)) {
-                in_folders += hack[i] ? 0 : 1;
-                hack[i] = true;
-            }
-        }
-        if (in_folders > 0) {
-            debugf("games filter: %d more hacks from folders marked as hacks\n", in_folders);
-        }
-        /* The player's own word (game_marks.h, a homebrew folder) wins over the code, the hack finder and hack folders. */
-        int by_hand = 0;
-        for (int i = 0; i < total; i++) {
-            int mark = is_rom[i] ? marked_hack(&menu->browser.list[i]) : 0;
-            if (mark != 0) {
-                hack[i] = (mark > 0);
-                by_hand++;
-            }
-        }
-        if (by_hand > 0) {
-            debugf("games filter: %d games marked as hacks or not by hand\n", by_hand);
-        }
+        /* Folders and the player's marks: one rule, games_filter_decide(), also used by the Folders tab's Z rows. */
         for (int i = 0; i < total; i++) {
             entry_t *e = &menu->browser.list[i];
-            int mark = is_rom[i] ? marked_homebrew(e) : 0;
-            if (mark > 0) {
-                hack[i] = false;
+            if (!is_rom[i]) {
+                continue;
+            }
+            game_kind_t kind = games_filter_decide(e->name, (marks[e->index] & (1 << FILTER_HOMEBREW)) != 0, hack[i]);
+            hack[i] = (kind == GAME_KIND_HACK);
+            if (kind == GAME_KIND_HOMEBREW) {
                 marks[e->index] |= 1 << FILTER_HOMEBREW;
-            } else if (mark < 0) {
-                marks[e->index] &= ~(1 << FILTER_HOMEBREW);
+            } else {
+                marks[e->index] &= ~(1 << FILTER_HOMEBREW);     /* never both */
             }
         }
         int found = 0;

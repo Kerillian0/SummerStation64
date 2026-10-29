@@ -28,6 +28,7 @@
 #include "../region_pick.h"
 #include "../hidden_games.h"
 #include "../game_marks.h"
+#include "../rom_hacks.h"
 #include "../letter_wheel.h"
 #include "../collections_ui.h"
 #include "../collections.h"
@@ -1029,34 +1030,15 @@ static const char *from_card_top (const char *path) {
     return colon ? colon + 2 : path;
 }
 
-static bool homebrew_unmarked (menu_t *menu, entry_t *e, const char *path) {
-    if (games_folders_entry_in_homebrew(from_card_top(path))) {
-        return true;
+// What a game counts as: on a cover tab, what the Games list made of it; on
+// the Folders tab, the same rule worked out for the one file (the hack
+// finder's shared-code test needs the whole list, so only its name test).
+static game_kind_t kind_now (menu_t *menu, entry_t *e, const char *path) {
+    if (!folders_tab) {
+        return games_filter_is_hack(e) ? GAME_KIND_HACK : (games_filter_is_homebrew(e) ? GAME_KIND_HOMEBREW : GAME_KIND_GAME);
     }
     const game_index_entry_t *known = game_index_find(path, e->size);
-    return known && game_index_is_homebrew(known->code);
-}
-
-static bool homebrew_now (menu_t *menu, entry_t *e, const char *path) {
-    if (!folders_tab) {
-        return games_filter_is_homebrew(e);     // what the Games list made of it
-    }
-    if (game_marks_get_path(GAME_MARK_HACK, path) > 0) {
-        return false;
-    }
-    int mark = game_marks_get_path(GAME_MARK_HOMEBREW, path);
-    return mark ? (mark > 0) : homebrew_unmarked(menu, e, path);
-}
-
-static bool hack_now (menu_t *menu, entry_t *e, const char *path) {
-    if (!folders_tab) {
-        return games_filter_is_hack(e);
-    }
-    int mark = game_marks_get_path(GAME_MARK_HACK, path);
-    if (mark) {
-        return mark > 0;
-    }
-    return game_marks_get_path(GAME_MARK_HOMEBREW, path) <= 0 && games_folders_entry_in_hacks(from_card_top(path));
+    return games_filter_decide(from_card_top(path), known && game_index_is_homebrew(known->code), rom_hacks_name_says(entry_file_name(e->name)));
 }
 
 // After a mark: a cover tab reads its list again now (as hiding does), and the next game takes the moved one's place.
@@ -1070,32 +1052,30 @@ static void marked_reload (menu_t *menu) {
     }
 }
 
-static void toggle_homebrew (menu_t *menu, void *arg) {
+// Marked one way or the other for good (+1 / -1): the Folders tab can't
+// always tell what the Games list would make of a file without a mark.
+static void toggle_kind (menu_t *menu, game_mark_kind_t mark_kind, game_kind_t kind) {
     entry_t *e = menu->browser.entry;
     path_t *path = path_clone_push(menu->browser.directory, e->name);
-    bool want = !homebrew_now(menu, e, path_get(path));
-    bool natural = homebrew_unmarked(menu, e, path_get(path)) && game_marks_get_path(GAME_MARK_HACK, path_get(path)) <= 0;
-    int mark = (want == natural) ? 0 : (want ? 1 : -1);   // no mark needed when its code agrees
-    if (!game_marks_set(GAME_MARK_HOMEBREW, path_get(path), mark)) {
+    bool want = (kind_now(menu, e, path_get(path)) != kind);
+    if (!game_marks_set(mark_kind, path_get(path), want ? 1 : -1)) {
         note_show("The most games are marked already.");
-    } else {
+    } else if (kind == GAME_KIND_HOMEBREW) {
         note_show(want ? "Marked as homebrew: it shows on the Homebrew tab." : "Removed from Homebrew: it shows on the Games tab.");
         marked_reload(menu);
-    }
-    path_free(path);
-}
-
-static void toggle_hack (menu_t *menu, void *arg) {
-    entry_t *e = menu->browser.entry;
-    path_t *path = path_clone_push(menu->browser.directory, e->name);
-    bool want = !hack_now(menu, e, path_get(path));
-    if (!game_marks_set(GAME_MARK_HACK, path_get(path), want ? 1 : -1)) {
-        note_show("The most games are marked already.");
     } else {
         note_show(want ? "Marked as a ROM hack: it shows on the Hacks tab and step." : "Removed from Hacks.");
         marked_reload(menu);
     }
     path_free(path);
+}
+
+static void toggle_homebrew (menu_t *menu, void *arg) {
+    toggle_kind(menu, GAME_MARK_HOMEBREW, GAME_KIND_HOMEBREW);
+}
+
+static void toggle_hack (menu_t *menu, void *arg) {
+    toggle_kind(menu, GAME_MARK_HACK, GAME_KIND_HACK);
 }
 
 // Rename a file (file_rename.h): its save, settings and everything the menu keeps by its name go along.
@@ -1228,11 +1208,13 @@ static void entry_menu_fill (menu_t *menu) {
         if (row.action == toggle_favorite) {
             row.text = favorite_toggle_text(menu, path_get(path));
         }
-        if (row.action == toggle_homebrew && homebrew_now(menu, e, path_get(path))) {
-            row.text = "Remove from Homebrew";
-        }
-        if (row.action == toggle_hack && hack_now(menu, e, path_get(path))) {
-            row.text = "Remove from Hacks";
+        if ((row.action == toggle_homebrew || row.action == toggle_hack) && path) {
+            game_kind_t kind = kind_now(menu, e, path_get(path));   // one answer for both rows: never "Remove" on both
+            if (row.action == toggle_homebrew && kind == GAME_KIND_HOMEBREW) {
+                row.text = "Remove from Homebrew";
+            } else if (row.action == toggle_hack && kind == GAME_KIND_HACK) {
+                row.text = "Remove from Hacks";
+            }
         }
         if (row.action == folders_hide && hidden_games_is(path_get(path))) {
             row.text = "Unhide this game";

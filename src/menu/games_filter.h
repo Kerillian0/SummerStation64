@@ -45,6 +45,23 @@ void games_filter_note_code (const entry_t *e, const char *code);
 /** True if this game of the Games tab's list is a hack of another game (see rom_hacks.h). */
 bool games_filter_is_hack (const entry_t *e);
 
+/** What a game counts as on the cover tabs. */
+typedef enum {
+    GAME_KIND_GAME,
+    GAME_KIND_HOMEBREW,
+    GAME_KIND_HACK,
+} game_kind_t;
+
+/**
+ * The one rule for hack or homebrew, used by the Games list and the Folders
+ * tab: the player's own mark (game_marks.h) first, then a homebrew folder,
+ * then a hack folder or the hack finder, then a homebrew code. Never both.
+ * @param name the file from the top of the card ("N64/Game.z64")
+ * @param homebrew_code its game code says homebrew
+ * @param found_hack the hack finder (rom_hacks.h) called it a hack
+ */
+game_kind_t games_filter_decide (const char *name, bool homebrew_code, bool found_hack);
+
 /** Whether a Games list entry counts as homebrew (on the Homebrew tab): by its code, a homebrew folder or the player's mark. */
 bool games_filter_is_homebrew (const entry_t *e);
 
