@@ -45,6 +45,9 @@ void games_filter_note_code (const entry_t *e, const char *code);
 /** True if this game of the Games tab's list is a hack of another game (see rom_hacks.h). */
 bool games_filter_is_hack (const entry_t *e);
 
+/** Whether a Games list entry counts as homebrew (on the Homebrew tab): by its code, a homebrew folder or the player's mark. */
+bool games_filter_is_homebrew (const entry_t *e);
+
 /** The same, for a full path ("sd:/..."), looked up in the Games list (false if it isn't there). */
 bool games_filter_is_hack_path (menu_t *menu, const char *path);
 

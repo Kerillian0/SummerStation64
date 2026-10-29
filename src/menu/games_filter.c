@@ -14,6 +14,7 @@
 
 #include "game_index.h"
 #include "games_filter.h"
+#include "homebrew_marks.h"
 #include "games_folders.h"
 #include "path.h"
 #include "menu_options.h"
@@ -246,6 +247,12 @@ static bool same_developer (const char *a, const char *b) {
     return strncasecmp(shorter, longer, strlen(shorter)) == 0;
 }
 
+/* 1 if the player has said a game is homebrew (itself, or its folder), -1 if not, else 0. */
+static int marked_homebrew (const entry_t *e) {
+    int mark = homebrew_marks_get(e->name);
+    return mark ? mark : (games_folders_entry_in_homebrew(e->name) ? 1 : 0);
+}
+
 static void mark_hacks (menu_t *menu) {
     const char **names = malloc(total * sizeof(char *));
     const char **developers = calloc(total, sizeof(char *));
@@ -262,7 +269,7 @@ static void mark_hacks (menu_t *menu) {
             if (is_rom[i]) {
                 path_t *path = path_clone_push(menu->browser.directory, e->name);
                 const game_index_entry_t *known = game_index_find(path_get(path), e->size);
-                if (known && !game_index_is_homebrew(known->code)) {
+                if (known && !game_index_is_homebrew(known->code) && marked_homebrew(e) <= 0) {
                     memcpy(codes[i], known->code, 4);   /* unrelated homebrew shares one code: no hacks or versions by it */
                     developers[i] = known->developer;
                 }
@@ -280,6 +287,17 @@ static void mark_hacks (menu_t *menu) {
         }
         if (in_folders > 0) {
             debugf("games filter: %d more hacks from folders marked as hacks\n", in_folders);
+        }
+        /* The player's own word (homebrew_marks.h, a homebrew folder) wins over the code and the hack finder. */
+        for (int i = 0; i < total; i++) {
+            entry_t *e = &menu->browser.list[i];
+            int mark = is_rom[i] ? marked_homebrew(e) : 0;
+            if (mark > 0) {
+                hack[i] = false;
+                marks[e->index] |= 1 << FILTER_HOMEBREW;
+            } else if (mark < 0) {
+                marks[e->index] &= ~(1 << FILTER_HOMEBREW);
+            }
         }
         int found = 0;
         for (int i = 0; i < total; i++) {
@@ -434,6 +452,11 @@ void games_filter_recheck_hacks (menu_t *menu) {
 
 bool games_filter_is_hack (const entry_t *e) {
     return matches(e, FILTER_HACKS);
+}
+
+bool games_filter_is_homebrew (const entry_t *e) {
+    return marks && e && e->index >= 0 && e->index < marks_count
+        && (marks[e->index] & ((1 << FILTER_HOMEBREW) | (1 << FILTER_HACKS))) == (1 << FILTER_HOMEBREW);
 }
 
 /* The Games list's entry for a full path ("sd:/..."), or NULL. */

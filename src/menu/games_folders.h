@@ -42,7 +42,7 @@ bool games_folders_remove (const char *path);
 /** How many folders were added. */
 int games_folders_count (void);
 
-/** Forget every added folder, and every folder marked as hacks (Settings > Library). */
+/** Forget every added folder, and every folder marked as hacks or homebrew (Settings > Library). */
 void games_folders_clear (void);
 
 /**
@@ -59,6 +59,20 @@ bool games_folders_mark_hacks (const char *path, bool marked);
 
 /** Whether a Games tab entry ("N64 Hacks/Game.z64") sits in a folder marked as hacks. */
 bool games_folders_entry_in_hacks (const char *name);
+
+/**
+ * Folders the player has marked as holding homebrew (Folders tab, Z), kept
+ * in sd:/menu/homebrewfolders.txt: every game in one goes on the Homebrew
+ * tab, whatever its code says. A game's own mark (homebrew_marks.h) wins.
+ * Marking a folder adds it to the Games tab too.
+ */
+bool games_folders_is_homebrew (const char *path);
+
+/** Mark or unmark a folder (a full path) as holding homebrew. @return false if nothing changed. */
+bool games_folders_mark_homebrew (const char *path, bool marked);
+
+/** Whether a Games tab entry sits in a folder marked as homebrew (or one folder below it). */
+bool games_folders_entry_in_homebrew (const char *name);
 
 /** The file's own name, without the folder in front of it. */
 const char *entry_file_name (const char *name);

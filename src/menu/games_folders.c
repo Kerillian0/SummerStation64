@@ -15,6 +15,8 @@
 #define FOLDERS_TMP_PATH    "sd:/menu/gamefolders.tmp"
 #define HACKS_PATH          "sd:/menu/hackfolders.txt"
 #define HACKS_TMP_PATH      "sd:/menu/hackfolders.tmp"
+#define HOMEBREW_PATH       "sd:/menu/homebrewfolders.txt"
+#define HOMEBREW_TMP_PATH   "sd:/menu/homebrewfolders.tmp"
 #define FOLDER_LENGTH       (128)
 
 /* A list of folders kept in a file on the card, one per line. */
@@ -27,6 +29,7 @@ typedef struct {
 
 static folder_list_t games = { .path = FOLDERS_PATH, .tmp_path = FOLDERS_TMP_PATH, .what = "game folders" };
 static folder_list_t hacks = { .path = HACKS_PATH, .tmp_path = HACKS_TMP_PATH, .what = "hack folders" };
+static folder_list_t homebrew = { .path = HOMEBREW_PATH, .tmp_path = HOMEBREW_TMP_PATH, .what = "homebrew folders" };
 
 /* "sd:/N64(JP)/" -> "/N64(JP)": from the top of the card, no slash at the end. */
 static void tidy (char *out, const char *path) {
@@ -53,7 +56,7 @@ static void load (folder_list_t *list) {
         return;
     }
     char line[FOLDER_LENGTH + 4];
-    int most = (list == &hacks) ? GAMES_FOLDERS_MAX + 1 : GAMES_FOLDERS_MAX;
+    int most = (list == &games) ? GAMES_FOLDERS_MAX : GAMES_FOLDERS_MAX + 1;
     while (list->count < most && fgets(line, sizeof(line), f)) {
         line[strcspn(line, "\r\n")] = '\0';
         if (line[0] == '/') {
@@ -144,6 +147,7 @@ bool games_folders_add (const char *path) {
 
 bool games_folders_remove (const char *path) {
     list_remove(&hacks, path);  /* no longer in the Games tab: no longer marked either */
+    list_remove(&homebrew, path);
     return list_remove(&games, path);
 }
 
@@ -163,6 +167,11 @@ void games_folders_clear (void) {
         hacks.count = 0;
         save(&hacks);
     }
+    load(&homebrew);
+    if (homebrew.count > 0) {
+        homebrew.count = 0;
+        save(&homebrew);
+    }
 }
 
 bool games_folders_is_hacks (const char *path) {
@@ -176,9 +185,9 @@ bool games_folders_mark_hacks (const char *path, bool marked) {
     return marked ? list_add(&hacks, path, GAMES_FOLDERS_MAX + 1) : list_remove(&hacks, path);
 }
 
-bool games_folders_entry_in_hacks (const char *name) {
-    load(&hacks);
-    if (!name || hacks.count == 0) {
+static bool entry_in (folder_list_t *list, const char *name) {
+    load(list);
+    if (!name || list->count == 0) {
         return false;
     }
     /* "N64 Hacks/Game.z64" -> "/N64 Hacks"; a name without a folder is in the top of the card. */
@@ -194,16 +203,35 @@ bool games_folders_entry_in_hacks (const char *name) {
     if (length == 0) {
         folder[1] = '\0';
     }
-    if (find(&hacks, folder) >= 0) {
+    if (find(list, folder) >= 0) {
         return true;
     }
     /* A game one folder down ("N64 Hacks/Zelda/Game.z64"): its folder's folder may be marked. */
     char *up = strrchr(folder, '/');
     if (up && up != folder) {
         *up = '\0';
-        return find(&hacks, folder) >= 0;
+        return find(list, folder) >= 0;
     }
     return false;
+}
+
+bool games_folders_entry_in_hacks (const char *name) {
+    return entry_in(&hacks, name);
+}
+
+bool games_folders_is_homebrew (const char *path) {
+    load(&homebrew);
+    char tidied[FOLDER_LENGTH];
+    tidy(tidied, path);
+    return find(&homebrew, tidied) >= 0;
+}
+
+bool games_folders_mark_homebrew (const char *path, bool marked) {
+    return marked ? list_add(&homebrew, path, GAMES_FOLDERS_MAX + 1) : list_remove(&homebrew, path);
+}
+
+bool games_folders_entry_in_homebrew (const char *name) {
+    return entry_in(&homebrew, name);
 }
 
 const char *entry_file_name (const char *name) {
