@@ -104,3 +104,53 @@ const char *game_data_players_text (const game_data_t *data, bool with_word) {
     }
     return text;
 }
+
+/* Review scores in tenths (rom:/reviewscores.txt). Read the first time one
+   is asked for, about 650 codes, 5 bytes each, and kept sorted by code so a
+   lookup is a binary search. */
+#define SCORES_PATH     "rom:/reviewscores.txt"
+#define SCORES_HEADER   "reviewscores 1"
+#define MAX_SCORES      (800)
+
+typedef struct {
+    char code[4];
+    uint8_t score;
+} review_score_t;
+static review_score_t scores[MAX_SCORES];
+static int score_count = 0;
+static bool scores_loaded = false;
+
+static int compare_score_code (const void *a, const void *b) {
+    return memcmp(a, b, 4);     /* the code is the struct's first member */
+}
+
+int game_data_review_score (const char *game_code) {
+    if (!game_code) {
+        return 0;
+    }
+    if (!scores_loaded) {
+        scores_loaded = true;
+        FILE *f = fopen(SCORES_PATH, "r");
+        if (f) {
+            char line[128];     /* room for the comment lines whole */
+            if (fgets(line, sizeof(line), f) && strncmp(line, SCORES_HEADER, strlen(SCORES_HEADER)) == 0) {
+                while (score_count < MAX_SCORES && fgets(line, sizeof(line), f)) {
+                    char code[8];
+                    int score;
+                    if (line[0] == '#' || sscanf(line, "%7s %d", code, &score) != 2 || strlen(code) != 4 || score <= 0 || score > 100) {
+                        continue;
+                    }
+                    memcpy(scores[score_count].code, code, 4);
+                    scores[score_count++].score = (uint8_t) score;
+                }
+            }
+            fclose(f);
+        } else {
+            debugf("game data: %s missing\n", SCORES_PATH);
+        }
+        qsort(scores, score_count, sizeof(scores[0]), compare_score_code);
+        debugf("game data: %d review scores\n", score_count);
+    }
+    const void *found = bsearch(game_code, scores, score_count, sizeof(scores[0]), compare_score_code);
+    return found ? ((const review_score_t *) found)->score : 0;
+}

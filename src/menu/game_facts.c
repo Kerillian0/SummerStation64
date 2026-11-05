@@ -69,6 +69,7 @@ typedef struct {
     bool likes_expansion;
     bool saves;
     uint8_t paks;
+    uint8_t review_score;
 } remembered_t;
 
 static remembered_t remembered[REMEMBERED];
@@ -226,6 +227,7 @@ static void lookup (menu_t *menu, int index) {
         found->likes_expansion = noted->likes_expansion;
         found->saves = noted->saves;
         found->paks = noted->paks;
+        found->review_score = (uint8_t) game_data_review_score(noted->code);
     }
 
     if (!found) {
@@ -243,6 +245,7 @@ static void lookup (menu_t *menu, int index) {
             found->paks = (info.features.controller_pak ? GAME_INDEX_PAK_CONTROLLER : 0) |
                 (info.features.rumble_pak ? GAME_INDEX_PAK_RUMBLE : 0) |
                 (info.features.transfer_pak ? GAME_INDEX_PAK_TRANSFER : 0);
+            found->review_score = (uint8_t) game_data_review_score(info.game_code);
             game_index_set_facts(path_get(path), size, info.game_code, found->players,
                 found->needs_expansion, found->likes_expansion, found->saves, found->paks);
         }
@@ -255,6 +258,7 @@ static void lookup (menu_t *menu, int index) {
         facts.likes_expansion = found->likes_expansion;
         facts.saves = found->saves;
         facts.paks = found->paks;
+        facts.review_score = found->review_score;
         known = true;
 
         facts.dump = (uint8_t) dump_check(path_get(path), size, false);    /* the panel leaves out the amber mark for hacks */

@@ -25,4 +25,10 @@ const game_data_t *game_data_find (const char *game_code);
  */
 const char *game_data_players_text (const game_data_t *data, bool with_word);
 
+/**
+ * The game's review score in tenths (89 = 8.9 out of 10), from a second
+ * table built into the menu file (rom:/reviewscores.txt). 0 if it has none.
+ */
+int game_data_review_score (const char *game_code);
+
 #endif /* GAME_DATA_H__ */

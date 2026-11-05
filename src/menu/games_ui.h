@@ -64,7 +64,9 @@ const char *games_ui_selection_name (int choice);
 
 /**
  * Dark panel with the selected entry's name. Under it: badges for a game
- * whose facts are known, otherwise the plain line of detail.
+ * whose facts are known, otherwise the plain line of detail. `review` is the
+ * game's review score in tenths, shown at the right of the name line: 0 if it
+ * has none (its room is still kept), -1 for an entry that is not a game.
  */
 /** A dump mark (dump_state_t from dump_check.h): a 20 px colored disc with a check, ? or cross. */
 void games_ui_dump_mark_draw (int x, int y, int state);
@@ -72,7 +74,7 @@ void games_ui_dump_mark_draw (int x, int y, int state);
 /** A dump mark and its word, centered in a hint row (0 top, 1 bottom). */
 void games_ui_hint_mark_draw (int row, int state, const char *label, int style);
 
-void games_ui_title_panel_draw (const char *title, const char *detail, const char *lead, bool hack, bool is_new, const char *with, const game_facts_t *facts);
+void games_ui_title_panel_draw (const char *title, const char *detail, const char *lead, bool hack, bool is_new, const char *with, const game_facts_t *facts, int review);
 
 /**
  * A word in a small box, as wide as its text (`boxed` false draws the word

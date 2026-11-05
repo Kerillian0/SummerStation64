@@ -36,6 +36,7 @@
 .DS_Store
 /filesystem/gamedata.txt
 /filesystem/series.txt
+/filesystem/reviewscores.txt
 
 # Project notes for Claude Code: kept on this machine only (the owner, 2026-10-21).
 /CLAUDE.md

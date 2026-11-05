@@ -16,11 +16,19 @@ typedef enum {
     SORT_RELEASE_DATE,  /**< games by release date, oldest first; unknown dates last, then as SORT_NAME_AZ */
     SORT_DEVELOPER,     /**< games by who made them, each developer's by date; unknown last */
     SORT_RECENTLY_ADDED, /**< games newest first, by the day the menu first saw them; older ones last, by name */
+    SORT_REVIEW_SCORE,  /**< games by review score, highest first; unscored games and hacks last, by name */
     SORT_COUNT
 } sort_order_t;
 
-/** Label for the Settings screen. */
+/** Label for the Settings screen. "" for Review Score while Review Scores is off, which hides it. */
 const char *sort_order_name (int order);
+
+/**
+ * The order the list is in: the chosen one, or SORT_BY_TYPE while it is
+ * Review Score and Review Scores is off (the choice is kept for when it is
+ * turned back on).
+ */
+int sort_order_current (void);
 
 /**
  * Sort the browser's file list by the player's chosen order.

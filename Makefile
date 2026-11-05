@@ -263,6 +263,12 @@ $(FILESYSTEM_DIR)/gamedata.txt: $(ASSETS_DIR)/data/gamedata.txt
 	@echo "    [DATA] $@"
 	@cp "$<" $@
 
+# Review scores per game code.
+$(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM_DIR)/reviewscores.txt
+$(FILESYSTEM_DIR)/reviewscores.txt: $(ASSETS_DIR)/data/reviewscores.txt
+	@echo "    [DATA] $@"
+	@cp "$<" $@
+
 # Which game codes belong to which series, for the Collections tab (assets/data/make_series.py).
 $(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM_DIR)/series.txt
 $(FILESYSTEM_DIR)/series.txt: $(ASSETS_DIR)/data/series.txt

@@ -10,6 +10,8 @@
 #include "games_folders.h"
 #include "game_index.h"
 #include "games_filter.h"
+#include "game_data.h"
+#include "menu_features.h"
 
 #define NAME_LENGTH (256)
 
@@ -26,8 +28,17 @@ const char *sort_order_name (int order) {
         case SORT_RELEASE_DATE: return "Release Date";
         case SORT_DEVELOPER: return "Developer";
         case SORT_RECENTLY_ADDED: return "Recently Added";
+        case SORT_REVIEW_SCORE: return features_enabled(FEATURE_REVIEW_SCORES) ? "Review Score" : "";
         default: return "Type";
     }
+}
+
+int sort_order_current (void) {
+    int order = options_get(OPTION_SORT_ORDER);
+    if (order == SORT_REVIEW_SCORE && !features_enabled(FEATURE_REVIEW_SCORES)) {
+        return SORT_BY_TYPE;
+    }
+    return order;
 }
 
 static int folders_first (const entry_t *a, const entry_t *b) {
@@ -120,6 +131,60 @@ static int compare_developer (const void *pa, const void *pb) {
     return order ? order : compare_release(pa, pb);
 }
 
+/* Review scores come from the game's code, which the remembered game list
+   knows the same way it knows release dates. A hack is not the game that
+   was scored: it counts as unscored, as does a game not looked up yet. */
+static int review_score (const entry_t *e) {
+    const game_index_entry_t *known = known_game(detail_directory, e);
+    if (!known || games_filter_is_hack(e)) {
+        return 0;
+    }
+    return game_data_review_score(known->code);
+}
+
+/* Each entry's score, looked up once before sorting and kept by
+   entry->index, so a comparison is two array reads rather than two game
+   list lookups and two table searches. */
+static uint8_t *entry_scores = NULL;
+static int entry_scores_count = 0;
+
+static int entry_score (const entry_t *e) {
+    if (entry_scores && e->index >= 0 && e->index < entry_scores_count) {
+        return entry_scores[e->index];
+    }
+    return review_score(e);     /* no room for the table: look it up each time */
+}
+
+static int compare_review (const void *pa, const void *pb) {
+    int order = folders_first(pa, pb);
+    if (order) {
+        return order;
+    }
+    int a = entry_score(pa);
+    int b = entry_score(pb);
+    return (a != b) ? ((a > b) ? -1 : 1) : compare_name_az(pa, pb);
+}
+
+static void find_review_scores (menu_t *menu) {
+    entry_scores_count = 0;
+    for (int i = 0; i < menu->browser.entries; i++) {
+        int index = menu->browser.list[i].index;
+        if (index >= entry_scores_count) {
+            entry_scores_count = index + 1;
+        }
+    }
+    entry_scores = calloc(entry_scores_count > 0 ? entry_scores_count : 1, 1);
+    if (!entry_scores) {
+        return;
+    }
+    for (int i = 0; i < menu->browser.entries; i++) {
+        entry_t *e = &menu->browser.list[i];
+        if (e->index >= 0) {
+            entry_scores[e->index] = (uint8_t) review_score(e);
+        }
+    }
+}
+
 /* Days since a game was first seen (game_index_added_days()), or a large
    number for games that count as old, which go last. */
 static int added_days (path_t *directory, const entry_t *e) {
@@ -191,7 +256,7 @@ const char *sort_order_added_text (int days) {
 
 const char *sort_order_detail (path_t *directory, const entry_t *entry) {
     static char text[24];
-    int order = options_get(OPTION_SORT_ORDER);
+    int order = sort_order_current();
     if (order == SORT_RECENTLY_ADDED) {
         return sort_order_added_text(added_days(directory, entry));
     }
@@ -241,7 +306,7 @@ static void find_recent (menu_t *menu) {
 void sort_order_apply (menu_t *menu, int (*stock_compare) (const void *, const void *)) {
     int (*compare) (const void *, const void *) = stock_compare;
 
-    switch (options_get(OPTION_SORT_ORDER)) {
+    switch (sort_order_current()) {
         case SORT_NAME_AZ:
             compare = compare_name_az;
             break;
@@ -265,6 +330,11 @@ void sort_order_apply (menu_t *menu, int (*stock_compare) (const void *, const v
             find_cover_days(menu);
             compare = compare_added;
             break;
+        case SORT_REVIEW_SCORE:
+            detail_directory = menu->browser.directory;
+            find_review_scores(menu);
+            compare = compare_review;
+            break;
         default:
             break;
     }
@@ -272,4 +342,6 @@ void sort_order_apply (menu_t *menu, int (*stock_compare) (const void *, const v
     qsort(menu->browser.list, menu->browser.entries, sizeof(entry_t), compare);
     free(cover_days);
     cover_days = NULL;
+    free(entry_scores);
+    entry_scores = NULL;
 }
