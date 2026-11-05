@@ -20,13 +20,13 @@ typedef enum {
     SORT_COUNT
 } sort_order_t;
 
-/** Label for the Settings screen. "" for Review Score while Review Scores is off, which hides it. */
+/** Label for the Settings screen. "" for Review Score while no scores are shown (game_data_review_scores_shown()), which hides it. */
 const char *sort_order_name (int order);
 
 /**
  * The order the list is in: the chosen one, or SORT_BY_TYPE while it is
- * Review Score and Review Scores is off (the choice is kept for when it is
- * turned back on).
+ * Review Score and no scores are shown (Review Scores off, or no scores
+ * file). The choice is kept for when they are.
  */
 int sort_order_current (void);
 

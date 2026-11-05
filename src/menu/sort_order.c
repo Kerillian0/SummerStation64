@@ -11,7 +11,6 @@
 #include "game_index.h"
 #include "games_filter.h"
 #include "game_data.h"
-#include "menu_features.h"
 
 #define NAME_LENGTH (256)
 
@@ -28,14 +27,14 @@ const char *sort_order_name (int order) {
         case SORT_RELEASE_DATE: return "Release Date";
         case SORT_DEVELOPER: return "Developer";
         case SORT_RECENTLY_ADDED: return "Recently Added";
-        case SORT_REVIEW_SCORE: return features_enabled(FEATURE_REVIEW_SCORES) ? "Review Score" : "";
+        case SORT_REVIEW_SCORE: return game_data_review_scores_shown() ? "Review Score" : "";
         default: return "Type";
     }
 }
 
 int sort_order_current (void) {
     int order = options_get(OPTION_SORT_ORDER);
-    if (order == SORT_REVIEW_SCORE && !features_enabled(FEATURE_REVIEW_SCORES)) {
+    if (order == SORT_REVIEW_SCORE && !game_data_review_scores_shown()) {
         return SORT_BY_TYPE;
     }
     return order;

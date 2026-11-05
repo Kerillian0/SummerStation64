@@ -12,6 +12,7 @@
 #include "party.h"
 #include "tabs.h"
 #include "game_index.h"
+#include "game_data.h"
 #include "menu_features.h"
 #include "menu_options.h"
 #include "theme.h"
@@ -372,6 +373,10 @@ static int name_scroll_offset (uint64_t ms, int travel) {
     return offset & ~1;
 }
 
+menu_font_style_t games_ui_review_style (int review) {
+    return (review >= 75) ? STL_GREEN : (review >= 50) ? STL_YELLOW : (review > 0) ? STL_RED : STL_GRAY;
+}
+
 void games_ui_title_panel_draw (const char *title, const char *detail, const char *lead, bool hack, bool is_new, const char *with, const game_facts_t *facts, int review) {
     const theme_t *t = theme_get();
     int x0 = GAMES_UI_CONTENT_X0;
@@ -387,7 +392,7 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const cha
     /* A game's review score sits at the right of the name line, before the
        dump mark. Its room is kept whether or not this game has a score, so
        nothing moves when one turns up (review < 0: not a game, no room). */
-    bool scores = (review >= 0) && features_enabled(FEATURE_REVIEW_SCORES);
+    bool scores = (review >= 0) && game_data_review_scores_shown();
     int score_width = scores ? text_width("10.0") : 0;
     int score_x1 = x1 - 12 - (marks ? (BADGE_HEIGHT + 8) : 0);
     int title_width = x1 - x0 - 24 - (heart ? (HEART_WIDTH + HEART_GAP) : 0) - (marks ? (BADGE_HEIGHT + 8) : 0) - (scores ? (score_width + 12) : 0);
@@ -456,11 +461,9 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const cha
         heart_draw(title_end + HEART_GAP, PANEL_Y + 2 + ((PANEL_TITLE - HEART_HEIGHT) / 2));
     }
     if (scores && review > 0) {
-        /* Green from 7.5, yellow from 5.0, red below. */
         char score[8];
         snprintf(score, sizeof(score), "%d.%d", review / 10, review % 10);
-        text(score_x1 - score_width, PANEL_Y + 2, score_width, PANEL_TITLE, ALIGN_RIGHT,
-            (review >= 75) ? STL_GREEN : (review >= 50) ? STL_YELLOW : STL_RED, score);
+        text(score_x1 - score_width, PANEL_Y + 2, score_width, PANEL_TITLE, ALIGN_RIGHT, games_ui_review_style(review), score);
     }
     if (marks && facts) {
         /* A hack differs from the known dump on purpose: no amber mark. */

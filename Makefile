@@ -112,6 +112,7 @@ SRCS = \
 	menu/hack_games.c \
 	menu/dump_check.c \
 	menu/game_data.c \
+	menu/review_scores.c \
 	menu/memory_note.c \
 	menu/screenshot.c \
 	menu/art_tint.c \
@@ -263,11 +264,9 @@ $(FILESYSTEM_DIR)/gamedata.txt: $(ASSETS_DIR)/data/gamedata.txt
 	@echo "    [DATA] $@"
 	@cp "$<" $@
 
-# Review scores per game code.
-$(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM_DIR)/reviewscores.txt
-$(FILESYSTEM_DIR)/reviewscores.txt: $(ASSETS_DIR)/data/reviewscores.txt
-	@echo "    [DATA] $@"
-	@cp "$<" $@
+# Review scores: none come with the menu (docs/review_scores.md). A
+# reviewscores.txt put in the filesystem folder is built in, if there is one.
+$(BUILD_DIR)/$(PROJECT_NAME).dfs: $(wildcard $(FILESYSTEM_DIR)/reviewscores.txt)
 
 # Which game codes belong to which series, for the Collections tab (assets/data/make_series.py).
 $(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM_DIR)/series.txt

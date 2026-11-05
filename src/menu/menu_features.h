@@ -51,7 +51,7 @@ typedef enum {
     FEATURE_ADVANCED_OPTIONS,   /**< Game info's Options also offers CIC, save and TV type, the Datel editor, Clear RDRAM */
     FEATURE_NAME_SCROLL,        /**< a name too long for the cover rows' title panel slides to its end and back */
     FEATURE_TRIM_EDGES,         /**< box art read from the card loses the black frame some scans carry */
-    FEATURE_REVIEW_SCORES,      /**< the cover rows' title panel shows the game's review score */
+    FEATURE_REVIEW_SCORES,      /**< review scores from the player's file: on the title panel and Game info, and Sort By's Review Score */
     FEATURE_COUNT
 } feature_t;
 

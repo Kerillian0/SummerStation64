@@ -2027,16 +2027,27 @@ void carousel_draw (menu_t *menu) {
     }
     const char *with = (covers->list == menu->browser.list) ? dd_pair_with_text(menu, selected_entry) : NULL; // a 64DD disk's cartridge
     const char *kind = (selected_entry->type == ENTRY_TYPE_EMULATOR) ? retro_kind(retro_system(selected_entry->name)) : carousel_kind_label(selected_entry->type);
-    // The review score, from the remembered game list so it is there at once
-    // (game_facts has it too, but only once the selection has rested).
-    // None for a hack: it is not the game that was scored. -1: not a game.
+    // The review score. Its room is kept for every entry, so the name line
+    // never changes width. It comes from the remembered game list, so it is
+    // there at once, looked up once per selection; a game the list hasn't
+    // learned yet gets it from game_facts once the selection has rested.
+    // None for a hack: it is not the game that was scored.
     const game_facts_t *facts = game_facts_update(menu);
-    int review = (selected_entry->type == ENTRY_TYPE_ROM) ? 0 : -1;
-    if (review == 0 && !hack) {
-        path_t *selected_path = covers->path(menu, covers->selected);
-        const game_index_entry_t *known = game_index_find(path_get(selected_path), (covers->list == menu->browser.list) ? selected_entry->size : 0);
-        path_free(selected_path);
-        review = known ? game_data_review_score(known->code) : (facts ? facts->review_score : 0);
+    int review = 0;
+    if (selected_entry->type == ENTRY_TYPE_ROM && !hack && game_data_review_scores_shown()) {
+        static struct { const entry_t *list; int selected; const char *name; int64_t size; int score; } looked_up = { .selected = -1 };
+        if (looked_up.list != covers->list || looked_up.selected != covers->selected ||
+            looked_up.name != selected_entry->name || looked_up.size != selected_entry->size) {
+            path_t *selected_path = covers->path(menu, covers->selected);
+            const game_index_entry_t *known = game_index_find(path_get(selected_path), (covers->list == menu->browser.list) ? selected_entry->size : 0);
+            path_free(selected_path);
+            looked_up.list = covers->list;
+            looked_up.selected = covers->selected;
+            looked_up.name = selected_entry->name;
+            looked_up.size = selected_entry->size;
+            looked_up.score = known ? game_data_review_score(known->code) : -1;     // -1: not learned yet
+        }
+        review = (looked_up.score >= 0) ? looked_up.score : (facts ? facts->review_score : 0);
     }
     games_ui_title_panel_draw(title, kind, lead, hack, is_new, with, facts, review);
     const char *letter_from = (sort_order_current() == SORT_REVIEW_SCORE) ? " " : !detail ? entry_file_name(selected_entry->name) : (sort_order_current() == SORT_DEVELOPER) ? detail : " "; // the letter of what the list is sorted by; none for dates or scores

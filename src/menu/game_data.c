@@ -9,6 +9,8 @@
 #include <libdragon.h>
 
 #include "game_data.h"
+#include "menu_features.h"
+#include "review_scores.h"
 
 #define DATA_PATH       "rom:/gamedata.txt"
 #define DATA_HEADER     "gamedata 1"
@@ -105,52 +107,47 @@ const char *game_data_players_text (const game_data_t *data, bool with_word) {
     return text;
 }
 
-/* Review scores in tenths (rom:/reviewscores.txt). Read the first time one
-   is asked for, about 650 codes, 5 bytes each, and kept sorted by code so a
-   lookup is a binary search. */
-#define SCORES_PATH     "rom:/reviewscores.txt"
-#define SCORES_HEADER   "reviewscores 1"
-#define MAX_SCORES      (800)
+/* Review scores (review_scores.h): none come with the menu. They are read
+   from the SD card's menu/reviewscores.txt, or else from a reviewscores.txt
+   that whoever built the menu put in its filesystem folder, the first time
+   one is asked for. */
+#define SCORES_SD_PATH  "sd:/menu/reviewscores.txt"
+#define SCORES_ROM_PATH "rom:/reviewscores.txt"
 
-typedef struct {
-    char code[4];
-    uint8_t score;
-} review_score_t;
-static review_score_t scores[MAX_SCORES];
-static int score_count = 0;
-static bool scores_loaded = false;
-
-static int compare_score_code (const void *a, const void *b) {
-    return memcmp(a, b, 4);     /* the code is the struct's first member */
+static void review_scores_load (void) {
+    static bool tried = false;
+    if (tried) {
+        return;
+    }
+    tried = true;
+    const char *paths[] = { SCORES_SD_PATH, SCORES_ROM_PATH };
+    for (int i = 0; i < 2; i++) {
+        FILE *f = fopen(paths[i], "r");
+        if (!f) {
+            continue;
+        }
+        bool ok = review_scores_read(f);
+        fclose(f);
+        if (ok) {
+            debugf("game data: %d review scores from %s\n", review_scores_count(), paths[i]);
+            return;
+        }
+        debugf("game data: %s is not a scores file\n", paths[i]);
+    }
 }
 
 int game_data_review_score (const char *game_code) {
     if (!game_code) {
         return 0;
     }
-    if (!scores_loaded) {
-        scores_loaded = true;
-        FILE *f = fopen(SCORES_PATH, "r");
-        if (f) {
-            char line[128];     /* room for the comment lines whole */
-            if (fgets(line, sizeof(line), f) && strncmp(line, SCORES_HEADER, strlen(SCORES_HEADER)) == 0) {
-                while (score_count < MAX_SCORES && fgets(line, sizeof(line), f)) {
-                    char code[8];
-                    int score;
-                    if (line[0] == '#' || sscanf(line, "%7s %d", code, &score) != 2 || strlen(code) != 4 || score <= 0 || score > 100) {
-                        continue;
-                    }
-                    memcpy(scores[score_count].code, code, 4);
-                    scores[score_count++].score = (uint8_t) score;
-                }
-            }
-            fclose(f);
-        } else {
-            debugf("game data: %s missing\n", SCORES_PATH);
-        }
-        qsort(scores, score_count, sizeof(scores[0]), compare_score_code);
-        debugf("game data: %d review scores\n", score_count);
+    review_scores_load();
+    return review_scores_find(game_code);
+}
+
+bool game_data_review_scores_shown (void) {
+    if (!features_enabled(FEATURE_REVIEW_SCORES)) {
+        return false;
     }
-    const void *found = bsearch(game_code, scores, score_count, sizeof(scores[0]), compare_score_code);
-    return found ? ((const review_score_t *) found)->score : 0;
+    review_scores_load();
+    return review_scores_count() > 0;
 }

@@ -1,5 +1,5 @@
 #!/bin/sh
-# PC-side tests: the theme.ini reader and the hack finder (C, built with the
+# PC-side tests: the theme.ini reader, the hack finder and the review scores reader (C, built with the
 # PC's own compiler), the Theme Maker's share codes, the Card Prep page and the Hacks, Missing Art and Collections tabs
 # (JavaScript, run with Node.js).
 # Run from anywhere:  sh tests/run.sh
@@ -21,6 +21,12 @@ echo "== hacks told from originals =="
 gcc -std=gnu11 -Wall -Werror -I"$here/../src/menu" \
     -o "$out/rom_hacks_test" "$here/rom_hacks_test.c" "$here/../src/menu/rom_hacks.c"
 "$out/rom_hacks_test" || status=1
+
+echo
+echo "== review scores file =="
+gcc -std=gnu11 -Wall -Werror -I"$here/../src/menu" \
+    -o "$out/review_scores_test" "$here/review_scores_test.c" "$here/../src/menu/review_scores.c"
+"$out/review_scores_test" || status=1
 
 echo
 echo "== screenshot pictures =="

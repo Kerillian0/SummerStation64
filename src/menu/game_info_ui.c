@@ -231,7 +231,9 @@ static int fact_boxes = 3;
    co-op/vs"), and Review score (its caption) gets the rest. With four, the
    gaps and the padding inside a box are a little narrower to make room, and
    text may run into the right padding: the ellipsis check counts a glyph's
-   width past its advance, so a line that fits would otherwise be cut. */
+   width past its advance, so a line that fits would otherwise be cut. The
+   widths hold for both built-in fonts: the small one (no Expansion Pak) is
+   the same typeface at the same size with fewer characters. */
 static const int four_box_width[3] = { 90, 123, 133 };
 #define FOUR_GAP        (3)
 #define FOUR_PAD        (5)
@@ -550,7 +552,7 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
     rom_info_t *info = &menu->load.rom_info;
     surface_t *image = art_ready(art) ? art->image : NULL;
 
-    fact_boxes = features_enabled(FEATURE_REVIEW_SCORES) ? 4 : 3;
+    fact_boxes = game_data_review_scores_shown() ? 4 : 3;
     backdrop_update(menu->load.rom_path ? path_get(menu->load.rom_path) : NULL, image, view->front_picture);
     if (backdrop.buffer) {
         draw_backdrop(&backdrop);
@@ -623,8 +625,7 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
 
     draw_fact(2, "Players", players);
 
-    /* The review score, out of 10: green from 7.5, yellow from 5.0, red
-       below. A hack is not the game that was scored. */
+    /* The review score, out of 10. A hack is not the game that was scored. */
     if (fact_boxes == 4) {
         bool hack = rom_path && games_filter_is_hack_path(menu, rom_path);
         int review = hack ? 0 : game_data_review_score(info->game_code);
@@ -632,8 +633,7 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
         if (review > 0) {
             snprintf(score, sizeof(score), "%d.%d", review / 10, review % 10);
         }
-        draw_fact_styled(3, "Review score", score,
-            (review >= 75) ? STL_GREEN : (review >= 50) ? STL_YELLOW : (review > 0) ? STL_RED : STL_GRAY);
+        draw_fact_styled(3, "Review score", score, games_ui_review_style(review));
     }
 
     /* Description. This game's own switches are only mentioned when one
