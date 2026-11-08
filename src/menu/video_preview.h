@@ -25,7 +25,10 @@
  * pictures) and one held picture: about 1.2 MB in all for the usual clip,
  * measured in ares. Everything is freed when the screen closes or a game
  * starts. Hence Expansion Pak only (and the Video Previews switch in
- * Settings, the same for every profile).
+ * Settings, the same for every profile). Before loading the clip and
+ * before starting the decoder, it checks there is room for them (the decoder
+ * stops the console if it runs out); if not, the cover stays and Settings >
+ * System > Memory lists the clip as left out.
  *
  * A clip the player can't take (a bad header, too big) leaves the cover
  * showing; so does a game with no clip, and a hack (load_rom.c).
@@ -42,18 +45,18 @@
 #define VIDEO_PREVIEW_FILE  "preview.h264"
 
 /**
- * The clip for this game code on the SD card, if there is one: the full
- * path is written to @p out. Looks in the region's folder first, then in the
- * folder for all regions, as box art does. Reads the card; call once per game.
- * @param storage_prefix  The card's prefix (menu->storage_prefix, "sd:/").
- */
-/**
  * Turn previews on or off for the whole console (Settings > Video Previews,
  * saved in config.ini). Off stops a clip that is playing. They are also off
  * without the Expansion Pak, whatever this says.
  */
 void video_preview_enable (bool on);
 
+/**
+ * The clip for this game code on the SD card, if there is one: the full
+ * path is written to @p out. Looks in the region's folder first, then in the
+ * folder for all regions, as box art does. Reads the card; call once per game.
+ * @param storage_prefix  The card's prefix (menu->storage_prefix, "sd:/").
+ */
 bool video_preview_find (const char *storage_prefix, const char game_code[4], char *out, size_t size);
 
 /**

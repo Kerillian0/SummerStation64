@@ -18,7 +18,7 @@ N64_CFLAGS += -iquote $(MENU)
 
 # The player's own files, compiled as they are in the menu.
 vpath %.c $(MENU)
-src = main.c video_preview.c video_clip_check.c
+src = main.c video_preview.c video_clip_check.c memory_note.c
 
 all: video_preview_test.z64
 

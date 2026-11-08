@@ -8,6 +8,7 @@
 #include <libdragon.h>
 #include <system.h>  /* attach_filesystem */
 
+#include "memory_note.h"
 #include "video_clip_check.h"
 #include "video_preview.h"
 
@@ -21,6 +22,14 @@
 #define LOOP_FRAMES         (3)         /* menu frames the last picture is held for while the first decodes again */
 #define MAX_STEP_MS         (100)       /* the clip's clock never jumps more than this in one frame */
 #define AWAY_MS             (250)       /* not drawn for this long: the screen was left or the picture changed */
+
+/* libdragon's decoder stops the console if it can't get memory, so the room
+   is checked first. It wants about 16 pictures' worth (the ones decoded
+   ahead, its reference pictures, the held one) plus a little for itself:
+   about 920 KB at 192x144, measured at 0.9 MB in ares. RESERVE is left for
+   the rest of the menu, as elsewhere (carousel_art.c). */
+#define DECODER_BYTES(w, h) (256 * 1024 + 16 * ((w) * (h) * 3 / 2))
+#define RESERVE_BYTES       (256 * 1024)
 
 typedef enum {
     VP_OFF,         /* nothing wanted */
@@ -40,6 +49,7 @@ static FILE *load_file = NULL;
 static uint8_t *clip_data = NULL;
 static int clip_size = 0;
 static int clip_loaded = 0;
+static int clip_w = 0, clip_h = 0;  /* from its header */
 
 /* Playing */
 static bool codec_ready = false;
@@ -292,6 +302,19 @@ static void fail (const char *why) {
     state = VP_FAILED;      /* keeps want_path, so it isn't tried again every frame */
 }
 
+/* Room for this much more, leaving the menu its reserve? If not, the cover
+   stays and Settings > System > Memory says why. */
+static bool room_for (int bytes) {
+    heap_stats_t heap;
+    sys_get_heap_stats(&heap);
+    if ((heap.total - heap.used) >= bytes + RESERVE_BYTES) {
+        return true;
+    }
+    memory_note_cut(MEMORY_CUT_VIDEO_PREVIEW);
+    fail("not enough memory");
+    return false;
+}
+
 /* The clip's seek table, if the card has one beside it ("preview.h264" ->
    "preview.seek"). Small, so it is read in one go. Without it the clip
    loops the slower way. */
@@ -337,6 +360,9 @@ static void load_step (void) {
             fail("too small or too big");
             return;
         }
+        if (!room_for((int) size)) {
+            return;
+        }
         clip_data = malloc(size);
         if (!clip_data) {
             fail("out of memory");
@@ -366,6 +392,8 @@ static void load_step (void) {
             fail("not a clip this player takes");
             return;
         }
+        clip_w = check.width;
+        clip_h = check.height;
     }
     if (clip_loaded == clip_size) {
         fclose(load_file);
@@ -377,6 +405,9 @@ static void load_step (void) {
 }
 
 static void start_playing (uint64_t now) {
+    if (!room_for(DECODER_BYTES(clip_w, clip_h))) {
+        return;
+    }
     codec_init();
     yuv_init();
     video = video_open(MEM_PREFIX MEM_NAME, &(video_parms_t) { .buffered_pics = BUFFERED_PICS });
