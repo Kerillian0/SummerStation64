@@ -107,10 +107,9 @@ const char *game_data_players_text (const game_data_t *data, bool with_word) {
     return text;
 }
 
-/* Review scores (review_scores.h): none come with the menu. They are read
-   from the SD card's menu/reviewscores.txt, or else from a reviewscores.txt
-   that whoever built the menu put in its filesystem folder, the first time
-   one is asked for. */
+/* Review scores (review_scores.h), read the first time one is asked for:
+   the SD card's menu/reviewscores.txt if there is one, else the list built
+   into the menu (assets/data/reviewscores.txt). */
 #define SCORES_SD_PATH  "sd:/menu/reviewscores.txt"
 #define SCORES_ROM_PATH "rom:/reviewscores.txt"
 

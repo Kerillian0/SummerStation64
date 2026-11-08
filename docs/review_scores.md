@@ -6,15 +6,15 @@ screen, and as **Review Score** in Settings > Library > Sort By (highest
 first). Scores are green from 7.5, yellow from 5.0 and red below. Hacks
 show none.
 
-No scores come with the menu. You provide them in a file, so they can come
-from wherever you like.
+Scores for about 640 game codes come built into the menu
+(`assets/data/reviewscores.txt`). **Review Scores** in Settings > Display
+turns them on or off; it is on by default.
 
-## Turning it on
+## Your own scores
 
-1. Make the file below and save it on the SD card as
-   `menu/reviewscores.txt`.
-2. In Settings > Display, **Review Scores** is on by default. With no file,
-   nothing changes: there is no score, no box and no sort.
+A file saved on the SD card as `menu/reviewscores.txt` is used instead of
+the built-in list, in the same format. If it has no scores (only its first
+line, say), no scores show.
 
 ## The file
 
@@ -40,6 +40,5 @@ NZLE 9.9
 
 ## For people who build the menu
 
-A `reviewscores.txt` in the `filesystem` folder is built into the menu
-file, and the menu reads it when the SD card has none. Git ignores it, so
-it stays out of the repository.
+The build copies `assets/data/reviewscores.txt` into the menu file as
+`rom:/reviewscores.txt`. Edit that file to change the built-in scores.

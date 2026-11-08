@@ -45,3 +45,11 @@ python3 assets/data/make_series.py
 
 The build copies it into the menu file as `rom:/series.txt`
 (`src/menu/collections.c` reads it, about 2 KB in memory).
+
+## Review scores
+
+`reviewscores.txt` is built into the menu file too: each game code's review
+score in tenths (`NSME 87` is 8.7 out of 10), shown with Settings > Display >
+Review Scores on. The format is in `docs/review_scores.md`. The build copies
+it into the menu file as `rom:/reviewscores.txt` (`src/menu/game_data.c`
+reads it, under 10 KB in memory).
