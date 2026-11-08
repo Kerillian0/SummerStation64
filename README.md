@@ -187,7 +187,9 @@ it found nothing for. A game without a clip, and a hack (which carries its
 original's code), keeps its cover. Settings > Video Previews turns them off
 for the whole console. Like the art, the clips are never committed or
 shipped: the scripts fetch footage that belongs to the games' owners from
-third-party archives, and each person runs them for their own card. `tests/video_preview_rom/`
+third-party archives, and each person runs them for their own card. Both
+scripts run in the dev container, after `apt-get install ffmpeg`
+(videoconv64 comes with libdragon's tools). `tests/video_preview_rom/`
 builds a test ROM that plays one under a pretend menu workload and logs how
 it keeps up (ares prints it).
 

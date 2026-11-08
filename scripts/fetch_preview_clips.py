@@ -29,11 +29,8 @@ lists what was made and what wasn't found.
     python3 scripts/fetch_preview_clips.py --dry-run    # just the matching
 
 Downloads are kept in build/preview_sources/ so a second run only makes what
-is missing. Runs anywhere with Docker (each clip is encoded in the
-summerstation64-videoconv image); it is much faster run inside that image:
-
-    docker run --rm -v "$PWD:/work" -w /work summerstation64-videoconv \\
-        python3 scripts/fetch_preview_clips.py --jobs 6
+is missing. Needs what make_preview_clip.py needs: run it in the dev
+container, with ffmpeg installed (apt-get install ffmpeg).
 
 Never commit the clips or the downloads: they belong to the games' owners.
 """
@@ -168,8 +165,7 @@ def pick_sources(game, collections):
 
 
 def probe_seconds(tools, path):
-    r = tools.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0",
-                   "/src/" + os.path.basename(path)], os.path.dirname(path), os.path.dirname(path))
+    r = tools.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", path])
     try:
         return float(r.stdout.strip().splitlines()[-1])
     except (ValueError, IndexError):
@@ -184,7 +180,6 @@ def main():
     p.add_argument("--jobs", type=int, default=3, help="clips made at once (default 3)")
     p.add_argument("--dry-run", action="store_true", help="match games to clips and report; download nothing")
     p.add_argument("--redo", action="store_true", help="make clips again even if they exist")
-    p.add_argument("--docker", action="store_true", help="use Docker even if ffmpeg and videoconv64 are on the PATH")
     args = p.parse_args()
 
     os.makedirs(args.cache, exist_ok=True)
@@ -205,7 +200,7 @@ def main():
         (plan if srcs else missing).append((base, srcs))
     print(f"{len(games)} games; a clip found for {len(plan)}, none for {len(missing)}.")
 
-    tools = None if args.dry_run else mpc.Tools(force_docker=args.docker)
+    tools = None if args.dry_run else mpc.Tools()
     videos = os.path.join(args.cache, "videos")
     os.makedirs(videos, exist_ok=True)
     results, lock = {}, threading.Lock()

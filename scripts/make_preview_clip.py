@@ -27,10 +27,9 @@ One clip:
 Every clip in a list (one per line: CODE  SOURCE  START  [LENGTH]):
     python3 scripts/make_preview_clip.py --list scripts/preview_clips.txt
 
-Needs ffmpeg and libdragon's videoconv64. Inside the dev container (with
-ffmpeg installed) they run directly; elsewhere, with Docker, the script
-builds and uses scripts/videoconv/Dockerfile (the libdragon image plus ffmpeg)
-and the videoconv64 built in the libdragon submodule.
+Needs ffmpeg and libdragon's videoconv64, so run it in the dev container:
+videoconv64 comes with libdragon's tools (or is found in the libdragon
+submodule once built), and ffmpeg is one install away (apt-get install ffmpeg).
 
 Never commit the clips: like the box art, they belong to the games' owners.
 """
@@ -44,9 +43,7 @@ import sys
 import tempfile
 import threading
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-REPO = os.path.dirname(HERE)
-IMAGE = "summerstation64-videoconv"
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VIDEOCONV_IN_TREE = "libdragon/tools/videoconv64/videoconv64"
 
 MIN_SECONDS = 10
@@ -71,46 +68,23 @@ def game_folder(code):
 
 
 class Tools:
-    """Runs ffmpeg and videoconv64, directly or in Docker."""
+    """Finds ffmpeg and videoconv64, and runs them."""
 
-    def __init__(self, force_docker=False):
-        native_conv = shutil.which("videoconv64")
-        if not native_conv and sys.platform.startswith("linux") and os.access(os.path.join(REPO, VIDEOCONV_IN_TREE), os.X_OK):
-            native_conv = os.path.join(REPO, VIDEOCONV_IN_TREE)
-        self.native = (not force_docker) and native_conv and shutil.which("ffmpeg")
-        self.videoconv = native_conv
-        if not self.native:
-            if not shutil.which("docker"):
-                raise SystemExit("Needs ffmpeg and videoconv64 on the PATH, or Docker.")
-            if not os.path.exists(os.path.join(REPO, VIDEOCONV_IN_TREE)):
-                raise SystemExit("Build libdragon's tools first (cd libdragon && make tools), "
-                                 "so that " + VIDEOCONV_IN_TREE + " exists.")
-            have = subprocess.run(["docker", "image", "inspect", IMAGE], capture_output=True)
-            if have.returncode != 0:
-                print(f"Building the {IMAGE} Docker image (once)...")
-                subprocess.run(["docker", "build", "-t", IMAGE, os.path.join(HERE, "videoconv")], check=True)
+    def __init__(self):
+        self.videoconv = shutil.which("videoconv64")
+        in_tree = os.path.join(REPO, VIDEOCONV_IN_TREE)
+        if not self.videoconv and os.path.isfile(in_tree) and os.access(in_tree, os.X_OK):
+            self.videoconv = in_tree
+        missing = [name for name, found in (("ffmpeg", shutil.which("ffmpeg")), ("videoconv64", self.videoconv))
+                   if not found]
+        if missing:
+            raise SystemExit(f"Needs {' and '.join(missing)}. In the dev container: apt-get install ffmpeg; "
+                             "videoconv64 comes with libdragon's tools (cd libdragon && make tools).")
 
-    def run(self, args, work, source_dir=None):
-        """Run a command. Paths under `work` are given as /clip/..., the source's folder as /src."""
-        if self.native:
-            def local(a):
-                if a.startswith("/clip/"):
-                    return os.path.join(work, a[len("/clip/"):])
-                if a.startswith("/src/") and source_dir:
-                    return os.path.join(source_dir, a[len("/src/"):])
-                return a
-            args = [local(a) for a in args]
-            if args[0] == "videoconv64":
-                args[0] = self.videoconv
-            return subprocess.run(args, capture_output=True, text=True)
-        mounts = ["-v", f"{work}:/clip", "-v", f"{REPO}:/work"]
-        if source_dir:
-            mounts += ["-v", f"{source_dir}:/src:ro"]
+    def run(self, args):
         if args[0] == "videoconv64":
-            args = ["/work/" + VIDEOCONV_IN_TREE] + args[1:]
-        env = dict(os.environ, MSYS_NO_PATHCONV="1")   # Git Bash on Windows would rewrite the /clip paths
-        return subprocess.run(["docker", "run", "--rm"] + mounts + [IMAGE] + args,
-                              capture_output=True, text=True, env=env)
+            args = [self.videoconv] + args[1:]
+        return subprocess.run(args, capture_output=True, text=True)
 
 
 def make_clip(tools, code, source, start, length, out, width, fps, quality, label=None):
@@ -120,21 +94,18 @@ def make_clip(tools, code, source, start, length, out, width, fps, quality, labe
     if width % 32 or not (64 <= width <= 320):
         raise SystemExit("--width must be a multiple of 32 from 64 to 320")
 
-    source_dir = None
-    if re.match(r"https?://", source):
-        src = source
-    else:
-        if not os.path.isfile(source):
-            raise SystemExit(f"{code}: no such file: {source}")
-        source_dir = os.path.dirname(os.path.abspath(source))
-        src = "/src/" + os.path.basename(source)
+    if not re.match(r"https?://", source) and not os.path.isfile(source):
+        raise SystemExit(f"{code}: no such file: {source}")
 
     with tempfile.TemporaryDirectory(prefix="clip-") as work:
-        cut = ["-ss", f"{start:.3f}", "-t", f"{length:.3f}", "-i", src]
+        cut = ["-ss", f"{start:.3f}", "-t", f"{length:.3f}", "-i", source]
+        cut_mp4 = os.path.join(work, "cut.mp4")
+        seek_txt = os.path.join(work, "seek.txt")
+        out_dir = os.path.join(work, "out")
 
         # 1. Where the picture is: most captures have black bars round it.
         found = tools.run(["ffmpeg", "-nostdin", "-hide_banner"] + cut +
-                          ["-an", "-vf", "cropdetect=limit=24:round=2:reset=0", "-f", "null", "-"], work, source_dir)
+                          ["-an", "-vf", "cropdetect=limit=24:round=2:reset=0", "-f", "null", "-"])
         crops = re.findall(r"crop=(\d+):(\d+):(\d+):(\d+)", found.stderr)
         if found.returncode != 0 or not crops:
             sys.stderr.write(found.stderr[-2000:])
@@ -145,7 +116,7 @@ def make_clip(tools, code, source, start, length, out, width, fps, quality, labe
         # 2. That part, 4:3, sharp enough for the encoder to work from.
         step = tools.run(["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-y"] + cut +
                          ["-an", "-vf", crop + "scale=384:288:flags=lanczos,setsar=1",
-                          "-c:v", "libx264", "-crf", "12", "-preset", "veryfast", "/clip/cut.mp4"], work, source_dir)
+                          "-c:v", "libx264", "-crf", "12", "-preset", "veryfast", cut_mp4])
         if step.returncode != 0:
             sys.stderr.write(step.stderr[-2000:])
             raise SystemExit(f"{code}: ffmpeg could not cut the clip")
@@ -153,14 +124,14 @@ def make_clip(tools, code, source, start, length, out, width, fps, quality, labe
         # 3. Encoded for the N64, with a seek table that marks frame 0 (the
         #    menu goes back there to loop without a stall). Only frame 0 is
         #    asked for, so the encoding itself is as without one.
-        os.makedirs(os.path.join(work, "out"), exist_ok=True)
-        with open(os.path.join(work, "seek.txt"), "w") as f:
+        os.makedirs(out_dir, exist_ok=True)
+        with open(seek_txt, "w") as f:
             f.write("0\n")
         step = tools.run(["videoconv64", "--codec", "h264", "--width", str(width), "--fps", str(fps),
-                          "--quality", str(quality), "--no-audio", "--no-progress", "--seek", "/clip/seek.txt",
-                          "-o", "/clip/out", "/clip/cut.mp4"], work)
-        encoded = os.path.join(work, "out", "cut.h264")
-        seek = os.path.join(work, "out", "cut.seek")
+                          "--quality", str(quality), "--no-audio", "--no-progress", "--seek", seek_txt,
+                          "-o", out_dir, cut_mp4])
+        encoded = os.path.join(out_dir, "cut.h264")
+        seek = os.path.join(out_dir, "cut.seek")
         if step.returncode != 0 or not os.path.isfile(encoded) or not os.path.isfile(seek):
             sys.stderr.write(step.stdout[-2000:] + step.stderr[-2000:])
             raise SystemExit(f"{code}: videoconv64 failed")
@@ -237,7 +208,6 @@ def main():
     p.add_argument("--width", type=int, default=192, help="picture width, a multiple of 32 (default 192: 192x144)")
     p.add_argument("--fps", type=int, default=20, help="frames a second (default 20)")
     p.add_argument("--quality", type=int, default=60, help="videoconv64's quality, 0-100 (default 60)")
-    p.add_argument("--docker", action="store_true", help="use Docker even if ffmpeg and videoconv64 are on the PATH")
     args = p.parse_args()
 
     if args.list:
@@ -247,7 +217,7 @@ def main():
     else:
         p.error("give a game code and a source, or --list")
 
-    tools = Tools(force_docker=args.docker)
+    tools = Tools()
     for code, source, start, length in clips:
         make_clip(tools, code.upper(), source, start, length, args.out, args.width, args.fps, args.quality)
     print(f"\nCopy {os.path.join(args.out, 'menu')} onto the root of the SD card.")
