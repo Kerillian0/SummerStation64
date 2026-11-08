@@ -150,6 +150,12 @@ def plain_first(name):
     return (region, name.count("("), name)
 
 
+def thumb_name(name):
+    """A release's name as libretro's thumbnails spell it: they can't hold &*/:`<>?\\|" in a
+    file name, so each is "_" ('Command & Conquer (USA)' -> 'Command _ Conquer (USA)')."""
+    return re.sub(r'[&*/:`<>?\\|"]', "_", name)
+
+
 class Thumbnails:
     """The Named_Logos folder: what is in it, and each file fetched once (cached by its git hash)."""
 
@@ -207,7 +213,7 @@ class Thumbnails:
 def pick(game, releases, thumbs):
     """The logo for every region ({'name', 'how'} or None) and the regions whose own differs from it
     ({code: name}, filled in once the files are known)."""
-    names = sorted(game["names"], key=plain_first)
+    names = [thumb_name(n) for n in sorted(game["names"], key=plain_first)]
     shared = next(({"name": n, "how": "release"} for n in names if n in thumbs.names), None)
     if not shared:
         for n in names:
@@ -217,7 +223,7 @@ def pick(game, releases, thumbs):
                 break
     own = {}
     for code in sorted(game["codes"]):
-        mine = sorted((n for n in releases.get(code, []) if n in thumbs.names), key=plain_first)
+        mine = sorted((thumb_name(n) for n in releases.get(code, []) if thumb_name(n) in thumbs.names), key=plain_first)
         if mine:
             own[code] = mine[0]
     return shared, own

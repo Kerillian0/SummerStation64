@@ -7,7 +7,7 @@
 ## Release Notes 202x-vNext
 
 - **New Features**
-	- Title logos: on Game info, the game's own logo takes the place of its name. Logos sit beside the box art as `menu/metadata/<code>/logo.sprite` and are made with `scripts/fetch_logos.py` from the `Named_Logos` of libretro's N64 thumbnails (407 of the 414 commercial games have one; `scripts/logo_overrides.txt` fixes the few it gets wrong, such as Super Mario 64 and Pokémon Stadium), sized to fit and kept in 32-bit color so their soft edges blend with the backdrop. One logo serves every region of a game unless a region's own differs. A game without one, or a hack, keeps its name as text; when memory is short the name is shown too (listed under Settings > System > Memory).
+	- Title logos: on Game info, the game's own logo takes the place of its name. Logos sit beside the box art as `menu/metadata/<code>/logo.sprite` and are made with `scripts/fetch_logos.py` from the `Named_Logos` of libretro's N64 thumbnails (408 of the 414 commercial games have one; `scripts/logo_overrides.txt` fixes the few it gets wrong, such as Super Mario 64 and Pokémon Stadium), sized to fit and kept in 32-bit color so their soft edges blend with the backdrop. One logo serves every region of a game unless a region's own differs. A game without one, or a hack, keeps its name as text; when memory is short the name is shown too (listed under Settings > System > Memory).
 	- ~~Browser now allows hiding files and folders with hidden attributes set (thanks [Xeroxxx](https://github.com/Xeroxxx)).~~ Awaiting performance enhancement.
 
 - **Bug Fixes**
