@@ -21,6 +21,9 @@ Homebrew ROMs that conform to the [Homebrew ROM Header](https://n64brew.dev/wiki
 - `gamepak_front.png`
 - `gamepak_back.png`
 
+#### Title logo
+`logo.sprite`, made by `scripts/fetch_logos.py`, is the game's logo, drawn on the Game info screen in place of its name. It sits beside the box art, in the region's own folder or in the 3-character folder shared by every region (the menu looks in that order), e.g. `sd:/menu/metadata/N/S/M/logo.sprite`. It is a libdragon sprite in 32-bit color, at most 288x78 (a bigger one is shrunk to fit). A game without one, or a hack, shows its name.
+
 #### Supported image sizes
 Files must be in `PNG` format and use the following dimensions:
 * American/European N64 boxart sprites: 158x112

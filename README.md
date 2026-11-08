@@ -79,6 +79,7 @@ start.
 | 📸 **Screenshots and clips** | Hold START (or L + R, for the 8BitDo mod kit) for a screenshot; record a clip of the menu and turn it into a GIF with the [Companion](https://kerillian0.github.io/SummerStation64/companion/#clips). |
 | 🏷️ **Badges** | Players, Expansion Pak, save found, Controller / Rumble / Transfer Pak, a Hack badge, and a ✓ for known good dumps (checked with [Card Prep](https://kerillian0.github.io/SummerStation64/companion/#prep)). |
 | 📖 **Game info** | The cover over a blurred copy of itself, a big title, genre, players and co-op/versus, times played, and the full description, scrolling. |
+| 🔤 **Title logos** | Game info shows the game's own logo in place of its name, from libretro's logo collection, fetched and sized for the screen with `scripts/fetch_logos.py`. |
 | 🎯 **Cheats** | GameShark / Action Replay codes for 1,300+ games from the [Companion](https://kerillian0.github.io/SummerStation64/companion/#cheats), switched on and off from Game info (Expansion Pak). |
 | 🎨 **Themes** | Six built-in themes, or your own made with the [Theme Maker](https://kerillian0.github.io/SummerStation64/companion/#themes) and shared with a short code. |
 | 💾 **Save backups** | Each start keeps the game's save from before, dated, five per game; "Restore save" brings one back. |
@@ -170,6 +171,20 @@ sh tests/run.sh    # PC-side tests (gcc and Node.js)
 Box art and game details can be built into your own copy from a metadata
 pack; see [assets/boxart/README.md](assets/boxart/README.md). Never commit
 the art itself.
+
+Title logos for Game info are made with
+[scripts/fetch_logos.py](scripts/fetch_logos.py): it matches libretro's
+No-Intro list of releases to the `Named_Logos` folder of libretro's N64
+thumbnails (see-through PNGs), cuts each to its visible part, shrinks it to
+fit the name's place (at most 288x78) and stores it in the console's 32-bit
+format, so its soft edges stay soft. The logo every region shares goes in
+`menu/metadata/N/S/M/logo.sprite`, and a region whose own logo differs (a
+Japanese title, say) gets one in its own folder; `build/logos/logos_report.txt`
+lists the games it found nothing for. `scripts/logo_overrides.txt` fixes the
+few libretro gets wrong (a crop, a picture from elsewhere, or no logo). A game without a logo, and a hack,
+keeps its name as text. Like the art, the logos are never committed or
+shipped. `tests/logo_shots/` takes a screenshot of Game info for every game
+from the menu running in ares, for checking them all at once.
 
 ## 🤖 AI disclosure
 
