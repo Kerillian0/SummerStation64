@@ -34,6 +34,9 @@
 #include "utils/fs.h"
 #include "views/views.h"
 #include "views/settings_menu.h"
+#ifdef LOGO_SHOTS
+#include "logo_shots.h"
+#endif
 
 #define MENU_DIRECTORY              "/menu"
 #define MENU_SETTINGS_FILE          "config.ini"
@@ -282,6 +285,9 @@ void menu_run (boot_params_t *boot_params) {
             frame_rate_end_frame(); // show the frame as soon as the graphics chip has drawn it
             screenshot_after_frame(display);
             clip_after_frame(menu, display); // recording a clip: save this frame (clip.c)
+#ifdef LOGO_SHOTS
+            logo_shots_after_frame(menu, display); // test build: Game info for every game, sent out as pictures (tests/logo_shots)
+#endif
             debug_stats_frame(menu);
             intro_poll();
         }
