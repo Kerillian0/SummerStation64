@@ -19,6 +19,11 @@
 #include "../baked_art.h" // the cover comes from art baked into the menu when there is some
 #include "../baked_meta.h" // the full description, baked into the menu or from the card
 #include "../game_index.h"
+#include "../video_preview.h" // the game's clip in the cover's place
+#include "../games_filter.h"
+#include "../games_folders.h"
+#include "../hack_games.h"
+#include "../rom_hacks.h"
 #include <string.h>
 
 static bool show_extra_info_message = false;
@@ -620,6 +625,25 @@ static bool rom_requires_missing_expansion_pak (menu_t *menu) {
     return (menu->load.rom_info.features.expansion_pak == EXPANSION_PAK_REQUIRED) && !is_memory_expanded();
 }
 
+static char clip_path[256];             // the game's preview clip, or "" (found once, when the screen opens)
+
+/* A hack carries its original's game code, so the original's clip would play
+   for it (plain Mario 64 for a hack that looks nothing like it). A hack keeps
+   its cover instead, unless hacks.txt gave it a code of its own: then its
+   clip, if someone made one, is in that code's own folder. */
+static bool clip_wanted (menu_t *menu) {
+    const char *path = path_get(menu->load.rom_path);
+    char own[4];
+    if (hack_games_code(path, 0, own)) {
+        return true;
+    }
+    const char *name = strrchr(path, '/');
+    name = name ? name + 1 : path;
+    const char *on_card = strstr(path, ":/");   // "sd:/N64 Hacks/Game.z64" -> "N64 Hacks/Game.z64"
+    on_card = on_card ? on_card + 2 : path;
+    return !rom_hacks_name_says(name) && !games_folders_entry_in_hacks(on_card) && !games_filter_is_hack_path(menu, path);
+}
+
 static bool has_cheat_file = false;    // a cheat file beside the game: Z lists its cheats (cheat_menu.h); checked once, when the screen opens
 
 // Z, not L: both come in as lz_context.
@@ -712,6 +736,7 @@ static void draw (menu_t *menu, surface_t *d) {
             .patches = menu->load.rom_info.settings.patches_enabled,
             .clear_rdram = menu->load.rom_info.settings.clear_rdram_enabled,
             .front_picture = (current_metadata_image_index == 0),
+            .clip = clip_path[0] ? clip_path : NULL,
         });
 #else
         ui_components_layout_draw();
@@ -874,6 +899,7 @@ static void draw_creating_save (float progress) {
 
 static void load (menu_t *menu) {
     debugf("Load ROM: load function called\n");
+    video_preview_stop(); // its memory and the RSP back before the game is loaded
     save_backup_before_launch(menu); // keep a copy of the save as it is before this session
     cart_load_err_t err;
 #ifdef FEATURE_AUTOLOAD_ROM_ENABLED
@@ -939,6 +965,8 @@ static void load (menu_t *menu) {
 }
 
 static void deinit (void) {
+    video_preview_stop();
+    clip_path[0] = '\0';
     baked_art_release(boxart);
     boxart = NULL;
     current_metadata_image_index = 0;
@@ -1014,6 +1042,9 @@ void view_load_rom_init (menu_t *menu) {
     }
 #endif
     has_cheat_file = cheat_menu_available(path_get(menu->load.rom_path));
+    if (!clip_wanted(menu) || !video_preview_find(menu->storage_prefix, menu->load.rom_info.game_code, clip_path, sizeof(clip_path))) {
+        clip_path[0] = '\0';   // no clip: the cover stays, as it always did
+    }
 
     if (controls_consume_launch_request() && !rom_requires_missing_expansion_pak(menu)) menu->load_pending.rom_file = true; // quick launch
 }

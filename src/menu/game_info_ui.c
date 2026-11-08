@@ -18,6 +18,7 @@
 #include "theme.h"
 #include "title_font.h"
 #include "ui_components/constants.h"
+#include "video_preview.h"
 
 /* Everything sits between the same edges as the title panel on the Games screen. */
 #define X0              (GAMES_UI_CONTENT_X0)
@@ -183,9 +184,13 @@ static void draw_backdrop (surface_t *image) {
     rdpq_mode_pop();
 }
 
+static color_t cover_ring_color (void) {
+    return (ring_tint_ready && art_tint_on_game_info()) ? ring_tint : theme_get()->accent;
+}
+
 static void draw_cover (surface_t *image) {
     const theme_t *t = theme_get();
-    color_t ring = (ring_tint_ready && art_tint_on_game_info()) ? ring_tint : t->accent;
+    color_t ring = cover_ring_color();
 
     /* The box takes the art's own shape (a tall Japanese box stays tall,
        with no bars at its sides), kept in the middle of the cover's place. */
@@ -215,6 +220,45 @@ static void draw_cover (surface_t *image) {
         rdpq_mode_filter(FILTER_BILINEAR);
         rdpq_mode_combiner(RDPQ_COMBINER_TEX);
         rdpq_tex_blit(image, x, y, &(rdpq_blitparms_t) {
+            .scale_x = scale,
+            .scale_y = scale,
+        });
+    rdpq_mode_pop();
+}
+
+/* The game's clip in the cover's place, once it has started (video_preview.c):
+   the ring takes the clip's shape, and the cover fades out over it. Until
+   then, and for games without one, the cover. */
+static void draw_cover_or_clip (surface_t *image, const char *clip) {
+    int w, h;
+    if (clip) {
+        video_preview_update(clip);
+    }
+    if (!clip || !video_preview_fit(COVER_WIDTH, COVER_HEIGHT, &w, &h)) {
+        draw_cover(image);
+        return;
+    }
+    int x = COVER_X + (COVER_WIDTH - w) / 2;
+    int y = COVER_Y + (COVER_HEIGHT - h) / 2;
+    fill(x - 3, y - 3, x + w + 3, y + h + 3, cover_ring_color());
+    video_preview_draw(COVER_X, COVER_Y, COVER_WIDTH, COVER_HEIGHT);
+
+    float fade = video_preview_fade();
+    if (fade >= 1.0f || !image) {
+        return;
+    }
+    float scale_x = (float) w / image->width;
+    float scale_y = (float) h / image->height;
+    float scale = (scale_x < scale_y) ? scale_x : scale_y;
+    int cw = (int) (image->width * scale);
+    int ch = (int) (image->height * scale);
+    rdpq_mode_push();
+        rdpq_set_mode_standard();
+        rdpq_mode_filter(FILTER_BILINEAR);
+        rdpq_set_prim_color(RGBA32(0xFF, 0xFF, 0xFF, (uint8_t) ((1.0f - fade) * 255.0f)));
+        rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);
+        rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+        rdpq_tex_blit(image, x + (w - cw) / 2, y + (h - ch) / 2, &(rdpq_blitparms_t) {
             .scale_x = scale,
             .scale_y = scale,
         });
@@ -526,7 +570,9 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
     if (backdrop.buffer) {
         draw_backdrop(&backdrop);
     }
-    draw_cover(image);
+    /* The clip goes with the front cover: on the game's other pictures it
+       waits, and carries on when the front comes back. */
+    draw_cover_or_clip(image, view->front_picture ? view->clip : NULL);
 
     /* The genre, when it came out and who made it, above the title: the
        developer last, so a long name is what gets cut short, not the date. */

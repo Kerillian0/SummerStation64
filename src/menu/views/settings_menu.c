@@ -32,6 +32,7 @@
 #include "../letter_wheel.h"
 #include "../profiles.h"
 #include "../profile_pick.h"
+#include "../video_preview.h"
 #include "../volume.h"
 #include "../ui_components/constants.h"
 #include "settings_menu.h"
@@ -135,6 +136,10 @@ static void apply_theme (menu_t *menu) {
     fonts_restyle();
 }
 
+static void apply_video_previews (menu_t *menu) {
+    video_preview_enable(menu->settings.video_previews_enabled);
+}
+
 static void apply_soundfx (menu_t *menu) {
     sound_use_sfx(menu->settings.soundfx_enabled);
 }
@@ -206,6 +211,7 @@ static const item_t display_items[] = {
     FEATURE("See-through Side Covers", FEATURE_SEE_THROUGH_COVERS, "Let the background show through the previous and next covers. Off draws them solid."),
     FEATURE("Scroll Long Names", FEATURE_NAME_SCROLL, "On the rows of covers, a name too long for the panel under them slides to its end and back after 2 seconds. Off cuts it short with ..."),
     FEATURE("Scroll Descriptions", FEATURE_DESC_SCROLL, "On Game info, a long description drifts up slowly after 10 seconds; the D-Pad or stick scrolls it by hand. Off cuts it short with ..."),
+    SWITCH("Video Previews", video_previews_enabled, true, apply_video_previews, "On Game info, a short clip of the game plays in the cover's place after a moment, for games with a preview.h264 beside their box art on the SD card. Needs the Expansion Pak."),
     FEATURE("Dump Check Marks", FEATURE_DUMP_MARKS, "A green check for a known good dump, an amber ? for a copy that differs from it, a red X for a bad dump. Needs menu/verified.txt from the Card Prep page."),
     FEATURE("Angled Side Covers", FEATURE_ANGLED_COVERS, "Turn the previous and next covers away toward the sides, like boxes on a shelf. Needs Previous/Next Covers on."),
     FEATURE("Cover Slide", FEATURE_CAROUSEL_ANIMATION, "Covers slide into place when you move left or right."),
