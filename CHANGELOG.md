@@ -7,6 +7,7 @@
 ## Release Notes 202x-vNext
 
 - **New Features**
+	- Video previews: on Game info, a 10-30 second clip of the game fades in over its cover after a moment and loops (Expansion Pak; Settings > Video Previews, one switch for the whole console). Clips sit beside the box art as `menu/metadata/<code>/preview.h264` and are made with `scripts/make_preview_clip.py`, or all at once with `scripts/fetch_preview_clips.py` (one clip per game, shared by its regions, from the video snaps on archive.org). A game without a clip, or a hack of one, keeps its cover. The switch is console-wide (config.ini), so unlike the other display features a theme can't turn it off. The clip is read into memory first and decoded by libdragon's RSP H.264 decoder in the time the menu waits for each frame, a few pictures ahead, looping without a pause; measured in ares, the menu stays at 30 frames a second while it plays.
 	- ~~Browser now allows hiding files and folders with hidden attributes set (thanks [Xeroxxx](https://github.com/Xeroxxx)).~~ Awaiting performance enhancement.
 
 - **Bug Fixes**
