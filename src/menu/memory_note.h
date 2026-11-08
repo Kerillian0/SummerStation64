@@ -16,6 +16,7 @@ typedef enum {
     MEMORY_CUT_SIDE_ART,        /**< side covers shown without their art */
     MEMORY_CUT_BAKED_ART,       /**< a baked cover was not loaded */
     MEMORY_CUT_INTRO_PICTURE,   /**< the intro's title shown as text */
+    MEMORY_CUT_TITLE_LOGO,      /**< Game info showed the name as text, not the game's logo */
     MEMORY_CUT_COUNT
 } memory_cut_t;
 

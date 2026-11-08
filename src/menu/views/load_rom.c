@@ -19,7 +19,13 @@
 #include "../baked_art.h" // the cover comes from art baked into the menu when there is some
 #include "../baked_meta.h" // the full description, baked into the menu or from the card
 #include "../game_index.h"
+#include "../games_filter.h" // telling a hack from the game it was made from
+#include "../games_folders.h"
+#include "../hack_games.h"
+#include "../rom_hacks.h"
+#include "../memory_note.h" // a title logo left out for want of memory
 #include <string.h>
+#include <sys/stat.h>
 
 static bool show_extra_info_message = false;
 static bool show_advanced_info_message = false;
@@ -620,6 +626,76 @@ static bool rom_requires_missing_expansion_pak (menu_t *menu) {
     return (menu->load.rom_info.features.expansion_pak == EXPANSION_PAK_REQUIRED) && !is_memory_expanded();
 }
 
+/* A hack carries its original's game code, so the original's logo would
+   show for it (plain Mario 64 for a hack that looks nothing like it). A hack
+   shows its own name instead, unless hacks.txt gave it a code of its own:
+   then its logo, if someone made one, is in that code's own folder. */
+static bool logo_wanted (menu_t *menu) {
+    const char *path = path_get(menu->load.rom_path);
+    char own[4];
+    if (hack_games_code(path, 0, own)) {
+        return true;
+    }
+    const char *name = strrchr(path, '/');
+    name = name ? name + 1 : path;
+    const char *on_card = strstr(path, ":/");   // "sd:/N64 Hacks/Game.z64" -> "N64 Hacks/Game.z64"
+    on_card = on_card ? on_card + 2 : path;
+    return !rom_hacks_name_says(name) && !games_folders_entry_in_hacks(on_card) && !games_filter_is_hack_path(menu, path);
+}
+
+/* The game's title logo, shown in its name's place: logo.sprite from
+   scripts/fetch_logos.py, beside the box art (the region's own folder, then
+   the one for every region). Read once, when the screen opens. */
+#define LOGO_FILE           "logo.sprite"
+#define LOGO_MAX_BYTES      (128 * 1024)    // read whole into memory; fetch_logos.py makes them at most 288 x 78, about 88 KB
+#define LOGO_RESERVE_BYTES  (256 * 1024)    // left for the rest of the menu
+static sprite_t *logo = NULL;
+
+static void logo_free (void) {
+    if (logo) {
+        rspq_wait(); // nothing may still be drawing from it
+        sprite_free(logo);
+        logo = NULL;
+    }
+}
+
+static void logo_load (menu_t *menu) {
+    const char *code = menu->load.rom_info.game_code;
+    for (int i = 0; i < 4; i++) {
+        char c = code[i];
+        if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9'))) {
+            return; // homebrew without a proper code: no folder to look in
+        }
+    }
+    const char *prefix = menu->storage_prefix;
+    const char *slash = (prefix[0] && prefix[strlen(prefix) - 1] == '/') ? "" : "/";
+    for (int letters = 4; letters >= 3; letters--) {
+        char path[96];
+        if (letters == 4) {
+            snprintf(path, sizeof(path), "%s%smenu/metadata/%c/%c/%c/%c/" LOGO_FILE, prefix, slash, code[0], code[1], code[2], code[3]);
+        } else {
+            snprintf(path, sizeof(path), "%s%smenu/metadata/%c/%c/%c/" LOGO_FILE, prefix, slash, code[0], code[1], code[2]);
+        }
+        struct stat st;
+        if (stat(path, &st) != 0 || !S_ISREG(st.st_mode)) {
+            continue;
+        }
+        if (st.st_size > LOGO_MAX_BYTES) {
+            debugf("Load ROM: %s is too big for a title logo\n", path);
+            return;
+        }
+        // The loader stops the whole menu if it can't get memory.
+        heap_stats_t heap;
+        sys_get_heap_stats(&heap);
+        if ((heap.total - heap.used) < (int) st.st_size + LOGO_RESERVE_BYTES) {
+            memory_note_cut(MEMORY_CUT_TITLE_LOGO);
+            return;
+        }
+        logo = sprite_load(path);
+        return;
+    }
+}
+
 static bool has_cheat_file = false;    // a cheat file beside the game: Z lists its cheats (cheat_menu.h); checked once, when the screen opens
 
 // Z, not L: both come in as lz_context.
@@ -712,6 +788,7 @@ static void draw (menu_t *menu, surface_t *d) {
             .patches = menu->load.rom_info.settings.patches_enabled,
             .clear_rdram = menu->load.rom_info.settings.clear_rdram_enabled,
             .front_picture = (current_metadata_image_index == 0),
+            .logo = logo,
         });
 #else
         ui_components_layout_draw();
@@ -939,6 +1016,7 @@ static void load (menu_t *menu) {
 }
 
 static void deinit (void) {
+    logo_free();
     baked_art_release(boxart);
     boxart = NULL;
     current_metadata_image_index = 0;
@@ -1014,6 +1092,10 @@ void view_load_rom_init (menu_t *menu) {
     }
 #endif
     has_cheat_file = cheat_menu_available(path_get(menu->load.rom_path));
+    logo_free(); // back from the cheat code editor, which doesn't close this screen
+    if (logo_wanted(menu)) {
+        logo_load(menu);
+    }
 
     if (controls_consume_launch_request() && !rom_requires_missing_expansion_pak(menu)) menu->load_pending.rom_file = true; // quick launch
 }
