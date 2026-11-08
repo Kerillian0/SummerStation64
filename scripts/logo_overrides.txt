@@ -1,0 +1,18 @@
+# Fixes for logos that libretro's thumbnails get wrong, read by fetch_logos.py.
+# One line per game, by the first three letters of its code; it changes the
+# logo every region shares (a region with a logo of its own keeps that one):
+#
+#   CODE  crop LEFT TOP RIGHT BOTTOM   keep only this part of libretro's logo (its own pixels)
+#   CODE  url ADDRESS                  use the picture at this address instead (a see-through PNG)
+#   CODE  none                         no logo: Game info shows the name as text
+#
+# Text after # is a comment.
+
+# Super Mario 64: libretro has only the Shindou Edition's logo, with a Japanese
+# Rumble Pak tag under it. Its bottom 96 rows (the tag) are cut off.
+NSM  crop 0 0 512 177
+
+# Pokemon Stadium: libretro has no logo for it, and the one with its name is
+# the Japanese game's. This is the English logo, a public-domain redrawing on
+# Wikimedia Commons (File:Pokemon Stadium.svg).
+NPO  url https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/Pokemon_Stadium.svg/1280px-Pokemon_Stadium.svg.png
