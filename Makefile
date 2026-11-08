@@ -134,6 +134,8 @@ SRCS = \
 	menu/theme.c \
 	menu/menu_features.c \
 	menu/zip_entry_count.c \
+	menu/video_clip_check.c \
+	menu/video_preview.c \
 	menu/ui_components/background.c \
 	menu/ui_components/boxart.c \
 	menu/ui_components/common.c \
