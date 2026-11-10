@@ -8,6 +8,7 @@
 #include <libdragon.h>
 #include <system.h>  /* attach_filesystem */
 
+#include "frame_rate.h"
 #include "memory_note.h"
 #include "video_clip_check.h"
 #include "video_preview.h"
@@ -15,7 +16,9 @@
 #define START_DELAY_MS      (1500)      /* the cover alone first */
 #define FADE_MS             (400)
 #define LOAD_STEP           (64 * 1024) /* the clip's header is checked once this much is in */
-#define LOAD_PIECE          (8 * 1024)  /* read in the idle time between frames, a piece at a time: about 7 ms each */
+#define LOAD_PIECE          (4 * 1024)  /* read in the idle time between frames, a piece at a time: about 4 ms each */
+#define LOAD_MARGIN_US      (3000)      /* a piece is only started if it should end this long before the next frame is due */
+#define LOAD_STALL_MS       (300)       /* ... or if none has been read for this long, so loading never stops */
 #define MAX_CLIP_BYTES      (3 * 1024 * 1024)
 #define BUFFERED_PICS       (4)         /* pictures decoded ahead: about 42 KB each at 192x144 */
 #define FRAME_BUDGET_US     (2000)      /* decoding inside a menu frame, only while the idle time falls short */
@@ -347,6 +350,13 @@ static void load_seek_table (void) {
 }
 
 /* One step of reading the clip into memory. */
+/* When the frame being shown began (video_preview_update() runs as it is
+   drawn), and how long a piece takes to read on this card, so pieces are
+   only read when there is time before the next frame. */
+static uint64_t frame_began_us = 0;
+static uint32_t piece_us = 8000;
+static uint64_t last_piece_ms = 0;
+
 static void load_step (void) {
     if (!load_file) {
         load_file = fopen(want_path, "rb");
@@ -380,7 +390,10 @@ static void load_step (void) {
     if (want > LOAD_PIECE) {
         want = LOAD_PIECE;
     }
+    uint64_t read_began = get_ticks_us();
     size_t got = fread(clip_data + clip_loaded, 1, want, load_file);
+    piece_us = (piece_us * 3 + (uint32_t) (get_ticks_us() - read_began)) / 4;
+    last_piece_ms = get_ticks_ms();
     if (got != (size_t) want) {
         fail("read error");
         return;
@@ -582,6 +595,7 @@ void video_preview_update (const char *path) {
         last_update_ms = now;
     }
 
+    frame_began_us = get_ticks_us();
     uint64_t step = now - last_update_ms;
     if (step > AWAY_MS) {
         /* Shown again after a while (the other pictures, a pop-up): fade
@@ -622,7 +636,13 @@ bool video_preview_showing (void) {
 
 void video_preview_poll (void) {
     if (state == VP_LOADING && (get_ticks_ms() - last_update_ms) <= AWAY_MS) {
-        load_step();    /* one piece; the main loop comes round again soon */
+        /* One piece, if it should be done before the next frame is due;
+           the main loop comes round again soon. Reading regardless made
+           the last piece run past the refresh: every frame 60 ms. */
+        uint64_t due_us = frame_began_us + frame_rate_frame_us() - LOAD_MARGIN_US;
+        if (get_ticks_us() + piece_us <= due_us || (get_ticks_ms() - last_piece_ms) > LOAD_STALL_MS) {
+            load_step();
+        }
         return;
     }
     if (state != VP_PLAYING || !video) {
