@@ -1826,6 +1826,7 @@ static uint64_t slide_last_move_ms = 0;
 // Showy (animations.h): the cover you land on grows into place, running a
 // little past its size and back. Not while a direction is held.
 #define CAROUSEL_POP_MS     (280)
+#define CAROUSEL_BACK_MS    (300)   // back from Game info: the cover flies into its place
 #define CAROUSEL_POP_FROM   (0.88f)
 static uint64_t landed_ms = 0;
 
@@ -1899,6 +1900,13 @@ void carousel_draw (menu_t *menu) {
 
     const float slide = carousel_slide(menu);
     const float pop = carousel_pop();
+    // Showy: back from Game info, the cover flies from there into its place.
+    static uint64_t back_since = 0;
+    static int back_from[4];
+    if (animations_cover_take(menu->mode, back_from)) {
+        back_since = get_ticks_ms();
+    }
+    const float back = back_since ? animations_progress(back_since, CAROUSEL_BACK_MS) : 1.0f;
     const int tab_shift = (int) (tabs_slide() * CAROUSEL_TAB_SLIDE_PX); // just switched tab: the whole row comes in from the side
     drawn_moving = (slide != 0.0f) || (tab_shift != 0);
     const int bright = drawn_moving ? 255 : (255 - carousel_dark); // while covers slide, the fade darkens the whole row at once
@@ -1971,6 +1979,17 @@ void carousel_draw (menu_t *menu) {
             float art_shape;
             float lift = box_motion_side_lift(i, (away < 1.0f) ? away : 1.0f);
             y0 += carousel_art_aspect(menu, i, &art_shape) ? (int) lroundf(lift) : ((int) lroundf(lift / 2.0f)) * 2;
+            if (offset == 0 && slide == 0.0f) {
+                animations_cover_note(menu->mode, x0, y0, x0 + w, y0 + h);    // where Game info's cover flies from (and back to)
+                if (back < 1.0f) {
+                    float e = animations_ease_out(back);
+                    int from_w = back_from[2] - back_from[0], from_h = back_from[3] - back_from[1];
+                    x0 = back_from[0] + (int) ((x0 - back_from[0]) * e);
+                    y0 = back_from[1] + (int) ((y0 - back_from[1]) * e);
+                    w = from_w + (int) ((w - from_w) * e);
+                    h = from_h + (int) ((h - from_h) * e);
+                }
+            }
             if (x0 < 0 || (x0 + w) > screen_w) {
                 continue; // still off the edge of the screen
             }
@@ -2076,6 +2095,7 @@ void carousel_draw (menu_t *menu) {
     ring_h = (int) (ring_h * pop);
     bool ring_hidden;
     color_t ring_color = carousel_ring_color(menu, covers->selected, t->accent, &ring_hidden);
+    ring_hidden = ring_hidden || (back < 1.0f);    // the cover is still flying back into it
     // Corner brackets stand a little further above and below the cover than the ring.
     const int ring_pad_y = (options_get(OPTION_SELECTION) == SELECTION_CORNERS) ? 9 : 5;
     if (!ring_hidden && options_get(OPTION_SELECTION) != SELECTION_OFF) {

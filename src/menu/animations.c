@@ -2,6 +2,7 @@
 
 #include "animations.h"
 #include "menu_options.h"
+#include "menu_state.h"
 #include "ui_components.h"
 #include "ui_components/constants.h"
 
@@ -158,6 +159,40 @@ void animations_draw_late (int screen) {
     scaled(last_x0, last_y0, last_x1, last_y1, 1.0f - (1.0f - DIALOG_FROM_W) * e, 1.0f - (1.0f - DIALOG_FROM_H) * e, box);
     ui_components_border_draw(box[0], box[1], box[2], box[3]);
     ui_components_box_draw(box[0], box[1], box[2], box[3], DIALOG_BG_COLOR);
+}
+
+/* ---------- the cover between a row and Game info ---------- */
+
+#define COVER_FRESH_MS  (1500)  /* a row reading its list again can take a while */
+
+static struct {
+    int screen;
+    int rect[4];
+    uint64_t ms;
+    bool set;
+} cover_place;
+
+static bool game_info_screen (int screen) {
+    return screen == MENU_MODE_LOAD_ROM || screen == MENU_MODE_LOAD_DISK || screen == MENU_MODE_LOAD_EMULATOR;
+}
+
+void animations_cover_note (int screen, int x0, int y0, int x1, int y1) {
+    cover_place.screen = screen;
+    cover_place.rect[0] = x0; cover_place.rect[1] = y0; cover_place.rect[2] = x1; cover_place.rect[3] = y1;
+    cover_place.ms = get_ticks_ms();
+    cover_place.set = true;
+}
+
+bool animations_cover_take (int screen, int from[4]) {
+    if (!cover_place.set || !animations_showy() || game_info_screen(screen) == game_info_screen(cover_place.screen)
+        || (get_ticks_ms() - cover_place.ms) > COVER_FRESH_MS) {
+        return false;
+    }
+    cover_place.set = false;
+    for (int i = 0; i < 4; i++) {
+        from[i] = cover_place.rect[i];
+    }
+    return true;
 }
 
 void animations_frame_done (int screen) {

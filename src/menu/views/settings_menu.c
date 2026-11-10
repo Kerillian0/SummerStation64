@@ -234,7 +234,7 @@ static const item_t display_items[] = {
     FEATURE("Dump Check Marks", FEATURE_DUMP_MARKS, "A green check for a known good dump, an amber ? for a copy that differs from it, a red X for a bad dump. Needs menu/verified.txt from the Card Prep page."),
     FEATURE("Angled Side Covers", FEATURE_ANGLED_COVERS, "Turn the previous and next covers away toward the sides, like boxes on a shelf. Needs Previous/Next Covers on."),
     CHOICES("Animations", OPTION_ANIMATIONS, ANIMATIONS_COUNT, animations_name, NULL,
-        "Snappy keeps the menu quick and plain. Showy adds movement: box art fades in, the cover you land on grows into place, names slide in, highlights glide between rows, pop-ups open and close, and Settings pages slide. Any button press finishes an animation at once."),
+        "Snappy keeps the menu quick and plain. Showy adds movement: box art fades in, the cover you land on grows into place, names slide in, the cover flies into Game info and back, highlights glide between rows, pop-ups open and close, and Settings rises in and its pages slide. Any button press finishes an animation at once."),
     FEATURE("Cover Slide", FEATURE_CAROUSEL_ANIMATION, "Covers slide into place when you move left or right."),
     FEATURE("Rounded Corners", FEATURE_ROUNDED_CORNERS, "Round off the corners of the tabs, the clock, the title panel, the badges and the band behind the button hints. Off draws them square."),
     CHOICES("Tint Ring From Art", OPTION_RING_TINT, RING_TINT_COUNT, art_tint_name, NULL,
@@ -770,6 +770,9 @@ static void process (menu_t *menu) {
             sound_play_effect(SFX_ENTER);
         } else if (menu->actions.back) {
             menu->next_mode = games_ui_origin(); // back to the tab Settings was opened from
+            if (animations_showy()) {
+                tabs_slide_begin(menu, -1);     // Showy: the tab's covers come back in from the side
+            }
             sound_play_effect(SFX_EXIT);
         }
         return;
@@ -967,6 +970,9 @@ static void draw_help (menu_t *menu, const item_t *it) {
 
 #define PAGE_SLIDE_MS   (180)
 #define PAGE_SLIDE_PX   (24)
+#define ROWS_RISE_MS    (240)
+#define ROWS_RISE_PX    (40)
+static bool rows_rise_pending = false;
 
 static void draw (menu_t *menu, surface_t *d) {
     rdpq_attach(d, NULL);
@@ -1013,10 +1019,23 @@ static void draw (menu_t *menu, surface_t *d) {
         last_row = cat->count;
     }
 
+    // Showy: on opening, both columns' rows rise into place, kept to the
+    // rows' area.
+    static uint64_t rise_since = 0;
+    if (rows_rise_pending) {
+        rows_rise_pending = false;
+        rise_since = get_ticks_ms();    /* from the first frame drawn, not from opening: that can take a moment */
+    }
+    float rise_t = animations_progress(rise_since, ROWS_RISE_MS);
+    int rise = (rise_t < 1.0f) ? (int) ((1.0f - animations_ease_out(rise_t)) * ROWS_RISE_PX) & ~1 : 0;
+    if (rise != 0) {
+        rdpq_set_scissor(LEFT_X, ROWS_Y, display_get_width(), ROWS_Y + (VISIBLE_ROWS * ROW_HEIGHT));
+    }
+
     static animations_glide_t category_glide, item_glide;
-    draw_selection(LEFT_X, animations_glide(&category_glide, ROWS_Y + (category * ROW_HEIGHT)), LEFT_WIDTH, !in_items);   /* Showy: glides */
+    draw_selection(LEFT_X, animations_glide(&category_glide, ROWS_Y + (category * ROW_HEIGHT)) + rise, LEFT_WIDTH, !in_items);   /* Showy: glides */
     for (int i = 0; i < COUNT(categories); i++) {
-        int y = ROWS_Y + (i * ROW_HEIGHT);
+        int y = ROWS_Y + (i * ROW_HEIGHT) + rise;
         draw_text(LEFT_X, y, LEFT_WIDTH, ALIGN_LEFT, STL_DEFAULT, categories[i].label);
     }
 
@@ -1047,13 +1066,13 @@ static void draw (menu_t *menu, surface_t *d) {
         rdpq_set_scissor(ITEMS_X, ROWS_Y, display_get_width(), ROWS_Y + (VISIBLE_ROWS * ROW_HEIGHT));
     }
     if (in_items) {
-        draw_selection(ITEMS_X, animations_glide(&item_glide, ROWS_Y + ((item - first_row) * ROW_HEIGHT)), ITEMS_WIDTH, true);
+        draw_selection(ITEMS_X, animations_glide(&item_glide, ROWS_Y + ((item - first_row) * ROW_HEIGHT)) + rise, ITEMS_WIDTH, true);
     }
     for (int i = first_row; i < last_row; i++) {
-        int y = ROWS_Y + ((i - first_row) * ROW_HEIGHT) + page_shift;
+        int y = ROWS_Y + ((i - first_row) * ROW_HEIGHT) + page_shift + rise;
         draw_item(menu, &cat->items[i], y);
     }
-    if (page_shift != 0) {
+    if (page_shift != 0 || rise != 0) {
         rdpq_set_scissor(0, 0, display_get_width(), display_get_height());
     }
 
@@ -1113,6 +1132,7 @@ void view_settings_menu_init (menu_t *menu) {
     picking = NULL;
     bool back_from_tool = tool_open;
     tool_open = false;
+    rows_rise_pending = !back_from_tool;   /* Showy: the rows rise into place (draw()) */
     card_themes_rescan();   /* theme folders added on the PC since */
 
     // Start from the top, unless the player wants to come back to where they were

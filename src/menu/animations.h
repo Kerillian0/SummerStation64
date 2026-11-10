@@ -68,4 +68,11 @@ void animations_draw_late (int screen);
 /** Once a frame, after the screen has been drawn (menu.c). */
 void animations_frame_done (int screen);
 
+/** Game info's cover flies in from the row of covers, and back to it with B.
+ *  The screen showing the game's cover notes where it drew it, every frame;
+ *  the other screen, when it first shows the cover (a row and Game info, in
+ *  either direction, within a moment), takes that place to fly from. */
+void animations_cover_note (int screen, int x0, int y0, int x1, int y1);
+bool animations_cover_take (int screen, int from[4]);
+
 #endif

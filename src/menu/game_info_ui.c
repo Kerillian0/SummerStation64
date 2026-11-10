@@ -6,6 +6,7 @@
 
 #include <libdragon.h>
 
+#include "animations.h"
 #include "fonts.h"
 #include "game_data.h"
 #include "game_info_ui.h"
@@ -165,6 +166,25 @@ bool game_info_ui_backdrop_ready_for (const char *path) {
     return backdrop.buffer && path && (backdrop_key == text_hash(path));
 }
 
+/* Showy (animations.h): the cover flies in from where it was on the row of
+   covers while the backdrop brightens; the clip waits until it has landed,
+   so loading it doesn't make the flight jerky. */
+#define COVER_FLY_MS    (300)
+static int fly_screen = 0;          /* the screen drawing the page: where the cover is noted for the way back */
+static uint64_t fly_since = 0;
+static int fly_from[4];
+
+static float fly_progress (void) {
+    return fly_since ? animations_progress(fly_since, COVER_FLY_MS) : 1.0f;
+}
+
+static void fly_begin (menu_t *menu) {
+    fly_screen = menu->mode;
+    if (animations_cover_take(fly_screen, fly_from)) {
+        fly_since = get_ticks_ms();
+    }
+}
+
 /* The backdrop stretched over the whole screen. Stretching so small a
    picture this far with smoothing blurs it, and drawing it at a third of its
    brightness keeps the text on top readable. */
@@ -178,7 +198,8 @@ static void draw_backdrop (surface_t *image) {
     rdpq_mode_push();
         rdpq_set_mode_standard();
         rdpq_mode_filter(FILTER_BILINEAR);
-        rdpq_set_prim_color(RGBA32(0x58, 0x58, 0x58, 0xFF));
+        int bright = (int) (0x58 * animations_ease_out(fly_progress()));   /* brightens as the cover flies in */
+        rdpq_set_prim_color(RGBA32(bright, bright, bright, 0xFF));
         rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);
         rdpq_tex_blit(image, (DISPLAY_WIDTH - w) / 2, (DISPLAY_HEIGHT - h) / 2, &(rdpq_blitparms_t) {
             .scale_x = scale,
@@ -208,6 +229,21 @@ static void draw_cover (surface_t *image) {
     }
     int x = COVER_X + (COVER_WIDTH - w) / 2;
     int y = COVER_Y + (COVER_HEIGHT - h) / 2;
+    animations_cover_note(fly_screen, x, y, x + w, y + h);     /* for B: the row's cover flies back from here */
+    float scale_x = scale, scale_y = scale;
+    float fly = fly_progress();
+    if (fly < 1.0f) {
+        float e = animations_ease_out(fly);
+        int from_w = fly_from[2] - fly_from[0], from_h = fly_from[3] - fly_from[1];
+        x = fly_from[0] + (int) ((x - fly_from[0]) * e);
+        y = fly_from[1] + (int) ((y - fly_from[1]) * e);
+        w = from_w + (int) ((w - from_w) * e);
+        h = from_h + (int) ((h - from_h) * e);
+        if (image) {
+            scale_x = (float) w / image->width;
+            scale_y = (float) h / image->height;
+        }
+    }
 
     /* Ring in the cover's own color, or the accent color as on the Games
        screen. */
@@ -223,8 +259,8 @@ static void draw_cover (surface_t *image) {
         rdpq_mode_filter(FILTER_BILINEAR);
         rdpq_mode_combiner(RDPQ_COMBINER_TEX);
         rdpq_tex_blit(image, x, y, &(rdpq_blitparms_t) {
-            .scale_x = scale,
-            .scale_y = scale,
+            .scale_x = scale_x,
+            .scale_y = scale_y,
         });
     rdpq_mode_pop();
 }
@@ -243,6 +279,7 @@ static void draw_cover_or_clip (surface_t *image, const char *clip) {
     }
     int x = COVER_X + (COVER_WIDTH - w) / 2;
     int y = COVER_Y + (COVER_HEIGHT - h) / 2;
+    animations_cover_note(fly_screen, x, y, x + w, y + h);     /* for B: the row's cover flies back from here */
     fill(x - 3, y - 3, x + w + 3, y + h + 3, cover_ring_color());
     video_preview_draw(COVER_X, COVER_Y, COVER_WIDTH, COVER_HEIGHT);
 
@@ -670,6 +707,7 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
     rom_info_t *info = &menu->load.rom_info;
     surface_t *image = art_ready(art) ? art->image : NULL;
 
+    fly_begin(menu);
     fact_boxes = game_data_review_scores_shown() ? 4 : 3;
     backdrop_update(menu->load.rom_path ? path_get(menu->load.rom_path) : NULL, image, view->front_picture);
     if (backdrop.buffer) {
@@ -677,7 +715,7 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
     }
     /* The clip goes with the front cover: on the game's other pictures it
        waits, and carries on when the front comes back. */
-    draw_cover_or_clip(image, view->front_picture ? view->clip : NULL);
+    draw_cover_or_clip(image, (view->front_picture && fly_progress() >= 1.0f) ? view->clip : NULL);
 
     /* The genre, when it came out and who made it, above the title: the
        developer last, so a long name is what gets cut short, not the date. */
@@ -809,6 +847,7 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
 void game_info_ui_draw_page (menu_t *menu, component_boxart_t *art, const game_info_page_t *page) {
     surface_t *image = art_ready(art) ? art->image : NULL;
 
+    fly_begin(menu);
     fact_boxes = 3;     /* not a game: no review score */
     backdrop_update(page->path, image, page->front_picture);
     if (backdrop.buffer) {
