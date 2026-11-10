@@ -30,6 +30,9 @@ The icons are kept as small as the console allows:
 - button.png: a 20 x 20 white disc in 16 shades (4 bits a pixel: 200 bytes).
   The menu tints it for each button and stretches it into the longer
   shapes, so one picture serves every button.
+- avatar_disc.png: a 64 x 64 white disc in 16 shades (2 KB), the round
+  ring behind a profile picture, tinted to the player's color. Larger than
+  button.png so its edge stays sharp at the picture's size.
 """
 from PIL import Image, ImageDraw
 
@@ -202,6 +205,15 @@ ImageDraw.Draw(corner).ellipse([0, 0, CORNER * SCALE - 1, CORNER * SCALE - 1], f
 corner = shrink(corner, CORNER, CORNER).point(lambda v: (v // 17) * 17)
 corner.save("corner.png")
 print(f"corner.png: {CORNER} x {CORNER}")
+
+# The ring behind a round profile picture: the same disc, larger, so its edge
+# stays sharp at the size the pictures are drawn.
+AVATAR = 64
+avatar = Image.new("L", (AVATAR * SCALE, AVATAR * SCALE), 0)
+ImageDraw.Draw(avatar).ellipse([0, 0, AVATAR * SCALE - 1, AVATAR * SCALE - 1], fill=255)
+avatar = shrink(avatar, AVATAR, AVATAR).point(lambda v: (v // 17) * 17)
+avatar.save("avatar_disc.png")
+print(f"avatar_disc.png: {AVATAR} x {AVATAR}")
 
 # The back of a game cartridge, for the 3D cartridges (Show Games As:
 # Cartridges), redrawn after a scan the project owner supplied: plastic, two

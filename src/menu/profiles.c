@@ -23,6 +23,7 @@ typedef struct {
     char name[NAME_LENGTH];
     char folder[NAME_LENGTH];
     int color;
+    char picture[PROFILE_PICTURE_LENGTH];  /* avatars.h; empty: the player's initial */
 } profile_t;
 
 static profile_t list[PROFILES_MAX];
@@ -50,6 +51,11 @@ static void save (void) {
     fprintf(f, "%s\ncurrent %d\n", PROFILES_HEADER, current);
     for (int i = 0; i < count; i++) {
         fprintf(f, "profile %d\t%s\t%s\n", list[i].color, list[i].folder, list[i].name);
+    }
+    for (int i = 0; i < count; i++) {
+        if (list[i].picture[0]) {
+            fprintf(f, "picture\t%s\t%s\n", list[i].folder, list[i].picture);    /* a line of its own: older menus skip it */
+        }
     }
     for (int i = 0; i < retired_count; i++) {
         fprintf(f, "retired\t%s\n", retired[i]);
@@ -92,9 +98,21 @@ static void load (void) {
                 }
                 *tab2 = '\0';
                 profile_t *p = &list[count++];
+                memset(p, 0, sizeof(*p));
                 p->color = atoi(line + 8) % PROFILE_COLORS;
                 snprintf(p->folder, sizeof(p->folder), "%s", tab + 1);
                 snprintf(p->name, sizeof(p->name), "%s", tab2 + 1);
+            } else if (strncmp(line, "picture\t", 8) == 0) {
+                char *tab2 = strchr(line + 8, '\t');
+                if (!tab2) {
+                    continue;
+                }
+                *tab2 = '\0';
+                for (int i = 0; i < count; i++) {   /* by folder: names change, folders don't */
+                    if (strcmp(list[i].folder, line + 8) == 0) {
+                        snprintf(list[i].picture, PROFILE_PICTURE_LENGTH, "%s", tab2 + 1);
+                    }
+                }
             } else if (strncmp(line, "retired\t", 8) == 0 && retired_count < RETIRED_MAX) {
                 snprintf(retired[retired_count++], NAME_LENGTH, "%s", line + 8);
             }
@@ -107,6 +125,7 @@ static void load (void) {
         snprintf(list[0].name, NAME_LENGTH, "Player 1");
         snprintf(list[0].folder, NAME_LENGTH, FIRST_FOLDER);
         list[0].color = 0;
+        list[0].picture[0] = '\0';
     }
     if (current < 0 || current >= count) {
         current = 0;
@@ -183,6 +202,19 @@ void profiles_next_color (int profile) {
     }
 }
 
+const char *profiles_picture (int profile) {
+    load();
+    return (profile >= 0 && profile < count) ? list[profile].picture : "";
+}
+
+void profiles_set_picture (int profile, const char *picture) {
+    load();
+    if (profile >= 0 && profile < count) {
+        snprintf(list[profile].picture, PROFILE_PICTURE_LENGTH, "%s", picture ? picture : "");
+        save();
+    }
+}
+
 void profiles_switch (int profile) {
     load();
     if (profile >= 0 && profile < count && profile != current) {
@@ -242,6 +274,7 @@ bool profiles_add (const char *name) {
         return false;
     }
     profile_t *p = &list[count];
+    memset(p, 0, sizeof(*p));
     snprintf(p->name, NAME_LENGTH, "%s", name);
     make_folder(name, p->folder);
     /* The first color nobody has yet. */

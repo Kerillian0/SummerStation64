@@ -30,6 +30,8 @@
 #include "../sound.h"
 #include "../theme.h"
 #include "../theme_editor.h"
+#include "../avatar_pick.h"
+#include "../avatars.h"
 #include "../letter_wheel.h"
 #include "../name_keyboard.h"
 #include "../profiles.h"
@@ -286,6 +288,7 @@ static void profile_named (menu_t *menu, const char *name) {
         } else if (profiles_add(name)) {
             profiles_switch(profiles_count() - 1);  /* the new player is the one setting it up */
             profile_pick_refresh(menu);
+            avatar_pick_open(profiles_current());   /* and picks a picture next */
         }
         sound_play_effect(SFX_SETTING);
     }
@@ -318,6 +321,25 @@ static void next_color (menu_t *menu) {
     profiles_next_color(profiles_current());
 }
 
+static const char *picture_info (menu_t *menu) {
+    (void) menu;
+    return avatars_label(profiles_picture(profiles_current()));
+}
+
+static void choose_picture (menu_t *menu) {
+    (void) menu;
+    avatar_pick_open(profiles_current());
+}
+
+static const char *shape_name (int shape) {
+    return avatars_shape_name(shape);
+}
+
+static void shape_changed (menu_t *menu) {
+    (void) menu;
+    avatars_shape_changed();    /* each picture is cut to the new shape when next drawn */
+}
+
 static void delete_profile (menu_t *menu) {
     if (profiles_current() == 0) {
         notice = "The first profile can't be deleted: it keeps the saves the menu always had.";
@@ -330,7 +352,9 @@ static const item_t profile_items[] = {
     ACTION_INFO("Playing As", next_profile, playing_info, "Who is playing. Each profile has its own game saves: a new profile starts every game fresh. A switches to the next profile."),
     ACTION_INFO("New Profile", new_profile, new_profile_info, "Add a player (up to four), named with the letter dial. The new profile is switched to."),
     ACTION("Rename Profile", rename_profile, "Give the profile that is playing a new name. Its saves stay where they are."),
-    ACTION_INFO("Profile Color", next_color, color_info, "The color shown beside the player's name. A picks the next one."),
+    ACTION_INFO("Profile Picture", choose_picture, picture_info, "The picture beside the player's name, in a ring of their color. A opens the pictures: those built into the menu, then any PNG in menu/avatars on the SD card. None shows the player's initial."),
+    ACTION_INFO("Profile Color", next_color, color_info, "The color of the ring round the player's picture, and of their initial when they have none. A picks the next one."),
+    CHOICES("Picture Shape", OPTION_AVATAR_SHAPE, AVATAR_SHAPE_COUNT, shape_name, shape_changed, "How every player's picture is cut: a circle or a rounded square."),
     ACTION("Delete Profile", delete_profile, "Take the profile that is playing off the list. Its saves stay on the SD card (in each saves folder, under its name), so nothing is lost. The first profile can't be deleted."),
 };
 
@@ -678,6 +702,10 @@ static void process (menu_t *menu) {
         theme_editor_process(menu);
         return;
     }
+    if (avatar_pick_active()) {
+        avatar_pick_process(menu);
+        return;
+    }
     if (confirm_delete >= 0) {
         if (menu->actions.enter) {
             profiles_delete(confirm_delete);
@@ -886,7 +914,7 @@ static void draw_item (menu_t *menu, const item_t *it, int y) {
 static void draw_help (menu_t *menu, const item_t *it) {
     const char *note = "";
     char stock[64];
-    bool console = (it->type == ITEM_SWITCH) || (it->type == ITEM_CHOICE && it->option == OPTION_FONT)
+    bool console = (it->type == ITEM_SWITCH) || (it->type == ITEM_CHOICE && (it->option == OPTION_FONT || it->option == OPTION_AVATAR_SHAPE))
         || (it->type == ITEM_INFO && it->info == default_folder);     /* config.ini and Character Set: not per profile */
 
     if (it->type == ITEM_SWITCH) {
@@ -930,6 +958,13 @@ static void draw (menu_t *menu, surface_t *d) {
     if (theme_editor_active()) {
         theme_editor_draw();
         letter_wheel_draw();    // naming the theme
+        debug_stats_overlay_draw();
+        rdpq_detach_show();
+        return;
+    }
+
+    if (avatar_pick_active()) {
+        avatar_pick_draw();
         debug_stats_overlay_draw();
         rdpq_detach_show();
         return;

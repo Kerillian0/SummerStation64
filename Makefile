@@ -82,6 +82,8 @@ SRCS = \
 	menu/rom_info.c \
 	menu/settings.c \
 	menu/sound.c \
+	menu/avatars.c \
+	menu/avatar_pick.c \
 	menu/art_trim.c \
 	menu/card_themes.c \
 	menu/theme_pack.c \
@@ -197,6 +199,7 @@ IMAGES = \
 	mark_cross.png \
 	mark_question.png \
 	corner.png \
+	avatar_disc.png \
 	logo_holo.png \
 	logo_stripes.png \
 	cart_back.png \
@@ -212,6 +215,7 @@ $(FILESYSTEM_DIR)/mark_check.sprite: MKSPRITE_FLAGS=--format I4
 $(FILESYSTEM_DIR)/mark_cross.sprite: MKSPRITE_FLAGS=--format I4
 $(FILESYSTEM_DIR)/mark_question.sprite: MKSPRITE_FLAGS=--format I4
 $(FILESYSTEM_DIR)/corner.sprite: MKSPRITE_FLAGS=--format I4
+$(FILESYSTEM_DIR)/avatar_disc.sprite: MKSPRITE_FLAGS=--format I4
 $(FILESYSTEM_DIR)/logo_holo.sprite: MKSPRITE_FLAGS=--format RGBA16
 $(FILESYSTEM_DIR)/logo_stripes.sprite: MKSPRITE_FLAGS=--format RGBA16
 $(FILESYSTEM_DIR)/cart_back.sprite: MKSPRITE_FLAGS=--format RGBA16
@@ -257,6 +261,8 @@ $(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM)
 
 # Box art baked into the menu, if any has been made (see assets/boxart/README.md).
 $(BUILD_DIR)/$(PROJECT_NAME).dfs: $(wildcard $(FILESYSTEM_DIR)/art)
+# Profile pictures baked in the same way (assets/profiles/make_avatars.py).
+$(BUILD_DIR)/$(PROJECT_NAME).dfs: $(wildcard $(FILESYSTEM_DIR)/avatars)
 # Game details baked in the same way (make_baked_meta.py).
 $(BUILD_DIR)/$(PROJECT_NAME).dfs: $(wildcard $(FILESYSTEM_DIR)/meta)
 

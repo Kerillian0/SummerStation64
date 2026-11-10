@@ -156,6 +156,11 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
 #art .pic canvas{display:block;background:var(--field);border:1px solid var(--line);border-radius:6px}
 #art .pic .fit{display:flex;flex-direction:column;gap:4px;font-size:14px}
 #art .pic .fit input[type=range]{width:140px;vertical-align:middle}
+#pics .pic{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:flex-start;margin:14px 0}
+#pics .pic canvas{display:block;max-width:100%;border-radius:6px}
+#pics .pic > canvas{background:var(--field);border:1px solid var(--line);touch-action:none;cursor:move}
+#pics .pic .fit{display:flex;flex-direction:column;gap:8px;font-size:14px;align-items:flex-start}
+#pics .pic .fit input[type=range]{width:160px;vertical-align:middle}
 #art td.act{white-space:nowrap;text-align:right}
 #art .done{color:var(--n-green);font-weight:700}
 #art .tablewrap{max-height:420px;overflow-y:auto}
@@ -203,6 +208,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
     <a href="#coll" data-tab="coll">Collections</a>
     <a href="#clips" data-tab="clips">Clips</a>
     <a href="#sounds" data-tab="sounds">Sounds</a>
+    <a href="#pics" data-tab="pics">Pictures</a>
     <a href="#cheats" data-tab="cheats">Cheats</a>
     <a href="#guide" data-tab="guide">Guide</a>
   </nav>
@@ -736,6 +742,60 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
 </div>
 </div>
 
+<div class="tabpane tool" id="pics" hidden>
+<div class="wrap">
+  <header>
+    <h1 class="page-title">Profile Pictures</h1>
+    <p>Turn any picture into a profile picture for the console: frame a square, see it the way the menu draws it, and put it
+      on the SD card. Everything happens in this browser: nothing is uploaded anywhere.</p>
+  </header>
+
+  <div class="panel">
+    <section>
+      <h2><span class="n">1</span>Pick pictures</h2>
+      <p>PNG, JPEG, GIF or WebP, as many as you like (the console lists up to 32). A face, or a head and shoulders, works best:
+        under the tabs the menu draws the picture only 24 pixels across.</p>
+      <div class="line"><input type="file" id="picFiles" accept="image/*" multiple aria-label="Pictures"></div>
+    </section>
+
+    <section>
+      <h2><span class="n">2</span>Frame each one</h2>
+      <p>Drag on a picture to move the square, and use Zoom to take less of it. Beside it is how the console draws it: in the
+        choosing grid, on "Who's playing?" and under the tabs, in the ring of the player's color.</p>
+      <div class="line">
+        <span>Shape</span>
+        <div class="seg" id="picShape" role="group" aria-label="Shape">
+          <button type="button" data-v="round" aria-pressed="true">Circle</button>
+          <button type="button" data-v="square" aria-pressed="false">Rounded Square</button>
+        </div>
+        <span>Ring</span>
+        <div class="seg" id="picRing" role="group" aria-label="Ring color">
+          <button type="button" data-v="#3c78f0" aria-pressed="true">Blue</button>
+          <button type="button" data-v="#e8463c" aria-pressed="false">Red</button>
+          <button type="button" data-v="#3cb45a" aria-pressed="false">Green</button>
+          <button type="button" data-v="#f0c83c" aria-pressed="false">Yellow</button>
+        </div>
+        <label>Background <input type="color" id="picBack" value="#1b2028"></label>
+      </div>
+      <p class="hint">Shape and ring only change the preview: on the console they are set in Settings &gt; Profiles. Background fills
+        any see-through parts, since the console reads only a card picture's colors.</p>
+      <div id="picList"></div>
+    </section>
+
+    <section>
+      <h2><span class="n">3</span>Put them on the card</h2>
+      <div class="line">
+        <button class="go" id="picMake" disabled>Download pictures (.zip)</button>
+        <span class="status" id="picStatus">Pick at least one picture.</span>
+      </div>
+      <p class="hint">Unzip it at the top of the SD card: the pictures land in <code>menu/avatars/</code>. Then choose one in
+        <b>Settings &gt; Profiles &gt; Profile Picture</b>. Each is a 64 × 64 PNG named after its picture; more on this in
+        <a href="#guide-profiles">Profiles</a>.</p>
+    </section>
+  </div>
+</div>
+</div>
+
 <div class="tabpane tool" id="cheats" hidden>
 <div class="wrap">
   <header>
@@ -817,14 +877,16 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
 <div class="wrap">
   <header>
     <h1 class="page-title">Guide</h1>
-    <p>Setting up a card, adding box art and details, 64DD disks, the hardware that works best, handy tools, and what to do
-      when something is off.</p>
+    <p>Setting up a card, adding box art and details, 64DD disks, themes, a few handy settings, the hardware that works best, handy tools,
+      and what to do when something is off.</p>
     <nav class="toc" aria-label="Guide sections">
       <a href="#guide-setup">SD card setup</a>
       <a href="#guide-art">Box art and details</a>
       <a href="#guide-64dd">64DD disks</a>
       <a href="#guide-cheats">Cheats</a>
       <a href="#guide-themes">Making a theme</a>
+      <a href="#guide-menu">Around the menu</a>
+      <a href="#guide-profiles">Profiles</a>
       <a href="#guide-hardware">Hardware</a>
       <a href="#guide-tools">Tools</a>
       <a href="#guide-help">Troubleshooting</a>
@@ -848,7 +910,8 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
           <a href="https://github.com/n64-tools/n64-flashcart-menu-metadata/releases">metadata pack</a> and copy its <code>metadata</code> folder
           into the card's <code>menu</code> folder (<code>menu/metadata/</code>).</li>
         <li><b>Optional</b>: run <a href="#prep">Card Prep</a> once to give each game a check mark for a known good dump, and make a theme in the
-          <a href="#themes">Theme Maker</a> (each theme in a folder of its own, <code>menu/themes/My Theme/theme.ini</code>, then picked in Settings &gt; Display &gt; Theme).</li>
+          <a href="#themes">Theme Maker</a> (each theme in a folder of its own, <code>menu/themes/My Theme/theme.ini</code>, then picked in Settings &gt; Display &gt; Theme),
+          or right on the console with <b>Settings &gt; Display &gt; Edit Theme</b> (see <a href="#guide-themes-console">Making one on the console</a>).</li>
       </ol>
       <p class="note">Your saves stay where they are. Before each game starts, the menu also keeps a dated copy of its save in
         <code>saves/backups/</code> (five per game); a game's Options menu has <b>Restore save</b>.</p>
@@ -1002,6 +1065,25 @@ short-desc = Mario explores Princess Peach's castle.</code></pre>
         (<b>Settings &gt; Profiles</b>) picks a theme of their own.</p>
       <p class="note">If a theme ever leaves the menu hard to read, hold <b>Z</b> while switching the console on. Safe Mode shows the stock look and
         changes nothing on the card.</p>
+
+      <h3 id="guide-themes-console">Making one on the console</h3>
+      <p><b>Settings &gt; Display &gt; Edit Theme</b> changes the theme you're using, with no computer needed. The whole menu shows each change as you
+        make it, and a small sample of the Games screen sits beside the list.</p>
+      <ul>
+        <li><b>What it changes:</b> the colors (Text, Dim text, Accent, Panels and covers, Selected row, Tab bar and badges, Outlines), the background
+          (Solid, Gradient or Ocean, its colors, a middle color and the direction) and the pattern (style, color, size and strength). Switches and
+          sounds stay as the theme had them.</li>
+        <li><b>Picking a color:</b> press A on a color. Up top is a grid of ready colors; underneath are three sliders, <b>Hue</b> (round the
+          rainbow), <b>Color</b> (grey to vivid) and <b>Light</b> (black to bright). Up and down move between them, left and right pick or slide.
+          <b>A</b> keeps the color, <b>B</b> puts the old one back. "Before" and "Now" show the difference.</li>
+        <li><b>Pattern sizes</b> are only the ones that cost no memory (see the table below). An ocean background takes a moment to redraw, so it
+          waits until you stop changing it.</li>
+        <li><b>Save as Theme...</b> asks for a name and saves it as <code>menu/themes/<b>name</b>/theme.ini</code>, then switches to it. It asks
+          before replacing another theme. Saving under the name of the theme you're editing keeps that folder's sounds and font. The file is the same
+          kind the Theme Maker writes, so you can open it there later.</li>
+        <li><b>Undo All Changes</b> goes back to how the theme was when you opened the editor (or last saved). <b>B</b> with unsaved changes asks
+          before leaving.</li>
+      </ul>
 
       <h3>How the file is written</h3>
       <ul>
@@ -1217,6 +1299,73 @@ rounded_corners = 1</code></pre>
       <div class="qa"><b>A sound plays the menu's own instead of mine</b>
         <p>It's over the limit in the table above, or it isn't a file the menu can play. The debug log says which (see <a href="#guide-tools">Tools</a>). Making it again in the
           <a href="#sounds">Sounds</a> tab usually fixes it.</p></div>
+    </section>
+
+    <section id="guide-menu">
+      <h2><i style="background:var(--n-green)"></i>Around the menu</h2>
+
+      <h3>The intro</h3>
+      <p>The intro plays when the console is switched on (Settings &gt; System &gt; <b>Intro</b>: Off, On, or Both to play it after RESET as
+        well). Two more rows choose what it shows:</p>
+      <ul>
+        <li><b>Intro Logo</b>: the spinning logo as <b>Vaporwave</b> (patterned sides), <b>Classic</b> (the console's own colors) or
+          <b>Off</b>.</li>
+        <li><b>Intro Title</b>: the name under it as a <b>Picture</b> (the drawn title), <b>Text</b> (plain letters, which needs no extra
+          memory) or <b>Off</b>.</li>
+      </ul>
+      <p>With one of the two off, the other sits in the middle of the screen. A theme can bring its own intro tune (see
+        <a href="#guide-themes">Making a theme</a>). Any button skips the intro.</p>
+
+      <h3>Typing a name</h3>
+      <p>Naming a collection, a profile or a theme, or renaming a file, opens an on-screen keyboard. If you'd rather spell names on the
+        round dial, choose it in Settings &gt; Controls &gt; <b>Name Entry</b>.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Button</th><th>On the keyboard</th></tr></thead>
+        <tbody>
+          <tr><td>D-Pad or stick</td><td>Move between keys (left and right go round to the other side)</td></tr>
+          <tr><td>A</td><td>Type the key, or use Erase, Shift or OK</td></tr>
+          <tr><td>B</td><td>Erase the letter before the cursor; at the start of the name, give up</td></tr>
+          <tr><td>R</td><td>Shift: once for one capital, twice for caps lock, a third time for off</td></tr>
+          <tr><td>C-down</td><td>Space</td></tr>
+          <tr><td>C-left / C-right</td><td>Move the cursor inside the name</td></tr>
+          <tr><td>START</td><td>Keep the name (the same as OK)</td></tr>
+        </tbody>
+      </table></div>
+      <p>A new name starts with Shift on, so its first letter is a capital. The keys hold the letters, numbers and the symbols
+        <code>- _ ' + , . ! &amp; ( ) [ ]</code>: the ones a file name on the SD card may use.</p>
+    </section>
+
+    <section id="guide-profiles">
+      <h2><i style="background:var(--n-green)"></i>Profiles</h2>
+      <p>Up to four players can share the console, each with their own saves, Recent, Favorites, play counts, collections,
+        hidden games, settings and theme. Make one in Settings &gt; Profiles &gt; <b>New Profile</b>. With two or more, the menu
+        asks <b>Who's playing?</b> at power-on, with the last player already chosen. A new profile starts every game with a
+        fresh save, and deleting one leaves its saves on the card.</p>
+
+      <h3>Profile pictures</h3>
+      <p>Each player has a picture, shown on "Who's playing?" and beside their name under the tabs. Choose it in Settings &gt;
+        Profiles &gt; <b>Profile Picture</b> (it also opens straight after a new profile is named):</p>
+      <ul>
+        <li><b>None</b> shows the player's initial in their color.</li>
+        <li>Then come the pictures built into the menu, and after them any PNG in <code>menu/avatars/</code> on the SD card (up to
+          32), named after the file.</li>
+      </ul>
+      <p><b>Profile Color</b> sets the ring round the picture, and <b>Picture Shape</b> draws every player's picture as a circle or a
+        rounded square.</p>
+
+      <h3>Making your own</h3>
+      <p>The easy way is the <a href="#pics">Profile Pictures</a> tab: pick any picture, frame a square, and it makes the files for
+        you. To make them yourself:</p>
+      <ul>
+        <li><b>Exactly 64 × 64 pixels, as a PNG.</b> The console shrinks a larger picture by skipping pixels, so it comes out jagged;
+          a smaller one is stretched and blurry.</li>
+        <li><b>Square.</b> A wide or tall picture is shrunk to fit 64 × 64 and then cut square from the middle, which leaves it
+          small and soft.</li>
+        <li><b>A face, or a head and shoulders, filling the square.</b> The picture is drawn as small as 24 pixels across, and the
+          circle cuts off the corners: keep what matters in the middle.</li>
+        <li><b>Bold colors and a clear outline</b> read best on a CRT.</li>
+        <li>See-through parts come out black: the console reads only a card picture's colors.</li>
+      </ul>
     </section>
 
     <section id="guide-hardware">
@@ -6649,10 +6798,222 @@ $('sndMake').addEventListener('click', function () {
 </script>
 
 <script>
-/* Tabs: one per address (#themes, #prep, #hacks, #art, #coll, #clips, #sounds, #cheats, #guide, or a Guide section such as
+(function(){
+'use strict';
+// --- pictures logic (also run by tests/pics_tab_test.js) ---
+var PIC_SIDE = 64;          // every profile picture on the console (src/menu/avatars.c)
+var PIC_NAME_MOST = 40;     // the console reads card file names up to 44 characters, ".png" included
+
+// A file name the console will list: no characters a card can't hold, no
+// trailing dot or space, the extension of the picture it came from left off.
+function picFileName(text) {
+  var s = String(text || '').replace(/\.[A-Za-z0-9]{2,4}$/, '').replace(/[\\/:*?"<>|\x00-\x1f]/g, '').trim();
+  s = s.slice(0, PIC_NAME_MOST).replace(/[. ]+$/, '');
+  return (!s || s[0] === '.') ? 'Picture' : s;
+}
+
+// Names made different from each other, as the card would see them (A and a are the same file).
+function picUniqueNames(names) {
+  var seen = {};
+  return names.map(function (name) {
+    var out = name, k = 2;
+    while (seen[out.toLowerCase()]) out = name.slice(0, PIC_NAME_MOST - 3) + ' ' + (k++);
+    seen[out.toLowerCase()] = true;
+    return out;
+  });
+}
+
+// The square taken from a w x h picture: `zoom` 1 is the largest square that
+// fits, smaller takes less; centred on cx, cy, kept inside the picture.
+function picSquare(w, h, zoom, cx, cy) {
+  var side = Math.max(1, Math.min(w, h) * Math.min(1, Math.max(0.1, zoom)));
+  return {
+    x: Math.min(Math.max(cx - side / 2, 0), w - side),
+    y: Math.min(Math.max(cy - side / 2, 0), h - side),
+    side: side
+  };
+}
+// --- end pictures logic ---
+if (typeof document === 'undefined') { module.exports = { picFileName: picFileName, picUniqueNames: picUniqueNames, picSquare: picSquare, PIC_SIDE: PIC_SIDE }; return; }
+
+var T = window.cardTools;
+var $ = function (id) { return document.getElementById(id); };
+var EDIT = 240;             // the framing canvas
+var pics = [];              // { img, name, zoom, cx, cy, edit, look, input }
+var shape = 'round', ring = '#3c78f0';
+
+function status(text) { $('picStatus').textContent = text; }
+
+function refresh() {
+  $('picMake').disabled = pics.length === 0;
+  status(pics.length ? pics.length + ' picture' + (pics.length === 1 ? '' : 's') + ' ready.' : 'Pick at least one picture.');
+}
+
+// The 64 x 64 picture as the card will hold it: halved step by step first, so a
+// large picture shrinks smoothly, on the background color.
+function render(p) {
+  var sq = picSquare(p.img.naturalWidth, p.img.naturalHeight, p.zoom, p.cx, p.cy);
+  var src = p.img, sx = sq.x, sy = sq.y, side = sq.side;
+  while (side > PIC_SIDE * 2) {
+    var half = Math.ceil(side / 2), c = document.createElement('canvas');
+    c.width = c.height = half;
+    var g = c.getContext('2d');
+    g.imageSmoothingQuality = 'high';
+    g.drawImage(src, sx, sy, side, side, 0, 0, half, half);
+    src = c; sx = 0; sy = 0; side = half;
+  }
+  var out = document.createElement('canvas');
+  out.width = out.height = PIC_SIDE;
+  var o = out.getContext('2d');
+  o.fillStyle = $('picBack').value;
+  o.fillRect(0, 0, PIC_SIDE, PIC_SIDE);
+  o.imageSmoothingQuality = 'high';
+  o.drawImage(src, sx, sy, side, side, 0, 0, PIC_SIDE, PIC_SIDE);
+  return out;
+}
+
+// The ring's shape, as avatars.c draws it: a circle, or a box with 8 px corners.
+function shapePath(g, x, y, size, radius) {
+  g.beginPath();
+  if (shape === 'round') g.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+  else g.roundRect(x, y, size, size, radius);
+}
+
+function drawLook(p) {
+  var small = render(p), g = p.look.getContext('2d'), x = 0;
+  g.clearRect(0, 0, p.look.width, p.look.height);
+  [64, 40, 24].forEach(function (size) {
+    var y = (64 - size) / 2, inset = size >= 40 ? 3 : 2, inner = size - inset * 2;
+    g.fillStyle = ring;
+    shapePath(g, x, y, size, 8);
+    g.fill();
+    g.save();
+    shapePath(g, x + inset, y + inset, inner, inner / 8);
+    g.clip();
+    g.imageSmoothingQuality = 'high';
+    g.drawImage(small, x + inset, y + inset, inner, inner);
+    g.restore();
+    x += size + 16;
+  });
+}
+
+function drawEdit(p) {
+  var w = p.img.naturalWidth, h = p.img.naturalHeight, scale = Math.min(EDIT / w, EDIT / h);
+  var dw = w * scale, dh = h * scale, ox = (EDIT - dw) / 2, oy = (EDIT - dh) / 2;
+  var g = p.edit.getContext('2d'), sq = picSquare(w, h, p.zoom, p.cx, p.cy);
+  p.view = { scale: scale, ox: ox, oy: oy };
+  g.clearRect(0, 0, EDIT, EDIT);
+  g.drawImage(p.img, ox, oy, dw, dh);
+  g.fillStyle = 'rgba(0,0,0,0.55)';
+  g.beginPath();
+  g.rect(ox, oy, dw, dh);
+  g.rect(ox + sq.x * scale, oy + sq.y * scale, sq.side * scale, sq.side * scale);
+  g.fill('evenodd');
+  g.strokeStyle = '#fff';
+  g.lineWidth = 2;
+  g.strokeRect(ox + sq.x * scale, oy + sq.y * scale, sq.side * scale, sq.side * scale);
+}
+
+function redraw(p) { drawEdit(p); drawLook(p); }
+
+function addPicture(file) {
+  var img = new Image();
+  img.onload = function () {
+    var p = { img: img, name: picFileName(file.name), zoom: 1, cx: img.naturalWidth / 2, cy: img.naturalHeight / 2 };
+    var box = document.createElement('div');
+    box.className = 'pic';
+    p.edit = document.createElement('canvas');
+    p.edit.width = p.edit.height = EDIT;
+    p.edit.setAttribute('aria-label', 'Drag to move the square');
+    p.look = document.createElement('canvas');
+    p.look.width = 64 + 16 + 40 + 16 + 24;
+    p.look.height = 64;
+    var side = document.createElement('div');
+    side.className = 'fit';
+    var nameLabel = document.createElement('label');
+    nameLabel.textContent = 'Name ';
+    p.input = document.createElement('input');
+    p.input.type = 'text'; p.input.maxLength = PIC_NAME_MOST; p.input.value = p.name;
+    p.input.addEventListener('input', function () { p.name = picFileName(p.input.value); });
+    nameLabel.appendChild(p.input);
+    var zoomLabel = document.createElement('label');
+    zoomLabel.textContent = 'Zoom ';
+    var zoom = document.createElement('input');
+    zoom.type = 'range'; zoom.min = 10; zoom.max = 100; zoom.value = 100;
+    zoom.addEventListener('input', function () { p.zoom = zoom.value / 100; redraw(p); });
+    zoomLabel.appendChild(zoom);
+    var remove = document.createElement('button');
+    remove.type = 'button'; remove.className = 'go quiet'; remove.textContent = 'Remove';
+    remove.addEventListener('click', function () {
+      pics.splice(pics.indexOf(p), 1);
+      box.remove();
+      refresh();
+    });
+    side.append(nameLabel, zoomLabel, p.look, remove);
+    box.append(p.edit, side);
+    $('picList').appendChild(box);
+
+    var dragging = false;
+    function moveTo(e) {
+      var r = p.edit.getBoundingClientRect(), k = EDIT / r.width;
+      p.cx = ((e.clientX - r.left) * k - p.view.ox) / p.view.scale;
+      p.cy = ((e.clientY - r.top) * k - p.view.oy) / p.view.scale;
+      var sq = picSquare(img.naturalWidth, img.naturalHeight, p.zoom, p.cx, p.cy);
+      p.cx = sq.x + sq.side / 2; p.cy = sq.y + sq.side / 2;   // held at the edge, so Zoom grows from where it shows
+      redraw(p);
+    }
+    p.edit.addEventListener('pointerdown', function (e) { dragging = true; p.edit.setPointerCapture(e.pointerId); moveTo(e); });
+    p.edit.addEventListener('pointermove', function (e) { if (dragging) moveTo(e); });
+    p.edit.addEventListener('pointerup', function () { dragging = false; });
+
+    pics.push(p);
+    redraw(p);
+    refresh();
+  };
+  img.onerror = function () { status('This browser can\'t read ' + file.name + '.'); };
+  img.src = URL.createObjectURL(file);
+}
+
+$('picFiles').addEventListener('change', function () {
+  Array.prototype.forEach.call($('picFiles').files, addPicture);
+  $('picFiles').value = '';
+});
+
+function seg(id, set) {
+  $(id).addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    $(id).querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+    set(b.dataset.v);
+    pics.forEach(drawLook);
+  });
+}
+seg('picShape', function (v) { shape = v; });
+seg('picRing', function (v) { ring = v; });
+$('picBack').addEventListener('input', function () { pics.forEach(drawLook); });
+
+$('picMake').addEventListener('click', async function () {
+  var names = picUniqueNames(pics.map(function (p) { return p.name; }));
+  var files = [];
+  for (var i = 0; i < pics.length; i++) {
+    var blob = await new Promise(function (ok) { render(pics[i]).toBlob(ok, 'image/png'); });
+    files.push({ path: 'menu/avatars/' + names[i] + '.png', bytes: new Uint8Array(await blob.arrayBuffer()) });
+  }
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([T.zipStore(files, T.crcOf)], { type: 'application/zip' }));
+  a.download = 'profile pictures.zip';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  status('Downloaded. Unzip it at the top of the SD card.');
+});
+})();
+</script>
+
+<script>
+/* Tabs: one per address (#themes, #prep, #hacks, #art, #coll, #clips, #sounds, #pics, #cheats, #guide, or a Guide section such as
    #guide-tools), so each can be linked to directly. */
 (function () {
-  var panes = ['themes', 'prep', 'hacks', 'art', 'coll', 'clips', 'sounds', 'cheats', 'guide'];
+  var panes = ['themes', 'prep', 'hacks', 'art', 'coll', 'clips', 'sounds', 'pics', 'cheats', 'guide'];
   function show() {
     var hash = (location.hash || '#themes').slice(1);
     var tab = hash.indexOf('guide') === 0 ? 'guide' : (panes.indexOf(hash) >= 0 ? hash : 'themes');

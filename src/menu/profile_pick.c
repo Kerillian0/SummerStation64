@@ -1,5 +1,6 @@
 #include <libdragon.h>
 
+#include "avatars.h"
 #include "bookkeeping.h"
 #include "fonts.h"
 #include "games_filter.h"
@@ -23,7 +24,7 @@
 #define ROW_STEP        (60)
 #define ROWS_Y          (176)
 #define RING            (4)
-#define DOT             (20)
+#define PICTURE         (40)
 
 static bool showing = false;
 static int selected = 0;
@@ -129,8 +130,8 @@ static void draw (surface_t *display) {
             games_ui_round_fill(x0 - RING, y - RING, x0 + ROW_WIDTH + RING, y + ROW_HEIGHT + RING, t->accent);
         }
         games_ui_round_fill(x0, y, x0 + ROW_WIDTH, y + ROW_HEIGHT, RGBA32(t->panel.r, t->panel.g, t->panel.b, 0xFF));
-        games_ui_round_fill(x0 + 16, y + ((ROW_HEIGHT - DOT) / 2), x0 + 16 + DOT, y + ((ROW_HEIGHT + DOT) / 2), profiles_color(i));
-        int name_x = x0 + 16 + DOT + 14;
+        avatars_draw(profiles_picture(i), x0 + 6, y + ((ROW_HEIGHT - PICTURE) / 2), PICTURE, profiles_color(i), profiles_name(i));
+        int name_x = x0 + 6 + PICTURE + 14;
         int name_width = x0 + ROW_WIDTH - 12 - name_x;
         rdpq_text_printf(&(rdpq_textparms_t) {
             .width = name_width,

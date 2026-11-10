@@ -1,11 +1,12 @@
 # SummerStation64 Companion
 
-One web page, `index.html`, with seven tabs: **Theme Maker**, **Card Prep**,
-**Hacks**, **Missing Metadata**, **Collections**, **Clips** and **Guide**. Published with GitHub Pages from this folder
+One web page, `index.html`, with ten tabs: **Theme Maker**, **Card Prep**,
+**Hacks**, **Missing Metadata**, **Collections**, **Clips**, **Sounds**,
+**Pictures** (profile pictures), **Cheats** and **Guide**. Published with GitHub Pages from this folder
 (Settings > Pages: branch `summerstation`, folder `/docs`), at
 `https://kerillian0.github.io/SummerStation64/companion/`. Each tab has its
-own address: `#themes`, `#prep`, `#hacks`, `#art`, `#coll`, `#clips`, `#guide` (and `#guide-setup`,
-`#guide-themes`, `#guide-hardware`, `#guide-tools`, `#guide-help`).
+own address: `#themes`, `#prep`, `#hacks`, `#art`, `#coll`, `#clips`, `#sounds`, `#pics`, `#cheats`, `#guide` (and `#guide-setup`,
+`#guide-themes`, `#guide-themes-console`, `#guide-menu`, `#guide-profiles`, `#guide-hardware`, `#guide-tools`, `#guide-help`).
 
 Markup, styles and scripts are all in the one file, with no build step. It
 also opens straight from disk in a browser for a quick look.

@@ -53,6 +53,7 @@ static const option_info_t option_info[OPTION_COUNT] = {
     [OPTION_SOUND_VOLUME] = { "sound_volume", 5 },
     [OPTION_INTRO_TITLE] = { "intro_title", 0 }, /* the picture */
     [OPTION_NAME_ENTRY] = { "name_entry", 0 }, /* the keyboard */
+    [OPTION_AVATAR_SHAPE] = { "avatar_shape", 0 }, /* round */
     [OPTION_PARTY_TEST] = { "party_test", 0 }, /* count the real controllers */
 };
 
@@ -66,7 +67,8 @@ static bool shared_dirty = false;
    profile, kept in the first profile's file. Character Set applies at a
    restart, before anyone is asked who is playing. */
 static bool shared (int option) {
-    return option == OPTION_FONT || option == OPTION_FRAME_RATE || option == OPTION_PARTY_TEST;
+    return option == OPTION_FONT || option == OPTION_FRAME_RATE || option == OPTION_PARTY_TEST
+        || option == OPTION_AVATAR_SHAPE;   /* the pictures show side by side on "Who's playing?" */
 }
 
 static ini_t *shared_load (void) {

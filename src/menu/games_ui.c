@@ -5,6 +5,7 @@
 
 #include <libdragon.h>
 
+#include "avatars.h"
 #include "profiles.h"
 #include "fonts.h"
 #include "dump_check.h"
@@ -204,9 +205,10 @@ static void controller_marks_draw (void) {
 }
 
 /* Under the tabs, on the left, while there are two or more profiles: who is
-   playing, as a dot in their color and their name (profiles.h). */
+   playing, as their picture in a ring of their color and their name
+   (profiles.h, avatars.h). */
 #define PLAYER_Y        (GAMES_UI_TOPBAR_BOTTOM + 8)
-#define PLAYER_DOT      (16)
+#define PLAYER_DOT      (24)
 #define PLAYER_WIDTH    (200)
 
 static bool player_shown (void) {
@@ -215,7 +217,7 @@ static bool player_shown (void) {
 
 static void player_draw (void) {
     int p = profiles_current();
-    round_fill(TABS_X, PLAYER_Y, TABS_X + PLAYER_DOT, PLAYER_Y + PLAYER_DOT, profiles_color(p));
+    avatars_draw(profiles_picture(p), TABS_X, PLAYER_Y - 4, PLAYER_DOT, profiles_color(p), profiles_name(p));
     text(TABS_X + PLAYER_DOT + 8, PLAYER_Y - 4, PLAYER_WIDTH - PLAYER_DOT - 8, 24, ALIGN_LEFT, STL_DEFAULT, profiles_name(p));
 }
 

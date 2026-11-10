@@ -28,6 +28,7 @@
 
 #define PROFILES_MAX        (4)
 #define PROFILE_COLORS      (4)
+#define PROFILE_PICTURE_LENGTH  (48)
 
 /** How many profiles there are (at least one). */
 int profiles_count (void);
@@ -41,6 +42,12 @@ const char *profiles_name (int profile);
 /** A profile's color: one of PROFILE_COLORS, as a color and as its number. */
 color_t profiles_color (int profile);
 int profiles_color_index (int profile);
+
+/** A profile's picture, as avatars.h names it ("" for none: the player's initial). */
+const char *profiles_picture (int profile);
+
+/** Give a profile a picture ("" or NULL for none); saved at once. */
+void profiles_set_picture (int profile, const char *picture);
 
 /** Change a profile's color to the next one. */
 void profiles_next_color (int profile);
