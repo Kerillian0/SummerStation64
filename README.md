@@ -97,7 +97,9 @@ Each [release](https://github.com/Kerillian0/SummerStation64/releases) comes in 
   on your SD card, for people who want their own art.
 
 Both have the game details (descriptions, release dates, developers, players)
-built in.
+built in. A third download, **Logos and Clips** (`.zip`), adds title logos and
+preview clips for Game info: unzip it at the top of your SD card, beside the
+box art. The clips need the Expansion Pak.
 
 > [!WARNING]
 > **"Watchdog timeout" at power-on?** The SummerCart64 gives the menu file 5
@@ -249,9 +251,11 @@ Code.
 Thank you to everyone who has helped build SummerStation64:
 
 - **[stewx](https://github.com/stewx)**: title logos on Game info
-  ([#10](https://github.com/Kerillian0/SummerStation64/pull/10)) and video
-  previews ([#8](https://github.com/Kerillian0/SummerStation64/pull/8)), with
-  the scripts that make them and tools to check every game in an emulator.
+  ([#10](https://github.com/Kerillian0/SummerStation64/pull/10)), video
+  previews ([#8](https://github.com/Kerillian0/SummerStation64/pull/8)) and
+  review scores ([#7](https://github.com/Kerillian0/SummerStation64/pull/7)),
+  with the scripts that make the logos and clips and tools to check every
+  game in an emulator.
 - Players on Reddit, especially **Dispacho** and **Quest-Quest**, for their
   requests and bug reports.
 
@@ -275,6 +279,11 @@ example.
   [n64-flashcart-menu-metadata](https://github.com/n64-tools/n64-flashcart-menu-metadata)
   pack; they belong to the games' publishers and are not part of the source
   code or its licence.
+- The title logos and preview clips in the Logos and Clips pack come from
+  [libretro-thumbnails](https://github.com/libretro-thumbnails/Nintendo_-_Nintendo_64)
+  and from gameplay recordings kept on [archive.org](https://archive.org).
+  They also belong to the games' publishers, are not part of the source code
+  or its licence, and are removed on request.
 
 Released under the [GNU Affero General Public License v3](LICENSE.md), like
 N64FlashcartMenu.
