@@ -37,7 +37,7 @@ void frame_rate_end_frame (void);
 uint64_t frame_rate_last_wait_us (void);
 
 /**
- * Once a frame (menu.c): whether Game info's clip is on screen. With one, an
+ * Once a frame (menu.c): whether Game info's clip is on screen or loading. With one, an
  * NTSC console runs at every third refresh, a steady 20 a second (the clip's
  * own rate): the page and the clip's decoding together need a little more
  * than every second refresh gives, and missing every other one judders.

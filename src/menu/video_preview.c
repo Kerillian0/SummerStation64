@@ -16,7 +16,8 @@
 #define START_DELAY_MS      (1500)      /* the cover alone first */
 #define FADE_MS             (400)
 #define LOAD_STEP           (64 * 1024) /* the clip's header is checked once this much is in */
-#define LOAD_PIECE          (4 * 1024)  /* read in the idle time between frames, a piece at a time: about 4 ms each */
+#define LOAD_PIECE          (4 * 1024)  /* read in the idle time between frames: at least this much at a time (about 4 ms) */
+#define LOAD_PIECE_MAX      (32 * 1024) /* ... and at most this, sized to the time there is */
 #define LOAD_MARGIN_US      (3000)      /* a piece is only started if it should end this long before the next frame is due */
 #define LOAD_STALL_MS       (300)       /* ... or if none has been read for this long, so loading never stops */
 #define MAX_CLIP_BYTES      (3 * 1024 * 1024)
@@ -354,10 +355,11 @@ static void load_seek_table (void) {
    drawn), and how long a piece takes to read on this card, so pieces are
    only read when there is time before the next frame. */
 static uint64_t frame_began_us = 0;
-static uint32_t piece_us = 8000;
+static uint32_t us_per_kb = 1000;   /* measured: 64 KB in 57 ms on the owner's card */
 static uint64_t last_piece_ms = 0;
+static bool header_checked = false;
 
-static void load_step (void) {
+static void load_step (int piece) {
     if (!load_file) {
         load_file = fopen(want_path, "rb");
         if (!load_file) {
@@ -381,18 +383,22 @@ static void load_step (void) {
         }
         clip_size = (int) size;
         clip_loaded = 0;
+        header_checked = false;
     }
 
     /* Read 64 KB at a time inside the frame, this took 57 ms a piece
        (the owner's card, 2026-11-10): 8 frames of 85-100 ms on opening Game
        info. Small pieces in the idle time keep those frames on time. */
     int want = clip_size - clip_loaded;
-    if (want > LOAD_PIECE) {
-        want = LOAD_PIECE;
+    if (want > piece) {
+        want = piece;
     }
     uint64_t read_began = get_ticks_us();
     size_t got = fread(clip_data + clip_loaded, 1, want, load_file);
-    piece_us = (piece_us * 3 + (uint32_t) (get_ticks_us() - read_began)) / 4;
+    if (want >= 1024) {
+        uint32_t took = (uint32_t) (get_ticks_us() - read_began) / (uint32_t) (want / 1024);
+        us_per_kb = (us_per_kb * 3 + took) / 4;
+    }
     last_piece_ms = get_ticks_ms();
     if (got != (size_t) want) {
         fail("read error");
@@ -400,7 +406,8 @@ static void load_step (void) {
     }
     clip_loaded += want;
 
-    if (clip_loaded == LOAD_STEP || clip_loaded == clip_size) {
+    if (!header_checked && (clip_loaded >= LOAD_STEP || clip_loaded == clip_size)) {
+        header_checked = true;
         /* Check the header as soon as it is in. */
         video_clip_info_t check;
         video_clip_result_t result = video_clip_check(clip_data, clip_loaded, &check);
@@ -631,7 +638,10 @@ const video_preview_stats_t *video_preview_stats (void) {
 }
 
 bool video_preview_showing (void) {
-    return state == VP_PLAYING && video && (get_ticks_ms() - last_update_ms) <= AWAY_MS;
+    /* Loading too: at the clip's pace each frame has far more spare time
+       to read it in (about 25 ms against 6), and it starts as soon as before. */
+    bool busy = (state == VP_LOADING || state == VP_WAITING || (state == VP_PLAYING && video));
+    return busy && (get_ticks_ms() - last_update_ms) <= AWAY_MS;
 }
 
 void video_preview_poll (void) {
@@ -640,8 +650,13 @@ void video_preview_poll (void) {
            the main loop comes round again soon. Reading regardless made
            the last piece run past the refresh: every frame 60 ms. */
         uint64_t due_us = frame_began_us + frame_rate_frame_us() - LOAD_MARGIN_US;
-        if (get_ticks_us() + piece_us <= due_us || (get_ticks_ms() - last_piece_ms) > LOAD_STALL_MS) {
-            load_step();
+        uint64_t now_us = get_ticks_us();
+        int piece = (now_us < due_us) ? (int) (((due_us - now_us) / us_per_kb) * 1024) : 0;
+        piece = (piece > LOAD_PIECE_MAX) ? LOAD_PIECE_MAX : (piece & ~(LOAD_PIECE - 1));
+        if (piece >= LOAD_PIECE) {
+            load_step(piece);       /* as much as fits before the next frame */
+        } else if ((get_ticks_ms() - last_piece_ms) > LOAD_STALL_MS) {
+            load_step(LOAD_PIECE);
         }
         return;
     }

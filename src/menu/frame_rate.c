@@ -48,7 +48,7 @@ void frame_rate_clip (bool showing) {
     if (showing != clip_pace) {
         clip_pace = showing;
         frame_rate_apply();
-        debugf("frame rate: %s\n", showing ? "a clip is playing, a steady third of the refresh rate" : "back to half the refresh rate");
+        debugf("frame rate: %s\n", showing ? "a clip is loading or playing, a steady third of the refresh rate" : "back to half the refresh rate");
     }
 }
 
