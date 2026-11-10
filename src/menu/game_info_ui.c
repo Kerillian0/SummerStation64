@@ -268,28 +268,58 @@ static void draw_cover_or_clip (surface_t *image, const char *clip) {
     rdpq_mode_pop();
 }
 
+/* Three fact boxes, or four with the review score (Review Scores on): a
+   game's screen keeps four whether or not that game has a score, so the
+   boxes are the same from game to game. */
+static int fact_boxes = 3;
+
+/* Four boxes are each as wide as what they hold, so none is cut short:
+   Played ("12 times"), Last played ("Nov 13, 2026"), Players ("1-4,
+   co-op/vs"), and Review score (its caption) gets the rest. With four, the
+   gaps and the padding inside a box are a little narrower to make room, and
+   text may run into the right padding: the ellipsis check counts a glyph's
+   width past its advance, so a line that fits would otherwise be cut. The
+   widths hold for both built-in fonts: the small one (no Expansion Pak) is
+   the same typeface at the same size with fewer characters. */
+static const int four_box_width[3] = { 90, 123, 133 };
+#define FOUR_GAP        (3)
+#define FOUR_PAD        (5)
+
 /* A labelled fact in a dark box: a dim caption with the value under it. */
 static void draw_fact_styled (int index, const char *caption, const char *value, menu_font_style_t style) {
-    int width = (X1 - X0 - (FACTS_GAP * 2)) / 3;
-    int x = X0 + index * (width + FACTS_GAP);
+    int width;
+    int x = X0;
+    int pad = PAD;
+    int right_pad = PAD;
+    if (fact_boxes == 4) {
+        for (int i = 0; i < index; i++) {
+            x += four_box_width[i] + FOUR_GAP;
+        }
+        width = (index == 3) ? (X1 - x) : four_box_width[index];
+        pad = FOUR_PAD;
+        right_pad = 0;
+    } else {
+        width = (X1 - X0 - (FACTS_GAP * 2)) / 3;
+        x = X0 + index * (width + FACTS_GAP);
+    }
 
     fill(x, FACTS_Y, x + width, FACTS_Y + FACTS_HEIGHT, panel_color());
 
     rdpq_text_printf(&(rdpq_textparms_t) {
-        .width = width - (PAD * 2),
+        .width = width - pad - right_pad,
         .height = FACTS_HEIGHT / 2,
         .valign = VALIGN_CENTER,
         .wrap = WRAP_ELLIPSES,
         .style_id = STL_GRAY,
-    }, FNT_DEFAULT, x + PAD, FACTS_Y + 2, "%s", caption);
+    }, FNT_DEFAULT, x + pad, FACTS_Y + 2, "%s", caption);
 
     rdpq_text_printf(&(rdpq_textparms_t) {
-        .width = width - (PAD * 2),
+        .width = width - pad - right_pad,
         .height = FACTS_HEIGHT / 2,
         .valign = VALIGN_CENTER,
         .wrap = WRAP_ELLIPSES,
         .style_id = style,
-    }, FNT_DEFAULT, x + PAD, FACTS_Y + (FACTS_HEIGHT / 2) - 2, "%s", value);
+    }, FNT_DEFAULT, x + pad, FACTS_Y + (FACTS_HEIGHT / 2) - 2, "%s", value);
 }
 
 static void draw_fact (int index, const char *caption, const char *value) {
@@ -640,6 +670,7 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
     rom_info_t *info = &menu->load.rom_info;
     surface_t *image = art_ready(art) ? art->image : NULL;
 
+    fact_boxes = game_data_review_scores_shown() ? 4 : 3;
     backdrop_update(menu->load.rom_path ? path_get(menu->load.rom_path) : NULL, image, view->front_picture);
     if (backdrop.buffer) {
         draw_backdrop(&backdrop);
@@ -718,6 +749,17 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
 
     draw_fact(2, "Players", players);
 
+    /* The review score, out of 10. A hack is not the game that was scored. */
+    if (fact_boxes == 4) {
+        bool hack = rom_path && games_filter_is_hack_path(menu, rom_path);
+        int review = hack ? 0 : game_data_review_score(info->game_code);
+        char score[8] = "None";
+        if (review > 0) {
+            snprintf(score, sizeof(score), "%d.%d", review / 10, review % 10);
+        }
+        draw_fact_styled(3, "Review score", score, games_ui_review_style(review));
+    }
+
     /* Description. This game's own switches are only mentioned when one
        of them is on, as badges along the bottom of the box. */
     bool switches = view->cheats || view->patches || view->clear_rdram;
@@ -767,6 +809,7 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
 void game_info_ui_draw_page (menu_t *menu, component_boxart_t *art, const game_info_page_t *page) {
     surface_t *image = art_ready(art) ? art->image : NULL;
 
+    fact_boxes = 3;     /* not a game: no review score */
     backdrop_update(page->path, image, page->front_picture);
     if (backdrop.buffer) {
         draw_backdrop(&backdrop);

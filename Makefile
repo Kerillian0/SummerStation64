@@ -117,6 +117,7 @@ SRCS = \
 	menu/hack_games.c \
 	menu/dump_check.c \
 	menu/game_data.c \
+	menu/review_scores.c \
 	menu/memory_note.c \
 	menu/logo_shots.c \
 	menu/screenshot.c \

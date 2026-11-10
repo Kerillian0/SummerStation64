@@ -9,6 +9,8 @@
 #include <libdragon.h>
 
 #include "game_data.h"
+#include "menu_features.h"
+#include "review_scores.h"
 
 #define DATA_PATH       "rom:/gamedata.txt"
 #define DATA_HEADER     "gamedata 1"
@@ -103,4 +105,47 @@ const char *game_data_players_text (const game_data_t *data, bool with_word) {
         snprintf(text, sizeof(text), "1-%d%s%s", data->players, with_word ? " players" : "", mode);
     }
     return text;
+}
+
+/* Review scores (review_scores.h), read the first time one is asked for:
+   the player's own menu/reviewscores.txt on the SD card. No list comes with
+   the menu; without the file, no scores show. */
+#define SCORES_SD_PATH  "sd:/menu/reviewscores.txt"
+
+static void review_scores_load (void) {
+    static bool tried = false;
+    if (tried) {
+        return;
+    }
+    tried = true;
+    const char *paths[] = { SCORES_SD_PATH };
+    for (int i = 0; i < 1; i++) {
+        FILE *f = fopen(paths[i], "r");
+        if (!f) {
+            continue;
+        }
+        bool ok = review_scores_read(f);
+        fclose(f);
+        if (ok) {
+            debugf("game data: %d review scores from %s\n", review_scores_count(), paths[i]);
+            return;
+        }
+        debugf("game data: %s is not a scores file\n", paths[i]);
+    }
+}
+
+int game_data_review_score (const char *game_code) {
+    if (!game_code) {
+        return 0;
+    }
+    review_scores_load();
+    return review_scores_find(game_code);
+}
+
+bool game_data_review_scores_shown (void) {
+    if (!features_enabled(FEATURE_REVIEW_SCORES)) {
+        return false;
+    }
+    review_scores_load();
+    return review_scores_count() > 0;
 }

@@ -9,6 +9,12 @@ project that read what people type or share:
   endings, keys in the wrong section and a missing file. It is built with
   the PC's own compiler; `stubs/libdragon.h` stands in for the console's
   library, which the reader only needs for its color type.
+- `review_scores_test.c` — the review scores file reader
+  (`src/menu/review_scores.c`, file format in `docs/review_scores.md`):
+  scores in tenths and with a point, out-of-range and malformed lines,
+  codes in any case, spacing, comments, Windows line endings, a missing
+  last newline, a code listed twice, an overlong line, a wrong header, and
+  a thousand codes found after sorting.
 - `share_code_test.js` — the Theme Maker's share codes. The code is taken
   straight out of `docs/companion/index.html`, so the test checks the
   page itself: codes of all three versions load back the same, the right

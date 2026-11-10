@@ -22,6 +22,7 @@ typedef struct {
     bool favorite;          /**< it is in the Favorites list */
     uint8_t paks;           /**< accessories it uses, GAME_INDEX_PAK_... bits (game_index.h) */
     uint8_t dump;           /**< dump_state_t from Card Prep's verified.txt (dump_check.h), before hacks are left out */
+    uint8_t review_score;   /**< review score in tenths (89 = 8.9), 0 if it has none (game_data.h); the title panel's fallback for a game the game list hasn't learned yet */
 } game_facts_t;
 
 /**

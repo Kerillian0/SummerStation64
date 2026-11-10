@@ -13,6 +13,7 @@
 #include "party.h"
 #include "tabs.h"
 #include "game_index.h"
+#include "game_data.h"
 #include "menu_features.h"
 #include "menu_options.h"
 #include "theme.h"
@@ -374,7 +375,11 @@ static int name_scroll_offset (uint64_t ms, int travel) {
     return offset & ~1;
 }
 
-void games_ui_title_panel_draw (const char *title, const char *detail, const char *lead, bool hack, bool is_new, const char *with, const game_facts_t *facts) {
+menu_font_style_t games_ui_review_style (int review) {
+    return (review >= 75) ? STL_GREEN : (review >= 50) ? STL_YELLOW : (review > 0) ? STL_RED : STL_GRAY;
+}
+
+void games_ui_title_panel_draw (const char *title, const char *detail, const char *lead, bool hack, bool is_new, const char *with, const game_facts_t *facts, int review) {
     const theme_t *t = theme_get();
     int x0 = GAMES_UI_CONTENT_X0;
     int x1 = GAMES_UI_CONTENT_X1;
@@ -386,7 +391,13 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const cha
        name, so the name doesn't change size when the heart turns up. */
     bool heart = features_enabled(FEATURE_FAVORITE_HEART);
     bool marks = features_enabled(FEATURE_DUMP_MARKS);   /* room kept for the dump mark at the right, the same way */
-    int title_width = x1 - x0 - 24 - (heart ? (HEART_WIDTH + HEART_GAP) : 0) - (marks ? (BADGE_HEIGHT + 8) : 0);
+    /* A game's review score sits at the right of the name line, before the
+       dump mark. Its room is kept whether or not this game has a score, so
+       nothing moves when one turns up (review < 0: not a game, no room). */
+    bool scores = (review >= 0) && game_data_review_scores_shown();
+    int score_width = scores ? text_width("10.0") : 0;
+    int score_x1 = x1 - 12 - (marks ? (BADGE_HEIGHT + 8) : 0);
+    int title_width = x1 - x0 - 24 - (heart ? (HEART_WIDTH + HEART_GAP) : 0) - (marks ? (BADGE_HEIGHT + 8) : 0) - (scores ? (score_width + 12) : 0);
 
     /* The big title font when the name fits on one line in it, the body font otherwise. */
     /* The name is laid out once and kept until another game is selected:
@@ -450,6 +461,11 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const cha
 
     if (heart && facts && facts->favorite) {
         heart_draw(title_end + HEART_GAP, PANEL_Y + 2 + ((PANEL_TITLE - HEART_HEIGHT) / 2));
+    }
+    if (scores && review > 0) {
+        char score[8];
+        snprintf(score, sizeof(score), "%d.%d", review / 10, review % 10);
+        text(score_x1 - score_width, PANEL_Y + 2, score_width, PANEL_TITLE, ALIGN_RIGHT, games_ui_review_style(review), score);
     }
     if (marks && facts) {
         /* A hack differs from the known dump on purpose: no amber mark. */

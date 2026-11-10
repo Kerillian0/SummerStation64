@@ -120,6 +120,8 @@ built in.
 - **[Adding box art and details](https://kerillian0.github.io/SummerStation64/companion/#guide-art)**:
   step by step, for games without built-in art, homebrew, 64DD disks and NES,
   SNES and Game Boy games. Also: [64DD disks and their cartridge](https://kerillian0.github.io/SummerStation64/companion/#guide-64dd).
+- **[Review scores](docs/review_scores.md)**: show your own review scores
+  for games, and sort by them, from a file on the SD card.
 - **[N64FlashcartMenu's documentation](docs/00_index.md)**: still describes
   the file browser, ROM settings, cheats, 64DD and the other stock features.
 

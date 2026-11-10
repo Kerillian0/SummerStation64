@@ -238,6 +238,7 @@ static const item_t display_items[] = {
         "Color the ring round the cover to match the cover. Game Info does it on a game's info screen; Everywhere also on the rows of covers. Off uses the theme's accent color."),
     FEATURE("Favorite Heart", FEATURE_FAVORITE_HEART, "Mark a favorite game with a heart beside its name. Off shows the word Favorite under the name."),
     FEATURE("Button Icons", FEATURE_BUTTON_ICONS, "Show the buttons in the hints along the bottom in their own shapes and colors. Off shows them as plain boxes."),
+    FEATURE("Review Scores", FEATURE_REVIEW_SCORES, "Show a game's review score out of 10 at the right of its name under the covers, and in a box on its info screen: green from 7.5, yellow from 5.0, red below. Also adds Review Score to Sort By. Hacks show none. The scores come from menu/reviewscores.txt on the SD card: none come with the menu. A game the menu hasn't looked at yet shows its score after a moment, and sorts with the unscored ones until the list is sorted again."),
     FEATURE("Memory Badge", FEATURE_MEMORY_BADGE, "Show a small Expansion Pak or Jumper Pak under the clock, with the console's memory (8MB or 4MB)."),
     FEATURE("Trim Black Edges", FEATURE_TRIM_EDGES, "Box art from the SD card loses the thin black frame many scans have, so the picture reaches the box's edges. Only near-black lines across the whole edge, a few pixels at most."),
     FEATURE("Fill Box Edges", FEATURE_FILL_BOX_EDGES, "On a 3D box missing its top label or a side picture, show the edge picture it does have there too, turned to fit. Off leaves those faces plain."),
@@ -438,7 +439,7 @@ static const item_t library_items[] = {
     CHOICES("Preferred Region", OPTION_PREFERRED_REGION, PREFERRED_COUNT, region_pick_preferred_name, change_preferred_region,
         "Whose copy gives a game's cover with Region Copies on One Cover. Changing it also forgets each game's own choice."),
     CHOICES("Sort By", OPTION_SORT_ORDER, SORT_COUNT, sort_order_name, resort_browser,
-        "Type: folders, then each kind of file. Name: by name. Recently Played: games you played come first. Release Date, Developer: oldest first, or by who made the game; the menu looks these up while the Games tab is left alone. Recently Added: the games the menu saw most recently first."),
+        "Type: folders, then each kind of file. Name: by name. Recently Played: games you played come first. Release Date, Developer: oldest first, or by who made the game; the menu looks these up while the Games tab is left alone. Recently Added: the games the menu saw most recently first. Review Score (with Review Scores on, in Display): the highest scored first, then the games with no score."),
     FEATURE("Hide Game Extensions", FEATURE_HIDE_EXTENSIONS, "Show games without the ending of the file name, such as .z64, and without the [!] good-dump marks and revision numbers, such as (V1.1). Other files keep theirs."),
     FEATURE("Tidy Game Titles", FEATURE_TIDY_TITLES, "Show names like \"Legend of Zelda, The\" as \"The Legend of Zelda\", and underscores as spaces. The files are not renamed."),
     FEATURE("Hide Region Tags", FEATURE_HIDE_TAGS, "Hide the region and version tags in brackets, such as (U) (V1.2) [!]. Two versions of one game then look the same in the list. A game's list of versions keeps the region tags."),
@@ -666,6 +667,9 @@ static void change_item (menu_t *menu, const item_t *it) {
             int value = features_user_get(it->feature);
             int next = (value == FEATURE_UNSET) ? 1 : (value == 1) ? 0 : FEATURE_UNSET;
             features_user_change(it->feature, next);
+            if (it->feature == FEATURE_REVIEW_SCORES) {
+                resort_browser(menu);   /* Sort By's Review Score comes and goes with it */
+            }
             break;
         }
         case ITEM_CHOICE: {
@@ -898,6 +902,9 @@ static void draw_item (menu_t *menu, const item_t *it, int y) {
         }
         case ITEM_CHOICE:
             value = it->choice_name(options_get(it->option));
+            if (!value[0]) {
+                value = it->choice_name(0);     /* a value not in use now (Review Score with Review Scores off) works as the first */
+            }
             break;
         case ITEM_ACTION:
             if (it->info) {
