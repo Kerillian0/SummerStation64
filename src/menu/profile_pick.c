@@ -19,12 +19,15 @@
 #define FADE_IN_MS      (400)
 #define TITLE_Y         (104)
 #define TITLE_HEIGHT    (40)
-#define ROW_WIDTH       (320)
-#define ROW_HEIGHT      (48)
-#define ROW_STEP        (60)
-#define ROWS_Y          (176)
+/* One card per player, side by side: the picture, the name under it. */
+#define CARD_WIDTH      (124)
+#define CARD_GAP        (16)
+#define CARD_PAD        (14)
+#define PICTURE         (96)
+#define NAME_HEIGHT     (40)    /* a line of the title font: a shorter box and rdpq drops the text */
+#define CARD_HEIGHT     (CARD_PAD + PICTURE + 6 + NAME_HEIGHT + 6)
+#define CARDS_Y         (168)
 #define RING            (4)
-#define PICTURE         (40)
 
 static bool showing = false;
 static int selected = 0;
@@ -110,7 +113,8 @@ static void process (menu_t *menu) {
 
 static void draw (surface_t *display) {
     const theme_t *t = theme_get();
-    int x0 = DISPLAY_CENTER_X - (ROW_WIDTH / 2);
+    int count = profiles_count();
+    int x0 = DISPLAY_CENTER_X - (((count * CARD_WIDTH) + ((count - 1) * CARD_GAP)) / 2);
 
     rdpq_attach(display, NULL);
     ui_components_background_draw();
@@ -124,22 +128,23 @@ static void draw (surface_t *display) {
         .style_id = STL_DEFAULT,
     }, title_font_pick(title, DISPLAY_WIDTH), 0, TITLE_Y, "%s", title);
 
-    for (int i = 0; i < profiles_count(); i++) {
-        int y = ROWS_Y + (i * ROW_STEP);
+    for (int i = 0; i < count; i++) {
+        int x = x0 + (i * (CARD_WIDTH + CARD_GAP));
+        int y = CARDS_Y;
         if (i == selected) {
-            games_ui_round_fill(x0 - RING, y - RING, x0 + ROW_WIDTH + RING, y + ROW_HEIGHT + RING, t->accent);
+            games_ui_round_fill(x - RING, y - RING, x + CARD_WIDTH + RING, y + CARD_HEIGHT + RING, t->accent);
         }
-        games_ui_round_fill(x0, y, x0 + ROW_WIDTH, y + ROW_HEIGHT, RGBA32(t->panel.r, t->panel.g, t->panel.b, 0xFF));
-        avatars_draw(profiles_picture(i), x0 + 6, y + ((ROW_HEIGHT - PICTURE) / 2), PICTURE, profiles_color(i), profiles_name(i));
-        int name_x = x0 + 6 + PICTURE + 14;
-        int name_width = x0 + ROW_WIDTH - 12 - name_x;
+        games_ui_round_fill(x, y, x + CARD_WIDTH, y + CARD_HEIGHT, RGBA32(t->panel.r, t->panel.g, t->panel.b, 0xFF));
+        avatars_draw(profiles_picture(i), x + ((CARD_WIDTH - PICTURE) / 2), y + CARD_PAD, PICTURE, profiles_color(i), profiles_name(i));
+        int name_width = CARD_WIDTH - 12;
         rdpq_text_printf(&(rdpq_textparms_t) {
             .width = name_width,
-            .height = ROW_HEIGHT,
+            .height = NAME_HEIGHT,
+            .align = ALIGN_CENTER,
             .valign = VALIGN_CENTER,
             .wrap = WRAP_ELLIPSES,
             .style_id = STL_DEFAULT,
-        }, title_font_pick(profiles_name(i), name_width), name_x, y, "%s", profiles_name(i));
+        }, title_font_pick(profiles_name(i), name_width), x + 6, y + CARD_PAD + PICTURE + 6, "%s", profiles_name(i));
     }
 
     games_ui_hints_backdrop_draw();
