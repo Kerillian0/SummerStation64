@@ -1,5 +1,6 @@
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -392,6 +393,8 @@ static rdpq_paragraph_t *desc_build (const char *text, int length, int height) {
 #define SCROLL_DEADZONE     (12)
 
 static rdpq_paragraph_t *scroll_layout = NULL;
+static rdpq_paragraph_t *scroll_shown = NULL;   /* the lines of it that can be seen at the moment */
+static int scroll_shown_at = -1;                /* the offset scroll_shown was cut for */
 static uint32_t scroll_key = 0;
 static float scroll_offset = 0.0f;
 static uint64_t scroll_still_since = 0;     /* last time it was at the top or moved by hand */
@@ -419,6 +422,41 @@ static float scroll_input (void) {
     return most;
 }
 
+/* Only the letters that can show in the box: the whole text is several
+   boxes tall, and drawing every letter of it each frame (the box's edges
+   hiding the rest) cost about 11 ms a frame, more than a playing preview
+   clip. Cut again only when the text has moved. Falls back to the whole
+   text if there is no memory for the copy. */
+static const rdpq_paragraph_t *visible_lines (int offset, int height) {
+    if (offset == scroll_shown_at && scroll_shown) {
+        return scroll_shown;
+    }
+    if (!scroll_shown) {
+        scroll_shown = malloc(sizeof(rdpq_paragraph_t) + (scroll_layout->nchars + 1) * sizeof(rdpq_paragraph_char_t));
+        if (!scroll_shown) {
+            return scroll_layout;
+        }
+    }
+    *scroll_shown = *scroll_layout;
+    int n = 0;
+    for (int i = 0; i < scroll_layout->nchars; i++) {
+        const rdpq_paragraph_char_t *ch = &scroll_layout->chars[i];
+        if (ch->font_id == 0) {
+            break;
+        }
+        int y = ch->y + (int) scroll_layout->y0;     /* the letter's line, measured from the text's top */
+        if (y >= offset - 4 && y <= offset + height + 24) {     /* a line above and below, for letters partly in */
+            scroll_shown->chars[n++] = *ch;
+        }
+    }
+    scroll_shown->chars[n] = (rdpq_paragraph_char_t) { 0 };   /* the end mark rdpq_paragraph_render stops at */
+    scroll_shown->nchars = n;
+    scroll_shown->capacity = n + 1;
+    scroll_shown->flags &= ~RDPQ_PARAGRAPH_FLAG_MALLOC;
+    scroll_shown_at = offset;
+    return scroll_shown;
+}
+
 /* True if it drew the text (it was longer than the box). */
 static bool draw_description_scrolling (const char *text, int height) {
     uint64_t now = get_ticks_ms();
@@ -427,6 +465,9 @@ static bool draw_description_scrolling (const char *text, int height) {
         if (scroll_layout) {
             rdpq_paragraph_free(scroll_layout);
         }
+        free(scroll_shown);
+        scroll_shown = NULL;
+        scroll_shown_at = -1;
         int nbytes = strlen(text);
         scroll_layout = rdpq_paragraph_build(&(rdpq_textparms_t) {
             .width = X1 - X0 - (PAD * 2),
@@ -474,10 +515,11 @@ static bool draw_description_scrolling (const char *text, int height) {
     scroll_offset = (scroll_offset < 0.0f) ? 0.0f : ((scroll_offset > overflow) ? overflow : scroll_offset);
 
     int top = DESC_Y + 20;
-    rdpq_set_scissor(X0 + 2, top - 4, X1 - 2, top + height);
     /* Moved in whole steps of 2: with 240p output two of these lines are one
        line on the TV, and a step of 1 made the letters shimmer as they went. */
-    rdpq_paragraph_render(scroll_layout, X0 + PAD, top - ((int) scroll_offset & ~1));
+    int offset = (int) scroll_offset & ~1;
+    rdpq_set_scissor(X0 + 2, top - 4, X1 - 2, top + height);
+    rdpq_paragraph_render(visible_lines(offset, height), X0 + PAD, top - offset);
     rdpq_set_scissor(0, 0, display_get_width(), display_get_height());
     return true;
 }
