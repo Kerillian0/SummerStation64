@@ -55,6 +55,9 @@ void letter_wheel_name_begin (const char *prompt, const char *start, void (*done
 /** The same for a file name (file_rename.h): up to 100 characters. */
 void letter_wheel_file_name_begin (const char *prompt, const char *start, void (*done) (menu_t *menu, const char *name));
 
+/** True while the keyboard covers the screen (naming with option `name_entry` on Keyboard): the screen under it can leave its content out. */
+bool letter_wheel_keyboard_showing (void);
+
 /** True while a name is being spelled: the screen hands its buttons to letter_wheel_name_process(). */
 bool letter_wheel_naming (void);
 

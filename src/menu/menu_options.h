@@ -43,6 +43,7 @@ typedef enum {
     OPTION_MUSIC_VOLUME, /**< 0-10, see volume.h */
     OPTION_SOUND_VOLUME, /**< 0-10, see volume.h */
     OPTION_INTRO_TITLE, /**< an intro_title_t value (see intro.h) */
+    OPTION_NAME_ENTRY,  /**< a name_entry_t value (see name_keyboard.h) */
     OPTION_PARTY_TEST,  /**< hidden, for testing: count this many controllers (see party.h); 0 counts the real ones */
     OPTION_COUNT
 } option_t;

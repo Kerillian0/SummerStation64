@@ -286,12 +286,16 @@ static void draw(menu_t *menu, surface_t *display) {
     // (the redesigned screens have no frame)
 
     if (COVER_ROWS) {
-        if (tab_context == BOOKKEEPING_TAB_CONTEXT_FAVORITE) {
+        if (letter_wheel_keyboard_showing()) {
+            // the naming keyboard hides the covers: not drawing them saves about 30 ms a frame
+        } else if (tab_context == BOOKKEEPING_TAB_CONTEXT_FAVORITE) {
             cover_row_draw(menu, "No favorites yet\n\nAdd one from a game's info screen: Options", "Options");
         } else {
             cover_row_draw(menu, "No games played yet", "Options");
         }
-        games_ui_hint_right_draw(0, "START", "Settings");
+        if (!letter_wheel_keyboard_showing()) {
+            games_ui_hint_right_draw(0, "START", "Settings");
+        }
         ui_components_context_menu_draw(&row_context_menu);
         letter_wheel_draw();    // naming a new collection
         collection_edit_draw();

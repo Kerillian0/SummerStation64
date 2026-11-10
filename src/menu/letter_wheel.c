@@ -11,6 +11,8 @@
 #include "fonts.h"
 #include "games_ui.h"
 #include "letter_wheel.h"
+#include "menu_options.h"
+#include "name_keyboard.h"
 #include "sound.h"
 #include "theme.h"
 #include "ui_components/constants.h"
@@ -338,6 +340,8 @@ static void disc_draw (int x, int y, int radius, color_t color) {
     rdpq_mode_pop();
 }
 
+static bool keyboard = false;       /* naming with the keyboard (option `name_entry`), not the dial */
+
 static void name_begin (const char *prompt, const char *start, int limit, void (*done) (menu_t *menu, const char *name)) {
     name_limit = limit;
     snprintf(name_text, (size_t) limit + 1, "%s", start ? start : "");
@@ -347,9 +351,26 @@ static void name_begin (const char *prompt, const char *start, int limit, void (
     page = PAGE_UPPER;
     pointed = 1;
     naming = true;
-    if (!disc) {
+    keyboard = (options_get(OPTION_NAME_ENTRY) == NAME_ENTRY_KEYBOARD);
+    if (keyboard) {
+        name_keyboard_begin(name_text);
+    } else if (!disc) {
         disc = sprite_load("rom:/corner.sprite");
     }
+}
+
+/* START: the name as typed, less spaces at its end. */
+static void name_finish (menu_t *menu) {
+    int n = (int) strlen(name_text);
+    while (n > 0 && name_text[n - 1] == ' ') {
+        name_text[--n] = '\0';
+    }
+    char name[FILE_NAME_MAX + 1];
+    snprintf(name, sizeof(name), "%s", name_text);     /* as typed */
+    naming = false;
+    name_keyboard_end();
+    sound_play_effect(SFX_ENTER);
+    if (name_done) name_done(menu, name);
 }
 
 void letter_wheel_name_begin (const char *prompt, const char *start, void (*done) (menu_t *menu, const char *name)) {
@@ -360,12 +381,31 @@ void letter_wheel_file_name_begin (const char *prompt, const char *start, void (
     name_begin(prompt, start, FILE_NAME_MAX, done);
 }
 
+bool letter_wheel_keyboard_showing (void) {
+    return naming && keyboard;
+}
+
 bool letter_wheel_naming (void) {
     return naming;
 }
 
 void letter_wheel_name_process (menu_t *menu) {
     if (!naming) {
+        return;
+    }
+    if (keyboard) {
+        switch (name_keyboard_process(menu, name_text, &cursor, name_limit)) {
+            case NAME_KEYBOARD_DONE:
+                name_finish(menu);
+                break;
+            case NAME_KEYBOARD_CANCEL:
+                naming = false;
+                name_keyboard_end();
+                if (name_done) name_done(menu, NULL);
+                break;
+            default:
+                break;
+        }
         return;
     }
     joypad_buttons_t pressed, held;
@@ -405,14 +445,7 @@ void letter_wheel_name_process (menu_t *menu) {
             if (name_done) name_done(menu, NULL);
         }
     } else if (menu->actions.settings && n > 0) {     /* START as the menu sees it: one press, also when a tap acts on release (screenshot.h) */
-        while (n > 0 && name_text[n - 1] == ' ') {
-            name_text[--n] = '\0';
-        }
-        char name[FILE_NAME_MAX + 1];
-        snprintf(name, sizeof(name), "%s", name_text);     /* as typed */
-        naming = false;
-        sound_play_effect(SFX_ENTER);
-        if (name_done) name_done(menu, name);
+        name_finish(menu);
     }
 }
 
@@ -472,6 +505,10 @@ static void ring_draw (const theme_t *t) {
 
 void letter_wheel_draw (void) {
     if (!open && !naming) {
+        return;
+    }
+    if (naming && keyboard) {
+        name_keyboard_draw(name_prompt, name_text, cursor, name_limit);
         return;
     }
     const theme_t *t = theme_get();

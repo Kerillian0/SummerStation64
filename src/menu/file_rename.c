@@ -228,8 +228,4 @@ bool file_rename_process (menu_t *menu) {
     return true;
 }
 
-void file_rename_draw (void) {
-    if (active) {
-        letter_wheel_draw();
-    }
-}
+

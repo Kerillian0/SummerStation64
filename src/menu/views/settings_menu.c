@@ -31,6 +31,7 @@
 #include "../theme.h"
 #include "../theme_editor.h"
 #include "../letter_wheel.h"
+#include "../name_keyboard.h"
 #include "../profiles.h"
 #include "../profile_pick.h"
 #include "../volume.h"
@@ -240,6 +241,8 @@ static const item_t control_items[] = {
     FEATURE("Hold A To Launch", FEATURE_HOLD_LAUNCH, "Tap A to see a game's info. Hold A to start it."),
     FEATURE("Up/Down Also Scroll", FEATURE_UPDOWN_SCROLL, "Up and down move through the covers too. When this is off, up and down turn the game box over to show its back."),
     SWITCH("Wrap File List", wrap_file_list_scrolling, false, NULL, "Going past the last item jumps back to the first. On the cover rows the last game then sits to the left of the first."),
+    CHOICES("Name Entry", OPTION_NAME_ENTRY, NAME_ENTRY_COUNT, name_keyboard_entry_name, NULL,
+        "How names are typed (collections, profiles, themes, renaming files). Keyboard is an on-screen keyboard: A types, B erases, R is Shift, C-down a space, START or OK keeps the name. Dial spells it round a circle with the stick."),
 };
 
 static const item_t sound_items[] = {
@@ -916,6 +919,13 @@ static void draw (menu_t *menu, surface_t *d) {
     ui_components_background_draw();
 
     ui_components_layout_draw();
+
+    if (letter_wheel_keyboard_showing()) {
+        letter_wheel_draw();    // naming a profile or a theme: the keyboard hides the page, so it isn't drawn
+        debug_stats_overlay_draw();
+        rdpq_detach_show();
+        return;
+    }
 
     if (theme_editor_active()) {
         theme_editor_draw();

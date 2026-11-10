@@ -26,7 +26,7 @@ void file_rename_begin (menu_t *menu, const char *path, int64_t size);
 /** While the name is being spelled it has the controls: true if it took this frame's. */
 bool file_rename_process (menu_t *menu);
 
-/** Draw the dial while the name is being spelled. */
-void file_rename_draw (void);
+/* While the name is spelled, the screen's own letter_wheel_draw() shows the
+   dial or keyboard (drawing it here too drew it twice, 2026-11-10). */
 
 #endif /* FILE_RENAME_H__ */
