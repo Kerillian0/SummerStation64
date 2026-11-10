@@ -83,8 +83,17 @@ typedef enum {
     FADE_COUNT
 } intro_fade_t;
 
+/** The name under the logo (option `intro_title` in options.ini). */
+typedef enum {
+    INTRO_TITLE_PICTURE,    /**< the drawn title, rom:/wordmark.sprite (the default) */
+    INTRO_TITLE_TEXT,       /**< the name in plain letters with the accent line */
+    INTRO_TITLE_OFF,        /**< none: the logo alone */
+    INTRO_TITLE_COUNT
+} intro_title_t;
+
 /** Names of the choices above, for the settings screen. */
 const char *intro_choice_name (int choice);
 const char *intro_fade_name (int choice);
+const char *intro_title_name (int choice);
 
 #endif /* INTRO_H__ */

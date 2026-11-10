@@ -75,6 +75,8 @@ static menu_mode_t after;       /* the screen to open when the intro ends */
 static waveform_t *tune = NULL;
 static bool tune_open = false;
 static sprite_t *wordmark = NULL;
+static bool show_logo = true;       /* options `intro_logo` and `intro_title`, read when the intro starts */
+static bool show_title = true;
 static int total_ms = INTRO_SHORTEST_MS;
 static bool fading = false;         /* the fade-in is waiting to start, or running */
 static bool fade_running = false;
@@ -158,16 +160,24 @@ void intro_begin (menu_t *menu) {
     menu->next_mode = MENU_MODE_STARTUP;    /* stay on the startup screen while the intro runs */
     playing = true;
     started = false;
-    intro_logo_open((intro_logo_t) options_get(OPTION_INTRO_LOGO));
-
-    heap_stats_t heap;
-    sys_get_heap_stats(&heap);
-    if ((heap.total - heap.used) >= WORDMARK_MIN_FREE) {
-        wordmark = sprite_load("rom:/wordmark.sprite");
-    } else {
-        memory_note_cut(MEMORY_CUT_INTRO_PICTURE);
+    show_logo = (options_get(OPTION_INTRO_LOGO) != INTRO_LOGO_OFF);
+    if (show_logo) {
+        intro_logo_open((intro_logo_t) options_get(OPTION_INTRO_LOGO));
     }
-    debugf("intro: title %s\n", wordmark ? "picture" : "as text (memory is short)");
+
+    int title = options_get(OPTION_INTRO_TITLE);
+    show_title = (title != INTRO_TITLE_OFF);
+    if (title == INTRO_TITLE_PICTURE) {
+        heap_stats_t heap;
+        sys_get_heap_stats(&heap);
+        if ((heap.total - heap.used) >= WORDMARK_MIN_FREE) {
+            wordmark = sprite_load("rom:/wordmark.sprite");
+        } else {
+            memory_note_cut(MEMORY_CUT_INTRO_PICTURE);
+        }
+    }
+    debugf("intro: logo %s, title %s\n", show_logo ? "on" : "off",
+        !show_title ? "off" : wordmark ? "picture" : (title == INTRO_TITLE_TEXT) ? "as text" : "as text (memory is short)");
     music_volume(0.0f);
 }
 
@@ -196,6 +206,14 @@ const char *intro_choice_name (int choice) {
         case INTRO_OFF: return "Off";
         case INTRO_BOTH: return "Both";
         default: return "On";
+    }
+}
+
+const char *intro_title_name (int choice) {
+    switch (choice) {
+        case INTRO_TITLE_TEXT: return "Text";
+        case INTRO_TITLE_OFF: return "Off";
+        default: return "Picture";
     }
 }
 
@@ -299,27 +317,34 @@ bool intro_display (menu_t *menu, surface_t *display) {
 
     ui_components_background_draw();
 
-    intro_logo_draw(DISPLAY_CENTER_X, LOGO_Y, LOGO_SIZE, ((t % LOGO_TURN_MS) * 360.0f) / LOGO_TURN_MS);
+    /* With only one of the two, it sits in the middle of the screen. */
+    if (show_logo) {
+        int logo_y = show_title ? LOGO_Y : DISPLAY_CENTER_Y;
+        intro_logo_draw(DISPLAY_CENTER_X, logo_y, LOGO_SIZE, ((t % LOGO_TURN_MS) * 360.0f) / LOGO_TURN_MS);
+    }
 
-    if (wordmark) {
+    if (show_title && wordmark) {
+        int y = show_logo ? WORDMARK_Y : DISPLAY_CENTER_Y - (wordmark->height / 2);
         rdpq_mode_push();
             rdpq_set_mode_standard();
             rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
-            rdpq_sprite_blit(wordmark, DISPLAY_CENTER_X - (wordmark->width / 2), WORDMARK_Y, NULL);
+            rdpq_sprite_blit(wordmark, DISPLAY_CENTER_X - (wordmark->width / 2), y, NULL);
         rdpq_mode_pop();
-    } else {
+    } else if (show_title) {
+        /* The name and its line, moved up together when there is no logo. */
+        int shift = show_logo ? 0 : (DISPLAY_CENTER_Y - ((BAR_Y + BAR_HEIGHT - TITLE_Y) / 2)) - TITLE_Y;
         rdpq_text_printf(&(rdpq_textparms_t) {
             .width = DISPLAY_WIDTH,
             .height = TITLE_HEIGHT,
             .align = ALIGN_CENTER,
             .valign = VALIGN_CENTER,
             .style_id = STL_DEFAULT,
-        }, FNT_TITLE, 0, TITLE_Y, "%s", MENU_DISPLAY_NAME);
+        }, FNT_TITLE, 0, TITLE_Y + shift, "%s", MENU_DISPLAY_NAME);
     
         if (half_bar > 0) {
             rdpq_mode_push();
                 rdpq_set_mode_fill(theme_get()->accent);
-                rdpq_fill_rectangle(DISPLAY_CENTER_X - half_bar, BAR_Y, DISPLAY_CENTER_X + half_bar, BAR_Y + BAR_HEIGHT);
+                rdpq_fill_rectangle(DISPLAY_CENTER_X - half_bar, BAR_Y + shift, DISPLAY_CENTER_X + half_bar, BAR_Y + shift + BAR_HEIGHT);
             rdpq_mode_pop();
         }
     }

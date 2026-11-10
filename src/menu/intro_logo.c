@@ -217,7 +217,7 @@ void intro_logo_close (void) {
 }
 
 const char *intro_logo_name (int choice) {
-    return (choice == INTRO_LOGO_CLASSIC) ? "Classic" : "Vaporwave";
+    return (choice == INTRO_LOGO_OFF) ? "Off" : (choice == INTRO_LOGO_CLASSIC) ? "Classic" : "Vaporwave";
 }
 
 void intro_logo_draw (int center_x, int center_y, float size, float angle) {

@@ -18,10 +18,11 @@
 #ifndef INTRO_LOGO_H__
 #define INTRO_LOGO_H__
 
-/** The two looks (option `intro_logo` in options.ini). */
+/** The two looks, or none (option `intro_logo` in options.ini). */
 typedef enum {
     INTRO_LOGO_VAPORWAVE,   /**< patterned sides, after the owner's reference picture */
     INTRO_LOGO_CLASSIC,     /**< the console's own green, blue, red and yellow (the default) */
+    INTRO_LOGO_OFF,         /**< no logo: the intro shows the title alone */
     INTRO_LOGO_COUNT
 } intro_logo_t;
 

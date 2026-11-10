@@ -51,6 +51,7 @@ static const option_info_t option_info[OPTION_COUNT] = {
     [OPTION_THEME_KEY] = { "theme_key", 0 },
     [OPTION_MUSIC_VOLUME] = { "music_volume", 5 }, /* the stock level */
     [OPTION_SOUND_VOLUME] = { "sound_volume", 5 },
+    [OPTION_INTRO_TITLE] = { "intro_title", 0 }, /* the picture */
     [OPTION_PARTY_TEST] = { "party_test", 0 }, /* count the real controllers */
 };
 
