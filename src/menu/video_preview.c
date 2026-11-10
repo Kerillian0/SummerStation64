@@ -14,7 +14,8 @@
 
 #define START_DELAY_MS      (1500)      /* the cover alone first */
 #define FADE_MS             (400)
-#define LOAD_STEP           (64 * 1024) /* read from the card per frame while loading */
+#define LOAD_STEP           (64 * 1024) /* the clip's header is checked once this much is in */
+#define LOAD_PIECE          (8 * 1024)  /* read in the idle time between frames, a piece at a time: about 7 ms each */
 #define MAX_CLIP_BYTES      (3 * 1024 * 1024)
 #define BUFFERED_PICS       (4)         /* pictures decoded ahead: about 42 KB each at 192x144 */
 #define FRAME_BUDGET_US     (2000)      /* decoding inside a menu frame, only while the idle time falls short */
@@ -372,9 +373,12 @@ static void load_step (void) {
         clip_loaded = 0;
     }
 
+    /* Read 64 KB at a time inside the frame, this took 57 ms a piece
+       (the owner's card, 2026-11-10): 8 frames of 85-100 ms on opening Game
+       info. Small pieces in the idle time keep those frames on time. */
     int want = clip_size - clip_loaded;
-    if (want > LOAD_STEP) {
-        want = LOAD_STEP;
+    if (want > LOAD_PIECE) {
+        want = LOAD_PIECE;
     }
     size_t got = fread(clip_data + clip_loaded, 1, want, load_file);
     if (got != (size_t) want) {
@@ -592,8 +596,7 @@ void video_preview_update (const char *path) {
     uint64_t began = get_ticks_us();
     switch (state) {
         case VP_LOADING:
-            load_step();
-            break;
+            break;      /* read in the idle time between frames (video_preview_poll()) */
         case VP_WAITING:
             if (now - wanted_ms >= START_DELAY_MS) {
                 start_playing(now);
@@ -618,6 +621,10 @@ bool video_preview_showing (void) {
 }
 
 void video_preview_poll (void) {
+    if (state == VP_LOADING && (get_ticks_ms() - last_update_ms) <= AWAY_MS) {
+        load_step();    /* one piece; the main loop comes round again soon */
+        return;
+    }
     if (state != VP_PLAYING || !video) {
         return;
     }
