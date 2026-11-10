@@ -121,13 +121,78 @@ static void set_pair (const char *disk, const char *cart) {
     save();
 }
 
-/* ---------- disk IDs, read once each while the console is on ---------- */
+/* ---------- disk IDs, read once each and kept on the card ---------- */
+
+/* Reading a disk's ID takes about 105 ms (the owner's card, 2026-11-10),
+   long enough to double several frames each time a 64DD cover first shows.
+   So the IDs are kept in menu/ddids.txt (the same for every player): a
+   header line, then the disk's key (a hash of its name from the top of the
+   card) and the ID's four bytes, both in hex (one disk's ID is blank, which
+   wouldn't survive as text). A renamed disk is read once more. */
+#define IDS_PATH        "sd:/menu/ddids.txt"
+#define IDS_TMP_PATH    "sd:/menu/ddids.tmp"
+#define IDS_HEADER      "ddids 1"
+#define IDS_SAVE_AFTER_MS   (3000)  /* saved once the selection has rested this long after a new one */
 
 static struct {
     uint32_t key;
     char id[4];
 } ids[IDS_MAX];
 static int ids_count = 0;
+static bool ids_loaded = false;
+static bool ids_dirty = false;
+static uint64_t ids_noted_ms = 0;
+
+static void ids_load (void) {
+    if (ids_loaded) {
+        return;
+    }
+    ids_loaded = true;
+    FILE *f = fopen(IDS_PATH, "r");
+    if (!f) {
+        f = fopen(IDS_TMP_PATH, "r");  /* a save that was cut off */
+    }
+    if (!f) {
+        return;
+    }
+    char line[48];
+    if (fgets(line, sizeof(line), f) && strncmp(line, IDS_HEADER, strlen(IDS_HEADER)) == 0) {
+        while (ids_count < IDS_MAX && fgets(line, sizeof(line), f)) {
+            unsigned long key, id;
+            if (sscanf(line, "%lx %lx", &key, &id) != 2) {
+                continue;
+            }
+            ids[ids_count].key = (uint32_t) key;
+            ids[ids_count].id[0] = (char) (id >> 24);
+            ids[ids_count].id[1] = (char) (id >> 16);
+            ids[ids_count].id[2] = (char) (id >> 8);
+            ids[ids_count].id[3] = (char) id;
+            ids_count++;
+        }
+    }
+    fclose(f);
+    debugf("dd pairs: %d disk IDs known from the card\n", ids_count);
+}
+
+static void ids_save (void) {
+    FILE *f = fopen(IDS_TMP_PATH, "w");
+    if (!f) {
+        debugf("dd pairs: could not write %s\n", IDS_TMP_PATH);
+        return;
+    }
+    fprintf(f, "%s\n", IDS_HEADER);
+    for (int i = 0; i < ids_count; i++) {
+        const unsigned char *id = (const unsigned char *) ids[i].id;
+        fprintf(f, "%08lx %02x%02x%02x%02x\n", (unsigned long) ids[i].key, id[0], id[1], id[2], id[3]);
+    }
+    bool ok = (fclose(f) == 0);
+    if (!ok || !safe_file_replace(IDS_TMP_PATH, IDS_PATH)) {
+        debugf("dd pairs: could not replace %s\n", IDS_PATH);
+        return;
+    }
+    ids_dirty = false;
+    debugf("dd pairs: kept %d disk IDs\n", ids_count);
+}
 
 static uint32_t key_of (const char *name) {
     uint32_t h = 2166136261u;
@@ -138,6 +203,7 @@ static uint32_t key_of (const char *name) {
 }
 
 static const char *known_id (const char *disk) {
+    ids_load();
     uint32_t key = key_of(disk);
     for (int i = 0; i < ids_count; i++) {
         if (ids[i].key == key) {
@@ -154,6 +220,8 @@ static void note_id (const char *disk, const char id[4]) {
     int i = (ids_count < IDS_MAX) ? ids_count++ : (int) (key_of(disk) % IDS_MAX);
     ids[i].key = key_of(disk);
     memcpy(ids[i].id, id, 4);
+    ids_dirty = true;
+    ids_noted_ms = get_ticks_ms();
 }
 
 /* ---------- finding the cartridge ---------- */
@@ -285,6 +353,9 @@ static const entry_t *watched = NULL;
 static uint64_t watched_since = 0;
 
 void dd_pair_after_draw (menu_t *menu, const entry_t *selected) {
+    if (ids_dirty && (get_ticks_ms() - ids_noted_ms) >= IDS_SAVE_AFTER_MS && safe_file_idle_turn()) {
+        ids_save();     /* new IDs, and the player has stopped for a moment */
+    }
     if (!selected || selected->type != ENTRY_TYPE_DISK) {
         watched = NULL;
         return;
