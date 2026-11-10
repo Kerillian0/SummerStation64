@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <time.h>
 
+#include "../assistant.h"
 #include "../debug_stats.h"
 #include "../cart_load.h"
 #include "../fonts.h"
@@ -941,6 +942,7 @@ static bool versions_open (menu_t *menu, entry_t *cover) {
 // (within the filter in use). The row is a few dozen to a few hundred games,
 // so the console's own random numbers are plenty.
 static void random_game (menu_t *menu, void *arg) {
+    assistant_note_used(ASSISTANT_USED_RANDOM);
     if (menu->browser.entries < 2) {
         return;
     }
@@ -2422,6 +2424,7 @@ static void draw (menu_t *menu, surface_t *d) {
         intro_fade_draw(); // the fade-in after the menu starts, over the whole screen
     }
     animations_draw_late(menu->mode);  // Showy: a pop-up just closed shrinks away
+    assistant_draw(menu);   // the assistant's fairy and bubble, when it is talking
     debug_stats_overlay_draw(); // Performance Overlay, if it is on
 
     rdpq_detach_show();

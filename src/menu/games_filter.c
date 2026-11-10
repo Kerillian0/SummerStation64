@@ -12,6 +12,7 @@
 
 #include <libdragon.h>
 
+#include "assistant.h"
 #include "game_index.h"
 #include "games_filter.h"
 #include "game_marks.h"
@@ -577,6 +578,7 @@ bool games_filter_step (menu_t *menu, int direction) {
 
     current = next;
     reapply(menu);
+    assistant_note_used(ASSISTANT_USED_FILTER);
     debugf("games filter: %s, %d games\n", names[current], (int) menu->browser.entries);
     return true;
 }

@@ -6,6 +6,7 @@
 #include <math.h>
 #include <libdragon.h>
 
+#include "assistant.h"
 #include "box_motion.h"
 #include "menu_features.h"
 #include "menu_options.h"
@@ -88,6 +89,7 @@ bool box_motion_process (menu_t *menu) {
     }
 
     if (holding) {
+        assistant_note_used(ASSISTANT_USED_INSPECT);
         float x = stick_amount(inputs.stick_x);
         float y = stick_amount(inputs.stick_y);
         if (inputs.btn.d_right) x = 1.0f;

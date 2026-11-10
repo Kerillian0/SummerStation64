@@ -10,6 +10,7 @@
 
 #include <libdragon.h>
 
+#include "assistant.h"
 #include "animations.h"
 #include "screenshot.h"
 #include "clip.h"
@@ -272,6 +273,7 @@ void menu_run (boot_params_t *boot_params) {
             }
 
             animations_frame_done(menu->mode);  // which pop-ups were up on this screen this frame (animations.h)
+            assistant_update(menu);  // the assistant: time to say something? (assistant.h)
             frame_rate_clip(video_preview_showing());  // Game info's clip: a steady 20 a second, its own rate (frame_rate.h)
 
             if (menu->mode == MENU_MODE_BOOT) {

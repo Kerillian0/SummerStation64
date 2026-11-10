@@ -16,3 +16,9 @@ Reference pictures the project owner supplied were used for style only
 (an 80s title treatment for the wordmark; a recolored N64 logo for the
 intro's spinning logo and its two patterns). Nothing was copied from them.
 The spinning logo's shape is Nintendo's N64 logo.
+
+## fairy.png
+
+Spark, the menu assistant's own fairy: drawn from scratch by
+`make_fairy.py` in this folder (no outside artwork). A player's own fairy
+pictures (skins) are not part of this repository.

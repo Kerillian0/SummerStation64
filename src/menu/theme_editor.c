@@ -3,6 +3,7 @@
 #include <strings.h>
 #include <libdragon.h>
 
+#include "assistant.h"
 #include "theme_editor.h"
 #include "builtin_themes.h"
 #include "card_themes.h"
@@ -667,6 +668,7 @@ static void close_editor (void) {
 }
 
 void theme_editor_open (void) {
+    assistant_note_used(ASSISTANT_USED_THEME_EDITOR);
     const char *in_use = card_themes_name_in_use();
     snprintf(source, sizeof(source), "%s", in_use ? in_use : "");
     fresh = false;
@@ -705,6 +707,7 @@ static const char *start_label (int i) {
 }
 
 void theme_editor_new (void) {
+    assistant_note_used(ASSISTANT_USED_THEME_EDITOR);
     theme_editor_open();
     source[0] = '\0';      /* nothing to bring along */
     fresh = true;

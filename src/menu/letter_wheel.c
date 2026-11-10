@@ -6,6 +6,7 @@
 
 #include <libdragon.h>
 
+#include "assistant.h"
 #include "cover_list.h"
 #include "display_name.h"
 #include "fonts.h"
@@ -214,6 +215,7 @@ static bool open_wheel (menu_t *menu) {
         disc = sprite_load("rom:/corner.sprite");
     }
     open = true;
+    assistant_note_used(ASSISTANT_USED_LETTER_DIAL);
     debugf("letter wheel: open, %d games\n", key_count);
     return true;
 }

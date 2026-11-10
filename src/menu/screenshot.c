@@ -8,6 +8,7 @@
 #include <string.h>
 #include <libdragon.h>
 
+#include "assistant.h"
 #include "menu_features.h"
 #include "menu_options.h"
 #include "safe_file.h"
@@ -266,5 +267,6 @@ void screenshot_after_frame (surface_t *display) {
         return;
     }
     debugf("screenshot: saved %s in %d ms\n", path, (int) (get_ticks_ms() - began));
+    assistant_note_used(ASSISTANT_USED_SCREENSHOT);
     sound_play_effect(SFX_SETTING);
 }

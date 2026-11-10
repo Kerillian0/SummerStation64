@@ -22,6 +22,10 @@ void animations_note_press (void) {
     last_press_ms = get_ticks_ms();
 }
 
+uint64_t animations_last_press_ms (void) {
+    return last_press_ms;
+}
+
 float animations_progress (uint64_t since, int ms) {
     if (!animations_showy() || last_press_ms > since || ms <= 0) {
         return 1.0f;
@@ -197,6 +201,10 @@ bool animations_cover_take (int screen, int from[4]) {
         from[i] = cover_place.rect[i];
     }
     return true;
+}
+
+bool animations_popup_up (void) {
+    return drawn_prev;
 }
 
 void animations_frame_done (int screen) {

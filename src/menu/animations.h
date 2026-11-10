@@ -38,6 +38,12 @@ float animations_ease_out (float t);
 /** Easing that runs a little past the end and comes back (0 to about 1.1 to 1). */
 float animations_ease_back (float t);
 
+/** When a button was last pressed or a direction moved (get_ticks_ms()). */
+uint64_t animations_last_press_ms (void);
+
+/** Whether a pop-up was up last frame. */
+bool animations_popup_up (void);
+
 /** The way the selection last moved on a row of covers: 1 next, -1 previous. */
 void animations_note_direction (int direction);
 int animations_direction (void);

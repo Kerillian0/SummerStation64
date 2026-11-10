@@ -1,3 +1,4 @@
+#include "../assistant.h"
 #include "../animations.h"
 #include "../cheat_menu.h"
 #include "../cheat_ready.h"
@@ -765,6 +766,7 @@ static void process (menu_t *menu) {
         sound_play_effect(SFX_SETTING);
     } else if (menu->actions.settings) { // START: details. One pop-up now; it was two, on L and on START.
         show_extra_info_message = !show_extra_info_message;
+        assistant_note_used(ASSISTANT_USED_DETAILS);
         sound_play_effect(SFX_SETTING);
     } else if (menu->actions.go_right) {
         iterate_metadata_image(menu, 1);
@@ -927,6 +929,7 @@ static void draw (menu_t *menu, surface_t *d) {
 #endif
 
     animations_draw_late(menu->mode);  // Showy: a pop-up just closed shrinks away
+    assistant_draw(menu);   // the assistant's fairy and bubble, when it is talking
     debug_stats_overlay_draw(); // Performance Overlay, if it is on
 
     rdpq_detach_show();

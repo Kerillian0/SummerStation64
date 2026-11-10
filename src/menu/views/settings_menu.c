@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include "../assistant.h"
 #include "../fonts.h"
 #include "../folder_memory.h"
 #include "../font_choice.h"
@@ -141,6 +142,14 @@ static void apply_theme (menu_t *menu) {
     fonts_restyle();
 }
 
+static const char *notice;  /* a note over Settings: defined with the profile rows below */
+
+static void reset_assistant (menu_t *menu) {
+    (void) menu;
+    assistant_reset();
+    notice = "The assistant will start its tips over.";
+}
+
 static void open_theme_editor (menu_t *menu) {
     (void) menu;
     theme_editor_open();
@@ -235,6 +244,12 @@ static const item_t display_items[] = {
     FEATURE("Angled Side Covers", FEATURE_ANGLED_COVERS, "Turn the previous and next covers away toward the sides, like boxes on a shelf. Needs Previous/Next Covers on."),
     CHOICES("Animations", OPTION_ANIMATIONS, ANIMATIONS_COUNT, animations_name, NULL,
         "Snappy keeps the menu quick and plain. Showy adds movement everywhere: covers, names and badges arrive in turn, the cover flies into Game info and back, highlights and tabs glide, pop-ups open and close, Settings rises in, and the player cards lift. Any button press finishes an animation at once."),
+    CHOICES("Assistant", OPTION_ASSISTANT, ASSISTANT_COUNT, assistant_often_name, NULL,
+        "A fairy that flies in now and then with a tip about something you haven't tried yet, then flies off. Any button sends it away. Rarely, Now and Then or Chatty: how often it may come. Off: never."),
+    CHOICES("Assistant Mood", OPTION_ASSISTANT_MOOD, ASSISTANT_MOOD_COUNT, assistant_mood_name, NULL,
+        "Eager is cheerful and keen to help. Snarky gives the same advice with an attitude."),
+    ACTION("Reset Assistant Tips", reset_assistant,
+        "The assistant says each tip once, and skips tips about things you already use. This lets it say the ones it has said again."),
     FEATURE("Cover Slide", FEATURE_CAROUSEL_ANIMATION, "Covers slide into place when you move left or right."),
     FEATURE("Rounded Corners", FEATURE_ROUNDED_CORNERS, "Round off the corners of the tabs, the clock, the title panel, the badges and the band behind the button hints. Off draws them square."),
     CHOICES("Tint Ring From Art", OPTION_RING_TINT, RING_TINT_COUNT, art_tint_name, NULL,

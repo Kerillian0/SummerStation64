@@ -1,4 +1,5 @@
 #include <stdarg.h>
+#include "../assistant.h"
 #include "../animations.h"
 #include "../debug_stats.h"
 #include "../bookkeeping.h"
@@ -318,6 +319,9 @@ static void draw(menu_t *menu, surface_t *display) {
                 display_name_file(path_last_get(item_list[selected_item].primary_path)), STL_RED, STL_GREEN
             );
         }
+        animations_draw_late(menu->mode);  // Showy: a pop-up just closed shrinks away
+        assistant_draw(menu);   // the assistant's fairy and bubble, when it is talking
+        debug_stats_overlay_draw(); // Performance Overlay, if it is on
         rdpq_detach_show();
         return;
     }
@@ -352,6 +356,7 @@ static void draw(menu_t *menu, surface_t *display) {
 
     start_menu_draw();
     animations_draw_late(menu->mode);  // Showy: a pop-up just closed shrinks away
+    assistant_draw(menu);   // the assistant's fairy and bubble, when it is talking
     debug_stats_overlay_draw(); // Performance Overlay, if it is on
 
     rdpq_detach_show();   

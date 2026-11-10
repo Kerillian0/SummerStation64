@@ -83,6 +83,7 @@ SRCS = \
 	menu/settings.c \
 	menu/sound.c \
 	menu/animations.c \
+	menu/assistant.c \
 	menu/avatars.c \
 	menu/avatar_pick.c \
 	menu/art_trim.c \
@@ -209,6 +210,7 @@ IMAGES = \
 	logo_stripes.png \
 	cart_back.png \
 	cart_bottom.png \
+	fairy.png \
 	wordmark.png
 
 # The smallest formats that hold them: 16 colors for the paks, 16 shades for the button disc.
@@ -227,6 +229,8 @@ $(FILESYSTEM_DIR)/cart_back.sprite: MKSPRITE_FLAGS=--format RGBA16
 $(FILESYSTEM_DIR)/cart_bottom.sprite: MKSPRITE_FLAGS=--format RGBA16
 # The intro's title needs soft edges for its glow, so it keeps full color.
 $(FILESYSTEM_DIR)/wordmark.sprite: MKSPRITE_FLAGS=--format RGBA32
+# The assistant's fairy glows: soft edges too.
+$(FILESYSTEM_DIR)/fairy.sprite: MKSPRITE_FLAGS=--format RGBA32
 
 OBJS = $(addprefix $(BUILD_DIR)/, $(addsuffix .o,$(basename $(SRCS))))
 MINIZ_OBJS = $(filter $(BUILD_DIR)/libs/miniz/%.o,$(OBJS))
