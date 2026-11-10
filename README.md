@@ -242,6 +242,20 @@ Code.
 - If you do not want to use this menu due to AI usage, I completely understand and accept this. Please use the stock menu or N64ever. I do not believe either of these utilize or at the very least disclose AI usage. They are far more talented than me. Please support them as this fork uses their code. They are the reason why this was possible in the first place.
 - If something seems wrong, please open an issue.
 
+## 🌟 Contributors
+
+Thank you to everyone who has helped build SummerStation64:
+
+- **[stewx](https://github.com/stewx)**: title logos on Game info
+  ([#10](https://github.com/Kerillian0/SummerStation64/pull/10)) and video
+  previews ([#8](https://github.com/Kerillian0/SummerStation64/pull/8)), with
+  the scripts that make them and tools to check every game in an emulator.
+- Players on Reddit, especially **Dispacho** and **Quest-Quest**, for their
+  requests and bug reports.
+
+Pull requests are welcome: see how stewx's were made and tested for a good
+example.
+
 ## 🙏 Credits and licence
 
 - Built on [N64FlashcartMenu](https://github.com/Polprzewodnikowy/N64FlashcartMenu)
