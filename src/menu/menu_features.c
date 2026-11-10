@@ -52,7 +52,7 @@ static const feature_info_t feature_info[FEATURE_COUNT] = {
     [FEATURE_ADVANCED_OPTIONS]    = { "advanced_options",    false, false },
     [FEATURE_NAME_SCROLL]         = { "name_scroll",         true,  false },
     [FEATURE_TRIM_EDGES]          = { "trim_edges",          true,  false },
-    [FEATURE_REVIEW_SCORES]       = { "review_scores",       true,  false },
+    [FEATURE_REVIEW_SCORES]       = { "review_scores",       false, false },
 };
 
 #define FEATURES_USER_PATH      profiles_file("features.ini")  /* the playing profile's */

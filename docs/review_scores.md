@@ -10,7 +10,7 @@ No scores come with the menu: they are read from a file on the SD card,
 `menu/reviewscores.txt`, that you write yourself or get from a metadata
 source you trust. Without it (or with a file that has no scores) nothing
 shows. **Review Scores** in Settings > Display turns them on or off; it is
-on by default. The file is read once, at start-up.
+off by default. The file is read once, at start-up.
 
 ## The file
 
