@@ -234,7 +234,7 @@ static const item_t display_items[] = {
     FEATURE("Dump Check Marks", FEATURE_DUMP_MARKS, "A green check for a known good dump, an amber ? for a copy that differs from it, a red X for a bad dump. Needs menu/verified.txt from the Card Prep page."),
     FEATURE("Angled Side Covers", FEATURE_ANGLED_COVERS, "Turn the previous and next covers away toward the sides, like boxes on a shelf. Needs Previous/Next Covers on."),
     CHOICES("Animations", OPTION_ANIMATIONS, ANIMATIONS_COUNT, animations_name, NULL,
-        "Snappy keeps the menu quick and plain. Showy adds movement: box art fades in, the cover you land on grows into place, and the name slides in. Any button press finishes an animation at once."),
+        "Snappy keeps the menu quick and plain. Showy adds movement: box art fades in, the cover you land on grows into place, names slide in, highlights glide between rows, pop-ups open and close, and Settings pages slide. Any button press finishes an animation at once."),
     FEATURE("Cover Slide", FEATURE_CAROUSEL_ANIMATION, "Covers slide into place when you move left or right."),
     FEATURE("Rounded Corners", FEATURE_ROUNDED_CORNERS, "Round off the corners of the tabs, the clock, the title panel, the badges and the band behind the button hints. Off draws them square."),
     CHOICES("Tint Ring From Art", OPTION_RING_TINT, RING_TINT_COUNT, art_tint_name, NULL,
@@ -634,12 +634,12 @@ static void pick_draw (void) {
     rdpq_text_printf(&(rdpq_textparms_t) { .width = PICK_WIDTH, .height = 26, .align = ALIGN_CENTER, .valign = VALIGN_CENTER,
         .wrap = WRAP_ELLIPSES, .style_id = STL_GRAY }, FNT_DEFAULT, x0, y0 + 6, "%s", picking->label);
     int current = options_get(picking->option);
+    static animations_glide_t pick_glide;
+    int bar_y = animations_glide(&pick_glide, y0 + 34 + ((pick_row - pick_first) * PICK_ROW_HEIGHT));   /* Showy: the bar glides between rows */
+    ui_components_box_draw(x0 + 8, bar_y, x0 + PICK_WIDTH - 8, bar_y + PICK_ROW_HEIGHT, CONTEXT_MENU_HIGHLIGHT_COLOR);
     for (int i = 0; i < shown; i++) {
         int r = pick_first + i;
         int y = y0 + 34 + (i * PICK_ROW_HEIGHT);
-        if (r == pick_row) {
-            ui_components_box_draw(x0 + 8, y, x0 + PICK_WIDTH - 8, y + PICK_ROW_HEIGHT, CONTEXT_MENU_HIGHLIGHT_COLOR);
-        }
         rdpq_text_printf(&(rdpq_textparms_t) { .width = PICK_WIDTH - 72, .height = PICK_ROW_HEIGHT, .valign = VALIGN_CENTER,
             .wrap = WRAP_ELLIPSES, .style_id = (pick_values[r] == current) ? STL_GREEN : STL_DEFAULT },
             FNT_DEFAULT, x0 + 24, y, "%s", picking->choice_name(pick_values[r]));
@@ -652,6 +652,7 @@ static void pick_draw (void) {
         rdpq_text_printf(&(rdpq_textparms_t) { .width = 20, .height = PICK_ROW_HEIGHT, .valign = VALIGN_CENTER }, FNT_DEFAULT,
             x0 + PICK_WIDTH - 36, y0 + 34 + ((shown - 1) * PICK_ROW_HEIGHT), "▼");
     }
+    animations_dialog_end();
 }
 
 static void change_item (menu_t *menu, const item_t *it) {
@@ -964,6 +965,9 @@ static void draw_help (menu_t *menu, const item_t *it) {
     }, FNT_DEFAULT, ITEMS_X + ROW_PADDING, HELP_Y, "%s%s", it->help, note);
 }
 
+#define PAGE_SLIDE_MS   (180)
+#define PAGE_SLIDE_PX   (24)
+
 static void draw (menu_t *menu, surface_t *d) {
     rdpq_attach(d, NULL);
 
@@ -1009,11 +1013,10 @@ static void draw (menu_t *menu, surface_t *d) {
         last_row = cat->count;
     }
 
+    static animations_glide_t category_glide, item_glide;
+    draw_selection(LEFT_X, animations_glide(&category_glide, ROWS_Y + (category * ROW_HEIGHT)), LEFT_WIDTH, !in_items);   /* Showy: glides */
     for (int i = 0; i < COUNT(categories); i++) {
         int y = ROWS_Y + (i * ROW_HEIGHT);
-        if (i == category) {
-            draw_selection(LEFT_X, y, LEFT_WIDTH, !in_items);
-        }
         draw_text(LEFT_X, y, LEFT_WIDTH, ALIGN_LEFT, STL_DEFAULT, categories[i].label);
     }
 
@@ -1026,12 +1029,32 @@ static void draw (menu_t *menu, surface_t *d) {
         draw_fill(SCROLLBAR_X, thumb_y, SCROLLBAR_X + SCROLLBAR_WIDTH, thumb_y + thumb, theme_get()->accent);
     }
 
-    for (int i = first_row; i < last_row; i++) {
-        int y = ROWS_Y + ((i - first_row) * ROW_HEIGHT);
-        if (in_items && i == item) {
-            draw_selection(ITEMS_X, y, ITEMS_WIDTH, true);
+    // Showy: another category's rows slide in from the way the selection
+    // went, kept to the rows' area.
+    static int shown_category = -1;
+    static uint64_t category_since = 0;
+    static int category_dir = 1;
+    if (category != shown_category) {
+        if (shown_category >= 0) {
+            category_dir = (category > shown_category) ? 1 : -1;
+            category_since = get_ticks_ms();
         }
+        shown_category = category;
+    }
+    float page_t = animations_progress(category_since, PAGE_SLIDE_MS);
+    int page_shift = (page_t < 1.0f) ? ((int) ((1.0f - animations_ease_out(page_t)) * PAGE_SLIDE_PX) & ~1) * category_dir : 0;
+    if (page_shift != 0) {
+        rdpq_set_scissor(ITEMS_X, ROWS_Y, display_get_width(), ROWS_Y + (VISIBLE_ROWS * ROW_HEIGHT));
+    }
+    if (in_items) {
+        draw_selection(ITEMS_X, animations_glide(&item_glide, ROWS_Y + ((item - first_row) * ROW_HEIGHT)), ITEMS_WIDTH, true);
+    }
+    for (int i = first_row; i < last_row; i++) {
+        int y = ROWS_Y + ((i - first_row) * ROW_HEIGHT) + page_shift;
         draw_item(menu, &cat->items[i], y);
+    }
+    if (page_shift != 0) {
+        rdpq_set_scissor(0, 0, display_get_width(), display_get_height());
     }
 
     if (in_items) {
@@ -1076,6 +1099,7 @@ static void draw (menu_t *menu, surface_t *d) {
         ui_components_messagebox_draw("%s\n\nPress any button.", notice);
     }
 
+    animations_draw_late(menu->mode);  // Showy: a pop-up just closed shrinks away
     debug_stats_overlay_draw(); // Performance Overlay, if it is on
 
     rdpq_detach_show();

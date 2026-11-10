@@ -10,6 +10,7 @@
 
 #include <libdragon.h>
 
+#include "animations.h"
 #include "screenshot.h"
 #include "clip.h"
 #include "actions.h"
@@ -269,6 +270,8 @@ void menu_run (boot_params_t *boot_params) {
                 rdpq_detach_wait();
                 display_show(display);
             }
+
+            animations_frame_done(menu->mode);  // which pop-ups were up on this screen this frame (animations.h)
 
             if (menu->mode == MENU_MODE_BOOT) {
                 break;

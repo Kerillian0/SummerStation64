@@ -6,6 +6,7 @@
 
 #include <stdarg.h>
 
+#include "../animations.h"
 #include "../ui_components.h"
 #include "../fonts.h"
 #include "constants.h"
@@ -181,8 +182,10 @@ void ui_components_dialog_draw (int width, int height) {
     int x1 = DISPLAY_CENTER_X + (width / 2);
     int y1 = DISPLAY_CENTER_Y + (height / 2);
 
+    animations_dialog(&x0, &y0, &x1, &y1);     // Showy: a new pop-up grows open (animations.h)
     ui_components_border_draw(x0, y0, x1, y1);
     ui_components_box_draw(x0, y0, x1, y1, DIALOG_BG_COLOR);
+    animations_dialog_clip();
 }
 
 /**
@@ -221,6 +224,7 @@ void ui_components_messagebox_draw (char *fmt, ...) {
     );
 
     rdpq_paragraph_render(paragraph, DISPLAY_CENTER_X - (MESSAGEBOX_MAX_WIDTH / 2), VISIBLE_AREA_Y0);
+    animations_dialog_end();
 
     rdpq_paragraph_free(paragraph);
 }

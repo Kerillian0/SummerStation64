@@ -42,4 +42,30 @@ float animations_ease_back (float t);
 void animations_note_direction (int direction);
 int animations_direction (void);
 
+/** A highlight bar that glides to its new place instead of jumping. */
+typedef struct {
+    int from, to;           /* where it glides from and to, in pixels */
+    uint64_t since;         /* when it set off */
+    uint64_t last_ms;       /* when it was last drawn: one not drawn for a while starts in place */
+    bool set;
+} animations_glide_t;
+
+/** Where to draw a highlight whose row is at `target` now (pixels, kept even). */
+int animations_glide (animations_glide_t *glide, int target);
+
+/** From ui_components_dialog_draw(): a pop-up drawn for the first time
+ *  grows open from its middle. animations_dialog() changes the box to draw;
+ *  animations_dialog_clip(), once the box is drawn, keeps what is drawn
+ *  inside it to the box while it grows, until animations_dialog_end(). */
+void animations_dialog (int *x0, int *y0, int *x1, int *y1);
+void animations_dialog_clip (void);
+void animations_dialog_end (void);
+
+/** At the end of each frame's drawing (before the Performance Overlay): a
+ *  pop-up that has just closed on this screen shrinks away. */
+void animations_draw_late (int screen);
+
+/** Once a frame, after the screen has been drawn (menu.c). */
+void animations_frame_done (int screen);
+
 #endif

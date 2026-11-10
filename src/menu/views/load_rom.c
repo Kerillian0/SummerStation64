@@ -1,3 +1,4 @@
+#include "../animations.h"
 #include "../cheat_menu.h"
 #include "../cheat_ready.h"
 #include "../debug_stats.h"
@@ -925,6 +926,7 @@ static void draw (menu_t *menu, surface_t *d) {
     }
 #endif
 
+    animations_draw_late(menu->mode);  // Showy: a pop-up just closed shrinks away
     debug_stats_overlay_draw(); // Performance Overlay, if it is on
 
     rdpq_detach_show();

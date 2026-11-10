@@ -4,6 +4,7 @@
  * @ingroup ui_components
  */
 
+#include "../animations.h"
 #include "../ui_components.h"
 #include "../fonts.h"
 #include "../sound.h"
@@ -148,6 +149,8 @@ void ui_components_context_menu_draw(component_context_menu_t *cm) {
     int highlight_x1 = DISPLAY_CENTER_X + (width / 2);
     int highlight_height = (layout->bbox.y1 - layout->bbox.y0) / layout->nlines;
     int highlight_y = VISIBLE_AREA_Y0 + layout->bbox.y0 + ((cm->row_selected) * highlight_height);
+    static animations_glide_t highlight_glide;
+    highlight_y = animations_glide(&highlight_glide, highlight_y);  // Showy: glides between rows (animations.h)
 
     ui_components_box_draw(
         highlight_x0,
@@ -158,6 +161,7 @@ void ui_components_context_menu_draw(component_context_menu_t *cm) {
     );
 
     rdpq_paragraph_render(layout, VISIBLE_AREA_X0, VISIBLE_AREA_Y0);
+    animations_dialog_end();
 
     rdpq_paragraph_free(layout);
 

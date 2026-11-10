@@ -9,6 +9,7 @@
 #include <strings.h>
 #include <libdragon.h>
 
+#include "animations.h"
 #include "dd_pair.h"
 #include "disk_info.h"
 #include "display_name.h"
@@ -465,6 +466,8 @@ bool dd_pair_process (menu_t *menu) {
     return true;
 }
 
+static animations_glide_t bar_glide;
+
 void dd_pair_draw (void) {
     if (!showing) {
         return;
@@ -477,12 +480,11 @@ void dd_pair_draw (void) {
     int y0 = DISPLAY_CENTER_Y - (height / 2);
     rdpq_text_printf(&(rdpq_textparms_t) { .width = LIST_WIDTH, .height = 26, .align = ALIGN_CENTER, .valign = VALIGN_CENTER, .style_id = STL_GRAY },
         FNT_DEFAULT, x0, y0 + 6, "Play this disk with");
+    int bar_y = animations_glide(&bar_glide, y0 + 34 + ((row - first_row) * ROW_HEIGHT));   /* Showy: the bar glides between rows */
+    ui_components_box_draw(x0 + 8, bar_y, x0 + LIST_WIDTH - 8, bar_y + ROW_HEIGHT, CONTEXT_MENU_HIGHLIGHT_COLOR);
     for (int i = 0; i < shown; i++) {
         int r = first_row + i;
         int y = y0 + 34 + (i * ROW_HEIGHT);
-        if (r == row) {
-            ui_components_box_draw(x0 + 8, y, x0 + LIST_WIDTH - 8, y + ROW_HEIGHT, CONTEXT_MENU_HIGHLIGHT_COLOR);
-        }
         char automatic_label[160];
         if (r == 0) {
             snprintf(automatic_label, sizeof(automatic_label), "Automatic: %s", automatic ? display_name(automatic) : "none found");
@@ -497,6 +499,7 @@ void dd_pair_draw (void) {
     if (first_row + shown < rows) {
         rdpq_text_printf(&(rdpq_textparms_t) { .width = 20, .height = ROW_HEIGHT, .valign = VALIGN_CENTER }, FNT_DEFAULT, x0 + LIST_WIDTH - 32, y0 + 34 + ((shown - 1) * ROW_HEIGHT), "▼");
     }
+    animations_dialog_end();
 }
 
 void dd_pair_rename (const char *old_path, const char *new_path) {

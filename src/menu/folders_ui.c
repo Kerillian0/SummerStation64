@@ -7,6 +7,7 @@
 #include <string.h>
 #include <libdragon.h>
 
+#include "animations.h"
 #include "folders_ui.h"
 #include "tabs.h"
 #include "fonts.h"
@@ -196,14 +197,15 @@ void folders_ui_draw (menu_t *menu) {
         }
     }
 
+    /* Showy: the bar glides between rows (animations.h). */
+    static animations_glide_t bar_glide;
+    int bar_y = animations_glide(&bar_glide, ROWS_Y + ((selected - first) * ROW_HEIGHT));
+    fill(x0, bar_y, x1 - BAR_WIDTH - 2, bar_y + ROW_HEIGHT, t->highlight);
+    fill(x0, bar_y + ROW_HEIGHT - 2, x1 - BAR_WIDTH - 2, bar_y + ROW_HEIGHT, t->accent);
+
     for (int row = 0; row < ROWS && (first + row) < entries; row++) {
         const entry_t *entry = &menu->browser.list[first + row];
         int y = ROWS_Y + (row * ROW_HEIGHT);
-
-        if ((first + row) == selected) {
-            fill(x0, y, x1 - BAR_WIDTH - 2, y + ROW_HEIGHT, t->highlight);
-            fill(x0, y + ROW_HEIGHT - 2, x1 - BAR_WIDTH - 2, y + ROW_HEIGHT, t->accent);
-        }
 
         row_text_t *kept = row_text(entry, name_width);
         if (kept) {

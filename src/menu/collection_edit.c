@@ -8,6 +8,7 @@
 #include <string.h>
 #include <libdragon.h>
 
+#include "animations.h"
 #include "collection_edit.h"
 #include "collections.h"
 #include "tabs.h"
@@ -164,6 +165,8 @@ bool collection_edit_process (menu_t *menu) {
     }
 }
 
+static animations_glide_t bar_glide;
+
 void collection_edit_draw (void) {
     if (showing == DELETING) {
         ui_components_messagebox_draw("Delete this collection?\n\n%s\n\n^%02XA: Delete^00    ^%02XB: Keep^00\nThe games stay on the card.",
@@ -177,12 +180,11 @@ void collection_edit_draw (void) {
         int y0 = DISPLAY_CENTER_Y - (height / 2);
         rdpq_text_printf(&(rdpq_textparms_t) { .width = LIST_WIDTH, .height = 26, .align = ALIGN_CENTER, .valign = VALIGN_CENTER, .style_id = STL_GRAY },
             FNT_DEFAULT, x0, y0 + 6, "Add to collection");
+        int bar_y = animations_glide(&bar_glide, y0 + 34 + ((row - first_row) * ROW_HEIGHT));   /* Showy: the bar glides between rows */
+        ui_components_box_draw(x0 + 8, bar_y, x0 + LIST_WIDTH - 8, bar_y + ROW_HEIGHT, CONTEXT_MENU_HIGHLIGHT_COLOR);
         for (int i = 0; i < shown; i++) {
             int r = first_row + i;
             int y = y0 + 34 + (i * ROW_HEIGHT);
-            if (r == row) {
-                ui_components_box_draw(x0 + 8, y, x0 + LIST_WIDTH - 8, y + ROW_HEIGHT, CONTEXT_MENU_HIGHLIGHT_COLOR);
-            }
             const char *text = "+ New collection";
             if (r > 0) {
                 int k = collection_on_row(r);
@@ -201,6 +203,7 @@ void collection_edit_draw (void) {
         if (first_row + shown < rows) {
             rdpq_text_printf(&(rdpq_textparms_t) { .width = 20, .height = ROW_HEIGHT, .valign = VALIGN_CENTER }, FNT_DEFAULT, x0 + LIST_WIDTH - 28, y0 + 34 + ((shown - 1) * ROW_HEIGHT), "▼");
         }
+        animations_dialog_end();
     }
     if (note[0] && get_ticks_ms() < note_until) {
         ui_components_messagebox_draw("%s", note);

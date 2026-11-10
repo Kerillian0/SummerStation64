@@ -2401,6 +2401,7 @@ static void draw (menu_t *menu, surface_t *d) {
     } else {
         intro_fade_draw(); // the fade-in after the menu starts, over the whole screen
     }
+    animations_draw_late(menu->mode);  // Showy: a pop-up just closed shrinks away
     debug_stats_overlay_draw(); // Performance Overlay, if it is on
 
     rdpq_detach_show();

@@ -1,4 +1,5 @@
 #include <stdarg.h>
+#include "../animations.h"
 #include "../debug_stats.h"
 #include "../bookkeeping.h"
 #include "../fonts.h"
@@ -350,6 +351,7 @@ static void draw(menu_t *menu, surface_t *display) {
     );    
 
     start_menu_draw();
+    animations_draw_late(menu->mode);  // Showy: a pop-up just closed shrinks away
     debug_stats_overlay_draw(); // Performance Overlay, if it is on
 
     rdpq_detach_show();   

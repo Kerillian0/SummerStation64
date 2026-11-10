@@ -9,6 +9,7 @@
 #include <string.h>
 #include <libdragon.h>
 
+#include "animations.h"
 #include "cheat_menu.h"
 #include "cheat_ready.h"
 #include "fonts.h"
@@ -249,6 +250,8 @@ bool cheat_menu_process (menu_t *menu) {
     return true;
 }
 
+static animations_glide_t bar_glide;
+
 void cheat_menu_draw (void) {
     if (!showing) {
         return;
@@ -269,12 +272,11 @@ void cheat_menu_draw (void) {
     int y0 = DISPLAY_CENTER_Y - (height / 2);
     rdpq_text_printf(&(rdpq_textparms_t) { .width = LIST_WIDTH, .height = 26, .align = ALIGN_CENTER, .valign = VALIGN_CENTER,
         .style_id = STL_GRAY }, FNT_DEFAULT, x0, y0 + 6, "Cheats: %d of %d on", on_count(), cheat_count);
+    int bar_y = animations_glide(&bar_glide, y0 + 34 + ((row - first_row) * ROW_HEIGHT));   /* Showy: the bar glides between rows */
+    ui_components_box_draw(x0 + 8, bar_y, x0 + LIST_WIDTH - 8, bar_y + ROW_HEIGHT, CONTEXT_MENU_HIGHLIGHT_COLOR);
     for (int i = 0; i < shown; i++) {
         int r = first_row + i;
         int y = y0 + 34 + (i * ROW_HEIGHT);
-        if (r == row) {
-            ui_components_box_draw(x0 + 8, y, x0 + LIST_WIDTH - 8, y + ROW_HEIGHT, CONTEXT_MENU_HIGHLIGHT_COLOR);
-        }
         rdpq_text_printf(&(rdpq_textparms_t) { .width = 24, .height = ROW_HEIGHT, .valign = VALIGN_CENTER, .style_id = STL_GREEN },
             FNT_DEFAULT, x0 + 20, y, "%s", cheats[r].on ? "✓" : "");
         rdpq_text_printf(&(rdpq_textparms_t) { .width = LIST_WIDTH - 96, .height = ROW_HEIGHT, .valign = VALIGN_CENTER,
@@ -290,4 +292,5 @@ void cheat_menu_draw (void) {
     }
     rdpq_text_printf(&(rdpq_textparms_t) { .width = LIST_WIDTH, .height = 26, .align = ALIGN_CENTER, .valign = VALIGN_CENTER,
         .style_id = STL_GRAY }, FNT_DEFAULT, x0, y0 + 40 + (shown * ROW_HEIGHT), "A: On / off    B: Done");
+    animations_dialog_end();
 }
