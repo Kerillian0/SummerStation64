@@ -82,6 +82,7 @@ SRCS = \
 	menu/rom_info.c \
 	menu/settings.c \
 	menu/sound.c \
+	menu/animations.c \
 	menu/avatars.c \
 	menu/avatar_pick.c \
 	menu/art_trim.c \

@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "memory_note.h"
+#include "animations.h"
 #include "carousel_art.h"
 #include "retro.h"
 #include "art_tint.h"
@@ -68,6 +69,7 @@ typedef struct {
     float outline[BOX3D_OUTLINE_MAX][2];    /* a retro cartridge's outline, traced from its picture (box3d.h) */
     int outline_points;         /* 0: the N64 cartridge's outline */
     bool plain_back;            /* a retro cartridge turned over with no back picture: its front painted plain */
+    uint64_t shown_ms;          /* when its art was first drawn (Showy fades it in from then) */
 } slot_t;
 
 typedef enum {
@@ -800,6 +802,18 @@ static void fill_edges (box3d_art_t *art) {
    when one side has been let go and the other isn't in yet. */
 static int box_front_w = 0, box_front_h = 0;
 
+/* Showy (animations.h): a cover's art fades up from dark the first time it
+   is drawn, by darkening it as it is drawn, which costs the chip nothing. */
+#define ART_FADE_MS     (220)
+
+static int arrive_bright (slot_t *slot) {
+    if (slot->shown_ms == 0) {
+        slot->shown_ms = get_ticks_ms();
+    }
+    float t = animations_progress(slot->shown_ms, ART_FADE_MS);
+    return (t >= 1.0f) ? art_bright : (int) (art_bright * animations_ease_out(t));
+}
+
 bool carousel_art_draw_box (menu_t *menu, int index, int x0, int y0, int w, int h) {
     slot_t *slot = slot_find(menu, index);
     bool flipping = (flip != FLIP_NONE);
@@ -830,7 +844,7 @@ bool carousel_art_draw_box (menu_t *menu, int index, int x0, int y0, int w, int 
         .front_w = box_front_w,
         .front_h = box_front_h,
         .side = theme_get()->panel,
-        .bright = art_bright,
+        .bright = ready ? arrive_bright(slot) : art_bright,
     };
     art.top = art_ready(edges[0]) ? edges[0]->image : (art_ready(slot->top) ? slot->top->image : NULL);
     art.left = art_ready(edges[1]) ? edges[1]->image : NULL;
@@ -894,7 +908,7 @@ bool carousel_art_draw_side_box (menu_t *menu, int index, int x0, int y0, int w,
     box3d_art_t art = {
         .front = slot->art->image,
         .side = theme_get()->panel,
-        .bright = art_bright,
+        .bright = arrive_bright(slot),
         .alpha = alpha,
         .back = (index == center_index && side != IMAGE_BOXART_FRONT),
     };
@@ -1123,6 +1137,7 @@ bool carousel_art_draw (menu_t *menu, int index, int x0, int y0, int w, int h, i
     }
 
     surface_t *image = slot_image(slot);
+    int bright = arrive_bright(slot);
 
     /* Fit the art to the cover at its full width, then squash it sideways
        by the same amount the cover itself is squashed during a flip. */
@@ -1145,15 +1160,15 @@ bool carousel_art_draw (menu_t *menu, int index, int x0, int y0, int w, int h, i
         if (slot->cart) {
             rdpq_mode_alphacompare(128);    /* a cartridge's see-through edges */
         }
-        if (alpha >= 255 && art_bright >= 255) {
+        if (alpha >= 255 && bright >= 255) {
             rdpq_mode_combiner(RDPQ_COMBINER_TEX);
         } else if (alpha >= 255) {
             /* Darkened as it is drawn (the fade-in): costs the chip nothing extra. */
-            rdpq_set_prim_color(RGBA32(art_bright, art_bright, art_bright, 0xFF));
+            rdpq_set_prim_color(RGBA32(bright, bright, bright, 0xFF));
             rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);
         } else {
             /* See-through, like the placeholder covers at the sides. */
-            rdpq_set_prim_color(RGBA32(art_bright, art_bright, art_bright, alpha));
+            rdpq_set_prim_color(RGBA32(bright, bright, bright, alpha));
             rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);
             rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
         }
@@ -1190,6 +1205,7 @@ bool carousel_art_draw_angled (menu_t *menu, int index, int x0, int y0, int w, i
     if (w < 2) {
         return true;
     }
+    int bright = arrive_bright(slot);
 
     /* The art is far larger than the chip's 4 KB texture memory, so it is
        drawn in bands of rows, each one loaded and drawn in turn. A band
@@ -1216,13 +1232,13 @@ bool carousel_art_draw_angled (menu_t *menu, int index, int x0, int y0, int w, i
         if (slot->cart) {
             rdpq_mode_alphacompare(128);
         }
-        if (alpha >= 255 && art_bright >= 255) {
+        if (alpha >= 255 && bright >= 255) {
             rdpq_mode_combiner(RDPQ_COMBINER_TEX);
         } else if (alpha >= 255) {
-            rdpq_set_prim_color(RGBA32(art_bright, art_bright, art_bright, 0xFF));
+            rdpq_set_prim_color(RGBA32(bright, bright, bright, 0xFF));
             rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);
         } else {
-            rdpq_set_prim_color(RGBA32(art_bright, art_bright, art_bright, alpha));
+            rdpq_set_prim_color(RGBA32(bright, bright, bright, alpha));
             rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);
             rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
         }

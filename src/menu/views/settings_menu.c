@@ -30,6 +30,7 @@
 #include "../sound.h"
 #include "../theme.h"
 #include "../theme_editor.h"
+#include "../animations.h"
 #include "../avatar_pick.h"
 #include "../avatars.h"
 #include "../letter_wheel.h"
@@ -232,6 +233,8 @@ static const item_t display_items[] = {
     SWITCH("Video Previews", video_previews_enabled, true, apply_video_previews, "On Game info, a short clip of the game plays in the cover's place after a moment, for games with a preview.h264 beside their box art on the SD card. Needs the Expansion Pak."),
     FEATURE("Dump Check Marks", FEATURE_DUMP_MARKS, "A green check for a known good dump, an amber ? for a copy that differs from it, a red X for a bad dump. Needs menu/verified.txt from the Card Prep page."),
     FEATURE("Angled Side Covers", FEATURE_ANGLED_COVERS, "Turn the previous and next covers away toward the sides, like boxes on a shelf. Needs Previous/Next Covers on."),
+    CHOICES("Animations", OPTION_ANIMATIONS, ANIMATIONS_COUNT, animations_name, NULL,
+        "Snappy keeps the menu quick and plain. Showy adds movement: box art fades in, the cover you land on grows into place, and the name slides in. Any button press finishes an animation at once."),
     FEATURE("Cover Slide", FEATURE_CAROUSEL_ANIMATION, "Covers slide into place when you move left or right."),
     FEATURE("Rounded Corners", FEATURE_ROUNDED_CORNERS, "Round off the corners of the tabs, the clock, the title panel, the badges and the band behind the button hints. Off draws them square."),
     CHOICES("Tint Ring From Art", OPTION_RING_TINT, RING_TINT_COUNT, art_tint_name, NULL,

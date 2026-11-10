@@ -5,6 +5,7 @@
 
 #include <libdragon.h>
 
+#include "animations.h"
 #include "avatars.h"
 #include "profiles.h"
 #include "fonts.h"
@@ -379,6 +380,29 @@ menu_font_style_t games_ui_review_style (int review) {
     return (review >= 75) ? STL_GREEN : (review >= 50) ? STL_YELLOW : (review > 0) ? STL_RED : STL_GRAY;
 }
 
+/* Showy (animations.h): a new name and its badges slide in from the side the
+   selection moved toward, in 2-pixel steps (text on 240p), kept inside the
+   panel by a scissor while they move. */
+#define TITLE_SLIDE_MS  (200)
+#define TITLE_SLIDE_PX  (28)
+static bool panel_clipped = false;
+static int panel_clip_x0, panel_clip_x1;
+
+static void panel_clip_restore (void) {
+    if (panel_clipped) {
+        rdpq_set_scissor(panel_clip_x0, PANEL_Y, panel_clip_x1, PANEL_Y + PANEL_HEIGHT);
+    } else {
+        rdpq_set_scissor(0, 0, display_get_width(), display_get_height());
+    }
+}
+
+static void panel_clip_end (void) {
+    if (panel_clipped) {
+        panel_clipped = false;
+        panel_clip_restore();
+    }
+}
+
 void games_ui_title_panel_draw (const char *title, const char *detail, const char *lead, bool hack, bool is_new, const char *with, const game_facts_t *facts, int review) {
     const theme_t *t = theme_get();
     int x0 = GAMES_UI_CONTENT_X0;
@@ -447,12 +471,27 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const cha
         title_layout_width = title_width;
         title_since = get_ticks_ms();
     }
+    float slide_t = animations_progress(title_since, TITLE_SLIDE_MS);
+    int shift = (slide_t < 1.0f) ? ((int) ((1.0f - animations_ease_out(slide_t)) * TITLE_SLIDE_PX) & ~1) * animations_direction() : 0;
+    if (shift != 0) {
+        panel_clipped = true;
+        panel_clip_x0 = x0 + 4;
+        panel_clip_x1 = x1 - 4;
+        panel_clip_restore();
+        x0 += shift;
+        x1 += shift;
+    }
     int title_end;
     if (title_scrolls) {
         int offset = name_scroll_offset(get_ticks_ms() - title_since, (int) title_layout->bbox.x1 - title_width);
-        rdpq_set_scissor(x0 + 12, PANEL_Y, x0 + 12 + title_width, PANEL_Y + PANEL_HEIGHT);
+        int clip_x0 = x0 + 12, clip_x1 = x0 + 12 + title_width;
+        if (panel_clipped) {
+            clip_x0 = (clip_x0 > panel_clip_x0) ? clip_x0 : panel_clip_x0;
+            clip_x1 = (clip_x1 < panel_clip_x1) ? clip_x1 : panel_clip_x1;
+        }
+        rdpq_set_scissor(clip_x0, PANEL_Y, clip_x1, PANEL_Y + PANEL_HEIGHT);
         rdpq_paragraph_render(title_layout, x0 + 12 - offset, PANEL_Y + 2);
-        rdpq_set_scissor(0, 0, display_get_width(), display_get_height());
+        panel_clip_restore();
         title_end = x0 + 12 + title_width;
     } else {
         rdpq_paragraph_render(title_layout, x0 + 12, PANEL_Y + 2);
@@ -494,6 +533,7 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const cha
         } else {
             text(x0 + 12, line2_y, x1 - x0 - 24, PANEL_LINE, ALIGN_LEFT, STL_GRAY, lead ? lead : detail);
         }
+        panel_clip_end();
         return;
     }
 
@@ -554,6 +594,7 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const cha
     if (x == x0 + 12 - BADGE_PADDING) {
         text(x0 + 12, line2_y, x1 - x0 - 24, PANEL_LINE, ALIGN_LEFT, STL_GRAY, detail);
     }
+    panel_clip_end();
 }
 
 /* Button hints */

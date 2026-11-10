@@ -8,6 +8,7 @@
 #include <string.h>
 #include <libdragon.h>
 
+#include "animations.h"
 #include "baked_art.h"
 #include "collections.h"
 #include "collections_ui.h"
@@ -113,6 +114,7 @@ collections_ui_action_t collections_ui_process (menu_t *menu) {
         if (next >= 0 && next < count && next != selected) {
             selected = next;
             moved_at = get_ticks_ms();
+            animations_note_direction(step);    /* the name slides in from this side (Showy) */
             sound_play_effect(SFX_CURSOR);
         }
     }

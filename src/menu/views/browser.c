@@ -21,6 +21,7 @@
 #include "../carousel_art.h"
 #include "../safe_mode.h"
 #include "../folder_memory.h"
+#include "../animations.h"
 #include "../art_tint.h"
 #include "../games_folders.h"
 #include "../games_filter.h"
@@ -1822,6 +1823,17 @@ static uint64_t slide_last_move_ms = 0;
 // How far the covers still have to travel, in cover positions: +1 or -1 at
 // the start of a slide, 0 at rest. Timed by the clock, not by frames, so it
 // takes the same time at 50 and 60 Hz.
+// Showy (animations.h): the cover you land on grows into place, running a
+// little past its size and back. Not while a direction is held.
+#define CAROUSEL_POP_MS     (280)
+#define CAROUSEL_POP_FROM   (0.88f)
+static uint64_t landed_ms = 0;
+
+static float carousel_pop (void) {
+    float t = landed_ms ? animations_progress(landed_ms, CAROUSEL_POP_MS) : 1.0f;
+    return (t >= 1.0f) ? 1.0f : CAROUSEL_POP_FROM + (1.0f - CAROUSEL_POP_FROM) * animations_ease_back(t);
+}
+
 static float carousel_slide (menu_t *menu) {
     const cover_list_t *covers = cover_list_current(menu);
     uint64_t now = get_ticks_ms();
@@ -1833,11 +1845,13 @@ static float carousel_slide (menu_t *menu) {
     } else if (selected != slide_selected) {
         int delta = selected - slide_selected;
         bool rapid = (now - slide_last_move_ms) < CAROUSEL_RAPID_MS;
+        // Wrapping from the last item to the first still counts as "next".
+        if (menu->settings.wrap_file_list_scrolling && covers->entries > 2 && (delta == covers->entries - 1 || delta == 1 - covers->entries)) {
+            delta = -delta;
+        }
+        animations_note_direction(delta);       // the name slides in from this side (Showy)
+        landed_ms = rapid ? 0 : now;
         if (features_enabled(FEATURE_CAROUSEL_ANIMATION) && !rapid) {
-            // Wrapping from the last item to the first still counts as "next".
-            if (menu->settings.wrap_file_list_scrolling && covers->entries > 2 && (delta == covers->entries - 1 || delta == 1 - covers->entries)) {
-                delta = -delta;
-            }
             slide_dir = (delta > 0) ? 1 : -1;
             slide_start_ms = now;
         } else {
@@ -1884,6 +1898,7 @@ void carousel_draw (menu_t *menu) {
     drawn_center = (carousel_box_t) { 10000, 10000, -10000, -10000 };
 
     const float slide = carousel_slide(menu);
+    const float pop = carousel_pop();
     const int tab_shift = (int) (tabs_slide() * CAROUSEL_TAB_SLIDE_PX); // just switched tab: the whole row comes in from the side
     drawn_moving = (slide != 0.0f) || (tab_shift != 0);
     const int bright = drawn_moving ? 255 : (255 - carousel_dark); // while covers slide, the fade darkens the whole row at once
@@ -1933,6 +1948,10 @@ void carousel_draw (menu_t *menu) {
             int w = (int) carousel_lerp(CAROUSEL_SIDE_W, CAROUSEL_CENTER_W, grow);
             int h = (int) carousel_lerp(CAROUSEL_SIDE_H, CAROUSEL_CENTER_H, grow);
             carousel_fit_to_art(menu, i, &w, &h); // a tall Japanese box is drawn tall, without bars at its sides
+            if (offset == 0) {
+                w = (int) (w * pop);
+                h = (int) (h * pop);
+            }
 
             // Angled Side Covers: a cover turns away as it leaves the center,
             // its far edge (toward the screen's side) shorter than its near one.
@@ -2053,6 +2072,8 @@ void carousel_draw (menu_t *menu) {
     // box and a tall one.
     int ring_w, ring_h;
     carousel_ring_size(menu, covers->selected, &ring_w, &ring_h);
+    ring_w = (int) (ring_w * pop);
+    ring_h = (int) (ring_h * pop);
     bool ring_hidden;
     color_t ring_color = carousel_ring_color(menu, covers->selected, t->accent, &ring_hidden);
     // Corner brackets stand a little further above and below the cover than the ring.

@@ -54,6 +54,7 @@ static const option_info_t option_info[OPTION_COUNT] = {
     [OPTION_INTRO_TITLE] = { "intro_title", 0 }, /* the picture */
     [OPTION_NAME_ENTRY] = { "name_entry", 0 }, /* the keyboard */
     [OPTION_AVATAR_SHAPE] = { "avatar_shape", 0 }, /* round */
+    [OPTION_ANIMATIONS] = { "animations", 0 }, /* snappy: the menu as it always was */
     [OPTION_PARTY_TEST] = { "party_test", 0 }, /* count the real controllers */
 };
 

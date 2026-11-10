@@ -1,5 +1,6 @@
 #include <libdragon.h>
 
+#include "animations.h"
 #include "screenshot.h"
 #include "actions.h"
 
@@ -59,6 +60,10 @@ static void actions_update_direction (menu_t *menu) {
         dir_repeat_at_ms = now_ms + ACTIONS_REPEAT_NEXT_MS;
     }
 
+    if (final_dir != JOYPAD_8WAY_NONE) {
+        animations_note_press();
+    }
+
     switch (final_dir) {
         case JOYPAD_8WAY_NONE:
             break;
@@ -109,6 +114,9 @@ static void actions_update_buttons (menu_t *menu) {
         }
     }
     screenshot_note_pressed(pressed);   // what our own button readers see (screenshot.h)
+    if (pressed.raw) {
+        animations_note_press();        // finishes Showy's animations (animations.h)
+    }
 
     if (pressed.a) {
         menu->actions.enter = true;
