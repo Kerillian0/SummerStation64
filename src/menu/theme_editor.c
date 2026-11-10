@@ -4,6 +4,7 @@
 #include <libdragon.h>
 
 #include "theme_editor.h"
+#include "builtin_themes.h"
 #include "card_themes.h"
 #include "fonts.h"
 #include "games_ui.h"
@@ -55,11 +56,26 @@ static int first_row = 0;
 static bool rebuild_pending = false;
 static uint64_t rebuild_at = 0;
 
-typedef enum { ASK_NONE, ASK_LEAVE, ASK_REPLACE } ask_t;
+typedef enum { ASK_NONE, ASK_LEAVE, ASK_REPLACE, ASK_BRING } ask_t;
 static ask_t ask = ASK_NONE;
 static char save_name[41];
 static const char *message = NULL;     /* shown until any button is pressed */
 static char message_text[96];
+
+/* The card theme being edited (its folder), whose music, sounds and font can
+   come along when it is saved under another name; "" for a built-in look or
+   a new theme. */
+static char source[41];
+static bool fresh = false;      /* a new theme, not saved yet */
+
+/* A new theme first picks the look it starts from: the built-in ones, then a plain dark one. */
+static const int start_looks[] = {
+    BUILTIN_THEME_MIDNIGHT, BUILTIN_THEME_SUNSET, BUILTIN_THEME_BEACH, BUILTIN_THEME_OCEAN,
+    BUILTIN_THEME_MINT_GRID, BUILTIN_THEME_GRAPE, -1,
+};
+#define START_COUNT ((int) (sizeof(start_looks) / sizeof(start_looks[0])))
+static bool starting = false;   /* choosing that look */
+static int start_choice = 0;
 
 static bool gradient (void) { return edit.bg_type == THEME_BG_GRADIENT; }
 static bool ocean (void) { return edit.bg_type == THEME_BG_OCEAN; }
@@ -468,7 +484,137 @@ static void save (void) {
     message = message_text;
     opened = edit;
     dirty = false;
+    fresh = false;
+    snprintf(source, sizeof(source), "%s", save_name);   /* editing that theme from now on */
     sound_play_effect(SFX_SETTING);
+}
+
+/* ---------- bringing a theme's music, sounds and font along ---------- */
+
+#define COPY_CHUNK  (32 * 1024)     /* read and written each frame: the menu keeps drawing (and playing) meanwhile */
+
+static const char *pack_files[] = {
+    "music.wav64", "intro.wav64", "move.wav64", "select.wav64", "back.wav64", "setting.wav64", "error.wav64", "font.font64",
+};
+#define PACK_COUNT  ((int) (sizeof(pack_files) / sizeof(pack_files[0])))
+
+static struct {
+    bool on;
+    int file;           /* which of pack_files */
+    FILE *in, *out;
+    uint8_t *buffer;
+    int64_t done, total;
+} copy;
+
+static void pack_path (char *out, size_t size, const char *theme, int file, const char *end) {
+    snprintf(out, size, "%s/%s/%s%s", CARD_THEMES_DIR, theme, pack_files[file], end);
+}
+
+/* How much the theme being edited brings with it (0: nothing). */
+static int64_t pack_size (void) {
+    int64_t total = 0;
+    for (int i = 0; source[0] && i < PACK_COUNT; i++) {
+        char path[128];
+        pack_path(path, sizeof(path), source, i, "");
+        if (file_exists(path)) {
+            int64_t size = file_get_size(path);
+            total += (size > 0) ? size : 0;
+        }
+    }
+    return total;
+}
+
+/* Close the file being copied: put it in place (`keep`), or throw the part copied away. False if that failed. */
+static bool copy_close (bool keep) {
+    bool ok = keep;
+    if (copy.in) {
+        fclose(copy.in);
+        copy.in = NULL;
+    }
+    if (copy.out) {
+        char temp[136], path[128];
+        ok = (fclose(copy.out) == 0) && ok;
+        copy.out = NULL;
+        pack_path(temp, sizeof(temp), save_name, copy.file, ".tmp");
+        pack_path(path, sizeof(path), save_name, copy.file, "");
+        ok = ok && safe_file_replace(temp, path);
+        if (!ok) {
+            remove(temp);
+        }
+    }
+    return ok;
+}
+
+static void copy_end (bool done) {
+    copy_close(false);
+    free(copy.buffer);
+    copy.buffer = NULL;
+    copy.on = false;
+    if (done) {
+        debugf("theme editor: brought %d KB of sounds and font from %s to %s\n", (int) (copy.total / 1024), source, save_name);
+        save();
+    } else {
+        say("Couldn't copy the music and sounds. Nothing was saved.");
+        sound_play_effect(SFX_ERROR);
+    }
+}
+
+static void copy_begin (void) {
+    char folder[96];
+    snprintf(folder, sizeof(folder), "%s/%s", CARD_THEMES_DIR, save_name);
+    memset(&copy, 0, sizeof(copy));
+    copy.total = pack_size();
+    copy.buffer = malloc(COPY_CHUNK);
+    copy.on = true;
+    copy.file = -1;
+    if (!copy.buffer || (!directory_exists(folder) && directory_create(folder))) {   /* directory_create() returns true when it fails */
+        copy_end(false);
+    }
+}
+
+/* One piece a frame: the next file opened, or a chunk of the open one copied. */
+static void copy_step (void) {
+    if (!copy.in) {
+        while (++copy.file < PACK_COUNT) {
+            char from[128], to[136];
+            pack_path(from, sizeof(from), source, copy.file, "");
+            pack_path(to, sizeof(to), save_name, copy.file, "");
+            if (file_exists(from)) {
+                pack_path(to, sizeof(to), save_name, copy.file, ".tmp");
+                copy.in = fopen(from, "rb");
+                copy.out = copy.in ? fopen(to, "wb") : NULL;
+                if (!copy.out) {
+                    copy_end(false);
+                }
+                return;
+            }
+            if (file_exists(to)) {
+                remove(to);     /* the theme saved over had one this one doesn't: it takes this one's set */
+            }
+        }
+        copy_end(true);
+        return;
+    }
+    size_t n = fread(copy.buffer, 1, COPY_CHUNK, copy.in);
+    if ((n > 0 && fwrite(copy.buffer, 1, n, copy.out) != n) || ferror(copy.in)) {
+        copy_end(false);
+        return;
+    }
+    copy.done += n;
+    if (n < COPY_CHUNK && !copy_close(true)) {     /* the end of this file */
+        copy_end(false);
+    }
+}
+
+/* The name is settled: bring the music, sounds and font along if the
+   player wants them (only asked when saving a card theme that has some
+   under another name). */
+static void after_name (void) {
+    if (source[0] && strcasecmp(source, save_name) != 0 && pack_size() > 0) {
+        ask = ASK_BRING;
+        return;
+    }
+    save();
 }
 
 /* The letter dial's answer. FAT names can't end in a space or a dot. */
@@ -494,13 +640,15 @@ static void named (menu_t *menu, const char *name) {
         ask = ASK_REPLACE;      /* another theme's folder: ask first (saving over the one being edited doesn't) */
         return;
     }
-    save();
+    after_name();
 }
 
 static void begin_save (void) {
     const char *in_use = card_themes_name_in_use();
     char start[41];
-    if (in_use) {
+    if (fresh) {
+        snprintf(start, sizeof(start), "My Theme");
+    } else if (in_use) {
         snprintf(start, sizeof(start), "%s", in_use);
     } else {
         snprintf(start, sizeof(start), "My %s", edit.name);     /* a built-in theme: a name of its own */
@@ -519,6 +667,10 @@ static void close_editor (void) {
 }
 
 void theme_editor_open (void) {
+    const char *in_use = card_themes_name_in_use();
+    snprintf(source, sizeof(source), "%s", in_use ? in_use : "");
+    fresh = false;
+    starting = false;
     edit = *theme_get();
     if (edit.bg_type == THEME_BG_IMAGE) {
         edit.bg_type = THEME_BG_GRADIENT;   /* not drawn yet: shown as a gradient anyway */
@@ -532,6 +684,59 @@ void theme_editor_open (void) {
     message = NULL;
     rebuild_pending = false;
     open_now = true;
+}
+
+/* The look a new theme starts from: a built-in one, or plain dark (-1). */
+static void start_from (int look) {
+    theme_defaults(&edit);
+    if (look >= 0) {
+        builtin_theme_apply(&edit, look);
+    } else {
+        edit.bg_type = THEME_BG_SOLID;
+        edit.color1 = RGBA32(0x20, 0x22, 0x27, 0xFF);
+        edit.pattern = THEME_PATTERN_NONE;
+    }
+    snprintf(edit.name, sizeof(edit.name), "My Theme");
+    show_changes(true);
+}
+
+static const char *start_label (int i) {
+    return (start_looks[i] >= 0) ? builtin_theme_name(start_looks[i]) : "Plain Dark";
+}
+
+void theme_editor_new (void) {
+    theme_editor_open();
+    source[0] = '\0';      /* nothing to bring along */
+    fresh = true;
+    starting = true;
+    start_choice = 0;
+    start_from(start_looks[0]);
+    dirty = false;
+}
+
+static void start_process (menu_t *menu) {
+    int was = start_choice;
+    if (menu->actions.go_up && start_choice > 0) {
+        start_choice--;
+    } else if (menu->actions.go_down && start_choice < START_COUNT - 1) {
+        start_choice++;
+    } else if (menu->actions.enter) {
+        starting = false;
+        opened = edit;      /* Undo All Changes goes back to the starting look */
+        dirty = false;
+        selected = R_TEXT;
+        sound_play_effect(SFX_ENTER);
+        return;
+    } else if (menu->actions.back) {
+        close_editor();
+        sound_play_effect(SFX_EXIT);
+        return;
+    }
+    if (start_choice != was) {
+        start_from(start_looks[start_choice]);
+        dirty = false;
+        sound_play_effect(SFX_CURSOR);
+    }
 }
 
 bool theme_editor_active (void) {
@@ -568,10 +773,28 @@ void theme_editor_process (menu_t *menu) {
         theme_preview(&edit, true);     /* made on the next draw */
     }
 
+    if (copy.on) {
+        copy_step();
+        return;
+    }
     if (message) {
         if (any_button(menu)) {
             message = NULL;
             sound_play_effect(SFX_EXIT);
+        }
+        return;
+    }
+    if (starting) {
+        start_process(menu);
+        return;
+    }
+    if (ask == ASK_BRING) {
+        if (menu->actions.enter) {
+            ask = ASK_NONE;
+            copy_begin();
+        } else if (menu->actions.back) {
+            ask = ASK_NONE;
+            save();     /* the colors only */
         }
         return;
     }
@@ -589,7 +812,7 @@ void theme_editor_process (menu_t *menu) {
     if (ask == ASK_REPLACE) {
         if (menu->actions.enter) {
             ask = ASK_NONE;
-            save();
+            after_name();
         } else if (menu->actions.back) {
             ask = ASK_NONE;
             sound_play_effect(SFX_EXIT);
@@ -848,9 +1071,28 @@ static void draw_preview (void) {
     text(PREVIEW_X0, y + 4, PREVIEW_X1 - PREVIEW_X0, ALIGN_CENTER, STL_DEFAULT, "Outlined box");
 }
 
+/* A new theme: the looks it can start from, the one picked shown on the menu itself. */
+static void draw_start (void) {
+    text(LIST_X + ROW_PADDING, TITLE_Y, LIST_WIDTH, ALIGN_LEFT, STL_GRAY, "NEW THEME: START FROM");
+    text(PREVIEW_X0, TITLE_Y, PREVIEW_X1 - PREVIEW_X0, ALIGN_LEFT, STL_GRAY, edit.name);
+    for (int i = 0; i < START_COUNT; i++) {
+        int y = ROWS_Y + (i * ROW_HEIGHT);
+        if (i == start_choice) {
+            ui_components_box_draw(LIST_X, y, LIST_X + LIST_WIDTH, y + ROW_HEIGHT, theme_get()->highlight);
+        }
+        text(LIST_X + ROW_PADDING, y, LIST_WIDTH - ROW_PADDING * 2, ALIGN_LEFT, STL_DEFAULT, start_label(i));
+    }
+    draw_preview();
+    ui_components_actions_bar_text_draw(STL_DEFAULT, ALIGN_LEFT, VALIGN_TOP, "A: Start from this look\nB: Back");
+}
+
 void theme_editor_draw (void) {
+    if (starting) {
+        draw_start();
+        return;
+    }
     text(LIST_X + ROW_PADDING, TITLE_Y, LIST_WIDTH, ALIGN_LEFT, STL_GRAY,
-        picking ? row_label(selected) : (dirty ? "EDIT THEME (changed)" : "EDIT THEME"));
+        picking ? row_label(selected) : fresh ? (dirty ? "NEW THEME (changed)" : "NEW THEME") : (dirty ? "EDIT THEME (changed)" : "EDIT THEME"));
     text(PREVIEW_X0, TITLE_Y, PREVIEW_X1 - PREVIEW_X0, ALIGN_LEFT, STL_GRAY, edit.name);
 
     if (picking) {
@@ -872,7 +1114,20 @@ void theme_editor_draw (void) {
     }
     ui_components_actions_bar_text_draw(STL_DEFAULT, ALIGN_LEFT, VALIGN_TOP, "%s\n%s", first, picking ? "B: Cancel" : "B: Back");
 
-    if (ask == ASK_LEAVE) {
+    if (copy.on) {
+        int percent = (copy.total > 0) ? (int) ((copy.done * 100) / copy.total) : 100;
+        ui_components_messagebox_draw("Copying the music, sounds and font...\n\n%d%%", percent);
+    } else if (ask == ASK_BRING) {
+        int64_t size = pack_size();
+        char amount[24];
+        if (size >= 1024 * 1024) {
+            snprintf(amount, sizeof(amount), "%d.%d MB", (int) (size / (1024 * 1024)), (int) ((size % (1024 * 1024)) * 10 / (1024 * 1024)));
+        } else {
+            snprintf(amount, sizeof(amount), "%d KB", (int) ((size + 1023) / 1024));
+        }
+        ui_components_messagebox_draw("Bring %s's music, sounds\nand font along? (%s)\n\n^%02XA: Bring them^00    ^%02XB: Colors only^00",
+            source, amount, STL_GREEN, STL_DEFAULT);
+    } else if (ask == ASK_LEAVE) {
         ui_components_messagebox_draw("Leave without saving?\n\nYour changes will be lost.\n\n^%02XA: Leave^00    ^%02XB: Stay^00", STL_RED, STL_GREEN);
     } else if (ask == ASK_REPLACE) {
         ui_components_messagebox_draw("Replace the theme\n%s?\n\n^%02XA: Replace^00    ^%02XB: Keep it^00", save_name, STL_RED, STL_GREEN);

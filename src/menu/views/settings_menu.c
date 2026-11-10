@@ -144,6 +144,11 @@ static void open_theme_editor (menu_t *menu) {
     theme_editor_open();
 }
 
+static void new_theme (menu_t *menu) {
+    (void) menu;
+    theme_editor_new();
+}
+
 static void apply_soundfx (menu_t *menu) {
     sound_use_sfx(menu->settings.soundfx_enabled);
 }
@@ -204,6 +209,8 @@ static const item_t display_items[] = {
         "The menu's colors and background: a built-in theme, or one of yours from the SD card, each in its own folder in menu/themes (up to 32). From SD Card is the older menu/theme/theme.ini, or Midnight if there is none."),
     ACTION("Edit Theme", open_theme_editor,
         "Change the theme in use: its colors, background and pattern, seen on the whole menu as you go. Save it as a theme of your own in menu/themes, under a name you choose."),
+    ACTION("New Theme", new_theme,
+        "Make a theme from scratch: pick a look to start from (a built-in one or plain dark), then change it the same way as Edit Theme and save it under a name you choose."),
     FEATURE("Cover Art", FEATURE_COVER_ART, "Show box art on the selected cover."),
     CHOICES("Show Games As", OPTION_COVER_STYLE, COVER_STYLE_COUNT, carousel_art_style_name, NULL,
         "Boxes shows each game's box art. Cartridges shows its cartridge instead, for games the box art pack has one for; the others keep their box."),

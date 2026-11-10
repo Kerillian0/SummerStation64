@@ -57,6 +57,10 @@ static void theme_set_defaults (theme_t *t) {
     }
 }
 
+void theme_defaults (theme_t *t) {
+    theme_set_defaults(t);
+}
+
 /* ---------- background generation ---------- */
 
 typedef struct { float r, g, b; } rgbf_t;
