@@ -184,6 +184,8 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
 #guide code{font-size:14px;background:var(--field);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
 #guide a{color:var(--n-blue)}
 #guide h3{font-size:16px;margin:16px 0 6px}
+#guide pre{max-height:none;margin:0 0 10px;max-width:74ch}
+#guide pre code{background:none;border:0;padding:0;font-size:13px}
 #guide .qa{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}
 #guide .qa:first-of-type{border-top:0;padding-top:0;margin-top:0}
 #guide .qa b{display:block;margin-bottom:4px}
@@ -283,14 +285,14 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
     </section>
 
     <section>
-      <h2><i style="background:var(--n-yellow)"></i>Frame and tabs</h2>
-      <div class="row"><label class="l" for="border-hex">Frame lines</label><div class="color" data-key="border"></div></div>
+      <h2><i style="background:var(--n-yellow)"></i>Tabs and outlines</h2>
+      <div class="row"><label class="l" for="border-hex">Outlines</label><div class="color" data-key="border"></div></div>
       <div class="row"><label class="l" for="tabActive-hex">Active tab</label><div class="color" data-key="tabActive"></div></div>
       <div class="row"><label class="l" for="tabActiveBorder-hex">Active tab edge</label><div class="color" data-key="tabActiveBorder"></div></div>
       <div class="row"><label class="l" for="tabInactive-hex">Other tabs</label><div class="color" data-key="tabInactive"></div></div>
       <div class="row"><label class="l" for="tabInactiveBorder-hex">Other tab edge</label><div class="color" data-key="tabInactiveBorder"></div></div>
       <div class="row"><label class="l" for="highlight-hex">Selected row</label><div class="color" data-key="highlight"></div></div>
-      <p class="hint">The Games tabs use "Other tabs" for the tabs, badges and track, and the accent for the selected tab. The selected row shows on the Folders preview. The frame lines, edges and active tab color are used by the older screens (the music player, viewers and pop-up menus).</p>
+      <p class="hint">"Other tabs" colors the tabs, badges and tracks; the selected tab uses the accent. The selected row shows on Folders and in pop-up menus. Outlines go round pop-ups and loading bars. "Active tab" only colors the clock and code editors, and the two tab edges aren't drawn any more. Every key is explained in <a href="#guide-themes">Making a theme</a>.</p>
       <div class="actions"><button type="button" class="btn ghost small" id="resetFrame">Reset to the stock grays</button></div>
     </section>
 
@@ -310,7 +312,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
         <button type="button" class="btn ghost" id="saveIni" hidden>Save as file</button>
         <button type="button" class="btn ghost" id="savePng" hidden>Save background.png</button>
       </div>
-      <p class="hint">On the SD card, give each theme a folder of its own in menu/themes, named as you want it listed: menu/themes/My Theme/theme.ini. Then pick it in Settings &gt; Display &gt; Theme (up to 32 themes).</p>
+      <p class="hint">On the SD card, give each theme a folder of its own in menu/themes, named as you want it listed: menu/themes/My Theme/theme.ini. Then pick it in Settings &gt; Display &gt; Theme (up to 32 themes). <a href="#guide-themes">Making a theme</a> explains every setting.</p>
       <p class="hint" id="saveHint" hidden>The file saves as theme.txt because of browser limits. The menu reads theme.txt too, so renaming it is optional.</p>
       <div class="status" id="status" role="status"></div>
     </section>
@@ -727,7 +729,8 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
       </div>
       <p class="hint">Unzip it at the top of the SD card: the files land in <code>menu/themes/<b>name</b>/</code>. Then choose
         the theme in <b>Settings &gt; Display &gt; Theme</b>. A theme can also carry its own text font as
-        <code>font.font64</code>, made with libdragon's mkfont (it applies after a restart).</p>
+        <code>font.font64</code>, made with libdragon's mkfont (it applies after a restart). Limits and tips are in
+        <a href="#guide-themes">Making a theme</a>.</p>
     </section>
   </div>
 </div>
@@ -821,6 +824,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
       <a href="#guide-art">Box art and details</a>
       <a href="#guide-64dd">64DD disks</a>
       <a href="#guide-cheats">Cheats</a>
+      <a href="#guide-themes">Making a theme</a>
       <a href="#guide-hardware">Hardware</a>
       <a href="#guide-tools">Tools</a>
       <a href="#guide-help">Troubleshooting</a>
@@ -981,6 +985,239 @@ short-desc = Mario explores Princess Peach's castle.</code></pre>
           version of the game usually don't work: pick the list that matches your copy.</p></div>
     </section>
 
+    <section id="guide-themes">
+      <h2><i style="background:var(--n-red)"></i>Making a theme</h2>
+      <p>A theme is a folder on the SD card with a small text file in it, plus any sounds or font you want to add. The quickest start is the
+        <a href="#themes">Theme Maker</a>: it shows a preview and writes the file for you. This section lists everything the file can do, for
+        when you want to go further or edit it by hand.</p>
+
+      <h3>Where a theme lives</h3>
+      <ol>
+        <li>Make a folder for it: <code>menu/themes/<b>My Theme</b>/</code>. The folder's name is what the menu lists, so use the name you want
+          to see (40 characters at most).</li>
+        <li>Put <code>theme.ini</code> in that folder (<code>theme.txt</code> works too).</li>
+        <li>Open <b>Settings &gt; Display &gt; Theme</b> and pick it. It applies at once. The menu looks for new folders each time Settings opens.</li>
+      </ol>
+      <p>Up to 32 themes are listed, A to Z, after the built-in ones. A folder with no theme file in it is skipped. Each player
+        (<b>Settings &gt; Profiles</b>) picks a theme of their own.</p>
+      <p class="note">If a theme ever leaves the menu hard to read, hold <b>Z</b> while switching the console on. Safe Mode shows the stock look and
+        changes nothing on the card.</p>
+
+      <h3>How the file is written</h3>
+      <ul>
+        <li>Each setting is <code>key = value</code> under a <code>[section]</code> heading.</li>
+        <li>Anything you leave out comes from <b>Midnight</b>, the stock theme, so a theme can be just a few lines.</li>
+        <li><b>Comments go on a line of their own</b>, starting with <code>;</code> or <code>#</code>. A comment after a value on the same line
+          spoils that value, and the menu ignores it.</li>
+        <li>Colors are six hex digits, such as <code>F2B134</code>. A <code>#</code> in front is fine.</li>
+        <li>A key or value the menu doesn't know is skipped, so a mistake can't stop the menu. If something has no effect, check its spelling first.</li>
+      </ul>
+      <pre><code>; A short example. Everything left out comes from Midnight.
+[theme]
+name = Deep Sea
+author = Your Name
+
+[colors]
+text = EAF6FF
+text_dim = 9FC3D8
+accent = 3FD0C9
+panel = 0C2233
+
+[background]
+type = gradient
+color1 = 0A3A5C
+color3 = 072A45
+color2 = 04121F
+direction = vertical
+dither = 1
+
+[pattern]
+style = grid
+color = 3FD0C9
+size = 32
+opacity = 8
+
+[features]
+rounded_corners = 1</code></pre>
+
+      <h3>[theme]</h3>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Key</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td><code>name</code></td><td>The theme's name, 40 characters at most. It only appears in the debug log: the list shows the folder's name.</td></tr>
+          <tr><td><code>author</code></td><td>Your name, 40 characters at most. Kept in the file for people you share it with; the menu doesn't show it.</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>[colors]</h3>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Key</th><th>Where it shows</th></tr></thead>
+        <tbody>
+          <tr><td><code>text</code></td><td>Most text: game names, tabs, Settings rows, file names.</td></tr>
+          <tr><td><code>text_dim</code></td><td>Quieter text, such as help lines and details.</td></tr>
+          <tr><td><code>accent</code></td><td>The selected tab, the line under the selected row in Settings and Folders, scroll bar thumbs, the marker on the position bar,
+            the filled part of volume sliders, the selection ring or corners, and the profile picker's ring. The ring on covers can take the cover's color instead
+            (<b>Tint Ring From Art</b>).</td></tr>
+          <tr><td><code>panel</code></td><td>The panel under the covers, the band behind the button hints, Game info's boxes, the letter dial, the profile picker's rows, and
+            the plain sides of a box with no side art. The panel and the hint band are slightly see-through.</td></tr>
+          <tr><td><code>highlight</code></td><td>The selected row on the Folders tab and in pop-up menus.</td></tr>
+          <tr><td><code>tab_inactive</code></td><td>Tabs that aren't selected, plain badges, the tracks of scroll bars and the position bar, and the empty part of volume sliders.</td></tr>
+          <tr><td><code>border</code></td><td>Thin outlines round pop-ups, loading bars, the music player's seek bar and the clock and code editors.</td></tr>
+          <tr><td><code>tab_active</code></td><td>The selected value in the clock and cheat code editors. The selected tab uses <code>accent</code>.</td></tr>
+          <tr><td><code>tab_active_border</code><br><code>tab_inactive_border</code></td><td>Still read, but nothing draws them now. You can leave them out.</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>[background]</h3>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Key</th><th>Values</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td><code>type</code></td><td><code>solid</code>, <code>gradient</code>, <code>ocean</code>, <code>image</code></td>
+            <td><b>solid</b> is one color. <b>gradient</b> blends two or three. <b>ocean</b> is water seen from above with a net of foam lines. <b>image</b> isn't read
+              yet: the menu shows <code>color1</code> as a plain color.</td></tr>
+          <tr><td><code>color1</code></td><td>a color</td><td>The solid color, the gradient's start (the top, on a vertical one), or the ocean's water.</td></tr>
+          <tr><td><code>color2</code></td><td>a color</td><td>The gradient's end, or the ocean's foam.</td></tr>
+          <tr><td><code>color3</code></td><td>a color, or <code>none</code></td><td>An optional middle color for a gradient.</td></tr>
+          <tr><td><code>direction</code></td><td><code>vertical</code>, <code>horizontal</code>, <code>diagonal</code>, <code>radial</code></td>
+            <td>Which way the gradient runs. <b>radial</b> starts with <code>color1</code> in the middle of the screen.</td></tr>
+          <tr><td><code>dither</code></td><td><code>1</code> or <code>0</code></td><td>Fine grain that hides the steps in a gradient on the console's 16-bit picture. Leave it on: <code>0</code> hasn't
+            been tried on real hardware.</td></tr>
+          <tr><td><code>image</code></td><td>a file name</td><td>Saved for when PNG backgrounds arrive. Not used yet.</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>[pattern]</h3>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Key</th><th>Values</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td><code>style</code></td><td><code>none</code>, <code>stripes</code>, <code>diagonal</code>, <code>checker</code>, <code>dots</code>, <code>grid</code>, <code>scanlines</code></td>
+            <td>A repeating pattern over the background.</td></tr>
+          <tr><td><code>color</code></td><td>a color</td><td>The pattern's color.</td></tr>
+          <tr><td><code>size</code></td><td>2 to 128</td><td>The pattern's size in pixels. See the sizes below: they decide what it costs.</td></tr>
+          <tr><td><code>opacity</code></td><td>0 to 100</td><td>How strongly it shows, in percent. 5 to 15 is usually plenty.</td></tr>
+        </tbody>
+      </table></div>
+      <p>These sizes cost next to no memory, so they suit every console. Most other sizes, and any ocean background, make the menu store a whole picture: 300 KB, and a
+        moment to build it at power-on.</p>
+      <ul>
+        <li><b>stripes, diagonal, checker:</b> 2, 4, 8, 16 or 32</li>
+        <li><b>dots, grid:</b> 2, 4, 8, 16, 32 or 64</li>
+        <li><b>scanlines:</b> 8, 16, 32, 64 or 128</li>
+      </ul>
+
+      <h3>[features]</h3>
+      <p>A theme can choose how these switches start out, with <code>1</code> for on and <code>0</code> for off. If a player has set a row in Settings to
+        On or Off, their choice wins. On <b>Default</b>, the row follows the theme. Leave out any you don't mind about.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Key</th><th>Settings row</th><th>Usually</th></tr></thead>
+        <tbody>
+          <tr><td><code>rounded_corners</code></td><td>Rounded Corners</td><td>On</td></tr>
+          <tr><td><code>button_icons</code></td><td>Button Icons</td><td>On</td></tr>
+          <tr><td><code>memory_badge</code></td><td>Memory Badge</td><td>On</td></tr>
+          <tr><td><code>controller_marks</code></td><td>Controller Marks</td><td>On</td></tr>
+          <tr><td><code>favorite_heart</code></td><td>Favorite Heart</td><td>On</td></tr>
+          <tr><td><code>dump_marks</code></td><td>Dump Check Marks</td><td>On</td></tr>
+          <tr><td><code>cover_art</code></td><td>Cover Art</td><td>On</td></tr>
+          <tr><td><code>box_3d</code></td><td>3D Box</td><td>On</td></tr>
+          <tr><td><code>side_covers</code></td><td>Previous/Next Covers</td><td>On</td></tr>
+          <tr><td><code>side_boxes</code></td><td>3D Side Covers</td><td>On</td></tr>
+          <tr><td><code>see_through_covers</code></td><td>See-through Side Covers</td><td>On</td></tr>
+          <tr><td><code>angled_covers</code></td><td>Angled Side Covers</td><td>Off</td></tr>
+          <tr><td><code>carousel_animation</code></td><td>Cover Slide</td><td>On</td></tr>
+          <tr><td><code>fill_box_edges</code></td><td>Fill Box Edges</td><td>On</td></tr>
+          <tr><td><code>trim_edges</code></td><td>Trim Black Edges</td><td>On</td></tr>
+          <tr><td><code>name_scroll</code></td><td>Scroll Long Names</td><td>On</td></tr>
+          <tr><td><code>desc_scroll</code></td><td>Scroll Descriptions</td><td>On</td></tr>
+          <tr><td><code>hide_extensions</code></td><td>Hide Game Extensions</td><td>On</td></tr>
+          <tr><td><code>tidy_titles</code></td><td>Tidy Game Titles</td><td>On</td></tr>
+          <tr><td><code>hide_tags</code></td><td>Hide Region Tags</td><td>On</td></tr>
+          <tr><td><code>quick_launch</code></td><td>Quick Launch</td><td>Off</td></tr>
+          <tr><td><code>hold_launch</code></td><td>Hold A To Launch</td><td>Off</td></tr>
+          <tr><td><code>updown_scroll</code></td><td>Up/Down Also Scroll</td><td>Off</td></tr>
+        </tbody>
+      </table></div>
+      <p>These also work, but they're a player's own habits, so a shared theme is better off leaving them alone: <code>remember_selection</code>,
+        <code>remember_settings</code>, <code>play_stats</code>, <code>save_backups</code>, <code>screenshots</code> and <code>advanced_options</code>.</p>
+
+      <h3>Sounds and a font</h3>
+      <p>Put any of these files in the theme's folder, beside <code>theme.ini</code>. Whatever you leave out stays the menu's own. The
+        <a href="#sounds">Sounds</a> tab makes the sound files from ordinary audio files and zips them up ready for the card.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>File</th><th>Plays</th><th>Limit, without / with the Expansion Pak</th></tr></thead>
+        <tbody>
+          <tr><td><code>music.wav64</code></td><td>The background music, on a loop</td><td>None: it's read from the card as it plays</td></tr>
+          <tr><td><code>intro.wav64</code></td><td>The tune at power-on. The intro lasts as long as the tune, from 2.6 to 8 seconds</td><td>160 KB / 768 KB</td></tr>
+          <tr><td><code>move.wav64</code></td><td>Moving the cursor</td><td>48 KB / 128 KB</td></tr>
+          <tr><td><code>select.wav64</code></td><td>Choosing something</td><td>48 KB / 128 KB</td></tr>
+          <tr><td><code>back.wav64</code></td><td>Going back</td><td>48 KB / 128 KB</td></tr>
+          <tr><td><code>setting.wav64</code></td><td>Changing a setting</td><td>48 KB / 128 KB</td></tr>
+          <tr><td><code>error.wav64</code></td><td>Something went wrong</td><td>48 KB / 128 KB</td></tr>
+          <tr><td><code>font.font64</code></td><td>The menu's body text, after a restart</td><td>128 KB / 1 MB</td></tr>
+        </tbody>
+      </table></div>
+      <ul>
+        <li>A file over its limit, or one the menu can't play, is skipped and the menu's own sound is used, so a bad file can't stop the menu.</li>
+        <li>On a console without the Expansion Pak, 48 KB is about 0.75 seconds of button sound, and 160 KB is about 1.8 seconds of stereo intro. Keep sounds short, or
+          your theme falls back to the menu's own there.</li>
+        <li>Only the music should loop. The menu loops it itself, so make the intro and button sounds without a loop.</li>
+        <li>Sound files from the Sounds tab are uncompressed, which is what lets the music play without crackling. A compressed <code>music.wav64</code> made with
+          libdragon's audioconv64 may crackle while the card is busy.</li>
+        <li>Fonts are made with libdragon's mkfont. The big title sizes and the smallest text stay the menu's own. A <code>custom.font64</code> in
+          <code>menu/</code> wins over a theme's font.</li>
+        <li>The intro and the theme's font come before "Who's playing?", so with several profiles they follow whoever played last.</li>
+      </ul>
+
+      <h3>Looking good on a CRT</h3>
+      <p>The preview on a computer is much sharper than a console on a TV, especially over composite. A few things make a big difference:</p>
+      <ul>
+        <li><b>Keep text light and backgrounds dark.</b> Some text sits straight on the background (the Folders list, the position bar), so check both tabs, not just Games.
+          The Theme Maker's contrast check helps here.</li>
+        <li><b>Never make <code>text</code> black or nearly black.</b> The font has a dark outline, and dark letters run together into a blob.</li>
+        <li><b>Avoid bright, saturated colors side by side,</b> above all red on blue or blue on red. Composite smears them into each other and they shimmer.</li>
+        <li><b>Avoid thin details.</b> At 240p, two lines of the picture become one on the TV, so a fine pattern can flicker or vanish. A size of 8 or more is safer than 2 or 4.</li>
+        <li><b>Keep patterns faint.</b> A strong pattern fights with the covers and text. Start at about 10 percent.</li>
+        <li><b>Make <code>accent</code> stand out</b> from both <code>panel</code> and <code>tab_inactive</code>: it's how the player sees where they are.</li>
+        <li><b>Try it on a real TV</b> if you can, with a cover row showing and with Settings open. Colors shift from one set to the next.</li>
+      </ul>
+
+      <h3>Memory</h3>
+      <p>Most N64s have no Expansion Pak, and the menu leaves extras out when memory runs short (<b>Settings &gt; System &gt; Memory</b> says what). To keep a theme kind to
+        those consoles:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Part of the theme</th><th>Memory it takes</th></tr></thead>
+        <tbody>
+          <tr><td>Solid color or gradient</td><td>None</td></tr>
+          <tr><td>A pattern at one of the sizes above</td><td>A few KB at most</td></tr>
+          <tr><td>Most other pattern sizes, or an ocean background</td><td>300 KB</td></tr>
+          <tr><td>Your own music</td><td>64 KB / 256 KB (without / with the Expansion Pak)</td></tr>
+          <tr><td>Your own button sounds</td><td>Their file sizes, all the time</td></tr>
+          <tr><td>Your own intro tune</td><td>Its file size, during the intro only</td></tr>
+          <tr><td>Your own font</td><td>About its file size, or more if it is compressed</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>Sharing a theme</h3>
+      <ul>
+        <li><b>A share code</b> (<code>SS64-…</code>, from the <a href="#themes">Theme Maker</a>) carries the colors, background, pattern and the switches the Maker offers.
+          It doesn't carry sounds or a font.</li>
+        <li><b>To share everything</b>, zip the theme's folder. Others unzip it into <code>menu/themes/</code>.</li>
+        <li><b>Only share what you may share.</b> Use your own sounds, or ones whose licence allows it, and say where they came from.</li>
+      </ul>
+
+      <h3>When something's wrong</h3>
+      <div class="qa"><b>My theme isn't in the list</b>
+        <p>Check the path is exactly <code>menu/themes/<b>name</b>/theme.ini</code>, that the folder's name is 40 characters or fewer, and that the file isn't saved as
+          <code>theme.ini.txt</code> (Windows hides the ending). Then leave Settings and open it again.</p></div>
+      <div class="qa"><b>A color or setting has no effect</b>
+        <p>Look for a comment after the value on the same line, a color that isn't six digits, or a misspelled key. Then check it's under the right <code>[section]</code>. For a
+          switch in <code>[features]</code>, make sure the player's own row in Settings is on <b>Default</b>.</p></div>
+      <div class="qa"><b>The list says "Midnight (theme gone)"</b>
+        <p>The theme's folder was renamed or removed on a PC. Pick it again in the list.</p></div>
+      <div class="qa"><b>A sound plays the menu's own instead of mine</b>
+        <p>It's over the limit in the table above, or it isn't a file the menu can play. The debug log says which (see <a href="#guide-tools">Tools</a>). Making it again in the
+          <a href="#sounds">Sounds</a> tab usually fixes it.</p></div>
+    </section>
+
     <section id="guide-hardware">
       <h2><i style="background:var(--n-green)"></i>Hardware</h2>
       <h3>Expansion Pak or Jumper Pak</h3>
@@ -1076,7 +1313,7 @@ short-desc = Mario explores Princess Peach's castle.</code></pre>
     {key:'quick_launch',  label:'Quick Launch',         def:false, hint:'Tap A starts the game, hold A shows its info.'},
     {key:'hold_launch',   label:'Hold A To Launch',     def:false, hint:'Tap A shows the game info, hold A starts it.'},
     {key:'side_covers',   label:'Previous/Next Covers', def:true,  hint:'Smaller covers either side of the selected one.'},
-    {key:'frame_borders', label:'Frame Borders',        def:false, hint:'The outer frame on the older screens. The Games tabs have none.'},
+    {key:'frame_borders', retired:true, label:'', def:false, hint:''},   // gone from the menu; keeps its place, or every later bit in old codes would shift
     {key:'updown_scroll', label:'Up/Down Also Scroll',  def:false, hint:'Up and down move the carousel too.'},
     {key:'cover_art',     label:'Cover Art',            def:true,  hint:'Box art on the covers.'},
     {key:'carousel_animation', label:'Cover Slide',      def:true,  hint:'Covers slide into place when you move left or right.'},
@@ -1118,6 +1355,7 @@ short-desc = Mario explores Princess Peach's castle.</code></pre>
   var STORE = 'sc64-theme-maker-v1';
   try { var saved = localStorage.getItem(STORE); if (saved) Object.assign(S, JSON.parse(saved)); } catch(e) {}
   if (S.bgType === 'image') S.bgType = 'gradient';
+  S.f_frame_borders = -1;    // a theme saved here before the menu dropped it
   if (S.screen !== 'games' && S.screen !== 'folders') S.screen = 'games';   // the previews were Files and History before
 
   var $ = function(id){ return document.getElementById(id); };
@@ -1141,6 +1379,7 @@ short-desc = Mario explores Princess Peach's castle.</code></pre>
   // Feature rows
   var featureSelects = {};
   FEATURES.forEach(function(f){
+    if (f.retired) return;
     var row = document.createElement('div'); row.className = 'row wide';
     var lab = document.createElement('label'); lab.className = 'l'; lab.htmlFor = 'feat-' + f.key; lab.textContent = f.label; lab.title = f.hint;
     var sel = document.createElement('select'); sel.id = 'feat-' + f.key; sel.title = f.hint;
@@ -1227,7 +1466,7 @@ short-desc = Mario explores Princess Peach's castle.</code></pre>
     $('pSize').value = S.pSize; $('pSizeOut').textContent = S.pSize + ' px';
     $('pOpacity').value = S.pOpacity; $('pOpacityOut').textContent = S.pOpacity + '%';
     $('dither').checked = S.dither; $('crt').checked = !!S.crt; $('name').value = S.name; $('author').value = S.author;
-    FEATURES.forEach(function(f){ featureSelects[f.key].value = String(S['f_' + f.key]); });
+    FEATURES.forEach(function(f){ if (!f.retired) featureSelects[f.key].value = String(S['f_' + f.key]); });
   }
 
   // Rendering
@@ -1750,7 +1989,7 @@ short-desc = Mario explores Princess Peach's castle.</code></pre>
    * [29..46] colors, 3 bytes each: border, highlight, tab_active, tab_inactive,
    *          tab_active_border, tab_inactive_border
    * [47] feature "is set" mask   [48] feature values, same bit order:
-   *      bit 0 quick_launch, 1 hold_launch, 2 side_covers, 3 frame_borders,
+   *      bit 0 quick_launch, 1 hold_launch, 2 side_covers, 3 unused (frame_borders, ignored when read),
    *      4 updown_scroll, 5 cover_art, 6 carousel_animation, 7 see_through_covers
    *      (bits 6 and 7 were added later; older v2 codes leave them unset)
    * [49] reserved, 0
@@ -1859,7 +2098,7 @@ short-desc = Mario explores Princess Peach's castle.</code></pre>
     // Features the code has no room for, or doesn't set, are left to the menu.
     FEATURES.forEach(function(f, i){
       var set = i < featureBits && ((bytes[47 + (i >> 3)] >> (i & 7)) & 1);
-      t['f_' + f.key] = set ? (bytes[valuesAt + (i >> 3)] >> (i & 7)) & 1 : -1;
+      t['f_' + f.key] = (set && !f.retired) ? (bytes[valuesAt + (i >> 3)] >> (i & 7)) & 1 : -1;
     });
     return {theme: t, version: version};
   }

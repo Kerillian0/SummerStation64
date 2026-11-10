@@ -5,7 +5,7 @@ One web page, `index.html`, with seven tabs: **Theme Maker**, **Card Prep**,
 (Settings > Pages: branch `summerstation`, folder `/docs`), at
 `https://kerillian0.github.io/SummerStation64/companion/`. Each tab has its
 own address: `#themes`, `#prep`, `#hacks`, `#art`, `#coll`, `#clips`, `#guide` (and `#guide-setup`,
-`#guide-hardware`, `#guide-tools`, `#guide-help`).
+`#guide-themes`, `#guide-hardware`, `#guide-tools`, `#guide-help`).
 
 Markup, styles and scripts are all in the one file, with no build step. It
 also opens straight from disk in a browser for a quick look.
@@ -22,7 +22,8 @@ When a feature switch or a color key is added to the menu, add it here too:
 
 - `FRAME_KEYS` / `FRAME_INI` for `[colors]` keys.
 - `FEATURES` for `[features]` keys. The order of that list is the bit order in
-  share codes, so only ever add to the end. The first eight fit in a v2 code;
+  share codes, so only ever add to the end, and keep a dropped switch in place
+  with `retired: true` (`frame_borders` is bit 3). The first eight fit in a v2 code;
   later ones need v3, which has room for sixteen. Fifteen are used. Leave out
   switches that are personal habits and not part of a look.
 - `PRESETS` starts with the six themes built into the menu (Midnight, the

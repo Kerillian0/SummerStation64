@@ -220,7 +220,6 @@ static const item_t display_items[] = {
     FEATURE("Controller Marks", FEATURE_CONTROLLER_MARKS, "With two or more controllers plugged in, show the four controller ports under the clock in place of the Memory Badge, lit for each one in use. C-up / C-down on the Games tab then also offer Party: the games for that many players."),
     CHOICES("Accessory Badges", OPTION_PAK_BADGES, PAK_BADGES_COUNT, games_ui_pak_badges_name, NULL,
         "Show which accessories a game uses (Controller Pak, Rumble Pak, Transfer Pak) under its name. Colored puts each in its own colored box, like Save found; Plain shows them in grey. Known for most games from the menu's built-in list."),
-    FEATURE("Frame Borders", FEATURE_FRAME_BORDERS, "Draw the frame around the screen and the line above the button hints."),
     CHOICE("Video Output", force_progressive_scan, false, "480i", "240p", NULL,
         "480i is sharper but can flicker. 240p is steady with softer text, and suits TVs that struggle with interlaced video. Restart the console to apply."),
     SWITCH("PAL60 Mode", pal60_enabled, false, apply_pal60,
@@ -918,10 +917,6 @@ static void draw (menu_t *menu, surface_t *d) {
     int last_row = first_row + VISIBLE_ROWS;
     if (last_row > cat->count) {
         last_row = cat->count;
-    }
-
-    if (features_enabled(FEATURE_FRAME_BORDERS)) {
-        draw_fill(DIVIDER_X, ROWS_Y, DIVIDER_X + 2, LAYOUT_ACTIONS_SEPARATOR_Y - 8, theme_get()->border);
     }
 
     for (int i = 0; i < COUNT(categories); i++) {

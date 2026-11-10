@@ -61,41 +61,14 @@ void ui_components_border_draw (int x0, int y0, int x1, int y1) {
  * @brief Draw the layout with tabs.
  */
 void ui_components_layout_draw_tabbed (void) {
-    if (!features_enabled(FEATURE_FRAME_BORDERS)) return;
-    ui_components_border_draw(
-        VISIBLE_AREA_X0,
-        VISIBLE_AREA_Y0 + TAB_HEIGHT + BORDER_THICKNESS,
-        VISIBLE_AREA_X1,
-        VISIBLE_AREA_Y1
-    );
-
-    ui_components_box_draw(
-        VISIBLE_AREA_X0,
-        LAYOUT_ACTIONS_SEPARATOR_Y,
-        VISIBLE_AREA_X1,
-        LAYOUT_ACTIONS_SEPARATOR_Y + BORDER_THICKNESS,
-        BORDER_COLOR
-    );
+    // SummerStation64: the menu has no frame.
 }
 
 /**
  * @brief Draw the layout.
  */
 void ui_components_layout_draw (void) {
-    if (!features_enabled(FEATURE_FRAME_BORDERS)) return;
-    ui_components_border_draw(
-        VISIBLE_AREA_X0,
-        VISIBLE_AREA_Y0,
-        VISIBLE_AREA_X1,
-        VISIBLE_AREA_Y1
-    );
-    ui_components_box_draw(
-        VISIBLE_AREA_X0,
-        LAYOUT_ACTIONS_SEPARATOR_Y,
-        VISIBLE_AREA_X1,
-        LAYOUT_ACTIONS_SEPARATOR_Y + BORDER_THICKNESS,
-        BORDER_COLOR
-    );
+    // SummerStation64: the menu has no frame.
 }
 
 /**

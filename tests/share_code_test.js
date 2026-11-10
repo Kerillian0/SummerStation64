@@ -55,7 +55,14 @@ roundTrip('Every color and setting changed, stock frame: still v1', {
 }, 1);
 
 roundTrip('A frame color changed: v2', {border: '#123456'}, 2);
-roundTrip('A first-eight feature set: v2', {f_quick_launch: 1, f_frame_borders: 0, f_see_through_covers: 1}, 2);
+roundTrip('A first-eight feature set: v2', {f_quick_launch: 1, f_updown_scroll: 0, f_see_through_covers: 1}, 2);
+
+console.log('Frame Borders is gone: an old code that set it still loads, the switch ignored, the ones after it in place');
+reset({f_frame_borders: 1, f_updown_scroll: 1});
+const retired = tm.decodeTheme(tm.encodeTheme());
+check(!retired.error, 'decodes without an error (' + retired.error + ')');
+check(retired.theme.f_frame_borders === -1, 'frame_borders is dropped');
+check(retired.theme.f_updown_scroll === 1, 'the switch after it keeps its place');
 const v3 = roundTrip('A game-name feature set: v3', {f_hide_tags: 1, f_tidy_titles: 0, f_side_covers: 1}, 3);
 check(v3.replace(/[^0-9A-Z]/g, '').length === 4 + 88, 'v3 is 88 characters after the prefix');
 
