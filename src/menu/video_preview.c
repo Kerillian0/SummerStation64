@@ -613,6 +613,10 @@ const video_preview_stats_t *video_preview_stats (void) {
     return &stats;
 }
 
+bool video_preview_showing (void) {
+    return state == VP_PLAYING && video && (get_ticks_ms() - last_update_ms) <= AWAY_MS;
+}
+
 void video_preview_poll (void) {
     if (state != VP_PLAYING || !video) {
         return;

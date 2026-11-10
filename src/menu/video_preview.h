@@ -100,4 +100,7 @@ typedef struct {
 
 const video_preview_stats_t *video_preview_stats (void);
 
+/** A clip is playing and being shown (the menu paces itself to it: frame_rate.h). */
+bool video_preview_showing (void);
+
 #endif /* VIDEO_PREVIEW_H__ */

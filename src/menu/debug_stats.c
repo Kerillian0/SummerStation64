@@ -28,8 +28,9 @@ static uint64_t work_before_us = 0;
 static uint64_t chip_total_us = 0;
 static uint64_t chip_worst_us = 0;
 
-/* A frame longer than this missed its turn (one frame is 33.4 ms). */
-#define SLOW_FRAME_US       (45000)
+/* A frame longer than this missed its turn (one frame is 33.4 ms, or
+   50.1 while Game info's clip sets the pace: frame_rate.h). */
+#define SLOW_FRAME_US       (frame_rate_frame_us() + 11600)
 
 /* The on-screen overlay (option `perf_overlay`): the same figures over the
    last half second, so they can be read on the TV without the debug log. */
@@ -141,7 +142,7 @@ void debug_stats_frame (menu_t *menu) {
 
     overlay_count(now, frame_us, chip_us);
 
-    if (frame_us > SLOW_FRAME_US || chip_us > 33000) {
+    if (frame_us > SLOW_FRAME_US || chip_us > frame_rate_frame_us()) {
         debugf("slow frame: %d ms (work %d ms, chip %d ms, the frame before %d ms)\n",
             (int) (frame_us / 1000), (int) (work_us / 1000), (int) (chip_us / 1000), (int) (work_before_us / 1000));
     }

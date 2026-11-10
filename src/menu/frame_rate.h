@@ -12,6 +12,7 @@
 #ifndef FRAME_RATE_H__
 #define FRAME_RATE_H__
 
+#include <stdbool.h>
 #include <stdint.h>
 
 typedef enum {
@@ -34,5 +35,16 @@ void frame_rate_end_frame (void);
 
 /** How long the last frame_rate_end_frame() waited, in microseconds. */
 uint64_t frame_rate_last_wait_us (void);
+
+/**
+ * Once a frame (menu.c): whether Game info's clip is on screen. With one, an
+ * NTSC console runs at every third refresh, a steady 20 a second (the clip's
+ * own rate): the page and the clip's decoding together need a little more
+ * than every second refresh gives, and missing every other one judders.
+ */
+void frame_rate_clip (bool showing);
+
+/** How long a frame is meant to take at the cap in use, in microseconds. */
+uint32_t frame_rate_frame_us (void);
 
 #endif /* FRAME_RATE_H__ */
