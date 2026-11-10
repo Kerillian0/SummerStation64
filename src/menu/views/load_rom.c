@@ -629,7 +629,9 @@ static bool rom_requires_missing_expansion_pak (menu_t *menu) {
 /* A hack carries its original's game code, so the original's logo would
    show for it (plain Mario 64 for a hack that looks nothing like it). A hack
    shows its own name instead, unless hacks.txt gave it a code of its own:
-   then its logo, if someone made one, is in that code's own folder. */
+   then its logo, if someone made one, is in that code's own folder.
+   Hack or not is the menu's one rule (games_filter_decide()), so a game the
+   player marked by hand counts the way they marked it. */
 static bool logo_wanted (menu_t *menu) {
     const char *path = path_get(menu->load.rom_path);
     char own[4];
@@ -640,7 +642,10 @@ static bool logo_wanted (menu_t *menu) {
     name = name ? name + 1 : path;
     const char *on_card = strstr(path, ":/");   // "sd:/N64 Hacks/Game.z64" -> "N64 Hacks/Game.z64"
     on_card = on_card ? on_card + 2 : path;
-    return !rom_hacks_name_says(name) && !games_folders_entry_in_hacks(on_card) && !games_filter_is_hack_path(menu, path);
+    if (games_filter_is_hack_path(menu, path)) {
+        return false;
+    }
+    return games_filter_decide(on_card, false, rom_hacks_name_says(name)) != GAME_KIND_HACK;
 }
 
 /* The game's title logo, shown in its name's place: logo.sprite from
