@@ -37,6 +37,7 @@
 #ifdef LOGO_SHOTS
 #include "logo_shots.h"
 #endif
+#include "video_preview.h"
 
 #define MENU_DIRECTORY              "/menu"
 #define MENU_SETTINGS_FILE          "config.ini"
@@ -148,6 +149,7 @@ static void menu_init (boot_params_t *boot_params) {
 
     sound_use_sfx(menu->settings.soundfx_enabled);
     sound_use_bgm(menu->settings.bgm_enabled);
+    video_preview_enable(menu->settings.video_previews_enabled);
 
     menu->browser.directory = path_init(menu->storage_prefix, menu->settings.default_directory);
     if (!directory_exists(path_get(menu->browser.directory))) {
@@ -295,6 +297,8 @@ void menu_run (boot_params_t *boot_params) {
         sound_poll();
 
         png_decoder_poll();
+
+        video_preview_poll(); // Game info's clip decodes ahead while the menu waits for the next frame
 
         usb_comm_poll(menu);
     }

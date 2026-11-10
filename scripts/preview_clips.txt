@@ -1,0 +1,17 @@
+# Preview clips for Game info (scripts/make_preview_clip.py --list scripts/preview_clips.txt).
+# One per line: GAME CODE, SOURCE (a file or a link), START (s or m:ss), LENGTH (s, 10-30; default 25).
+# These start from N64 longplays kept on archive.org; only the seconds needed are downloaded.
+# The clips themselves are never committed.
+
+NSME  https://archive.org/download/Longplay-N64-Super-Mario-64/N64-Longplay-Super-Mario-64.mp4                       3:55   25   # Bob-omb Battlefield
+NKTE  https://archive.org/download/Nintendo_64_Longplay_013_Mario_Kart_64/Nintendo_64_Longplay_013_Mario_Kart_64.ogv  3:50   25   # Luigi Raceway
+NFXE  https://archive.org/download/N64_Longplay_Star_Fox_64/N64_Longplay_Star_Fox_64.mp4                              6:50   25   # Corneria
+NGEE  https://archive.org/download/n-64-longplay-golden-eye-007-us/N64_Longplay_-_GoldenEye_007_-_US.mp4              6:40   25   # Dam
+NBKE  https://archive.org/download/N64_Longplay_-_Banjo_Kazooie_-_US/N64_Longplay_-_Banjo_Kazooie_-_US.mp4            24:50  25   # Mumbo's Mountain
+CZLE  https://archive.org/download/Nintendo_64_Longplay-004-The_Legend_of_Zelda_Ocarina_of_Time/Nintendo_64_Longplay-004-The_Legend_of_Zelda_Ocarina_of_Time-Part1.mkv  24:50  25   # Inside the Deku Tree
+
+# Games whose video snap is only a 5 second stub (fetch_preview_clips.py can't
+# use it). Three-letter codes: one clip for every region.
+NNA https://archive.org/download/star-wars-episode-i-battle-for-naboo-nintendo-64-n-64-pal-gameplay-full-demostration/Star%20Wars%20Episode%20I%20Battle%20For%20Naboo%20Nintendo%2064%20%28N64%29%20PAL%20Gameplay%20%28Full%20Demostration%29.mp4 1:52 25
+NRS https://archive.org/download/star-wars-rogue-squadron-nintendo-64-n-64-pal-gameplay-demostration/Star%20Wars%20Rogue%20Squadron%20Nintendo%2064%20%28N64%29%20PAL%20Gameplay%20%28Demostration%29.mp4 4:50 25
+NIJ https://archive.org/download/indianajonesandtheinfernalmachine-tas-allstorylevels-bovice/indianajonesandtheinfernalmachine-tas-allstorylevels-bovice.mp4 9:50 25

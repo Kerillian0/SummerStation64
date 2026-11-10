@@ -23,6 +23,12 @@ gcc -std=gnu11 -Wall -Werror -I"$here/../src/menu" \
 "$out/rom_hacks_test" || status=1
 
 echo
+echo "== preview clip check =="
+gcc -std=gnu11 -Wall -Werror -I"$here/../src/menu" \
+    -o "$out/video_clip_test" "$here/video_clip_test.c" "$here/../src/menu/video_clip_check.c"
+"$out/video_clip_test" || status=1
+
+echo
 echo "== screenshot pictures =="
 gcc -std=gnu11 -Wall -Werror -O2 -I"$here/../src/menu" \
     -o "$out/shot_png_test" "$here/shot_png_test.c" "$here/../src/menu/shot_png.c"

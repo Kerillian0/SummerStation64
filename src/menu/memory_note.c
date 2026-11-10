@@ -14,6 +14,7 @@ static const char *what_was_cut[MEMORY_CUT_COUNT] = {
     [MEMORY_CUT_INTRO_PICTURE] = "the intro's title picture",
     [MEMORY_CUT_AVATAR] = "profile pictures",
     [MEMORY_CUT_TITLE_LOGO] = "a title logo",
+    [MEMORY_CUT_VIDEO_PREVIEW] = "a Game info clip",
 };
 
 static int free_kb (void) {

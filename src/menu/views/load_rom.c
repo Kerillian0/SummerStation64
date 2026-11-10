@@ -24,6 +24,7 @@
 #include "../hack_games.h"
 #include "../rom_hacks.h"
 #include "../memory_note.h" // a title logo left out for want of memory
+#include "../video_preview.h" // the game's clip in the cover's place
 #include <string.h>
 #include <sys/stat.h>
 
@@ -626,13 +627,15 @@ static bool rom_requires_missing_expansion_pak (menu_t *menu) {
     return (menu->load.rom_info.features.expansion_pak == EXPANSION_PAK_REQUIRED) && !is_memory_expanded();
 }
 
-/* A hack carries its original's game code, so the original's logo would
-   show for it (plain Mario 64 for a hack that looks nothing like it). A hack
-   shows its own name instead, unless hacks.txt gave it a code of its own:
-   then its logo, if someone made one, is in that code's own folder.
-   Hack or not is the menu's one rule (games_filter_decide()), so a game the
-   player marked by hand counts the way they marked it. */
-static bool logo_wanted (menu_t *menu) {
+static char clip_path[256];             // the game's preview clip, or "" (found once, when the screen opens)
+
+/* A hack carries its original's game code, so the original's logo and clip
+   would show for it (plain Mario 64 for a hack that looks nothing like it). A
+   hack shows its own name and cover instead, unless hacks.txt gave it a code
+   of its own: then its logo and clip, if someone made them, are in that
+   code's own folder. Hack or not is the menu's one rule (games_filter_decide()),
+   so a game the player marked by hand counts the way they marked it. */
+static bool own_code_art (menu_t *menu) {
     const char *path = path_get(menu->load.rom_path);
     char own[4];
     if (hack_games_code(path, 0, own)) {
@@ -794,6 +797,7 @@ static void draw (menu_t *menu, surface_t *d) {
             .clear_rdram = menu->load.rom_info.settings.clear_rdram_enabled,
             .front_picture = (current_metadata_image_index == 0),
             .logo = logo,
+            .clip = clip_path[0] ? clip_path : NULL,
         });
 #else
         ui_components_layout_draw();
@@ -956,6 +960,7 @@ static void draw_creating_save (float progress) {
 
 static void load (menu_t *menu) {
     debugf("Load ROM: load function called\n");
+    video_preview_stop(); // its memory and the RSP back before the game is loaded
     save_backup_before_launch(menu); // keep a copy of the save as it is before this session
     cart_load_err_t err;
 #ifdef FEATURE_AUTOLOAD_ROM_ENABLED
@@ -1022,6 +1027,8 @@ static void load (menu_t *menu) {
 
 static void deinit (void) {
     logo_free();
+    video_preview_stop();
+    clip_path[0] = '\0';
     baked_art_release(boxart);
     boxart = NULL;
     current_metadata_image_index = 0;
@@ -1098,8 +1105,12 @@ void view_load_rom_init (menu_t *menu) {
 #endif
     has_cheat_file = cheat_menu_available(path_get(menu->load.rom_path));
     logo_free(); // back from the cheat code editor, which doesn't close this screen
-    if (logo_wanted(menu)) {
+    bool own_art = own_code_art(menu);
+    if (own_art) {
         logo_load(menu);
+    }
+    if (!own_art || !video_preview_find(menu->storage_prefix, menu->load.rom_info.game_code, clip_path, sizeof(clip_path))) {
+        clip_path[0] = '\0';   // no clip: the cover stays, as it always did
     }
 
     if (controls_consume_launch_request() && !rom_requires_missing_expansion_pak(menu)) menu->load_pending.rom_file = true; // quick launch

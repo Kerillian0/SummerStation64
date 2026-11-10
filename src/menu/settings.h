@@ -61,6 +61,9 @@ typedef struct {
     /** @brief Enable rumble feedback within the menu */
     bool rumble_enabled;
 
+    /** @brief Play a game's preview clip on Game info (same for every profile; needs the Expansion Pak) */
+    bool video_previews_enabled;
+
 #ifdef FEATURE_AUTOLOAD_ROM_ENABLED
     /** @brief Enable the ability to bypass the menu and instantly load a ROM on power and reset button */
     bool rom_autoload_enabled;

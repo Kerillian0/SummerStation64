@@ -18,6 +18,7 @@ typedef enum {
     MEMORY_CUT_INTRO_PICTURE,   /**< the intro's title shown as text */
     MEMORY_CUT_AVATAR,          /**< a profile picture shown as the player's initial */
     MEMORY_CUT_TITLE_LOGO,      /**< Game info showed the name as text, not the game's logo */
+    MEMORY_CUT_VIDEO_PREVIEW,   /**< Game info showed the cover, not the game's clip */
     MEMORY_CUT_COUNT
 } memory_cut_t;
 

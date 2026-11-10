@@ -80,6 +80,7 @@ start.
 | 🏷️ **Badges** | Players, Expansion Pak, save found, Controller / Rumble / Transfer Pak, a Hack badge, and a ✓ for known good dumps (checked with [Card Prep](https://kerillian0.github.io/SummerStation64/companion/#prep)). |
 | 📖 **Game info** | The cover over a blurred copy of itself, a big title, genre, players and co-op/versus, times played, and the full description, scrolling. |
 | 🔤 **Title logos** | Game info shows the game's own logo in place of its name, from libretro's logo collection, fetched and sized for the screen with `scripts/fetch_logos.py`. |
+| 🎬 **Video previews** | A short clip of the game fades in over its cover on Game info and loops, decoded on the RSP in the menu's spare time so the menu keeps its 30 frames a second (Expansion Pak). Clips are made from any video with `scripts/make_preview_clip.py`. |
 | 🎯 **Cheats** | GameShark / Action Replay codes for 1,300+ games from the [Companion](https://kerillian0.github.io/SummerStation64/companion/#cheats), switched on and off from Game info (Expansion Pak). |
 | 🎨 **Themes** | Six built-in themes, or your own made with the [Theme Maker](https://kerillian0.github.io/SummerStation64/companion/#themes) and shared with a short code. |
 | 💾 **Save backups** | Each start keeps the game's save from before, dated, five per game; "Restore save" brings one back. |
@@ -185,6 +186,27 @@ few libretro gets wrong (a crop, a picture from elsewhere, or no logo). A game w
 keeps its name as text. Like the art, the logos are never committed or
 shipped. `tests/logo_shots/` takes a screenshot of Game info for every game
 from the menu running in ares, for checking them all at once.
+
+Video previews for Game info are made with
+[scripts/make_preview_clip.py](scripts/make_preview_clip.py): 10 to 30
+seconds of a video file or link, cropped to 4:3 and encoded for libdragon's
+H.264 decoder (192x144, 20 frames a second, a few hundred KB), written to
+`menu/metadata/N/S/M/E/preview.h264` beside the box art for the SD card.
+`scripts/preview_clips.txt` lists clips from N64 longplays on archive.org.
+[scripts/fetch_preview_clips.py](scripts/fetch_preview_clips.py) makes one
+for every commercially released game at once: it matches libretro's
+No-Intro list of releases to the gameplay video snaps kept on archive.org
+and writes each to `menu/metadata/N/S/M/preview.h264`, the folder every
+region of the game shares; `build/previews/clips_report.txt` lists the games
+it found nothing for. A game without a clip, and a hack (which carries its
+original's code), keeps its cover. Settings > Video Previews turns them off
+for the whole console. Like the art, the clips are never committed or
+shipped: the scripts fetch footage that belongs to the games' owners from
+third-party archives, and each person runs them for their own card. Both
+scripts run in the dev container, after `apt-get install ffmpeg`
+(videoconv64 comes with libdragon's tools). `tests/video_preview_rom/`
+builds a test ROM that plays one under a pretend menu workload and logs how
+it keeps up (ares prints it).
 
 ## 🤖 AI disclosure
 
