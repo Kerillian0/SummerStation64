@@ -668,8 +668,10 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
     games_ui_hint_right_draw(0, "START", "Details");
     games_ui_hint_right_draw(1, "◀▶", "Pictures");
     if (dump != DUMP_NONE) {
-        /* Between the hints, out of the way of the badges and the cover. */
-        games_ui_hint_mark_draw(1, dump, dump_check_label(dump),
+        /* Between the hints, out of the way of the badges and the cover; in
+           the top row (without its "Dump check" label) when Z's hint takes
+           the room in the bottom one. */
+        games_ui_hint_mark_draw(view->z_hint ? 0 : 1, dump, dump_check_label(dump),
             (dump == DUMP_VERIFIED) ? STL_GREEN : (dump == DUMP_BAD) ? STL_RED : STL_ORANGE);
     }
 }
