@@ -330,6 +330,10 @@ static bool known_code (menu_t *menu, int index, char code[5]) {
    With `card` false only baked art is tried (the PNG decoder is busy with
    another cover), and `*card_pending` says whether the card is worth trying
    later. */
+static bool edge_known_missing (const char *code, int kind);
+static void edge_note_missing (const char *code, int kind);
+#define NO_CARD_ART     (7)     /* with edge_note_missing(): no picture of this game on the card at all */
+
 static component_boxart_t *art_load (menu_t *menu, int index, file_image_type_t *which, bool card, bool *card_pending) {
     if (card_pending) {
         *card_pending = false;
@@ -420,6 +424,13 @@ static component_boxart_t *art_load (menu_t *menu, int index, file_image_type_t 
     if (!baked_art_card_ok(menu->storage_prefix, code)) {
         return NULL;    /* only another region's cover on the card */
     }
+    /* Looked for before and not there (a 64DD kiosk disk: 34 ms a visit),
+       or no ID to look by (a disk whose ID is blank). Not for homebrew,
+       found by its title: several share one code. */
+    bool by_code = !title[0];
+    if (by_code && (code[0] == '\0' || edge_known_missing(code, NO_CARD_ART))) {
+        return NULL;
+    }
     art = ui_components_boxart_init(menu->storage_prefix, code, title, *which);
 
     /* No picture of the back for this game: show the front again. */
@@ -429,6 +440,9 @@ static component_boxart_t *art_load (menu_t *menu, int index, file_image_type_t 
         if (!art) {
             art = ui_components_boxart_init(menu->storage_prefix, code, title, *which);
         }
+    }
+    if (!art && by_code) {
+        edge_note_missing(code, NO_CARD_ART);   /* not on the card: don't search again while the console is on */
     }
 
     return art;
@@ -712,6 +726,9 @@ static struct { char code[4]; uint8_t missing; } edges_missing[EDGES_MISSING_KEP
 static int edges_missing_next = 0;
 
 static bool edge_known_missing (const char *code, int kind) {
+    if (!code[0]) {
+        return false;   /* a blank code would match the list's empty places */
+    }
     for (int i = 0; i < EDGES_MISSING_KEPT; i++) {
         if (memcmp(edges_missing[i].code, code, 4) == 0) {
             return (edges_missing[i].missing & (1 << kind)) != 0;
