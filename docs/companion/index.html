@@ -1097,7 +1097,8 @@ rounded_corners = 1</code></pre>
           <tr><td><code>opacity</code></td><td>0 to 100</td><td>How strongly it shows, in percent. 5 to 15 is usually plenty.</td></tr>
         </tbody>
       </table></div>
-      <p>These sizes cost next to no memory, so they suit every console. Most other sizes, and any ocean background, make the menu store a whole picture: 300 KB, and a
+      <p>These sizes cost next to no memory, so they suit every console. Most other sizes, any ocean background, and any pattern over a
+        <code>radial</code> gradient (or a <code>diagonal</code> one with a middle color) make the menu store a whole picture: 300 KB, and a
         moment to build it at power-on.</p>
       <ul>
         <li><b>stripes, diagonal, checker:</b> 2, 4, 8, 16 or 32</li>
@@ -1186,9 +1187,9 @@ rounded_corners = 1</code></pre>
       <div class="tablewrap"><table>
         <thead><tr><th>Part of the theme</th><th>Memory it takes</th></tr></thead>
         <tbody>
-          <tr><td>Solid color or gradient</td><td>None</td></tr>
+          <tr><td>Solid color or gradient</td><td>None (19 KB for a <code>radial</code> one, or <code>diagonal</code> with a middle color)</td></tr>
           <tr><td>A pattern at one of the sizes above</td><td>A few KB at most</td></tr>
-          <tr><td>Most other pattern sizes, or an ocean background</td><td>300 KB</td></tr>
+          <tr><td>Most other pattern sizes, an ocean background, or a pattern over a <code>radial</code> gradient</td><td>300 KB</td></tr>
           <tr><td>Your own music</td><td>64 KB / 256 KB (without / with the Expansion Pak)</td></tr>
           <tr><td>Your own button sounds</td><td>Their file sizes, all the time</td></tr>
           <tr><td>Your own intro tune</td><td>Its file size, during the intro only</td></tr>

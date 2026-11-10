@@ -124,3 +124,25 @@ const char *card_themes_path (void) {
     }
     return path;
 }
+
+const char *card_themes_name_in_use (void) {
+    int i = slot_in_use();
+    return (i < 0) ? NULL : names[i];
+}
+
+bool card_themes_exists (const char *name) {
+    char path[160];
+    return theme_file(name, path, sizeof(path));
+}
+
+bool card_themes_choose (const char *name) {
+    card_themes_rescan();
+    for (int i = 0; i < count; i++) {
+        if (!strcasecmp(names[i], name)) {
+            options_change(OPTION_THEME, THEME_CHOICE_CARD + i);
+            options_change(OPTION_THEME_KEY, key_of(names[i]));
+            return true;
+        }
+    }
+    return false;
+}

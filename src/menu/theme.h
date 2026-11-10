@@ -86,6 +86,17 @@ void theme_init (void);
  */
 void theme_reload (void);
 
+/**
+ * Show `t` in place of the theme in use, until theme_reload() (the theme
+ * editor). Call fonts_restyle() too.
+ * @param background True: the background too, made again on the next draw.
+ *                   False: only the colors of what is drawn over it.
+ */
+void theme_preview (const theme_t *t, bool background);
+
+/** True when `t`'s background is drawn each frame: changing it costs nothing. False for ocean and pattern sizes that need a stored picture (300 KB, about half a second to make). */
+bool theme_drawn_live (const theme_t *t);
+
 /** Current theme (defaults if nothing was loaded). */
 const theme_t *theme_get (void);
 

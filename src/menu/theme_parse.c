@@ -148,3 +148,98 @@ bool theme_parse_file (theme_t *t, const char *path) {
     fclose(f);
     return true;
 }
+
+/* ---------- writing ---------- */
+
+static void write_color (FILE *f, const char *key, color_t c) {
+    fprintf(f, "%s = %02X%02X%02X\n", key, c.r, c.g, c.b);
+}
+
+static const char *bg_type_name (theme_bg_type_t type) {
+    switch (type) {
+        case THEME_BG_SOLID: return "solid";
+        case THEME_BG_IMAGE: return "image";
+        case THEME_BG_OCEAN: return "ocean";
+        case THEME_BG_GRADIENT:
+        default: return "gradient";
+    }
+}
+
+static const char *direction_name (theme_dir_t dir) {
+    switch (dir) {
+        case THEME_DIR_HORIZONTAL: return "horizontal";
+        case THEME_DIR_DIAGONAL: return "diagonal";
+        case THEME_DIR_RADIAL: return "radial";
+        case THEME_DIR_VERTICAL:
+        default: return "vertical";
+    }
+}
+
+static const char *pattern_name (theme_pattern_t pattern) {
+    switch (pattern) {
+        case THEME_PATTERN_STRIPES: return "stripes";
+        case THEME_PATTERN_DIAGONAL: return "diagonal";
+        case THEME_PATTERN_CHECKER: return "checker";
+        case THEME_PATTERN_DOTS: return "dots";
+        case THEME_PATTERN_GRID: return "grid";
+        case THEME_PATTERN_SCANLINES: return "scanlines";
+        case THEME_PATTERN_NONE:
+        default: return "none";
+    }
+}
+
+bool theme_write_file (const theme_t *t, const char *path) {
+    FILE *f = fopen(path, "w");
+    if (!f) {
+        return false;
+    }
+
+    fprintf(f, "; Made with the theme editor in SummerStation64's Settings.\n");
+    fprintf(f, "[theme]\nname = %s\n", t->name);
+    if (t->author[0]) {
+        fprintf(f, "author = %s\n", t->author);
+    }
+
+    fprintf(f, "\n[colors]\n");
+    write_color(f, "text", t->text);
+    write_color(f, "text_dim", t->text_dim);
+    write_color(f, "accent", t->accent);
+    write_color(f, "panel", t->panel);
+    write_color(f, "border", t->border);
+    write_color(f, "highlight", t->highlight);
+    write_color(f, "tab_active", t->tab_active);
+    write_color(f, "tab_inactive", t->tab_inactive);
+    write_color(f, "tab_active_border", t->tab_active_border);
+    write_color(f, "tab_inactive_border", t->tab_inactive_border);
+
+    fprintf(f, "\n[background]\ntype = %s\n", bg_type_name(t->bg_type));
+    write_color(f, "color1", t->color1);
+    write_color(f, "color2", t->color2);
+    if (t->use_color3) {
+        write_color(f, "color3", t->color3);
+    } else {
+        fprintf(f, "color3 = none\n");
+    }
+    fprintf(f, "direction = %s\ndither = %d\n", direction_name(t->direction), t->dither ? 1 : 0);
+    if (t->image[0]) {
+        fprintf(f, "image = %s\n", t->image);
+    }
+
+    fprintf(f, "\n[pattern]\nstyle = %s\n", pattern_name(t->pattern));
+    write_color(f, "color", t->pattern_color);
+    fprintf(f, "size = %d\nopacity = %d\n", t->pattern_size, t->pattern_opacity);
+
+    bool any = false;
+    for (int i = 0; i < FEATURE_COUNT; i++) {
+        if (t->features[i] != FEATURE_UNSET) {
+            if (!any) {
+                fprintf(f, "\n[features]\n");
+                any = true;
+            }
+            fprintf(f, "%s = %d\n", feature_key((feature_t) i), t->features[i] ? 1 : 0);
+        }
+    }
+
+    bool ok = !ferror(f);
+    return (fclose(f) == 0) && ok;
+}

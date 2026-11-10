@@ -337,6 +337,15 @@ static void theme_build_background (const theme_t *t) {
 static bool live = false;               /* drawn each frame, no stored picture */
 static surface_t pattern_tile;          /* the pattern's strength per pixel, or none */
 
+/* A round gradient (and a diagonal one with a middle color) can't be drawn
+   exactly with one or two boxes; made of many small ones it cost about 14 ms
+   a frame (an orange radial theme, 2026-11-10). It is drawn instead from a
+   tiny picture of itself, one value per 8 x 8 pixels (80 x 60, 19 KB),
+   stretched over the screen with smoothing: a smooth gradient looks the
+   same. With a pattern it keeps the full stored picture. */
+#define SMALL_SCALE     (8)
+static surface_t gradient_small;
+
 /* The pattern repeats every this many pixels both ways (0 when it can't be
    drawn live). */
 static int pattern_period (const theme_t *t) {
@@ -367,15 +376,48 @@ static bool has_pattern (const theme_t *t) {
     return t->pattern != THEME_PATTERN_NONE && t->pattern_opacity > 0;
 }
 
+static bool needs_small (const theme_t *t) {
+    return t->bg_type == THEME_BG_GRADIENT
+        && (t->direction == THEME_DIR_RADIAL || (t->direction == THEME_DIR_DIAGONAL && t->use_color3));
+}
+
 static bool live_possible (const theme_t *t) {
     if (t->bg_type == THEME_BG_OCEAN) {
         return false;
     }
+    if (needs_small(t)) {
+        return !has_pattern(t);
+    }
     return !has_pattern(t) || pattern_period(t) > 0;
+}
+
+static void small_prepare (const theme_t *t) {
+    int w = display_get_width();
+    int h = display_get_height();
+    int sw = w / SMALL_SCALE;
+    int sh = h / SMALL_SCALE;
+    gradient_small = surface_alloc(FMT_RGBA32, sw, sh);
+    if (!gradient_small.buffer) {
+        debugf("theme: no memory for the small gradient, plain color instead\n");
+        return;
+    }
+    for (int y = 0; y < sh; y++) {
+        uint32_t *out = (uint32_t *) ((uint8_t *) gradient_small.buffer + y * gradient_small.stride);
+        for (int x = 0; x < sw; x++) {
+            /* Each value is the color at the middle of the 8 x 8 pixels it stands for. */
+            rgbf_t c = gradient_color(t, x * SMALL_SCALE + SMALL_SCALE / 2, y * SMALL_SCALE + SMALL_SCALE / 2, w, h);
+            out[x] = (to_byte(c.r) << 24) | (to_byte(c.g) << 16) | (to_byte(c.b) << 8) | 0xFF;
+        }
+    }
 }
 
 static void live_prepare (const theme_t *t) {
     live = true;
+    if (needs_small(t)) {
+        small_prepare(t);
+        debugf("theme: background \"%s\" drawn live from a %dx%d picture\n", t->name, gradient_small.width, gradient_small.height);
+        return;
+    }
     if (!has_pattern(t)) {
         debugf("theme: background \"%s\" drawn live\n", t->name);
         return;
@@ -397,6 +439,10 @@ static void live_prepare (const theme_t *t) {
 }
 
 static void live_forget (void) {
+    if (gradient_small.buffer) {
+        surface_free(&gradient_small);
+        memset(&gradient_small, 0, sizeof(gradient_small));
+    }
     if (pattern_tile.buffer) {
         surface_free(&pattern_tile);
         memset(&pattern_tile, 0, sizeof(pattern_tile));
@@ -425,6 +471,46 @@ static void live_draw (int x0, int y0, int x1, int y1, int bright) {
     int h = display_get_height();
     bool tiled = (pattern_tile.buffer != NULL);
     bool gradient = (theme.bg_type == THEME_BG_GRADIENT);
+
+    if (gradient_small.buffer) {
+        /* The tiny picture, stretched and smoothed; only the texels the part
+           needs, cut to the part by the scissor. */
+        int s0 = x0 / SMALL_SCALE;
+        int t0 = y0 / SMALL_SCALE;
+        int s1 = (x1 + SMALL_SCALE - 1) / SMALL_SCALE;
+        int t1 = (y1 + SMALL_SCALE - 1) / SMALL_SCALE;
+        if (s1 > gradient_small.width) s1 = gradient_small.width;
+        if (t1 > gradient_small.height) t1 = gradient_small.height;
+        if (s1 <= s0 || t1 <= t0) {
+            return;
+        }
+        rdpq_set_mode_standard();
+        rdpq_mode_filter(FILTER_BILINEAR);
+        rdpq_mode_dithering(theme.dither ? DITHER_BAYER_NONE : DITHER_NONE_NONE);
+        if (bright < 255) {
+            rdpq_set_prim_color(RGBA32(bright, bright, bright, 0xFF));
+            rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);
+        } else {
+            rdpq_mode_combiner(RDPQ_COMBINER_TEX);
+        }
+        bool part = (x0 > 0 || y0 > 0 || x1 < w || y1 < h);
+        if (part) {
+            rdpq_set_scissor(x0, y0, x1, y1);
+        }
+        rdpq_tex_blit(&gradient_small, s0 * SMALL_SCALE, t0 * SMALL_SCALE, &(rdpq_blitparms_t) {
+            .s0 = s0,
+            .t0 = t0,
+            .width = s1 - s0,
+            .height = t1 - t0,
+            .scale_x = SMALL_SCALE,
+            .scale_y = SMALL_SCALE,
+            .filtering = true,
+        });
+        if (part) {
+            rdpq_set_scissor(0, 0, w, h);
+        }
+        return;
+    }
 
     if (!gradient && !tiled) {
         rdpq_set_mode_fill(RGBA32(theme.color1.r * bright / 255, theme.color1.g * bright / 255, theme.color1.b * bright / 255, 0xFF));
@@ -512,6 +598,34 @@ void theme_reload (void) {
     theme_background_resume();      /* ...and the new one is built on the next draw */
     initialized = false;
     theme_init();
+}
+
+void theme_preview (const theme_t *t, bool background) {
+    if (background) {
+        theme_background_suspend();
+        theme_background_resume();
+        theme = *t;
+    } else {
+        theme_t keep = theme;   /* what the background was made from stays */
+        theme = *t;
+        theme.bg_type = keep.bg_type;
+        theme.direction = keep.direction;
+        theme.color1 = keep.color1;
+        theme.color2 = keep.color2;
+        theme.color3 = keep.color3;
+        theme.use_color3 = keep.use_color3;
+        theme.dither = keep.dither;
+        memcpy(theme.image, keep.image, sizeof(theme.image));
+        theme.pattern = keep.pattern;
+        theme.pattern_color = keep.pattern_color;
+        theme.pattern_size = keep.pattern_size;
+        theme.pattern_opacity = keep.pattern_opacity;
+    }
+    initialized = true;
+}
+
+bool theme_drawn_live (const theme_t *t) {
+    return live_possible(t);
 }
 
 /* Built on first draw, so the display is guaranteed to be set up by then. */

@@ -20,4 +20,12 @@
  */
 bool theme_parse_file (theme_t *t, const char *path);
 
+/**
+ * Write `t` to `path` as a theme.ini that theme_parse_file() reads back the
+ * same (every key written, so nothing comes from Midnight's defaults).
+ * Write to a temp file and swap it in with safe_file_replace().
+ * @return false if the file could not be written.
+ */
+bool theme_write_file (const theme_t *t, const char *path);
+
 #endif /* THEME_PARSE_H__ */

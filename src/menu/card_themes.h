@@ -40,4 +40,13 @@ const char *card_themes_folder (void);
 /** The theme file of the card theme in use, or NULL if the choice is not a card theme or its folder is gone. */
 const char *card_themes_path (void);
 
+/** The folder name of the card theme in use, or NULL if the choice is not a card theme. */
+const char *card_themes_name_in_use (void);
+
+/** True if a theme folder of this name holds a theme file (any case). */
+bool card_themes_exists (const char *name);
+
+/** Read the folder again and choose the theme of this name; false if it isn't there. Apply it with theme_reload(). */
+bool card_themes_choose (const char *name);
+
 #endif /* CARD_THEMES_H__ */

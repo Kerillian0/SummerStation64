@@ -15,6 +15,10 @@ feature_t feature_from_key (const char *key) {
     return FEATURE_COUNT;
 }
 
+const char *feature_key (feature_t feature) {
+    return (feature == FEATURE_QUICK_LAUNCH) ? "quick_launch" : (feature == FEATURE_SIDE_COVERS) ? "side_covers" : "unknown";
+}
+
 static int failures = 0;
 static int checks = 0;
 
@@ -193,6 +197,109 @@ static void test_missing_file (void) {
     CHECK(!strcmp(t.name, "Default"));
 }
 
+static void test_write_read_back (void) {
+    printf("A theme written by the editor reads back the same, over other defaults\n");
+    theme_t a;
+    start(&a);
+    strcpy(a.name, "Lava Lamp");
+    a.text = RGBA32(0xFF, 0xF4, 0xEC, 0xFF);
+    a.text_dim = RGBA32(0xC0, 0xA0, 0x90, 0xFF);
+    a.accent = RGBA32(0xFF, 0x60, 0x20, 0xFF);
+    a.panel = RGBA32(0x30, 0x10, 0x10, 0xFF);
+    a.border = RGBA32(0x11, 0x22, 0x33, 0xFF);
+    a.highlight = RGBA32(0x44, 0x55, 0x66, 0xFF);
+    a.tab_active = RGBA32(0x77, 0x88, 0x99, 0xFF);
+    a.tab_inactive = RGBA32(0xAA, 0xBB, 0xCC, 0xFF);
+    a.tab_active_border = RGBA32(0xDD, 0xEE, 0xFF, 0xFF);
+    a.tab_inactive_border = RGBA32(0x01, 0x02, 0x03, 0xFF);
+    a.bg_type = THEME_BG_OCEAN;
+    a.direction = THEME_DIR_RADIAL;
+    a.color1 = RGBA32(0x10, 0x20, 0x30, 0xFF);
+    a.color2 = RGBA32(0x40, 0x50, 0x60, 0xFF);
+    a.use_color3 = false;
+    a.dither = false;
+    a.pattern = THEME_PATTERN_SCANLINES;
+    a.pattern_color = RGBA32(0x70, 0x80, 0x90, 0xFF);
+    a.pattern_size = 64;
+    a.pattern_opacity = 35;
+    a.features[FEATURE_QUICK_LAUNCH] = 1;
+    a.features[FEATURE_SIDE_COVERS] = 0;
+    CHECK(theme_write_file(&a, "/tmp/theme_write_test.ini"));
+
+    /* Read over a theme whose every field differs, as Midnight's would. */
+    theme_t b;
+    start(&b);
+    b.use_color3 = true;
+    b.color3 = RGBA32(9, 9, 9, 0xFF);
+    b.dither = true;
+    b.features[FEATURE_CAROUSEL_ANIMATION] = 1;
+    CHECK(theme_parse_file(&b, "/tmp/theme_write_test.ini"));
+    CHECK(!strcmp(b.name, "Lava Lamp"));
+    CHECK(same(b.text, 0xFF, 0xF4, 0xEC));
+    CHECK(same(b.text_dim, 0xC0, 0xA0, 0x90));
+    CHECK(same(b.accent, 0xFF, 0x60, 0x20));
+    CHECK(same(b.panel, 0x30, 0x10, 0x10));
+    CHECK(same(b.border, 0x11, 0x22, 0x33));
+    CHECK(same(b.highlight, 0x44, 0x55, 0x66));
+    CHECK(same(b.tab_active, 0x77, 0x88, 0x99));
+    CHECK(same(b.tab_inactive, 0xAA, 0xBB, 0xCC));
+    CHECK(same(b.tab_active_border, 0xDD, 0xEE, 0xFF));
+    CHECK(same(b.tab_inactive_border, 0x01, 0x02, 0x03));
+    CHECK(b.bg_type == THEME_BG_OCEAN);
+    CHECK(b.direction == THEME_DIR_RADIAL);
+    CHECK(same(b.color1, 0x10, 0x20, 0x30));
+    CHECK(same(b.color2, 0x40, 0x50, 0x60));
+    CHECK(!b.use_color3);                      /* "color3 = none" turns the middle color off */
+    CHECK(!b.dither);
+    CHECK(b.pattern == THEME_PATTERN_SCANLINES);
+    CHECK(same(b.pattern_color, 0x70, 0x80, 0x90));
+    CHECK(b.pattern_size == 64);
+    CHECK(b.pattern_opacity == 35);
+    CHECK(b.features[FEATURE_QUICK_LAUNCH] == 1);
+    CHECK(b.features[FEATURE_SIDE_COVERS] == 0);
+    CHECK(b.features[FEATURE_CAROUSEL_ANIMATION] == 1);    /* not in the file: left as it was */
+
+    printf("The middle color and the other choices, written and read back\n");
+    a.bg_type = THEME_BG_GRADIENT;
+    a.direction = THEME_DIR_DIAGONAL;
+    a.use_color3 = true;
+    a.color3 = RGBA32(0xAB, 0xCD, 0xEF, 0xFF);
+    a.dither = true;
+    a.pattern = THEME_PATTERN_NONE;
+    CHECK(theme_write_file(&a, "/tmp/theme_write_test.ini"));
+    start(&b);
+    CHECK(theme_parse_file(&b, "/tmp/theme_write_test.ini"));
+    CHECK(b.bg_type == THEME_BG_GRADIENT);
+    CHECK(b.direction == THEME_DIR_DIAGONAL);
+    CHECK(b.use_color3 && same(b.color3, 0xAB, 0xCD, 0xEF));
+    CHECK(b.dither);
+    CHECK(b.pattern == THEME_PATTERN_NONE);
+    for (int d = THEME_DIR_VERTICAL; d <= THEME_DIR_RADIAL; d++) {
+        a.direction = (theme_dir_t) d;
+        theme_write_file(&a, "/tmp/theme_write_test.ini");
+        start(&b);
+        b.direction = (d == THEME_DIR_VERTICAL) ? THEME_DIR_RADIAL : THEME_DIR_VERTICAL;
+        theme_parse_file(&b, "/tmp/theme_write_test.ini");
+        CHECK(b.direction == (theme_dir_t) d);
+    }
+    for (int p = THEME_PATTERN_NONE; p <= THEME_PATTERN_SCANLINES; p++) {
+        a.pattern = (theme_pattern_t) p;
+        theme_write_file(&a, "/tmp/theme_write_test.ini");
+        start(&b);
+        b.pattern = (p == THEME_PATTERN_NONE) ? THEME_PATTERN_GRID : THEME_PATTERN_NONE;
+        theme_parse_file(&b, "/tmp/theme_write_test.ini");
+        CHECK(b.pattern == (theme_pattern_t) p);
+    }
+    for (int bg = THEME_BG_SOLID; bg <= THEME_BG_OCEAN; bg++) {
+        a.bg_type = (theme_bg_type_t) bg;
+        theme_write_file(&a, "/tmp/theme_write_test.ini");
+        start(&b);
+        b.bg_type = (bg == THEME_BG_SOLID) ? THEME_BG_OCEAN : THEME_BG_SOLID;
+        theme_parse_file(&b, "/tmp/theme_write_test.ini");
+        CHECK(b.bg_type == (theme_bg_type_t) bg);
+    }
+}
+
 int main (void) {
     test_full_file();
     test_bad_values();
@@ -200,6 +307,7 @@ int main (void) {
     test_layout();
     test_keys_outside_their_section();
     test_missing_file();
+    test_write_read_back();
     printf("theme parser: %d checks, %d failed\n", checks, failures);
     return failures ? 1 : 0;
 }

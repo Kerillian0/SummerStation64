@@ -29,6 +29,7 @@
 #include "../settings.h"
 #include "../sound.h"
 #include "../theme.h"
+#include "../theme_editor.h"
 #include "../letter_wheel.h"
 #include "../profiles.h"
 #include "../profile_pick.h"
@@ -135,6 +136,11 @@ static void apply_theme (menu_t *menu) {
     fonts_restyle();
 }
 
+static void open_theme_editor (menu_t *menu) {
+    (void) menu;
+    theme_editor_open();
+}
+
 static void apply_soundfx (menu_t *menu) {
     sound_use_sfx(menu->settings.soundfx_enabled);
 }
@@ -193,6 +199,8 @@ static const char *default_folder (menu_t *menu) {
 static const item_t display_items[] = {
     CHOICES("Theme", OPTION_THEME, THEME_CHOICE_COUNT, card_themes_choice_name, apply_theme,
         "The menu's colors and background: a built-in theme, or one of yours from the SD card, each in its own folder in menu/themes (up to 32). From SD Card is the older menu/theme/theme.ini, or Midnight if there is none."),
+    ACTION("Edit Theme", open_theme_editor,
+        "Change the theme in use: its colors, background and pattern, seen on the whole menu as you go. Save it as a theme of your own in menu/themes, under a name you choose."),
     FEATURE("Cover Art", FEATURE_COVER_ART, "Show box art on the selected cover."),
     CHOICES("Show Games As", OPTION_COVER_STYLE, COVER_STYLE_COUNT, carousel_art_style_name, NULL,
         "Boxes shows each game's box art. Cartridges shows its cartridge instead, for games the box art pack has one for; the others keep their box."),
@@ -658,7 +666,11 @@ static void process (menu_t *menu) {
         return;
     }
     if (letter_wheel_naming()) {
-        letter_wheel_name_process(menu);    /* naming a profile */
+        letter_wheel_name_process(menu);    /* naming a profile or a theme */
+        return;
+    }
+    if (theme_editor_active()) {
+        theme_editor_process(menu);
         return;
     }
     if (confirm_delete >= 0) {
@@ -902,6 +914,14 @@ static void draw (menu_t *menu, surface_t *d) {
     ui_components_background_draw();
 
     ui_components_layout_draw();
+
+    if (theme_editor_active()) {
+        theme_editor_draw();
+        letter_wheel_draw();    // naming the theme
+        debug_stats_overlay_draw();
+        rdpq_detach_show();
+        return;
+    }
 
     const category_t *cat = &categories[category];
 
