@@ -37,6 +37,8 @@
 #define TITLE_MAIN_HEIGHT   (36)    /* a "Series - Subtitle" name: the series on one big line... */
 #define SUBTITLE_Y      (TITLE_Y + 34)
 #define SUBTITLE_HEIGHT (40)        /* ...and the subtitle smaller under it */
+#define LOGO_Y          (64)        /* the title logo, in the name's place: from just under the maker... */
+#define LOGO_HEIGHT     (78)        /* ...to just above the badges (scripts/fetch_logos.py makes them to fit TITLE_WIDTH x this) */
 #define BADGES_Y        (146)
 
 /* Three boxes of facts */
@@ -488,6 +490,36 @@ static void draw_title (const char *name) {
 
 }
 
+/* The game's logo in the name's place: against the left edge like the name,
+   in the middle of the room between the maker and the badges. Logos made to
+   fit (scripts/fetch_logos.py) are drawn pixel for pixel; a bigger one is
+   shrunk to fit, keeping its shape. Its own soft edges blend with what is
+   behind. */
+static void draw_logo (sprite_t *logo) {
+    surface_t pixels = sprite_get_pixels(logo);
+    if (pixels.width <= 0 || pixels.height <= 0) {
+        return;
+    }
+    float scale = 1.0f;
+    if (pixels.width > TITLE_WIDTH || pixels.height > LOGO_HEIGHT) {
+        float scale_x = (float) TITLE_WIDTH / pixels.width;
+        float scale_y = (float) LOGO_HEIGHT / pixels.height;
+        scale = (scale_x < scale_y) ? scale_x : scale_y;
+    }
+    int h = (int) (pixels.height * scale);
+
+    rdpq_mode_push();
+        rdpq_set_mode_standard();
+        rdpq_mode_filter((scale < 1.0f) ? FILTER_BILINEAR : FILTER_POINT);
+        rdpq_mode_combiner(RDPQ_COMBINER_TEX);
+        rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+        rdpq_tex_blit(&pixels, X0, LOGO_Y + (LOGO_HEIGHT - h) / 2, &(rdpq_blitparms_t) {
+            .scale_x = scale,
+            .scale_y = scale,
+        });
+    rdpq_mode_pop();
+}
+
 /* The first two boxes: how often and how long it has been played, and when last. */
 static void draw_played (menu_t *menu, const char *path) {
     time_t last = 0;
@@ -549,7 +581,11 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
             known(info->meta.author) ? info->meta.author : "");
     }
 
-    draw_title(view->name);
+    if (view->logo) {
+        draw_logo(view->logo);
+    } else {
+        draw_title(view->name);
+    }
 
     /* Whether this copy is a known good dump (Card Prep's verified.txt). */
     const char *rom_path = menu->load.rom_path ? path_get(menu->load.rom_path) : NULL;

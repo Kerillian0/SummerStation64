@@ -118,6 +118,7 @@ SRCS = \
 	menu/dump_check.c \
 	menu/game_data.c \
 	menu/memory_note.c \
+	menu/logo_shots.c \
 	menu/screenshot.c \
 	menu/art_tint.c \
 	menu/theme_parse.c \

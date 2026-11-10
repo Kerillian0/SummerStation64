@@ -22,3 +22,11 @@ Run both with:
 
 Needs `gcc` (in the dev container already) and Node.js
 (`sudo apt-get install -y nodejs`). Run them after changing either file.
+
+## Screenshots of Game info
+
+`logo_shots/shots.py` takes a screenshot of Game info for every commercial
+N64 game, with its title logo, from a test build of the menu running in
+ares (`FLAGS=-DLOGO_SHOTS`, `src/menu/logo_shots.c`), and makes a page to
+look through them. The steps are at the top of the script. Nothing it makes
+is committed: the pictures belong to the games' owners.

@@ -1,0 +1,549 @@
+<title>Title Logo Review</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Saira+Condensed:wght@600;700&display=swap">
+<style>
+/* Layout: a sticky console-grey toolbar over a grid of screen captures, each a
+   card with its cartridge code and two verdict buttons; a viewer opens any
+   capture at 2x. Cartridge-grey neutrals, the N64 blue as the one accent. */
+:root {
+  --bg: #e9ebef;
+  --panel: #ffffff;
+  --panel-2: #f4f5f8;
+  --line: #d3d7df;
+  --fg: #1b1e25;
+  --muted: #5d6474;
+  --accent: #2456c9;
+  --accent-fg: #ffffff;
+  --good: #1d8a4e;
+  --good-soft: #dff3e7;
+  --bad: #c8343a;
+  --bad-soft: #fbe3e4;
+  --warn: #9a6a07;
+  --warn-soft: #fbf0d4;
+  --shade: rgba(14, 16, 22, 0.78);
+  --font-display: "Saira Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #17191e; --panel: #22252c; --panel-2: #1c1f25; --line: #343842;
+    --fg: #e8eaf0; --muted: #9aa1b2; --accent: #7aa2ff; --accent-fg: #0f1320;
+    --good: #4cc38a; --good-soft: #17352a; --bad: #ff7b7f; --bad-soft: #3f1d22;
+    --warn: #f0c35a; --warn-soft: #3a3019; --shade: rgba(4, 5, 8, 0.86);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #17191e; --panel: #22252c; --panel-2: #1c1f25; --line: #343842;
+  --fg: #e8eaf0; --muted: #9aa1b2; --accent: #7aa2ff; --accent-fg: #0f1320;
+  --good: #4cc38a; --good-soft: #17352a; --bad: #ff7b7f; --bad-soft: #3f1d22;
+  --warn: #f0c35a; --warn-soft: #3a3019; --shade: rgba(4, 5, 8, 0.86);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font: 400 15px/1.5 var(--font-body);
+}
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px);
+  z-index: 10; background: var(--panel);
+}
+.wrap {
+  max-width: 1440px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* Header */
+header.top { padding-block: 28px 18px; display: grid; gap: 10px; }
+h1 {
+  margin: 0; font: 700 2.1rem/1.05 var(--font-display); letter-spacing: 0.01em;
+  text-wrap: balance;
+}
+.lede { margin: 0; max-width: 68ch; color: var(--muted); }
+.stats {
+  display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 4px 0 0; padding: 0; list-style: none;
+  font: 500 0.82rem/1.4 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.stats b { color: var(--fg); font-weight: 500; }
+
+/* Toolbar */
+.bar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: var(--panel); border-bottom: 1px solid var(--line);
+}
+.bar .wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding-block: 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip-btn {
+  font: 500 0.82rem/1 var(--font-body); color: var(--fg); background: var(--panel-2);
+  border: 1px solid var(--line); border-radius: 999px; padding: 7px 12px; cursor: pointer;
+}
+.chip-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.chip-btn .n { font-family: var(--font-mono); opacity: 0.75; margin-left: 4px; font-variant-numeric: tabular-nums; }
+input[type="search"], .note {
+  font: 400 0.9rem/1.3 var(--font-body); color: var(--fg); background: var(--panel-2);
+  border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; min-width: 0;
+}
+input[type="search"] { width: 220px; max-width: 100%; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button {
+  font: 500 0.8rem/1 var(--font-body); color: var(--muted); background: var(--panel-2);
+  border: 0; padding: 8px 11px; cursor: pointer;
+}
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { color: var(--fg); background: var(--panel); box-shadow: inset 0 -2px 0 var(--accent); }
+.spacer { flex: 1 1 auto; }
+.progress { display: flex; align-items: center; gap: 10px; font: 500 0.8rem/1 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.meter { width: 120px; height: 6px; border-radius: 3px; background: var(--panel-2); border: 1px solid var(--line); overflow: hidden; }
+.meter i { display: block; height: 100%; width: 0; background: var(--accent); }
+.plain-btn {
+  font: 500 0.8rem/1 var(--font-body); color: var(--accent); background: transparent;
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px 11px; cursor: pointer;
+}
+.status { width: 100%; margin: 0; font-size: 0.8rem; color: var(--muted); }
+.status:empty { display: none; }
+
+/* Grid */
+main { padding-block: 18px 48px; }
+.grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
+.card {
+  display: flex; flex-direction: column; min-width: 0;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+}
+.card[data-verdict="problem"] { border-color: var(--bad); box-shadow: 0 0 0 1px var(--bad); }
+.card[data-verdict="ok"] { border-color: var(--good); }
+.shot {
+  display: block; width: 100%; padding: 0; border: 0; background: #000; cursor: zoom-in;
+  position: relative; overflow: hidden; aspect-ratio: 4 / 3;
+}
+.shot img { position: absolute; display: block; width: 100%; height: auto; left: 0; top: 0; max-width: none; }
+body.crop .shot { aspect-ratio: 520 / 150; }
+body.crop .shot img { width: 123.077%; left: -11.538%; top: -20%; }   /* 640 x 480 cut to x 60-580, y 30-180 */
+.body { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px 14px; flex: 1; }
+.title { margin: 0; font: 600 1.12rem/1.2 var(--font-display); letter-spacing: 0.01em; overflow-wrap: anywhere; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.code {
+  font: 500 0.74rem/1 var(--font-mono); letter-spacing: 0.04em; color: var(--muted);
+  border: 1px solid var(--line); border-radius: 4px; padding: 4px 6px; background: var(--panel-2);
+}
+.tag { font: 500 0.74rem/1 var(--font-body); border-radius: 4px; padding: 5px 7px; }
+.tag.warn { color: var(--warn); background: var(--warn-soft); }
+.tag.info { color: var(--muted); background: var(--panel-2); border: 1px solid var(--line); }
+.source { margin: 0; font-size: 0.8rem; color: var(--muted); overflow-wrap: anywhere; }
+.actions { margin-top: auto; display: grid; gap: 8px; padding-top: 4px; }
+.verdict { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.verdict button {
+  font: 600 0.84rem/1 var(--font-body); padding: 9px 10px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--panel-2); color: var(--fg);
+}
+.verdict .ok[aria-pressed="true"] { background: var(--good-soft); border-color: var(--good); color: var(--good); }
+.verdict .problem[aria-pressed="true"] { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
+.note { width: 100%; }
+.empty { padding: 48px 0; text-align: center; color: var(--muted); }
+
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Viewer */
+dialog.viewer {
+  width: 100%; max-width: none; height: 100%; max-height: none; margin: 0; padding: 0; border: 0;
+  background: var(--shade); color: var(--fg);
+}
+dialog.viewer::backdrop { background: transparent; }
+.viewer-inner {
+  height: 100%; display: grid; grid-template-rows: 1fr auto; gap: 12px;
+  padding-block: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.stage { min-height: 0; display: flex; align-items: center; justify-content: center; }
+.stage img {
+  display: block; max-width: 100%; max-height: 100%; width: 1280px; height: auto; object-fit: contain;
+  image-rendering: pixelated; background: #000;
+}
+.panel {
+  justify-self: center; width: min(1280px, 100%); display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+}
+.panel .title { flex: 1 1 260px; min-width: 0; }
+.panel .verdict { flex: 0 0 240px; }
+.panel .note { flex: 1 1 260px; }
+.nav { display: flex; gap: 6px; }
+.nav button {
+  font: 600 0.84rem/1 var(--font-body); padding: 9px 12px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--panel-2); color: var(--fg);
+}
+.keys { width: 100%; margin: 0; font: 400 0.76rem/1.4 var(--font-mono); color: var(--muted); }
+@media (max-width: 560px) {
+  h1 { font-size: 1.7rem; }
+  .panel .verdict { flex: 1 1 100%; }
+  .meter { width: 80px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .card { transition: border-color 0.15s, box-shadow 0.15s; }
+}
+</style>
+
+<header class="top wrap">
+  <h1>Title Logo Review</h1>
+  <p class="lede">Game info for every commercial N64 game, with its libretro logo in place of the name. Each picture is a frame captured from the menu running in ares at 640&times;480, default theme. Mark each one, and add a note where something is wrong.</p>
+  <ul class="stats" id="stats"></ul>
+</header>
+
+<div class="bar">
+  <div class="wrap">
+    <div class="chips" id="filters" role="group" aria-label="Show"></div>
+    <input type="search" id="q" placeholder="Search title or code" aria-label="Search title or code">
+    <div class="seg" role="group" aria-label="Picture">
+      <button type="button" id="view-full" aria-pressed="true">Whole screen</button>
+      <button type="button" id="view-crop" aria-pressed="false">Title close-up</button>
+    </div>
+    <span class="spacer"></span>
+    <div class="progress"><span class="meter"><i id="meter"></i></span><span id="reviewed">0 / 0 marked</span></div>
+    <button type="button" class="plain-btn" id="copy">Copy problem list</button>
+    <p class="status" id="status" role="status"></p>
+  </div>
+</div>
+
+<main class="wrap">
+  <div class="grid" id="grid"></div>
+  <p class="empty" id="empty" hidden>Nothing matches. Try another filter or search.</p>
+</main>
+
+<dialog class="viewer" id="viewer" aria-label="Screen capture">
+  <div class="viewer-inner">
+    <div class="stage"><img id="v-img" alt="" width="640" height="480"></div>
+    <div class="panel">
+      <div class="nav">
+        <button type="button" id="v-prev" aria-label="Previous game">&larr;</button>
+        <button type="button" id="v-next" aria-label="Next game">&rarr;</button>
+      </div>
+      <h2 class="title" id="v-title"></h2>
+      <div class="verdict">
+        <button type="button" class="ok" id="v-ok" aria-pressed="false">Looks good</button>
+        <button type="button" class="problem" id="v-problem" aria-pressed="false">Problem</button>
+      </div>
+      <input class="note" id="v-note" type="text" placeholder="What's wrong? (optional)" aria-label="Note">
+      <div class="nav"><button type="button" id="v-close">Close</button></div>
+      <p class="keys">&larr; &rarr; next game &middot; G looks good &middot; P problem &middot; N note &middot; Esc close</p>
+    </div>
+  </div>
+</dialog>
+
+<script>
+const GAMES = /*GAMES*/[];
+const INFO = /*INFO*/{};
+
+const REGION = { E: "USA", P: "EUR", J: "JPN", D: "NOE", F: "FRA", I: "ITA", S: "ESP", U: "AUS", X: "EUR", Y: "EUR", A: "USA" };
+const cartCode = (code) => "NUS-" + code + (REGION[code[3]] ? "-" + REGION[code[3]] : "");
+const $ = (id) => document.getElementById(id);
+
+const marks = new Map();          // base code -> {verdict, note}
+let store = null;                 // the db collection, or null: this browser only
+const KEY = "logo-review-marks";
+const prefs = (() => { try { return JSON.parse(localStorage.getItem("logo-review-prefs") || "{}"); } catch { return {}; } })();
+const savePrefs = () => { try { localStorage.setItem("logo-review-prefs", JSON.stringify(prefs)); } catch {} };
+
+function needsLook(g) { return !g.logo || g.how === "title"; }
+
+const FILTERS = [
+  { id: "all", label: "All", test: () => true },
+  { id: "look", label: "Needs a look", test: needsLook },
+  { id: "open", label: "Not marked", test: (g) => !marks.get(g.base)?.verdict },
+  { id: "problem", label: "Problems", test: (g) => marks.get(g.base)?.verdict === "problem" },
+  { id: "ok", label: "Good", test: (g) => marks.get(g.base)?.verdict === "ok" },
+];
+let filter = FILTERS.some((f) => f.id === prefs.filter) ? prefs.filter : "all";
+let query = "";
+let shown = [];                   // games in the grid, in order
+let current = -1;                 // index in shown, while the viewer is open
+
+/* ---------- header ---------- */
+function renderStats() {
+  const withLogo = GAMES.filter((g) => g.logo).length;
+  const byTitle = GAMES.filter((g) => g.how === "title").length;
+  const items = [
+    [GAMES.length, "games"],
+    [withLogo, "with a logo"],
+    [GAMES.length - withLogo, "keep the text name"],
+    [byTitle, "logo matched by title only"],
+  ];
+  if (INFO.captured) items.push([INFO.captured, "captured"]);
+  $("stats").replaceChildren(...items.map(([n, label]) => {
+    const li = document.createElement("li");
+    const b = document.createElement("b");
+    b.textContent = n;
+    li.append(b, " " + label);
+    return li;
+  }));
+}
+
+/* ---------- cards ---------- */
+const cards = new Map();          // base -> {el, ok, problem, note}
+
+function tagsFor(g) {
+  const tags = [];
+  if (!g.logo) tags.push(["warn", "No logo: text name"]);
+  else if (g.how === "title") tags.push(["warn", "Matched by title only"]);
+  if (g.override) tags.push(["info", g.override.startsWith("crop") ? "Logo cropped by hand" : "Logo from elsewhere"]);
+  if (g.own_region_logo) tags.push(["info", "Region's own logo"]);
+  if (!g.cover) tags.push(["info", "No cover"]);
+  return tags;
+}
+
+function buildCard(g) {
+  const el = document.createElement("article");
+  el.className = "card";
+  el.dataset.base = g.base;
+
+  const shot = document.createElement("button");
+  shot.type = "button";
+  shot.className = "shot";
+  shot.setAttribute("aria-label", "Open " + g.title + " larger");
+  const img = document.createElement("img");
+  img.src = g.shot; img.alt = "Game info screen for " + g.title;
+  img.loading = "lazy"; img.decoding = "async"; img.width = 640; img.height = 480;
+  shot.append(img);
+  shot.addEventListener("click", () => openViewer(g.base));
+
+  const body = document.createElement("div");
+  body.className = "body";
+  const title = document.createElement("h2");
+  title.className = "title"; title.textContent = g.title;
+  const meta = document.createElement("div");
+  meta.className = "meta";
+  const code = document.createElement("span");
+  code.className = "code"; code.textContent = cartCode(g.code);
+  meta.append(code);
+  for (const [kind, text] of tagsFor(g)) {
+    const t = document.createElement("span");
+    t.className = "tag " + kind; t.textContent = text;
+    meta.append(t);
+  }
+  body.append(title, meta);
+  if (g.logo && g.logo !== g.title) {
+    const src = document.createElement("p");
+    src.className = "source"; src.textContent = "Logo: " + g.logo;
+    body.append(src);
+  }
+
+  const actions = document.createElement("div");
+  actions.className = "actions";
+  const verdict = document.createElement("div");
+  verdict.className = "verdict";
+  const ok = document.createElement("button");
+  ok.type = "button"; ok.className = "ok"; ok.textContent = "Looks good";
+  const problem = document.createElement("button");
+  problem.type = "button"; problem.className = "problem"; problem.textContent = "Problem";
+  ok.addEventListener("click", () => setVerdict(g.base, "ok"));
+  problem.addEventListener("click", () => setVerdict(g.base, "problem"));
+  verdict.append(ok, problem);
+  const note = document.createElement("input");
+  note.type = "text"; note.className = "note"; note.id = "note-" + g.base;
+  note.placeholder = "What's wrong? (optional)";
+  note.setAttribute("aria-label", "Note for " + g.title);
+  note.addEventListener("input", () => setNote(g.base, note.value));
+  actions.append(verdict, note);
+  body.append(actions);
+
+  el.append(shot, body);
+  cards.set(g.base, { el, ok, problem, note });
+  return el;
+}
+
+function paintCard(base) {
+  const c = cards.get(base);
+  if (!c) return;
+  const m = marks.get(base) || {};
+  c.el.dataset.verdict = m.verdict || "";
+  c.ok.setAttribute("aria-pressed", String(m.verdict === "ok"));
+  c.problem.setAttribute("aria-pressed", String(m.verdict === "problem"));
+  if (document.activeElement !== c.note) c.note.value = m.note || "";
+  c.note.hidden = m.verdict !== "problem" && !m.note;
+}
+
+/* ---------- filtering ---------- */
+function renderFilters() {
+  $("filters").replaceChildren(...FILTERS.map((f) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip-btn";
+    b.setAttribute("aria-pressed", String(f.id === filter));
+    const n = document.createElement("span");
+    n.className = "n"; n.textContent = GAMES.filter(f.test).length;
+    b.append(f.label, n);
+    b.addEventListener("click", () => { filter = f.id; prefs.filter = filter; savePrefs(); applyFilter(); });
+    return b;
+  }));
+}
+
+function applyFilter() {
+  const f = FILTERS.find((x) => x.id === filter);
+  const q = query.trim().toLowerCase();
+  shown = GAMES.filter((g) => f.test(g) && (!q || g.title.toLowerCase().includes(q) || g.code.toLowerCase().includes(q) || cartCode(g.code).toLowerCase().includes(q)));
+  const keep = new Set(shown.map((g) => g.base));
+  for (const g of GAMES) cards.get(g.base).el.hidden = !keep.has(g.base);
+  $("empty").hidden = shown.length > 0;
+  renderFilters();
+}
+
+function renderProgress() {
+  const done = GAMES.filter((g) => marks.get(g.base)?.verdict).length;
+  $("reviewed").textContent = done + " / " + GAMES.length + " marked";
+  $("meter").style.width = (GAMES.length ? (100 * done / GAMES.length) : 0) + "%";
+}
+
+/* ---------- marks ---------- */
+const queues = new Map();         // one write at a time per game
+const noteTimers = new Map();
+
+function persist(base) {
+  const m = marks.get(base) || {};
+  if (!store) {
+    try { localStorage.setItem(KEY, JSON.stringify(Object.fromEntries(marks))); } catch {}
+    return;
+  }
+  const g = GAMES.find((x) => x.base === base);
+  const write = () => (m.verdict || m.note)
+    ? store.doc(base).set({ verdict: m.verdict || "", note: m.note || "", title: g.title, code: g.code, at: new Date().toISOString() })
+    : store.doc(base).delete();
+  const next = (queues.get(base) || Promise.resolve()).then(write).catch((e) => {
+    setStatus(e && (e.code === "permission_denied" || e.code === "not_granted")
+      ? "Your marks can't be saved here: you need edit access to this page."
+      : "A mark didn't save. Check your connection; it will save with your next change.");
+  });
+  queues.set(base, next);
+}
+
+function setVerdict(base, verdict) {
+  const m = { ...(marks.get(base) || {}) };
+  m.verdict = m.verdict === verdict ? "" : verdict;
+  marks.set(base, m);
+  paintCard(base); paintViewer(); renderProgress(); renderFilters();
+  persist(base);
+  if (m.verdict === "problem" && current < 0) cards.get(base).note.focus();
+}
+
+function setNote(base, note) {
+  const m = { ...(marks.get(base) || {}) };
+  m.note = note;
+  if (note && !m.verdict) m.verdict = "problem";
+  marks.set(base, m);
+  paintCard(base); renderProgress();
+  clearTimeout(noteTimers.get(base));
+  noteTimers.set(base, setTimeout(() => { persist(base); renderFilters(); }, 700));
+}
+
+function setStatus(text) { $("status").textContent = text; }
+
+/* ---------- viewer ---------- */
+const viewer = $("viewer");
+
+function openViewer(base) {
+  current = shown.findIndex((g) => g.base === base);
+  if (current < 0) return;
+  paintViewer();
+  if (!viewer.open) viewer.showModal();
+}
+
+function paintViewer() {
+  if (current < 0 || !shown[current]) return;
+  const g = shown[current];
+  const m = marks.get(g.base) || {};
+  $("v-img").src = g.shot;
+  $("v-img").alt = "Game info screen for " + g.title;
+  $("v-title").textContent = g.title + "  ·  " + cartCode(g.code);
+  $("v-ok").setAttribute("aria-pressed", String(m.verdict === "ok"));
+  $("v-problem").setAttribute("aria-pressed", String(m.verdict === "problem"));
+  if (document.activeElement !== $("v-note")) $("v-note").value = m.note || "";
+}
+
+function step(d) {
+  if (!shown.length) return;
+  current = (current + d + shown.length) % shown.length;
+  paintViewer();
+  cards.get(shown[current].base).el.scrollIntoView({ block: "nearest" });
+}
+
+$("v-prev").addEventListener("click", () => step(-1));
+$("v-next").addEventListener("click", () => step(1));
+$("v-close").addEventListener("click", () => viewer.close());
+$("v-ok").addEventListener("click", () => setVerdict(shown[current].base, "ok"));
+$("v-problem").addEventListener("click", () => setVerdict(shown[current].base, "problem"));
+$("v-note").addEventListener("input", (e) => setNote(shown[current].base, e.target.value));
+viewer.addEventListener("close", () => { current = -1; });
+viewer.addEventListener("keydown", (e) => {
+  if (e.target === $("v-note")) {
+    if (e.key === "Enter" || e.key === "Escape") { e.preventDefault(); $("v-note").blur(); }
+    return;
+  }
+  const key = e.key.toLowerCase();
+  if (e.key === "ArrowRight") { e.preventDefault(); step(1); }
+  else if (e.key === "ArrowLeft") { e.preventDefault(); step(-1); }
+  else if (key === "g") { setVerdict(shown[current].base, "ok"); }
+  else if (key === "p") { setVerdict(shown[current].base, "problem"); }
+  else if (key === "n") { e.preventDefault(); $("v-note").focus(); }
+});
+
+/* ---------- toolbar ---------- */
+function setView(crop) {
+  document.body.classList.toggle("crop", crop);
+  $("view-full").setAttribute("aria-pressed", String(!crop));
+  $("view-crop").setAttribute("aria-pressed", String(crop));
+  prefs.crop = crop; savePrefs();
+}
+$("view-full").addEventListener("click", () => setView(false));
+$("view-crop").addEventListener("click", () => setView(true));
+$("q").addEventListener("input", (e) => { query = e.target.value; applyFilter(); });
+
+$("copy").addEventListener("click", async () => {
+  const lines = GAMES.filter((g) => marks.get(g.base)?.verdict === "problem")
+    .map((g) => g.base + "  " + g.title + (marks.get(g.base).note ? "  -  " + marks.get(g.base).note : ""));
+  const text = lines.length ? "Logo problems (" + lines.length + "):\n" + lines.join("\n") : "No problems marked.";
+  try { await navigator.clipboard.writeText(text); setStatus("Copied " + lines.length + " problem" + (lines.length === 1 ? "" : "s") + "."); }
+  catch { setStatus(text); }
+});
+
+/* ---------- start ---------- */
+renderStats();
+const frag = document.createDocumentFragment();
+for (const g of GAMES) frag.append(buildCard(g));
+$("grid").append(frag);
+setView(!!prefs.crop);
+for (const g of GAMES) paintCard(g.base);
+applyFilter();
+renderProgress();
+setStatus("Loading saved marks…");
+
+(async () => {
+  const db = window.claude?.use ? await window.claude.use("db") : null;
+  if (!db) {
+    // Opened as a local file, or signed out: this browser keeps the marks.
+    try {
+      const saved = JSON.parse(localStorage.getItem(KEY) || "{}");
+      for (const [base, m] of Object.entries(saved)) marks.set(base, m);
+    } catch {}
+    for (const g of GAMES) paintCard(g.base);
+    renderProgress(); renderFilters();
+    setStatus("Marks are kept in this browser only.");
+    return;
+  }
+  store = db.collection("verdicts");
+  const late = setTimeout(() => setStatus("Saved marks can't be reached yet; new ones are kept until they can."), 10000);
+  store.onSnapshot((snap) => {
+    if (!snap.metadata.fromCache) { clearTimeout(late); setStatus(""); }
+    const seen = new Set();
+    for (const d of snap.docs) {
+      const v = d.data() || {};
+      seen.add(d.id);
+      marks.set(d.id, { verdict: v.verdict || "", note: v.note || "" });
+    }
+    for (const base of [...marks.keys()]) if (!seen.has(base) && !snap.metadata.hasPendingWrites) marks.delete(base);
+    for (const g of GAMES) paintCard(g.base);
+    paintViewer(); renderProgress(); renderFilters();
+  }, () => { clearTimeout(late); setStatus("The shared list of marks stopped answering; reload the page to reconnect."); });
+})();
+</script>
