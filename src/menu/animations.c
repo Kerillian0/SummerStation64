@@ -57,8 +57,8 @@ int animations_direction (void) {
 #define GLIDE_MS        (110)
 #define GLIDE_FRESH_MS  (150)   /* not drawn for this long: the list was closed, start in place */
 
-static int glide_at (const animations_glide_t *glide) {
-    float t = animations_progress(glide->since, GLIDE_MS);
+static int glide_at (const animations_glide_t *glide, int ms) {
+    float t = animations_progress(glide->since, ms);
     if (t >= 1.0f) {
         return glide->to;
     }
@@ -66,8 +66,12 @@ static int glide_at (const animations_glide_t *glide) {
 }
 
 int animations_glide (animations_glide_t *glide, int target) {
+    return animations_glide_timed(glide, target, GLIDE_MS, GLIDE_FRESH_MS);
+}
+
+int animations_glide_timed (animations_glide_t *glide, int target, int ms, int fresh_ms) {
     uint64_t now = get_ticks_ms();
-    bool fresh = !glide->set || (now - glide->last_ms) > GLIDE_FRESH_MS;
+    bool fresh = !glide->set || (now - glide->last_ms) > (uint64_t) fresh_ms;
     glide->last_ms = now;
     if (fresh || !animations_showy()) {
         glide->set = true;
@@ -76,11 +80,11 @@ int animations_glide (animations_glide_t *glide, int target) {
         return target;
     }
     if (target != glide->to) {
-        glide->from = glide_at(glide);
+        glide->from = glide_at(glide, ms);
         glide->to = target;
         glide->since = now;
     }
-    return glide_at(glide);
+    return glide_at(glide, ms);
 }
 
 /* ---------- pop-ups ---------- */

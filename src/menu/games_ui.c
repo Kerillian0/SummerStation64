@@ -223,14 +223,32 @@ static void player_draw (void) {
     text(TABS_X + PLAYER_DOT + 8, PLAYER_Y - 4, PLAYER_WIDTH - PLAYER_DOT - 8, 24, ALIGN_LEFT, STL_DEFAULT, profiles_name(p));
 }
 
+#define TAB_GLIDE_MS        (180)
+#define TAB_GLIDE_FRESH_MS  (1000)  /* the new tab's screen can take a moment to come up */
+
 void games_ui_topbar_draw (menu_t *menu, games_tab_t selected) {
     games_tab_t shown[GAMES_TAB_COUNT];
     int count = tabs_list(shown);
 
+    /* Showy (animations.h): the selected tab's block glides over from the
+       tab that was selected, across the change of screen. The others are
+       drawn first, so it passes over them; its label waits in its place. */
     int x = TABS_X;
+    int selected_x = -1;
     for (int i = 0; i < count; i++) {
-        pill(x, TOPBAR_TAB_WIDTH, tabs_label(shown[i]), shown[i] == selected);    /* a long collection name ends in ... */
+        if (shown[i] == selected) {
+            selected_x = x;
+            round_fill(x, TOPBAR_Y, x + TOPBAR_TAB_WIDTH, TOPBAR_Y + TOPBAR_HEIGHT, theme_get()->tab_inactive);   /* under the block, until it arrives */
+        } else {
+            pill(x, TOPBAR_TAB_WIDTH, tabs_label(shown[i]), false);    /* a long collection name ends in ... */
+        }
         x += TOPBAR_TAB_WIDTH + TOPBAR_TAB_GAP;
+    }
+    if (selected_x >= 0) {
+        static animations_glide_t tab_glide;
+        int block_x = animations_glide_timed(&tab_glide, selected_x, TAB_GLIDE_MS, TAB_GLIDE_FRESH_MS);
+        round_fill(block_x - 2, TOPBAR_Y - 2, block_x + TOPBAR_TAB_WIDTH + 2, TOPBAR_Y + TOPBAR_HEIGHT + 2, theme_get()->accent);
+        text(selected_x, TOPBAR_Y, TOPBAR_TAB_WIDTH, TOPBAR_HEIGHT, ALIGN_CENTER, STL_WHITE, tabs_label(selected));
     }
 
     /* The clock only shows when the cart's clock is working. */
@@ -384,6 +402,7 @@ menu_font_style_t games_ui_review_style (int review) {
    selection moved toward, in 2-pixel steps (text on 240p), kept inside the
    panel by a scissor while they move. */
 #define TITLE_SLIDE_MS  (200)
+#define BADGE_STEP_MS   (70)    /* Showy: between one badge turning up and the next */
 #define TITLE_SLIDE_PX  (28)
 static bool panel_clipped = false;
 static int panel_clip_x0, panel_clip_x1;
@@ -539,10 +558,21 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const cha
 
     int limit = x1 - 12 + BADGE_PADDING;
 
+    /* Showy (animations.h): once a game's details arrive, its badges turn up
+       one after another. */
+    static uint32_t facts_key = 0;
+    static uint64_t facts_since = 0;
+    if (facts_key != title_key) {
+        facts_key = title_key;
+        facts_since = get_ticks_ms();
+    }
+    int badge_number = 0;
+
     /* What the row is sorted by (developer, year) comes first and always
        shows; a badge that would run past the panel's edge is left out. */
     #define PANEL_BADGE(label, style, boxed) \
-        if (x + text_width(label) + (BADGE_PADDING * 2) <= limit) { \
+        if (x + text_width(label) + (BADGE_PADDING * 2) <= limit \
+            && animations_progress(facts_since, BADGE_STEP_MS * badge_number++) >= 1.0f) { \
             x = games_ui_badge(x, y, label, style, boxed); \
         }
 

@@ -234,7 +234,7 @@ static const item_t display_items[] = {
     FEATURE("Dump Check Marks", FEATURE_DUMP_MARKS, "A green check for a known good dump, an amber ? for a copy that differs from it, a red X for a bad dump. Needs menu/verified.txt from the Card Prep page."),
     FEATURE("Angled Side Covers", FEATURE_ANGLED_COVERS, "Turn the previous and next covers away toward the sides, like boxes on a shelf. Needs Previous/Next Covers on."),
     CHOICES("Animations", OPTION_ANIMATIONS, ANIMATIONS_COUNT, animations_name, NULL,
-        "Snappy keeps the menu quick and plain. Showy adds movement: box art fades in, the cover you land on grows into place, names slide in, the cover flies into Game info and back, highlights glide between rows, pop-ups open and close, and Settings rises in and its pages slide. Any button press finishes an animation at once."),
+        "Snappy keeps the menu quick and plain. Showy adds movement everywhere: covers, names and badges arrive in turn, the cover flies into Game info and back, highlights and tabs glide, pop-ups open and close, Settings rises in, and the player cards lift. Any button press finishes an animation at once."),
     FEATURE("Cover Slide", FEATURE_CAROUSEL_ANIMATION, "Covers slide into place when you move left or right."),
     FEATURE("Rounded Corners", FEATURE_ROUNDED_CORNERS, "Round off the corners of the tabs, the clock, the title panel, the badges and the band behind the button hints. Off draws them square."),
     CHOICES("Tint Ring From Art", OPTION_RING_TINT, RING_TINT_COUNT, art_tint_name, NULL,

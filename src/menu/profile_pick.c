@@ -1,5 +1,6 @@
 #include <libdragon.h>
 
+#include "animations.h"
 #include "avatars.h"
 #include "bookkeeping.h"
 #include "fonts.h"
@@ -31,6 +32,10 @@
 
 static bool showing = false;
 static int selected = 0;
+/* Showy: which card lifts (card_lift()) */
+static int lifted = -1;             /* the card lifted, or lifting */
+static int settling = -1;           /* the card going back down */
+static uint64_t lift_since = 0, settle_since = 0;
 static menu_mode_t after;
 static uint64_t shown_at;
 static bool started;
@@ -41,6 +46,7 @@ void profile_pick_begin (menu_t *menu) {
     }
     after = intro_hold(menu);
     selected = profiles_current();
+    lifted = settling = -1;     /* the card rises again each time this is shown */
     showing = true;
     started = false;
     debugf("profiles: asking who is playing (%d profiles, last %s)\n", profiles_count(), profiles_name(selected));
@@ -88,13 +94,48 @@ void profile_pick_refresh (menu_t *menu) {
     debugf("profiles: lists of %s read\n", profiles_name(profiles_current()));
 }
 
+/* Showy (animations.h): the selected card lifts with a little bounce, and
+   the one left settles back down. */
+#define LIFT_PX         (10)
+#define LIFT_MS         (280)
+
+static void lift_moved (int from) {
+    settling = from;
+    settle_since = get_ticks_ms();
+    lifted = selected;
+    lift_since = settle_since;
+}
+
+static int card_lift (int i) {
+    if (!animations_showy()) {
+        return 0;
+    }
+    if (lifted < 0) {
+        lifted = selected;      /* the first frame: the last player's card rises */
+        lift_since = get_ticks_ms();
+    }
+    if (i == lifted) {
+        float t = animations_progress(lift_since, LIFT_MS);
+        return (int) (LIFT_PX * animations_ease_back(t)) & ~1;
+    }
+    if (i == settling) {
+        float t = animations_progress(settle_since, LIFT_MS / 2);
+        return (int) (LIFT_PX * (1.0f - animations_ease_out(t))) & ~1;
+    }
+    return 0;
+}
+
 static void process (menu_t *menu) {
     int count = profiles_count();
     if (menu->actions.go_up || menu->actions.go_left) {
+        int from = selected;
         selected = (selected + count - 1) % count;
+        lift_moved(from);
         sound_play_effect(SFX_CURSOR);
     } else if (menu->actions.go_down || menu->actions.go_right) {
+        int from = selected;
         selected = (selected + 1) % count;
+        lift_moved(from);
         sound_play_effect(SFX_CURSOR);
     } else if (menu->actions.enter) {
         sound_play_effect(SFX_ENTER);
@@ -130,7 +171,7 @@ static void draw (surface_t *display) {
 
     for (int i = 0; i < count; i++) {
         int x = x0 + (i * (CARD_WIDTH + CARD_GAP));
-        int y = CARDS_Y;
+        int y = CARDS_Y - card_lift(i);
         if (i == selected) {
             games_ui_round_fill(x - RING, y - RING, x + CARD_WIDTH + RING, y + CARD_HEIGHT + RING, t->accent);
         }

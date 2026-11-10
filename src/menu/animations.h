@@ -53,6 +53,10 @@ typedef struct {
 /** Where to draw a highlight whose row is at `target` now (pixels, kept even). */
 int animations_glide (animations_glide_t *glide, int target);
 
+/** The same, taking `ms` to glide, and starting in place when it hasn't
+ *  been drawn for `fresh_ms` (longer for one that crosses screens). */
+int animations_glide_timed (animations_glide_t *glide, int target, int ms, int fresh_ms);
+
 /** From ui_components_dialog_draw(): a pop-up drawn for the first time
  *  grows open from its middle. animations_dialog() changes the box to draw;
  *  animations_dialog_clip(), once the box is drawn, keeps what is drawn
