@@ -15,6 +15,7 @@
 #include "menu_options.h"
 #include "game_index.h"
 #include "cover_list.h"
+#include "dd_pair.h"
 #include "menu_features.h"
 #include "path.h"
 #include "safe_file.h"
@@ -303,6 +304,26 @@ static bool memory_free_for (int bytes) {
    such game used to put the covers after it back on the long waits. */
 static bool baked_lately = false;
 
+/* The code a cover's pictures go by, if it is already known: a cartridge's
+   from the game list (none for homebrew, found by title), a 64DD disk's ID. */
+static bool known_code (menu_t *menu, int index, char code[5]) {
+    const cover_list_t *covers = cover_list_current(menu);
+    path_t *path = covers->path(menu, index);
+    bool found = false;
+    if (covers->list[index].type == ENTRY_TYPE_DISK) {
+        found = dd_pair_disk_id(path, code);
+    } else {
+        const game_index_entry_t *known = game_index_find(path_get(path), covers->list[index].size);
+        if (known && !game_index_is_homebrew(known->code)) {
+            memcpy(code, known->code, 4);
+            found = true;
+        }
+    }
+    path_free(path);
+    code[4] = '\0';
+    return found;
+}
+
 /* Start decoding the art for an entry. Returns NULL if it has none.
    With `card` false only baked art is tried (the PNG decoder is busy with
    another cover), and `*card_pending` says whether the card is worth trying
@@ -346,9 +367,15 @@ static component_boxart_t *art_load (menu_t *menu, int index, file_image_type_t 
         return art;
     }
 
+    /* A 64DD disk goes by its ID: Game info finds its pictures the same way. */
+    const game_index_entry_t *known = NULL;
+    if (covers->list[index].type == ENTRY_TYPE_DISK) {
+        if (!dd_pair_disk_id(path, code)) {
+            path_free(path);
+            return NULL;
+        }
     /* A game seen before needs no look at its file: the list knows its code. */
-    const game_index_entry_t *known = game_index_find(path_get(path), size);
-    if (known && !game_index_is_homebrew(known->code)) {
+    } else if ((known = game_index_find(path_get(path), size)) && !game_index_is_homebrew(known->code)) {
         memcpy(code, known->code, 4);
     } else {
         /* Homebrew's art is found by its title, which only the file has. */
@@ -661,13 +688,8 @@ static void slot_tops_update (menu_t *menu) {
         if (!baked_art_owns(slot->art)) {
             continue;
         }
-        const cover_list_t *covers = cover_list_current(menu);
-        path_t *path = covers->path(menu, slot->index);
-        const game_index_entry_t *known = game_index_find(path_get(path), covers->list[slot->index].size);
-        path_free(path);
-        if (known) {
-            char code[5] = "";
-            memcpy(code, known->code, 4);
+        char code[5];
+        if (known_code(menu, slot->index, code)) {
             slot->top = baked_art_load(code, IMAGE_BOXART_TOP);
             return;     /* one a frame */
         }
@@ -739,13 +761,11 @@ static void edges_update (menu_t *menu, uint64_t now) {
             path_free(path);
             return;     /* one a frame */
         }
-        const game_index_entry_t *known = game_index_find(path_get(path), covers->list[center_index].size);
         path_free(path);
-        if (!known || game_index_is_homebrew(known->code)) {
+        char code[5];
+        if (!known_code(menu, center_index, code)) {
             return;     /* homebrew, found by title: no edges */
         }
-        char code[5] = "";
-        memcpy(code, known->code, 4);
 
         edges[i] = baked_art_load(code, edge_kinds[i]);
         if (!edges[i] && !baked && !edge_known_missing(code, i) && baked_art_card_ok(menu->storage_prefix, code)) {
@@ -1015,7 +1035,7 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
                 slot->art = NULL;
             }
             slot->card_pending = false;
-            if (slot->entry->type == ENTRY_TYPE_ROM || slot->entry->type == ENTRY_TYPE_EMULATOR) {    /* emulator games: retro.h */
+            if (slot->entry->type == ENTRY_TYPE_ROM || slot->entry->type == ENTRY_TYPE_DISK || slot->entry->type == ENTRY_TYPE_EMULATOR) {    /* emulator games: retro.h; disks by their ID */
                 if (side_cover && !memory_free_for(BAKED_SIDE_ART_MIN_FREE)) {
                     /* Not even room for a baked cover: leave it untried, so it
                        is tried again once memory has been freed. */

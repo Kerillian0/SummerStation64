@@ -44,6 +44,12 @@ const char *dd_pair_needs (const char id[4]);
 /** "With F-Zero X" for the selected cover if it is a paired disk, else NULL. */
 const char *dd_pair_with_text (menu_t *menu, const entry_t *disk);
 
+/**
+ * A disk's ID, for its pictures (the cover rows): remembered, else read
+ * from the disk file and remembered. False if the file couldn't be read.
+ */
+bool dd_pair_disk_id (path_t *path, char id[4]);
+
 /** After each Games frame: reads the selected disk's ID once it has rested. */
 void dd_pair_after_draw (menu_t *menu, const entry_t *selected);
 

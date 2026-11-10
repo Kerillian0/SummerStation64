@@ -306,6 +306,25 @@ void dd_pair_after_draw (menu_t *menu, const entry_t *selected) {
     debugf("dd pairs: read %s in %d ms: %.4s\n", selected->name, (int) (get_ticks_ms() - began), (err == DISK_OK) ? info.id : "----");
 }
 
+bool dd_pair_disk_id (path_t *path, char id[4]) {
+    const char *disk = from_top(path_get(path));
+    const char *known = known_id(disk);
+    if (!known) {
+        static disk_info_t info;
+        uint64_t began = get_ticks_ms();
+        disk_err_t err = disk_info_load(path, &info);
+        note_id(disk, (err == DISK_OK) ? info.id : "----");
+        text_known = false;
+        debugf("dd pairs: read %s for its cover in %d ms: %.4s\n", disk, (int) (get_ticks_ms() - began), (err == DISK_OK) ? info.id : "----");
+        known = known_id(disk);
+    }
+    if (!known || memcmp(known, "----", 4) == 0) {
+        return false;
+    }
+    memcpy(id, known, 4);
+    return true;
+}
+
 /* ---------- choosing by hand ---------- */
 
 #define ROWS_SHOWN      (9)
