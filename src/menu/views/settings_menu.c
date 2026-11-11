@@ -78,6 +78,12 @@ typedef struct {
     int count;
 } category_t;
 
+typedef struct {
+    const char *label;
+    const category_t *pages;
+    int count;
+} group_t;
+
 #define SWITCH(text, field, def, hook, about) \
     { .label = text, .help = about, .type = ITEM_SWITCH, .offset = offsetof(settings_t, field), .stock_default = def, .changed = hook }
 #define CHOICE(text, field, def, off_name, on_name, hook, about) \
@@ -219,75 +225,6 @@ static const char *default_folder (menu_t *menu) {
 
 /* ---------- the menu itself ---------- */
 
-static const item_t display_items[] = {
-    CHOICES("Theme", OPTION_THEME, THEME_CHOICE_COUNT, card_themes_choice_name, apply_theme,
-        "The menu's colors and background: a built-in theme, or one of yours from the SD card, each in its own folder in menu/themes (up to 32). From SD Card is the older menu/theme/theme.ini, or Midnight if there is none."),
-    ACTION("Edit Theme", open_theme_editor,
-        "Change the theme in use: its colors, background and pattern, seen on the whole menu as you go. Save it as a theme of your own in menu/themes, under a name you choose."),
-    ACTION("New Theme", new_theme,
-        "Make a theme from scratch: pick a look to start from (a built-in one or plain dark), then change it the same way as Edit Theme and save it under a name you choose."),
-    FEATURE("Cover Art", FEATURE_COVER_ART, "Show box art on the selected cover."),
-    CHOICES("Show Games As", OPTION_COVER_STYLE, COVER_STYLE_COUNT, carousel_art_style_name, NULL,
-        "Boxes shows each game's box art. Cartridges shows its cartridge instead, for games the box art pack has one for; the others keep their box."),
-    FEATURE("3D Box", FEATURE_BOX_3D, "Show the selected cover as a box with depth, turned slightly, with the top of the box from its box art where there is one."),
-    FEATURE("3D Side Covers", FEATURE_SIDE_BOXES, "Draw the previous and next covers as boxes too, turned toward the middle when Angled Side Covers is on. Needs 3D Box and Previous/Next Covers on."),
-    CHOICES("Box Hover", OPTION_BOX_HOVER, BOX_HOVER_COUNT, box_motion_hover_name, NULL,
-        "How the 3D Box moves while it waits: Float bobs it up and down, Sway turns it gently from side to side. Hold B and use the stick or D-Pad to turn it yourself."),
-    CHOICES("Selection Marker", OPTION_SELECTION, SELECTION_COUNT, games_ui_selection_name, NULL,
-        "How the selected cover is marked on the rows of covers: Corners puts a bracket at each corner, Ring a frame all round it, Off leaves it unmarked."),
-    FEATURE("Previous/Next Covers", FEATURE_SIDE_COVERS, "Show smaller covers either side of the selected one."),
-    FEATURE("See-through Side Covers", FEATURE_SEE_THROUGH_COVERS, "Let the background show through the previous and next covers. Off draws them solid."),
-    FEATURE("Scroll Long Names", FEATURE_NAME_SCROLL, "On the rows of covers, a name too long for the panel under them slides to its end and back after 2 seconds. Off cuts it short with ..."),
-    FEATURE("Scroll Descriptions", FEATURE_DESC_SCROLL, "On Game info, a long description drifts up slowly after 10 seconds; the D-Pad or stick scrolls it by hand. Off cuts it short with ..."),
-    SWITCH("Video Previews", video_previews_enabled, true, apply_video_previews, "On Game info, a short clip of the game plays in the cover's place after a moment, for games with a preview.h264 beside their box art on the SD card. Needs the Expansion Pak."),
-    FEATURE("Dump Check Marks", FEATURE_DUMP_MARKS, "A green check for a known good dump, an amber ? for a copy that differs from it, a red X for a bad dump. Needs menu/verified.txt from the Card Prep page."),
-    FEATURE("Angled Side Covers", FEATURE_ANGLED_COVERS, "Turn the previous and next covers away toward the sides, like boxes on a shelf. Needs Previous/Next Covers on."),
-    CHOICES("Animations", OPTION_ANIMATIONS, ANIMATIONS_COUNT, animations_name, NULL,
-        "Snappy keeps the menu quick and plain. Showy adds movement everywhere: covers, names and badges arrive in turn, the cover flies into Game info and back, highlights and tabs glide, pop-ups open and close, Settings rises in, and the player cards lift. Any button press finishes an animation at once."),
-    CHOICES("Assistant", OPTION_ASSISTANT, ASSISTANT_COUNT, assistant_often_name, NULL,
-        "A fairy that flies in now and then with a tip, a joke or a word about your games. Leave the menu alone for a minute and it stays to chat. Any button sends it away. Rarely, Now and Then or Chatty: how often it comes by itself. Off: never."),
-    CHOICES("Assistant Mood", OPTION_ASSISTANT_MOOD, ASSISTANT_MOOD_COUNT, assistant_mood_name, NULL,
-        "Eager is cheerful and keen to help. Snarky gives the same advice with an attitude."),
-    CHOICES("Assistant Character", OPTION_ASSISTANT_SKIN, ASSISTANT_SKIN_COUNT, assistant_skin_name, NULL,
-        "Which fairy the assistant is: Spark, the menu's own, or another one built into the menu. A fairy talks about its own games when you rest on them."),
-    ACTION("Reset Assistant Tips", reset_assistant,
-        "The assistant says each tip once, and skips tips about things you already use. This lets it say the ones it has said again."),
-    FEATURE("Cover Slide", FEATURE_CAROUSEL_ANIMATION, "Covers slide into place when you move left or right."),
-    FEATURE("Rounded Corners", FEATURE_ROUNDED_CORNERS, "Round off the corners of the tabs, the clock, the title panel, the badges and the band behind the button hints. Off draws them square."),
-    CHOICES("Tint Ring From Art", OPTION_RING_TINT, RING_TINT_COUNT, art_tint_name, NULL,
-        "Color the ring round the cover to match the cover. Game Info does it on a game's info screen; Everywhere also on the rows of covers. Off uses the theme's accent color."),
-    FEATURE("Favorite Heart", FEATURE_FAVORITE_HEART, "Mark a favorite game with a heart beside its name. Off shows the word Favorite under the name."),
-    FEATURE("Button Icons", FEATURE_BUTTON_ICONS, "Show the buttons in the hints along the bottom in their own shapes and colors. Off shows them as plain boxes."),
-    FEATURE("Review Scores", FEATURE_REVIEW_SCORES, "Show a game's review score out of 10 at the right of its name under the covers, and in a box on its info screen: green from 7.5, yellow from 5.0, red below. Also adds Review Score to Sort By. Hacks show none. The scores come from menu/reviewscores.txt on the SD card: none come with the menu. A game the menu hasn't looked at yet shows its score after a moment, and sorts with the unscored ones until the list is sorted again."),
-    FEATURE("Memory Badge", FEATURE_MEMORY_BADGE, "Show a small Expansion Pak or Jumper Pak under the clock, with the console's memory (8MB or 4MB)."),
-    FEATURE("Trim Black Edges", FEATURE_TRIM_EDGES, "Box art from the SD card loses the thin black frame many scans have, so the picture reaches the box's edges. Only near-black lines across the whole edge, a few pixels at most."),
-    FEATURE("Fill Box Edges", FEATURE_FILL_BOX_EDGES, "On a 3D box missing its top label or a side picture, show the edge picture it does have there too, turned to fit. Off leaves those faces plain."),
-    FEATURE("Controller Marks", FEATURE_CONTROLLER_MARKS, "With two or more controllers plugged in, show the four controller ports under the clock in place of the Memory Badge, lit for each one in use. C-up / C-down on the Games tab then also offer Party: the games for that many players."),
-    CHOICES("Accessory Badges", OPTION_PAK_BADGES, PAK_BADGES_COUNT, games_ui_pak_badges_name, NULL,
-        "Show which accessories a game uses (Controller Pak, Rumble Pak, Transfer Pak) under its name. Colored puts each in its own colored box, like Save found; Plain shows them in grey. Known for most games from the menu's built-in list."),
-    CHOICE("Video Output", force_progressive_scan, false, "480i", "240p", NULL,
-        "480i is sharper but can flicker. 240p is steady with softer text, and suits TVs that struggle with interlaced video. Restart the console to apply."),
-    SWITCH("PAL60 Mode", pal60_enabled, false, apply_pal60,
-        "PAL consoles only. The picture may go dark if your TV can't show it; to undo that, edit menu/config.ini on the SD card."),
-    ACTION("Remove Background", remove_background, "Remove the background picture set from the image viewer."),
-};
-
-static const item_t control_items[] = {
-    FEATURE("Quick Launch", FEATURE_QUICK_LAUNCH, "Tap A to start a game. Hold A to see its info instead."),
-    FEATURE("Hold A To Launch", FEATURE_HOLD_LAUNCH, "Tap A to see a game's info. Hold A to start it."),
-    FEATURE("Up/Down Also Scroll", FEATURE_UPDOWN_SCROLL, "Up and down move through the covers too. When this is off, up and down turn the game box over to show its back."),
-    SWITCH("Wrap File List", wrap_file_list_scrolling, false, NULL, "Going past the last item jumps back to the first. On the cover rows the last game then sits to the left of the first."),
-    CHOICES("Name Entry", OPTION_NAME_ENTRY, NAME_ENTRY_COUNT, name_keyboard_entry_name, NULL,
-        "How names are typed (collections, profiles, themes, renaming files). Keyboard is an on-screen keyboard: A types, B erases, R is Shift, C-down a space, START or OK keeps the name. Dial spells it round a circle with the stick."),
-};
-
-static const item_t sound_items[] = {
-    SWITCH("Sound Effects", soundfx_enabled, false, apply_soundfx, "Play sounds when moving around the menu."),
-    SWITCH("Background Music", bgm_enabled, false, apply_bgm, "Play music in the menu."),
-    SLIDER("Music Volume", OPTION_MUSIC_VOLUME, apply_volume, "How loud the menu's music plays. 5 is the usual level, 10 twice as loud. Left and right change it."),
-    SLIDER("Sound Volume", OPTION_SOUND_VOLUME, apply_volume, "How loud the button sounds and the intro tune play. 5 is the usual level, 10 twice as loud. Left and right change it."),
-};
-
 /* ---------- profiles ---------- */
 
 static int confirm_delete = -1;     /* the profile asked about, or -1 */
@@ -382,16 +319,6 @@ static void delete_profile (menu_t *menu) {
     confirm_delete = profiles_current();
 }
 
-static const item_t profile_items[] = {
-    ACTION_INFO("Playing As", next_profile, playing_info, "Who is playing. Each profile has its own game saves: a new profile starts every game fresh. A switches to the next profile."),
-    ACTION_INFO("New Profile", new_profile, new_profile_info, "Add a player (up to four), named with the letter dial. The new profile is switched to."),
-    ACTION("Rename Profile", rename_profile, "Give the profile that is playing a new name. Its saves stay where they are."),
-    ACTION_INFO("Profile Picture", choose_picture, picture_info, "The picture beside the player's name, in a ring of their color. A opens the pictures: those built into the menu, then any PNG in menu/avatars on the SD card. None shows the player's initial."),
-    ACTION_INFO("Profile Color", next_color, color_info, "The color of the ring round the player's picture, and of their initial when they have none. A picks the next one."),
-    CHOICES("Picture Shape", OPTION_AVATAR_SHAPE, AVATAR_SHAPE_COUNT, shape_name, shape_changed, "How every player's picture is cut: a circle or a rounded square."),
-    ACTION("Delete Profile", delete_profile, "Take the profile that is playing off the list. Its saves stay on the SD card (in each saves folder, under its name), so nothing is lost. The first profile can't be deleted."),
-};
-
 static char games_folders_text[16];
 
 static const char *memory_note_info (menu_t *menu) {
@@ -445,31 +372,195 @@ static void change_preferred_region (menu_t *menu) {
     resort_browser(menu);
 }
 
+static const item_t theme_items[] = {
+    CHOICES("Theme", OPTION_THEME, THEME_CHOICE_COUNT, card_themes_choice_name, apply_theme,
+        "The menu's colors and background: a built-in theme, or one of yours from the SD card, each in its own folder in menu/themes (up to 32). From SD Card is the older menu/theme/theme.ini, or Midnight if there is none."),
+    ACTION("Edit Theme", open_theme_editor,
+        "Change the theme in use: its colors, background and pattern, seen on the whole menu as you go. Save it as a theme of your own in menu/themes, under a name you choose."),
+    ACTION("New Theme", new_theme,
+        "Make a theme from scratch: pick a look to start from (a built-in one or plain dark), then change it the same way as Edit Theme and save it under a name you choose."),
+    CHOICES("Animations", OPTION_ANIMATIONS, ANIMATIONS_COUNT, animations_name, NULL,
+        "Snappy keeps the menu quick and plain. Showy adds movement everywhere: covers, names and badges arrive in turn, the cover flies into Game info and back, highlights and tabs glide, pop-ups open and close, Settings rises in, and the player cards lift. Any button press finishes an animation at once."),
+    FEATURE("Rounded Corners", FEATURE_ROUNDED_CORNERS, "Round off the corners of the tabs, the clock, the title panel, the badges and the band behind the button hints. Off draws them square."),
+    FEATURE("Button Icons", FEATURE_BUTTON_ICONS, "Show the buttons in the hints along the bottom in their own shapes and colors. Off shows them as plain boxes."),
+    CHOICES("Tint Ring From Art", OPTION_RING_TINT, RING_TINT_COUNT, art_tint_name, NULL,
+        "Color the ring round the cover to match the cover. Game Info does it on a game's info screen; Everywhere also on the rows of covers. Off uses the theme's accent color."),
+    ACTION("Remove Background", remove_background, "Remove the background picture set from the image viewer."),
+};
+
+static const item_t cover_items[] = {
+    FEATURE("Cover Art", FEATURE_COVER_ART, "Show box art on the selected cover."),
+    CHOICES("Show Games As", OPTION_COVER_STYLE, COVER_STYLE_COUNT, carousel_art_style_name, NULL,
+        "Boxes shows each game's box art. Cartridges shows its cartridge instead, for games the box art pack has one for; the others keep their box."),
+    FEATURE("Previous/Next Covers", FEATURE_SIDE_COVERS, "Show smaller covers either side of the selected one."),
+    FEATURE("See-through Side Covers", FEATURE_SEE_THROUGH_COVERS, "Let the background show through the previous and next covers. Off draws them solid."),
+    FEATURE("Angled Side Covers", FEATURE_ANGLED_COVERS, "Turn the previous and next covers away toward the sides, like boxes on a shelf. Needs Previous/Next Covers on."),
+    CHOICES("Selection Marker", OPTION_SELECTION, SELECTION_COUNT, games_ui_selection_name, NULL,
+        "How the selected cover is marked on the rows of covers: Corners puts a bracket at each corner, Ring a frame all round it, Off leaves it unmarked."),
+    FEATURE("Trim Black Edges", FEATURE_TRIM_EDGES, "Box art from the SD card loses the thin black frame many scans have, so the picture reaches the box's edges. Only near-black lines across the whole edge, a few pixels at most."),
+    FEATURE("Cover Slide", FEATURE_CAROUSEL_ANIMATION, "Covers slide into place when you move left or right."),
+};
+
+static const item_t box_items[] = {
+    FEATURE("3D Box", FEATURE_BOX_3D, "Show the selected cover as a box with depth, turned slightly, with the top of the box from its box art where there is one."),
+    FEATURE("3D Side Covers", FEATURE_SIDE_BOXES, "Draw the previous and next covers as boxes too, turned toward the middle when Angled Side Covers is on. Needs 3D Box and Previous/Next Covers on."),
+    CHOICES("Box Hover", OPTION_BOX_HOVER, BOX_HOVER_COUNT, box_motion_hover_name, NULL,
+        "How the 3D Box moves while it waits: Float bobs it up and down, Sway turns it gently from side to side. Hold B and use the stick or D-Pad to turn it yourself."),
+    FEATURE("Fill Box Edges", FEATURE_FILL_BOX_EDGES, "On a 3D box missing its top label or a side picture, show the edge picture it does have there too, turned to fit. Off leaves those faces plain."),
+};
+
+static const item_t badge_items[] = {
+    FEATURE("Favorite Heart", FEATURE_FAVORITE_HEART, "Mark a favorite game with a heart beside its name. Off shows the word Favorite under the name."),
+    FEATURE("Memory Badge", FEATURE_MEMORY_BADGE, "Show a small Expansion Pak or Jumper Pak under the clock, with the console's memory (8MB or 4MB)."),
+    FEATURE("Controller Marks", FEATURE_CONTROLLER_MARKS, "With two or more controllers plugged in, show the four controller ports under the clock in place of the Memory Badge, lit for each one in use. C-up / C-down on the Games tab then also offer Party: the games for that many players."),
+    CHOICES("Accessory Badges", OPTION_PAK_BADGES, PAK_BADGES_COUNT, games_ui_pak_badges_name, NULL,
+        "Show which accessories a game uses (Controller Pak, Rumble Pak, Transfer Pak) under its name. Colored puts each in its own colored box, like Save found; Plain shows them in grey. Known for most games from the menu's built-in list."),
+    FEATURE("Dump Check Marks", FEATURE_DUMP_MARKS, "A green check for a known good dump, an amber ? for a copy that differs from it, a red X for a bad dump. Needs menu/verified.txt from the Card Prep page."),
+    FEATURE("Review Scores", FEATURE_REVIEW_SCORES, "Show a game's review score out of 10 at the right of its name under the covers, and in a box on its info screen: green from 7.5, yellow from 5.0, red below. Also adds Review Score to Sort By. Hacks show none. The scores come from menu/reviewscores.txt on the SD card: none come with the menu. A game the menu hasn't looked at yet shows its score after a moment, and sorts with the unscored ones until the list is sorted again."),
+    FEATURE("Scroll Long Names", FEATURE_NAME_SCROLL, "On the rows of covers, a name too long for the panel under them slides to its end and back after 2 seconds. Off cuts it short with ..."),
+};
+
+static const item_t game_info_items[] = {
+    FEATURE("Scroll Descriptions", FEATURE_DESC_SCROLL, "On Game info, a long description drifts up slowly after 10 seconds; the D-Pad or stick scrolls it by hand. Off cuts it short with ..."),
+    SWITCH("Video Previews", video_previews_enabled, true, apply_video_previews, "On Game info, a short clip of the game plays in the cover's place after a moment, for games with a preview.h264 beside their box art on the SD card. Needs the Expansion Pak."),
+    FEATURE("Advanced Game Options", FEATURE_ADVANCED_OPTIONS, "Game info's Options (R) also offers Set CIC Type, Set Save Type, Set TV Type, the Datel Code Editor and Clear RDRAM on boot. For games that need them; most never do. Choices already made stay in use when this is off."),
+};
+
+static const item_t assistant_items[] = {
+    CHOICES("Assistant", OPTION_ASSISTANT, ASSISTANT_COUNT, assistant_often_name, NULL,
+        "A fairy that flies in now and then with a tip, a joke or a word about your games. Leave the menu alone for a minute and it stays to chat. Any button sends it away. Rarely, Now and Then or Chatty: how often it comes by itself. Off: never."),
+    CHOICES("Assistant Mood", OPTION_ASSISTANT_MOOD, ASSISTANT_MOOD_COUNT, assistant_mood_name, NULL,
+        "Eager is cheerful and keen to help. Snarky gives the same advice with an attitude."),
+    CHOICES("Assistant Character", OPTION_ASSISTANT_SKIN, ASSISTANT_SKIN_COUNT, assistant_skin_name, NULL,
+        "Which fairy the assistant is: Spark, the menu's own, or another one built into the menu. A fairy talks about its own games when you rest on them."),
+    ACTION("Reset Assistant Tips", reset_assistant,
+        "The assistant says each tip once, and skips tips about things you already use. This lets it say the ones it has said again."),
+};
+
+static const item_t startup_items[] = {
+    CHOICES("Intro", OPTION_INTRO, INTRO_CHOICE_COUNT, intro_choice_name, NULL,
+        "The short intro with its tune. On shows it when the console is switched on. Both shows it after RESET as well. Any button skips it. The tune follows the Sound Effects setting."),
+    CHOICES("Intro Logo", OPTION_INTRO_LOGO, INTRO_LOGO_COUNT, intro_logo_name, NULL,
+        "The look of the spinning logo in the intro. Vaporwave has patterned sides. Classic is the console's own green, blue, red and yellow. Off leaves it out."),
+    CHOICES("Intro Title", OPTION_INTRO_TITLE, INTRO_TITLE_COUNT, intro_title_name, NULL,
+        "The menu's name under the logo in the intro. Picture is the drawn title, Text the name in plain letters (it uses no extra memory), Off leaves it out. With the logo or the title off, the other sits in the middle."),
+    CHOICES("Fade In", OPTION_FADE, FADE_COUNT, intro_fade_name, NULL,
+        "When the menu starts, the picture comes up from black and the background music rises, over one or two seconds. Off shows the menu at once."),
+};
+
 static const item_t library_items[] = {
-    INFO("Game Folders", games_folders_info, "Where the Games tab finds games: the start folder, plus folders added from the Folders tab (Z, \"Add this folder to Games\")."),
-    ACTION("Forget Added Folders", forget_games_folders, "The Games tab goes back to showing the start folder only, and no folder stays marked as hacks. No files are touched."),
+    CHOICES("Sort By", OPTION_SORT_ORDER, SORT_COUNT, sort_order_name, resort_browser,
+        "Type: folders, then each kind of file. Name: by name. Recently Played: games you played come first. Release Date, Developer: oldest first, or by who made the game; the menu looks these up while the Games tab is left alone. Recently Added: the games the menu saw most recently first. Review Score (with Review Scores on, in Display): the highest scored first, then the games with no score."),
     CHOICES("Game Versions", OPTION_GAME_VERSIONS, GAME_VERSIONS_COUNT, games_filter_versions_name, resort_browser,
         "Separate shows every file as its own cover. Grouped shows one cover per game: its hacks and other copies go under it, and A lists them to choose from. The Hacks filter still shows every hack."),
     CHOICES("Region Copies", OPTION_REGION_COPIES, REGION_COPIES_COUNT, region_pick_copies_name, resort_browser,
         "One Cover shows a game kept in several regions once under All, and A lists the copies to choose from. Start another region's copy three times in a row and it becomes that game's cover. The region filters still show each copy."),
-    CHOICES("Homebrew on Games", OPTION_HOMEBREW_ON_GAMES, HOMEBREW_ON_GAMES_COUNT, games_filter_homebrew_name, resort_browser,
-        "Hide keeps homebrew off the Games tab and its filters, on the Homebrew tab only (add it in Settings > Tabs). Folders, Recent, Favorites and your own collections still show it."),
-    CHOICES("Hacks on Games", OPTION_HACKS_ON_GAMES, HACKS_ON_GAMES_COUNT, games_filter_homebrew_name, resort_browser,
-        "Hide keeps ROM hacks off the Games tab, on the Hacks tab (add it in Settings > Tabs) and the Hacks step only. Folders, Recent, Favorites and your own collections still show them."),
     CHOICES("Preferred Region", OPTION_PREFERRED_REGION, PREFERRED_COUNT, region_pick_preferred_name, change_preferred_region,
         "Whose copy gives a game's cover with Region Copies on One Cover. Changing it also forgets each game's own choice."),
-    CHOICES("Sort By", OPTION_SORT_ORDER, SORT_COUNT, sort_order_name, resort_browser,
-        "Type: folders, then each kind of file. Name: by name. Recently Played: games you played come first. Release Date, Developer: oldest first, or by who made the game; the menu looks these up while the Games tab is left alone. Recently Added: the games the menu saw most recently first. Review Score (with Review Scores on, in Display): the highest scored first, then the games with no score."),
+    CHOICES("Homebrew on Games", OPTION_HOMEBREW_ON_GAMES, HOMEBREW_ON_GAMES_COUNT, games_filter_homebrew_name, resort_browser,
+        "Hide keeps homebrew off the Games tab and its filters, on the Homebrew tab only (add it in Settings > Games > Tabs). Folders, Recent, Favorites and your own collections still show it."),
+    CHOICES("Hacks on Games", OPTION_HACKS_ON_GAMES, HACKS_ON_GAMES_COUNT, games_filter_homebrew_name, resort_browser,
+        "Hide keeps ROM hacks off the Games tab, on the Hacks tab (add it in Settings > Games > Tabs) and the Hacks step only. Folders, Recent, Favorites and your own collections still show them."),
+};
+
+static const item_t name_items[] = {
     FEATURE("Hide Game Extensions", FEATURE_HIDE_EXTENSIONS, "Show games without the ending of the file name, such as .z64, and without the [!] good-dump marks and revision numbers, such as (V1.1). Other files keep theirs."),
     FEATURE("Tidy Game Titles", FEATURE_TIDY_TITLES, "Show names like \"Legend of Zelda, The\" as \"The Legend of Zelda\", and underscores as spaces. The files are not renamed."),
     FEATURE("Hide Region Tags", FEATURE_HIDE_TAGS, "Hide the region and version tags in brackets, such as (U) (V1.2) [!]. Two versions of one game then look the same in the list. A game's list of versions keeps the region tags."),
-    FEATURE("Back Up Saves", FEATURE_SAVE_BACKUPS, "When you start a game, keep its save from before, by date. Up to five per game, never the same one twice. A game's Options has \"Restore save\" to go back to one."),
-    FEATURE("Count Plays", FEATURE_PLAY_STATS, "Keep count of how often each game is started and when it was last played, shown on its info screen."),
-    FEATURE("Remember Position", FEATURE_REMEMBER_SELECTION, "Going back into a folder returns to the game you had selected there, also after playing."),
+};
+
+static const item_t folder_items[] = {
+    INFO("Game Folders", games_folders_info, "Where the Games tab finds games: the start folder, plus folders added from the Folders tab (Z, \"Add this folder to Games\")."),
+    INFO("Start Folder", default_folder, "The folder the menu opens in. Change it from Options on the Files screen."),
+    ACTION("Forget Added Folders", forget_games_folders, "The Games tab goes back to showing the start folder only, and no folder stays marked as hacks. No files are touched."),
     INFO("Hidden Games", hidden_info, "Games hidden from the cover tabs with Z, \"Hide this game\". They stay on the card and in the Folders tab, where Z, \"Unhide this game\", brings one back."),
     ACTION("Unhide All Games", show_hidden_games, "Bring every hidden game back to the cover tabs. No files are touched."),
     ACTION("Find Missing Metadata", make_art_report, "Check every game on the Games tab for its cover, the back of its box, top label, cartridge picture, description, release date and developer. Games lacking any are listed in menu/missingart.txt on the SD card, for the Companion's Missing Metadata tab. Stay on this page until it is done."),
     INFO("Missing Metadata", art_report_info, "How many games lack something, from the last check. The Companion's Missing Metadata tab shows which, and fills them in."),
+};
+
+static const item_t play_items[] = {
+    FEATURE("Back Up Saves", FEATURE_SAVE_BACKUPS, "When you start a game, keep its save from before, by date. Up to five per game, never the same one twice. A game's Options has \"Restore save\" to go back to one."),
+    FEATURE("Count Plays", FEATURE_PLAY_STATS, "Keep count of how often each game is started and when it was last played, shown on its info screen."),
+    FEATURE("Remember Position", FEATURE_REMEMBER_SELECTION, "Going back into a folder returns to the game you had selected there, also after playing."),
+};
+
+static const item_t video_items[] = {
+    CHOICE("Video Output", force_progressive_scan, false, "480i", "240p", NULL,
+        "480i is sharper but can flicker. 240p is steady with softer text, and suits TVs that struggle with interlaced video. Restart the console to apply."),
+    SWITCH("PAL60 Mode", pal60_enabled, false, apply_pal60,
+        "PAL consoles only. The picture may go dark if your TV can't show it; to undo that, edit menu/config.ini on the SD card."),
+    CHOICES("Character Set", OPTION_FONT, FONT_COUNT, font_choice_name, NULL,
+        "Latin Only frees about 700 KB of memory but can't show Japanese names. Auto uses Latin Only without the Expansion Pak, Full with it. Restart the console to apply."),
+};
+
+static const item_t screenshot_items[] = {
+    FEATURE("Screenshots", FEATURE_SCREENSHOTS, "Hold the Screenshot Button for a second to save the screen as a picture in menu/screenshots on the SD card. The menu pauses a moment while it saves."),
+    CHOICES("Screenshot Button", OPTION_SHOT_BUTTON, SCREENSHOT_BUTTON_COUNT, screenshot_button_name, NULL,
+        "Hold START: a tap of START then works when it is let go. Hold L + R: for controllers whose START switches them off, such as the 8BitDo mod kit; L and R then work when let go."),
+    CHOICES("Screenshot Size", OPTION_SHOT_SIZE, 2, screenshot_size_name, NULL,
+        "Full keeps the menu's whole 640 x 480 picture. Half is 320 x 240, about what a 240p TV shows, with much smaller files."),
+    CHOICES("Screenshot Dither", OPTION_SHOT_DITHER, 2, screenshot_dither_name, NULL,
+        "The console draws in 16-bit color with a fine dot pattern that the TV hides. Smooth evens it out in the picture; Exact keeps every pixel as drawn (larger files)."),
+};
+
+static const item_t clip_items[] = {
+    ACTION_INFO("Record Clip", clip_arm, clip_status_info, "Press A, then leave Settings: after three ticks the menu records a clip of what you do, frame by frame, into menu/clips on the SD card. The console runs slowly while it saves; the clip plays at full speed. The Companion turns it into a GIF. A again before leaving: never mind."),
+    CHOICES("Clip Length", OPTION_CLIP_LENGTH, CLIP_LENGTH_COUNT, clip_length_name, NULL,
+        "How long a clip lasts. Recording takes much longer than this: each frame is saved to the card as it is drawn."),
+    CHOICES("Clip Size", OPTION_CLIP_SIZE, 2, screenshot_size_name, NULL,
+        "Full keeps the menu's whole 640 x 480 picture, Half is 320 x 240. Half records about four times faster and makes a smaller GIF."),
+    CHOICES("Clip Frame Rate", OPTION_CLIP_FPS, CLIP_FPS_COUNT, clip_fps_name, NULL,
+        "30 is every frame the menu draws, the smoothest. 15 halves the frames to save and the size of the GIF."),
+    CHOICES("Clip Dither", OPTION_CLIP_DITHER, 2, screenshot_dither_name, NULL,
+        "Smooth evens out the console's fine dot pattern, which also makes the GIF smaller; Exact keeps every pixel as drawn."),
+};
+
+static const item_t tool_items[] = {
+    ACTION("Controller Pak Manager", open_controller_paks, "The notes (game saves) on a Controller Pak: back them up to the SD card, restore one or a whole dump, delete one, or format the Pak."),
+    ACTION("Clock", open_clock, "Set the date and time of the cart's clock, used for the clock on the tab bar, dated save backups and time played."),
+    INFO("Memory", memory_note_info, "Free memory now. When memory runs short the menu leaves extras out instead of stopping; any left out since power-on are listed here."),
+    CHOICES("Performance Overlay", OPTION_PERF_OVERLAY, 2, debug_stats_overlay_name, NULL,
+        "For testing: a strip at the bottom of the screen shows the frame time (33.4 ms is on time), how long the graphics chip took, and free memory."),
+    FEATURE("Remember Settings Page", FEATURE_REMEMBER_SETTINGS, "Reopen Settings on the page and row you last used, until the console is switched off."),
+    ACTION("Reset Settings", ask_reset, "Put the stock settings back to how they were on a fresh install."),
+};
+
+static const item_t control_items[] = {
+    FEATURE("Quick Launch", FEATURE_QUICK_LAUNCH, "Tap A to start a game. Hold A to see its info instead."),
+    FEATURE("Hold A To Launch", FEATURE_HOLD_LAUNCH, "Tap A to see a game's info. Hold A to start it."),
+    FEATURE("Up/Down Also Scroll", FEATURE_UPDOWN_SCROLL, "Up and down move through the covers too. When this is off, up and down turn the game box over to show its back."),
+    SWITCH("Wrap File List", wrap_file_list_scrolling, false, NULL, "Going past the last item jumps back to the first. On the cover rows the last game then sits to the left of the first."),
+    CHOICES("Name Entry", OPTION_NAME_ENTRY, NAME_ENTRY_COUNT, name_keyboard_entry_name, NULL,
+        "How names are typed (collections, profiles, themes, renaming files). Keyboard is an on-screen keyboard: A types, B erases, R is Shift, C-down a space, START or OK keeps the name. Dial spells it round a circle with the stick."),
+};
+
+static const item_t sound_items[] = {
+    SWITCH("Sound Effects", soundfx_enabled, false, apply_soundfx, "Play sounds when moving around the menu."),
+    SWITCH("Background Music", bgm_enabled, false, apply_bgm, "Play music in the menu."),
+    SLIDER("Music Volume", OPTION_MUSIC_VOLUME, apply_volume, "How loud the menu's music plays. 5 is the usual level, 10 twice as loud. Left and right change it."),
+    SLIDER("Sound Volume", OPTION_SOUND_VOLUME, apply_volume, "How loud the button sounds and the intro tune play. 5 is the usual level, 10 twice as loud. Left and right change it."),
+};
+
+static const item_t profile_items[] = {
+    ACTION_INFO("Playing As", next_profile, playing_info, "Who is playing. Each profile has its own game saves: a new profile starts every game fresh. A switches to the next profile."),
+    ACTION_INFO("New Profile", new_profile, new_profile_info, "Add a player (up to four), named with the letter dial. The new profile is switched to."),
+    ACTION("Rename Profile", rename_profile, "Give the profile that is playing a new name. Its saves stay where they are."),
+    ACTION_INFO("Profile Picture", choose_picture, picture_info, "The picture beside the player's name, in a ring of their color. A opens the pictures: those built into the menu, then any PNG in menu/avatars on the SD card. None shows the player's initial."),
+    ACTION_INFO("Profile Color", next_color, color_info, "The color of the ring round the player's picture, and of their initial when they have none. A picks the next one."),
+    CHOICES("Picture Shape", OPTION_AVATAR_SHAPE, AVATAR_SHAPE_COUNT, shape_name, shape_changed, "How every player's picture is cut: a circle or a rounded square."),
+    ACTION("Delete Profile", delete_profile, "Take the profile that is playing off the list. Its saves stay on the SD card (in each saves folder, under its name), so nothing is lost. The first profile can't be deleted."),
+};
+
+static const item_t tab_items[] = {
+    CHOICES("First Tab", OPTION_TAB1, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
+        "What the first place on the tab bar holds. The menu opens on this tab. L and R step through the tabs."),
+    CHOICES("Second Tab", OPTION_TAB2, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
+        "What the second place on the tab bar holds. None leaves it out."),
+    CHOICES("Third Tab", OPTION_TAB3, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
+        "What the third place on the tab bar holds. None leaves it out."),
+    CHOICES("Fourth Tab", OPTION_TAB4, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
+        "What the fourth place on the tab bar holds. Choose Recent here to add the games you played last, Homebrew for homebrew games, Collections for series and multiplayer games, Retro for NES, SNES and Game Boy games, Hacks for ROM hacks, or any one collection (after Hacks) to give it a tab of its own."),
 };
 
 static const item_t file_items[] = {
@@ -485,78 +576,55 @@ static const item_t file_items[] = {
 #endif
 };
 
-static const item_t tab_items[] = {
-    CHOICES("First Tab", OPTION_TAB1, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
-        "What the first place on the tab bar holds. The menu opens on this tab. L and R step through the tabs."),
-    CHOICES("Second Tab", OPTION_TAB2, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
-        "What the second place on the tab bar holds. None leaves it out."),
-    CHOICES("Third Tab", OPTION_TAB3, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
-        "What the third place on the tab bar holds. None leaves it out."),
-    CHOICES("Fourth Tab", OPTION_TAB4, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
-        "What the fourth place on the tab bar holds. Choose Recent here to add the games you played last, Homebrew for homebrew games, Collections for series and multiplayer games, Retro for NES, SNES and Game Boy games, Hacks for ROM hacks, or any one collection (after Hacks) to give it a tab of its own."),
-};
-
-static const item_t system_items[] = {
-    CHOICES("Character Set", OPTION_FONT, FONT_COUNT, font_choice_name, NULL,
-        "Latin Only frees about 700 KB of memory but can't show Japanese names. Auto uses Latin Only without the Expansion Pak, Full with it. Restart the console to apply."),
-    INFO("Memory", memory_note_info, "Free memory now. When memory runs short the menu leaves extras out instead of stopping; any left out since power-on are listed here."),
-    INFO("Start Folder", default_folder, "The folder the menu opens in. Change it from Options on the Files screen."),
-    CHOICES("Intro", OPTION_INTRO, INTRO_CHOICE_COUNT, intro_choice_name, NULL,
-        "The short intro with its tune. On shows it when the console is switched on. Both shows it after RESET as well. Any button skips it. The tune follows the Sound Effects setting."),
-    CHOICES("Intro Logo", OPTION_INTRO_LOGO, INTRO_LOGO_COUNT, intro_logo_name, NULL,
-        "The look of the spinning logo in the intro. Vaporwave has patterned sides. Classic is the console's own green, blue, red and yellow. Off leaves it out."),
-    CHOICES("Intro Title", OPTION_INTRO_TITLE, INTRO_TITLE_COUNT, intro_title_name, NULL,
-        "The menu's name under the logo in the intro. Picture is the drawn title, Text the name in plain letters (it uses no extra memory), Off leaves it out. With the logo or the title off, the other sits in the middle."),
-    CHOICES("Fade In", OPTION_FADE, FADE_COUNT, intro_fade_name, NULL,
-        "When the menu starts, the picture comes up from black and the background music rises, over one or two seconds. Off shows the menu at once."),
-    CHOICES("Performance Overlay", OPTION_PERF_OVERLAY, 2, debug_stats_overlay_name, NULL,
-        "For testing: a strip at the bottom of the screen shows the frame time (33.4 ms is on time), how long the graphics chip took, and free memory."),
-    FEATURE("Screenshots", FEATURE_SCREENSHOTS, "Hold the Screenshot Button for a second to save the screen as a picture in menu/screenshots on the SD card. The menu pauses a moment while it saves."),
-    CHOICES("Screenshot Button", OPTION_SHOT_BUTTON, SCREENSHOT_BUTTON_COUNT, screenshot_button_name, NULL,
-        "Hold START: a tap of START then works when it is let go. Hold L + R: for controllers whose START switches them off, such as the 8BitDo mod kit; L and R then work when let go."),
-    CHOICES("Screenshot Size", OPTION_SHOT_SIZE, 2, screenshot_size_name, NULL,
-        "Full keeps the menu's whole 640 x 480 picture. Half is 320 x 240, about what a 240p TV shows, with much smaller files."),
-    CHOICES("Screenshot Dither", OPTION_SHOT_DITHER, 2, screenshot_dither_name, NULL,
-        "The console draws in 16-bit color with a fine dot pattern that the TV hides. Smooth evens it out in the picture; Exact keeps every pixel as drawn (larger files)."),
-    ACTION_INFO("Record Clip", clip_arm, clip_status_info, "Press A, then leave Settings: after three ticks the menu records a clip of what you do, frame by frame, into menu/clips on the SD card. The console runs slowly while it saves; the clip plays at full speed. The Companion turns it into a GIF. A again before leaving: never mind."),
-    CHOICES("Clip Length", OPTION_CLIP_LENGTH, CLIP_LENGTH_COUNT, clip_length_name, NULL,
-        "How long a clip lasts. Recording takes much longer than this: each frame is saved to the card as it is drawn."),
-    CHOICES("Clip Size", OPTION_CLIP_SIZE, 2, screenshot_size_name, NULL,
-        "Full keeps the menu's whole 640 x 480 picture, Half is 320 x 240. Half records about four times faster and makes a smaller GIF."),
-    CHOICES("Clip Frame Rate", OPTION_CLIP_FPS, CLIP_FPS_COUNT, clip_fps_name, NULL,
-        "30 is every frame the menu draws, the smoothest. 15 halves the frames to save and the size of the GIF."),
-    CHOICES("Clip Dither", OPTION_CLIP_DITHER, 2, screenshot_dither_name, NULL,
-        "Smooth evens out the console's fine dot pattern, which also makes the GIF smaller; Exact keeps every pixel as drawn."),
-    ACTION("Controller Pak Manager", open_controller_paks, "The notes (game saves) on a Controller Pak: back them up to the SD card, restore one or a whole dump, delete one, or format the Pak."),
-    ACTION("Clock", open_clock, "Set the date and time of the cart's clock, used for the clock on the tab bar, dated save backups and time played."),
-    FEATURE("Advanced Game Options", FEATURE_ADVANCED_OPTIONS, "Game info's Options (R) also offers Set CIC Type, Set Save Type, Set TV Type, the Datel Code Editor and Clear RDRAM on boot. For games that need them; most never do. Choices already made stay in use when this is off."),
-    FEATURE("Remember Settings Page", FEATURE_REMEMBER_SETTINGS, "Reopen Settings on the page and row you last used, until the console is switched off."),
-    ACTION("Reset Settings", ask_reset, "Put the stock settings back to how they were on a fresh install."),
-};
-
 static const item_t information_items[] = {
     ACTION("Menu Information", open_credits, "The menu's version, the people and projects it is built on, and the music and sound credits."),
     ACTION("Flashcart Information", open_flashcart_info, "The SummerCart64's firmware version and what it supports."),
     ACTION("N64 Information", open_system_info, "The console: Expansion Pak or not, region, the controllers plugged in and whether a 64DD drive is attached."),
 };
 
-static const category_t categories[] = {
-    { "Display", display_items, COUNT(display_items) },
+static const category_t look_pages[] = {
+    { "Theme", theme_items, COUNT(theme_items) },
+    { "Covers", cover_items, COUNT(cover_items) },
+    { "3D Boxes", box_items, COUNT(box_items) },
+    { "Badges", badge_items, COUNT(badge_items) },
+    { "Game Info", game_info_items, COUNT(game_info_items) },
+    { "Assistant", assistant_items, COUNT(assistant_items) },
+    { "Start-up", startup_items, COUNT(startup_items) },
+};
+
+static const category_t games_pages[] = {
+    { "Library", library_items, COUNT(library_items) },
+    { "Game Names", name_items, COUNT(name_items) },
+    { "Game Folders", folder_items, COUNT(folder_items) },
+    { "Saves & Play", play_items, COUNT(play_items) },
+    { "Tabs", tab_items, COUNT(tab_items) },
+    { "Profiles", profile_items, COUNT(profile_items) },
+    { "Files", file_items, COUNT(file_items) },
+};
+
+static const category_t console_pages[] = {
     { "Controls", control_items, COUNT(control_items) },
     { "Sound", sound_items, COUNT(sound_items) },
-    { "Profiles", profile_items, COUNT(profile_items) },
-    { "Tabs", tab_items, COUNT(tab_items) },
-    { "Library", library_items, COUNT(library_items) },
-    { "Files", file_items, COUNT(file_items) },
-    { "System", system_items, COUNT(system_items) },
-    { "Information", information_items, COUNT(information_items) },
+    { "TV & Video", video_items, COUNT(video_items) },
+    { "Screenshots", screenshot_items, COUNT(screenshot_items) },
+    { "Clips", clip_items, COUNT(clip_items) },
+    { "Tools", tool_items, COUNT(tool_items) },
+    { "About", information_items, COUNT(information_items) },
+};
+
+/* The headings along the top, switched with L and R; each holds its pages. */
+static const group_t groups[] = {
+    { "Look", look_pages, COUNT(look_pages) },
+    { "Games", games_pages, COUNT(games_pages) },
+    { "Console", console_pages, COUNT(console_pages) },
 };
 
 /* ---------- state ---------- */
 
-static int category = 0;
+static int group = 0;           /* the heading along the top: Look, Games, Console */
+static int category = 0;        /* the page within that heading */
 static int item = 0;
-static bool in_items = false;   /* false: choosing a category, true: inside one */
+static bool in_items = false;   /* false: choosing a page, true: inside one */
 static int first_row = 0;       /* first setting shown, when a category has more than fit */
 
 static bool *switch_value (menu_t *menu, const item_t *it) {
@@ -770,14 +838,25 @@ static void process (menu_t *menu) {
         return;
     }
 
-    const category_t *cat = &categories[category];
+    /* L and R step through the headings, going round, back to their first page. */
+    joypad_buttons_t pressed = screenshot_pressed();
+    if (pressed.l || pressed.r) {
+        group = (group + (pressed.r ? 1 : COUNT(groups) - 1)) % COUNT(groups);
+        category = 0;
+        item = 0;
+        in_items = false;
+        sound_play_effect(SFX_CURSOR);
+        return;
+    }
+
+    const category_t *cat = &groups[group].pages[category];
 
     if (!in_items) {
         if (menu->actions.go_up && category > 0) {
             category--;
             item = 0;
             sound_play_effect(SFX_CURSOR);
-        } else if (menu->actions.go_down && category < COUNT(categories) - 1) {
+        } else if (menu->actions.go_down && category < groups[group].count - 1) {
             category++;
             item = 0;
             sound_play_effect(SFX_CURSOR);
@@ -872,6 +951,28 @@ static void draw_text (int x, int y, int width, rdpq_align_t align, menu_font_st
         .wrap = WRAP_ELLIPSES,
         .style_id = style,
     }, FNT_DEFAULT, x + ROW_PADDING, y, "%s", text);
+}
+
+#define GROUP_TAB_WIDTH (100)
+#define GROUP_TAB_GAP   (6)
+#define GROUP_TAB_Y     (TITLE_Y - 2)
+
+/* The headings as tabs, like the tab bar on the cover rows: the one in use
+   an accent block with white letters (Showy: the block glides). */
+static void draw_group_tabs (void) {
+    const theme_t *t = theme_get();
+    for (int i = 0; i < COUNT(groups); i++) {
+        int x = LEFT_X + i * (GROUP_TAB_WIDTH + GROUP_TAB_GAP);
+        games_ui_round_fill(x, GROUP_TAB_Y, x + GROUP_TAB_WIDTH, GROUP_TAB_Y + ROW_HEIGHT, t->tab_inactive);
+    }
+    static animations_glide_t block_glide;
+    int block_x = animations_glide(&block_glide, LEFT_X + group * (GROUP_TAB_WIDTH + GROUP_TAB_GAP));
+    games_ui_round_fill(block_x, GROUP_TAB_Y, block_x + GROUP_TAB_WIDTH, GROUP_TAB_Y + ROW_HEIGHT, t->accent);
+    for (int i = 0; i < COUNT(groups); i++) {
+        int x = LEFT_X + i * (GROUP_TAB_WIDTH + GROUP_TAB_GAP);
+        rdpq_text_printf(&(rdpq_textparms_t) { .width = GROUP_TAB_WIDTH, .height = ROW_HEIGHT, .align = ALIGN_CENTER,
+            .valign = VALIGN_CENTER, .style_id = (i == group) ? STL_WHITE : STL_GRAY }, FNT_DEFAULT, x, GROUP_TAB_Y, "%s", groups[i].label);
+    }
 }
 
 static const char *on_off (bool on) {
@@ -1020,10 +1121,10 @@ static void draw (menu_t *menu, surface_t *d) {
         return;
     }
 
-    const category_t *cat = &categories[category];
+    const category_t *cat = &groups[group].pages[category];
 
-    draw_text(LEFT_X, TITLE_Y, LEFT_WIDTH, ALIGN_LEFT, STL_GRAY, "SETTINGS");
-    draw_text(ITEMS_X, TITLE_Y, ITEMS_WIDTH, ALIGN_LEFT, STL_GRAY, cat->label);
+    draw_group_tabs();
+    draw_text(ITEMS_X, TITLE_Y, ITEMS_WIDTH, ALIGN_RIGHT, STL_GRAY, cat->label);
 
     // Keep the selected setting inside the rows that fit above the description.
     if (!in_items || first_row > item) {
@@ -1051,9 +1152,9 @@ static void draw (menu_t *menu, surface_t *d) {
 
     static animations_glide_t category_glide, item_glide;
     draw_selection(LEFT_X, animations_glide(&category_glide, ROWS_Y + (category * ROW_HEIGHT)) + rise, LEFT_WIDTH, !in_items);   /* Showy: glides */
-    for (int i = 0; i < COUNT(categories); i++) {
+    for (int i = 0; i < groups[group].count; i++) {
         int y = ROWS_Y + (i * ROW_HEIGHT) + rise;
-        draw_text(LEFT_X, y, LEFT_WIDTH, ALIGN_LEFT, STL_DEFAULT, categories[i].label);
+        draw_text(LEFT_X, y, LEFT_WIDTH, ALIGN_LEFT, STL_DEFAULT, groups[group].pages[i].label);
     }
 
     // A page with more rows than fit gets a bar showing how far down you are.
@@ -1070,12 +1171,13 @@ static void draw (menu_t *menu, surface_t *d) {
     static int shown_category = -1;
     static uint64_t category_since = 0;
     static int category_dir = 1;
-    if (category != shown_category) {
+    int page_key = (group * 32) + category;     /* pages are numbered heading by heading */
+    if (page_key != shown_category) {
         if (shown_category >= 0) {
-            category_dir = (category > shown_category) ? 1 : -1;
+            category_dir = (page_key > shown_category) ? 1 : -1;
             category_since = get_ticks_ms();
         }
-        shown_category = category;
+        shown_category = page_key;
     }
     float page_t = animations_progress(category_since, PAGE_SLIDE_MS);
     int page_shift = (page_t < 1.0f) ? ((int) ((1.0f - animations_ease_out(page_t)) * PAGE_SLIDE_PX) & ~1) * category_dir : 0;
@@ -1114,6 +1216,8 @@ static void draw (menu_t *menu, surface_t *d) {
             "B: Back"
         );
     }
+    ui_components_actions_bar_text_draw(STL_DEFAULT, ALIGN_RIGHT, VALIGN_TOP, "L / R: %s, %s, %s\n",
+                                        groups[0].label, groups[1].label, groups[2].label);
 
     pick_draw();
 
@@ -1155,6 +1259,7 @@ void view_settings_menu_init (menu_t *menu) {
     // Start from the top, unless the player wants to come back to where they were
     // (or comes back from a screen opened here).
     if (!features_enabled(FEATURE_REMEMBER_SETTINGS) && !back_from_tool) {
+        group = 0;
         category = 0;
         item = 0;
         in_items = false;
