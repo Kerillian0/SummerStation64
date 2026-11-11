@@ -1192,21 +1192,19 @@ static void draw_hints (const char *a_action, bool slider, bool any_changed) {
     } else if (a_action) {
         x = games_ui_hint_draw(x, 1, "A", a_action);
     }
-    int left_end = games_ui_hint_draw(x, 1, "B", "Back");
-    const char *groups_hint = "Look, Games, Console";
-    games_ui_hint_right_draw(1, "L R", groups_hint);
+    x = games_ui_hint_draw(x, 1, "B", "Back");
+    games_ui_hint_draw(x, 1, "L R", "Headings");
 
-    /* What the accent bars beside rows mean, between the hints, while the
-       page shown has one. */
-    int right_start = GAMES_UI_CONTENT_X1 - games_ui_hint_width("L R", groups_hint);
-    int legend = CHANGED_WIDTH + 6 + LEGEND_TEXT;
-    if (any_changed && right_start - left_end >= legend + 8) {
-        int lx = (left_end + right_start - legend) / 2;
-        int row_height = (y1 - y0) / 2;
-        int row_y = hints_top() + 5;
-        draw_fill(lx, row_y + (row_height - 4 - CHANGED_HEIGHT) / 2, lx + CHANGED_WIDTH, row_y + (row_height - 4 + CHANGED_HEIGHT) / 2,
-                  theme_get()->accent);
-        rdpq_text_printf(&(rdpq_textparms_t) { .width = LEGEND_TEXT + 8, .height = row_height - 4, .valign = VALIGN_CENTER,
+    /* What the accent bar beside a row means, against the right edge, while
+       the page shown has one. Lined up with the hints' row. */
+    if (any_changed) {
+        int row = (y1 - y0 - 6) / 2;            /* a hint row's height (games_ui.c) */
+        int row_y = y1 - 1 - row;               /* the lower row's top */
+        int height = row - 4;                   /* a hint's own height */
+        int lx = GAMES_UI_CONTENT_X1 - (CHANGED_WIDTH + 6 + LEGEND_TEXT);
+        int bar_y = row_y + (height - CHANGED_HEIGHT) / 2;
+        draw_fill(lx, bar_y, lx + CHANGED_WIDTH, bar_y + CHANGED_HEIGHT, theme_get()->accent);
+        rdpq_text_printf(&(rdpq_textparms_t) { .width = LEGEND_TEXT + 4, .height = height, .valign = VALIGN_CENTER,
             .style_id = STL_GRAY }, FNT_DEFAULT, lx + CHANGED_WIDTH + 6, row_y, "Changed");
     }
 }
