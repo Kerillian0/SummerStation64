@@ -56,6 +56,9 @@ typedef enum {
 /** Current value of an option (its default if never set). */
 int options_get (option_t option);
 
+/** The value an option has until the player changes it. */
+int options_default (option_t option);
+
 /** Change an option and save it to the SD card. */
 void options_set (option_t option, int value);
 

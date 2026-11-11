@@ -107,6 +107,10 @@ static void load (void) {
     }
 }
 
+int options_default (option_t option) {
+    return (option < 0 || option >= OPTION_COUNT) ? 0 : option_info[option].default_value;
+}
+
 int options_get (option_t option) {
     if (option < 0 || option >= OPTION_COUNT) {
         return 0;

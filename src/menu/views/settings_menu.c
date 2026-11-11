@@ -1065,7 +1065,28 @@ static int draw_dots (int y, int count, int current) {
     return (count * DOT_STEP) + 4;
 }
 
+/* Whether the player has changed a row from how it comes: a switch from its
+   stock value, a feature from Default, a choice or slider from its default. */
+static bool is_changed (menu_t *menu, const item_t *it) {
+    switch (it->type) {
+        case ITEM_SWITCH:   return *switch_value(menu, it) != it->stock_default;
+        case ITEM_FEATURE:  return features_user_get(it->feature) != FEATURE_UNSET;
+        case ITEM_CHOICE:
+        case ITEM_SLIDER:   return options_get(it->option) != options_default(it->option);
+        default:            return false;
+    }
+}
+
+#define CHANGED_WIDTH   (4)
+#define CHANGED_HEIGHT  (14)
+
 static void draw_item (menu_t *menu, const item_t *it, int y, bool selected) {
+    if (is_changed(menu, it)) {
+        /* Changed: a short accent bar in the panel's margin beside the row. */
+        int y0 = y + (ROW_HEIGHT - CHANGED_HEIGHT) / 2;
+        draw_fill(ITEMS_X - PANEL_PAD, y0, ITEMS_X - PANEL_PAD + CHANGED_WIDTH, y0 + CHANGED_HEIGHT, theme_get()->accent);
+    }
+
     const char *value = "";
     menu_font_style_t style = STL_DEFAULT;
 
