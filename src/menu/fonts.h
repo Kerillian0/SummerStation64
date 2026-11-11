@@ -7,6 +7,8 @@
 #ifndef FONTS_H__
 #define FONTS_H__
 
+#include <libdragon.h>   // SummerStation64: color_t, for fonts_set_fairy_color()
+
 /**
  * @brief Font type enumeration.
  * 
@@ -36,6 +38,7 @@ typedef enum {
     STL_GRAY,        /**< Gray font style */
     STL_WHITE,       /**< Always white, whatever the theme (text on the button icons) */
     STL_BLACK,       /**< Always black (text on a light accent color) */
+    STL_FAIRY,       /**< The assistant's colour (its name before its words) */
 } menu_font_style_t;
 
 /**
@@ -50,5 +53,8 @@ void fonts_init(char *custom_font_path);
 
 /** Give the text the current theme's colors again, after the theme changes. */
 void fonts_restyle (void);
+
+/** The colour of STL_FAIRY (the assistant's name), set by assistant.c. */
+void fonts_set_fairy_color (color_t color);
 
 #endif /* FONTS_H__ */

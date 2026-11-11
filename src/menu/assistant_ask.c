@@ -170,7 +170,7 @@ static void answer_build (void) {
     answer_free();
     const question_t *q = &questions[topics[topic].first + question];
     static char text[2048];
-    size_t at = (size_t) snprintf(text, sizeof(text), "^%02X%s:^00 ", STL_ORANGE, assistant_name());
+    size_t at = (size_t) snprintf(text, sizeof(text), "^%02X%s:^00 ", STL_FAIRY, assistant_name());
     int mood = assistant_snarky() ? 1 : 0;
     if (opener_count[mood] > 0) {
         at = put(text, at, sizeof(text), openers[mood][opener_next[mood]]);
@@ -366,6 +366,7 @@ static void draw_answer (void) {
 
 void assistant_ask_draw (void) {
     const theme_t *th = theme_get();
+    fonts_set_fairy_color(assistant_color());  /* its name before the answer */
     const topic_t *t = &topics[topic];
     char title[48];
     snprintf(title, sizeof(title), "Ask %s", assistant_name());

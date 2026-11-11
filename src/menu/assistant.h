@@ -43,6 +43,9 @@ typedef enum {
 /** Names of the choices, for Settings. */
 const char *assistant_often_name (int choice);
 const char *assistant_mood_name (int choice);
+const char *assistant_color_name (int choice);
+/** How many values Fairy Color has: its own, the theme's accent, then named colours. */
+#define ASSISTANT_COLOR_COUNT  (12)
 
 /** The fairies to choose from: 0 is Spark, the menu's own; 1 on, the skins
  *  baked into the menu file ("" past the last). */

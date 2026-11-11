@@ -380,6 +380,33 @@ const char *assistant_mood_name (int choice) {
     return (choice >= 0 && choice < ASSISTANT_MOOD_COUNT) ? names[choice] : "";
 }
 
+/* The fairy's colour (Settings > Look > Fairy Look > Fairy Color): its own,
+   the theme's accent, or one of these. */
+static const struct { const char *name; uint32_t rgb; } fairy_colors[] = {
+    { "Coral", 0xFF7A6A }, { "Gold", 0xFFC83C }, { "Lime", 0x9BE04A }, { "Mint", 0x4CE0B0 },
+    { "Sky", 0x5CC8FF }, { "Blue", 0x4A78FF }, { "Violet", 0xA070FF }, { "Pink", 0xFF6EC8 },
+    { "Red", 0xFF4A4A }, { "White", 0xF4F4F4 },
+};
+#define FAIRY_COLORS    ((int) (sizeof(fairy_colors) / sizeof(fairy_colors[0])))
+
+const char *assistant_color_name (int choice) {
+    if (choice == 0) return "Its Own";
+    if (choice == 1) return "Theme Accent";
+    return (choice >= 2 && choice < 2 + FAIRY_COLORS) ? fairy_colors[choice - 2].name : "";
+}
+
+static color_t fairy_tint (void) {
+    int choice = options_get(OPTION_ASSISTANT_COLOR);
+    if (choice == 1) {
+        return theme_get()->accent;
+    }
+    if (choice >= 2 && choice < 2 + FAIRY_COLORS) {
+        uint32_t rgb = fairy_colors[choice - 2].rgb;
+        return RGBA32((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF, 0xFF);
+    }
+    return skin.color;
+}
+
 static uint64_t gap_ms (int often) {
     switch (often) {
         case ASSISTANT_RARELY: return 12 * 60 * 1000;
@@ -441,7 +468,7 @@ static void set_words (const char *message, bool swap) {
     }
     /* Its name in orange first, then what it says. */
     char text[TEXT_LENGTH + 32];
-    snprintf(text, sizeof(text), "^%02X%s:^00 %s", STL_ORANGE, skin.name, message);
+    snprintf(text, sizeof(text), "^%02X%s:^00 %s", STL_FAIRY, skin.name, message);   /* the name in its colour */
     int bytes = strlen(text);
     words = rdpq_paragraph_build(&(rdpq_textparms_t) {
         .width = band_text_width(),
@@ -1311,12 +1338,31 @@ static float ease_out (float t) {
 
 /* The fairy's picture, its middle at x, y, `size` pixels high: a skin turns
    back and forth like a coin, Spark flaps its wings. */
+#define GLOW_PATH       "rom:/glow.sprite"  /* a soft round glow, tinted (make_fairy.py) */
+#define GLOW_SCALE      (1.9f)              /* across, against the fairy's size */
+#define GLOW_ALPHA      (140)
+
 static void picture_draw (sprite_t *picture, float x, float y, int size, uint64_t now) {
+    static sprite_t *glow = NULL;   /* 1 KB, kept once loaded */
+    if (!glow) {
+        glow = sprite_load(GLOW_PATH);
+    }
+    color_t tint = fairy_tint();
+    fonts_set_fairy_color(tint);    /* its name before its words */
     rdpq_mode_push();
         rdpq_set_mode_standard();
         rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
         rdpq_mode_filter(FILTER_BILINEAR);
+
+        /* A glow in its colour behind it, for every fairy. */
+        rdpq_mode_combiner(RDPQ_COMBINER1((0,0,0,PRIM), (TEX0,0,PRIM,0)));
+        rdpq_set_prim_color(RGBA32(tint.r, tint.g, tint.b, GLOW_ALPHA));
+        float glow_size = size * GLOW_SCALE;
+        float k = glow_size / 32.0f;
+        rdpq_sprite_blit(glow, (int) (x - glow_size / 2), (int) (y - glow_size / 2), &(rdpq_blitparms_t) { .scale_x = k, .scale_y = k });
+
         if (skin.choice > 0) {
+            rdpq_mode_combiner(RDPQ_COMBINER_TEX);      /* a skin's own picture, as drawn */
             /* A skin has one picture: it faces one way, then turns (squashed
                through the middle, like a coin) to face the other, and back. */
             float scale = (float) size / SKIN_SIZE;
@@ -1335,7 +1381,11 @@ static void picture_draw (sprite_t *picture, float x, float y, int size, uint64_
                 .flip_x = facing < 0.0f,
             });
         } else {
-            /* Spark, its wings flapping: two pictures side by side, drawn larger. */
+            /* Spark, its wings flapping: two pictures side by side, drawn larger.
+               Its shades of white are painted in its colour: the darkest
+               parts the colour itself, its heart white. */
+            rdpq_mode_combiner(RDPQ_COMBINER1((1,PRIM,TEX0,PRIM), (0,0,0,TEX0)));
+            rdpq_set_prim_color(tint);
             int frame = (int) ((now / FLAP_MS) % 2);
             float scale = size / (float) FAIRY_SIZE;
             rdpq_sprite_blit(picture, (int) x - size / 2, (int) y - size / 2, &(rdpq_blitparms_t) {
@@ -1354,6 +1404,7 @@ void assistant_draw (menu_t *menu) {
     }
     uint64_t now = get_ticks_ms();
     float t = (float) (now - state_since);
+    fonts_set_fairy_color(fairy_tint());    /* its name, drawn before the fairy */
 
     /* The band: the hints' place, grown upward if the words need a third line. */
     int bx0, by0, bx1, by1;
@@ -1387,7 +1438,7 @@ void assistant_draw (menu_t *menu) {
     /* The words, in the band, while it talks: the hints under it are covered. */
     if (state == TALKING) {
         const theme_t *th = theme_get();
-        games_ui_round_fill(bx0 - 2, by0 - 2, bx1 + 2, by1 + 2, skin.color);
+        games_ui_round_fill(bx0 - 2, by0 - 2, bx1 + 2, by1 + 2, fairy_tint());
         games_ui_round_fill(bx0, by0, bx1, by1, RGBA32(th->panel.r, th->panel.g, th->panel.b, 0xFF));
         int text_y = (by0 + ((by1 - by0) - words_height) / 2) & ~1;
         float swap = old_words ? animations_progress(swap_since, SWAP_MS) : 1.0f;
@@ -1416,7 +1467,7 @@ void assistant_draw (menu_t *menu) {
                 rdpq_mode_filter(FILTER_BILINEAR);
                 uint8_t fade = (uint8_t) (255.0f * (1.0f - swap * swap));
                 for (int i = 0; i < SPARKLES; i++) {
-                    color_t tint = (i & 1) ? skin.color : RGBA32(0xFF, 0xFF, 0xFF, 0xFF);
+                    color_t tint = (i & 1) ? fairy_tint() : RGBA32(0xFF, 0xFF, 0xFF, 0xFF);
                     rdpq_set_prim_color(RGBA32(tint.r, tint.g, tint.b, fade));
                     float twinkle = 0.65f + 0.35f * sinf((float) now * 0.03f + i * 1.7f);
                     float size = (8 + (i * 29) % 7) * twinkle;
@@ -1448,7 +1499,7 @@ const char *assistant_name (void) {
 
 color_t assistant_color (void) {
     skin_load();
-    return skin.color;
+    return fairy_tint();
 }
 
 bool assistant_snarky (void) {

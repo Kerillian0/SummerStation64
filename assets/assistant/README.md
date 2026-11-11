@@ -48,5 +48,5 @@ menu's own lines for well-known games (`game_lines` in
 `src/menu/assistant.c`).
 
 Then run `python3 assets/assistant/make_skins.py` and build. Settings >
-Display > Assistant Character lists Spark first, then the skins in
+Look > Fairy Look > Character lists Spark first, then the skins in
 folder-name order.

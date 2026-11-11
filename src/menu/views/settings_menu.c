@@ -442,12 +442,18 @@ static const item_t assistant_items[] = {
         "A fairy that flies in now and then with a tip, a joke or a word about your games. Leave the menu alone for a minute and it stays to chat. Any button sends it away. Rarely, Now and Then or Chatty: how often it comes by itself. Off: never."),
     CHOICES("Assistant Mood", OPTION_ASSISTANT_MOOD, ASSISTANT_MOOD_COUNT, assistant_mood_name, NULL,
         "Eager is cheerful and keen to help. Snarky gives the same advice with an attitude."),
-    CHOICES("Assistant Character", OPTION_ASSISTANT_SKIN, ASSISTANT_SKIN_COUNT, assistant_skin_name, NULL,
-        "Which fairy the assistant is: Spark, the menu's own, or another one built into the menu. A fairy talks about its own games when you rest on them."),
     ACTION_INFO("Ask a Question", open_ask, ask_info,
         "Questions about the menu, answered by the assistant: getting started, finding games, box art, themes, saves, hacks, 64DD, cheats and trouble. Works with the assistant on or off."),
     ACTION("Reset Assistant Tips", reset_assistant,
         "The assistant says each tip once, and skips tips about things you already use. This lets it say the ones it has said again."),
+};
+
+/* How the fairy looks; the page shows it perched on the help panel. */
+static const item_t fairy_items[] = {
+    CHOICES("Character", OPTION_ASSISTANT_SKIN, ASSISTANT_SKIN_COUNT, assistant_skin_name, NULL,
+        "Which fairy the assistant is: Spark, the menu's own, or another one built into the menu. A fairy talks about its own games when you rest on them."),
+    CHOICES("Fairy Color", OPTION_ASSISTANT_COLOR, ASSISTANT_COLOR_COUNT, assistant_color_name, NULL,
+        "The fairy's colour: the glow behind it, the edge of its text box, its sparkles and its name. Spark itself takes the colour too. Its Own is each fairy's usual colour; Theme Accent follows the theme."),
 };
 
 static const item_t startup_items[] = {
@@ -602,6 +608,7 @@ static const category_t look_pages[] = {
     { "Badges", badge_items, COUNT(badge_items) },
     { "Game Info", game_info_items, COUNT(game_info_items) },
     { "Assistant", assistant_items, COUNT(assistant_items) },
+    { "Fairy Look", fairy_items, COUNT(fairy_items) },
     { "Start-up", startup_items, COUNT(startup_items) },
 };
 
@@ -1001,6 +1008,7 @@ static void draw_page_icon (int index, int x, int y) {
     rdpq_mode_pop();
 }
 
+#define FAIRY_PREVIEW   (42)    /* the fairy on the Fairy Look page */
 #define GROUP_TAB_WIDTH (100)
 #define GROUP_TAB_GAP   (6)
 #define GROUP_TAB_Y     (TITLE_Y - 2)
@@ -1441,6 +1449,12 @@ static void draw (menu_t *menu, surface_t *d) {
     } else {
         draw_page_help(cat);
     }
+    if (cat->items == fairy_items) {
+        /* The fairy as chosen, perched on the help panel's top right corner. */
+        assistant_portrait_draw(ITEMS_X + ITEMS_WIDTH + PANEL_PAD - (FAIRY_PREVIEW / 2) - 6, HELP_Y - 4, FAIRY_PREVIEW);
+    } else {
+        assistant_portrait_free();
+    }
 
     bool any_changed = false;
     for (int i = 0; i < cat->count; i++) {
@@ -1504,6 +1518,7 @@ void view_settings_menu_init (menu_t *menu) {
 void view_settings_menu_display (menu_t *menu, surface_t *display) {
     process(menu);
     if (menu->next_mode != MENU_MODE_SETTINGS_EDITOR) {
+        assistant_portrait_free();  // the Fairy Look page's fairy
         art_report_cancel();    // leaving before the report is done
     }
     art_report_step(menu);      // one game a frame while a report is under way

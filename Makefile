@@ -213,6 +213,7 @@ IMAGES = \
 	cart_bottom.png \
 	fairy.png \
 	sparkle.png \
+	glow.png \
 	settings_icons.png \
 	wordmark.png
 
@@ -233,8 +234,9 @@ $(FILESYSTEM_DIR)/cart_back.sprite: MKSPRITE_FLAGS=--format RGBA16
 $(FILESYSTEM_DIR)/cart_bottom.sprite: MKSPRITE_FLAGS=--format RGBA16
 # The intro's title needs soft edges for its glow, so it keeps full color.
 $(FILESYSTEM_DIR)/wordmark.sprite: MKSPRITE_FLAGS=--format RGBA32
-# The assistant's fairy glows: soft edges too.
-$(FILESYSTEM_DIR)/fairy.sprite: MKSPRITE_FLAGS=--format RGBA32
+# The assistant's fairy: shades of white with soft edges, painted in its colour by the menu; its glow in 256 shades.
+$(FILESYSTEM_DIR)/fairy.sprite: MKSPRITE_FLAGS=--format IA16
+$(FILESYSTEM_DIR)/glow.sprite: MKSPRITE_FLAGS=--format I8
 $(FILESYSTEM_DIR)/sparkle.sprite: MKSPRITE_FLAGS=--format I4
 
 OBJS = $(addprefix $(BUILD_DIR)/, $(addsuffix .o,$(basename $(SRCS))))
