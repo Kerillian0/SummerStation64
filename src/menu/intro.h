@@ -30,6 +30,13 @@ void intro_begin (menu_t *menu);
 /** Whether this start of the menu was after the power switch (true) or RESET. Known once intro_begin() has run. */
 bool intro_power_on (void);
 
+/** Vee flew off at the end of the intro: her welcome should follow at once.
+ *  True once, until taken; and only after the fade-in has finished. */
+bool intro_fairy_handoff (void);
+
+/** Vee flew off at the end of the intro (power-on or RESET): she greets on the Games tab. */
+bool intro_fairy_flew (void);
+
 /**
  * Keep the startup screen up after the intro (or at once, with no intro), for
  * another screen shown before the first tab (the profile picker).

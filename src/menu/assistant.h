@@ -89,4 +89,11 @@ bool assistant_snarky (void);
 void assistant_portrait_draw (int x, int y, int size);
 void assistant_portrait_free (void);
 
+/** The fairy at x, y as it is, `size` pixels high, `alpha` faded (no arrival:
+ *  the intro flies it itself). Uses the portrait's picture: assistant_portrait_free() after. */
+void assistant_fairy_draw (float x, float y, int size, uint8_t alpha);
+
+/** One of its sparkles, `size` pixels across, in its colour or white. */
+void assistant_star_draw (float x, float y, float size, uint8_t alpha, bool white);
+
 #endif

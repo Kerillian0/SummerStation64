@@ -5,6 +5,8 @@
 
 #include <libdragon.h>
 #include "theme_pack.h"
+#include "assistant.h"
+#include "animations.h"
 #include "volume.h"
 #include "memory_note.h"
 #include "flashcart/flashcart.h"
@@ -77,6 +79,28 @@ static bool tune_open = false;
 static sprite_t *wordmark = NULL;
 static bool show_logo = true;       /* options `intro_logo` and `intro_title`, read when the intro starts */
 static bool show_title = true;
+
+/* Vee draws the title in (when the assistant is on): she flies across it
+   from the left with the title showing behind her and sparkles trailing,
+   then loops away off the right edge, low, toward her perch on the Games
+   tab, where she says hello as usual. */
+#define FAIRY_FROM_MS   (350)
+#define FAIRY_ACROSS_MS (1300)
+#define FAIRY_AWAY_MS   (800)
+#define FAIRY_LOOP_SHARE (0.55f)    /* of the way away: the loop */
+#define FAIRY_LOOP_R    (34.0f)
+#define FAIRY_SIZE      (46)
+#define FAIRY_WAVE      (18.0f)     /* up and down as she goes */
+#define FAIRY_EXIT_Y    (380.0f)    /* where she leaves the screen: about her perch's height */
+#define TRAIL_POINTS    (28)
+#define TRAIL_EVERY_MS  (35)
+#define TRAIL_LIFE_MS   (700)
+static bool with_fairy = false;
+static struct { float x, y; int at; } trail[TRAIL_POINTS];
+static int trail_next = 0;
+static int trail_last_at = -1000;
+static bool fairy_left = false;     /* she flew off: the welcome follows on the Games tab */
+
 static int total_ms = INTRO_SHORTEST_MS;
 static bool fading = false;         /* the fade-in is waiting to start, or running */
 static bool fade_running = false;
@@ -95,6 +119,11 @@ static void finish (menu_t *menu) {
         tune_open = false;
     }
     intro_logo_close();
+    if (with_fairy) {
+        assistant_portrait_free();
+        with_fairy = false;
+        fairy_left = true;
+    }
     if (wordmark) {
         sprite_free(wordmark);
         wordmark = NULL;
@@ -143,6 +172,19 @@ bool intro_power_on (void) {
     return power_on;
 }
 
+bool intro_fairy_flew (void) {
+    return fairy_left;
+}
+
+bool intro_fairy_handoff (void) {
+    if (!fairy_left || fading) {
+        return false;
+    }
+    fairy_left = false;
+    debugf("intro: Vee's welcome follows now\n");
+    return true;
+}
+
 void intro_begin (menu_t *menu) {
     bool cold = !cart_stayed_on();
     power_on = cold;
@@ -176,8 +218,15 @@ void intro_begin (menu_t *menu) {
             memory_note_cut(MEMORY_CUT_INTRO_PICTURE);
         }
     }
-    debugf("intro: logo %s, title %s\n", show_logo ? "on" : "off",
-        !show_title ? "off" : wordmark ? "picture" : (title == INTRO_TITLE_TEXT) ? "as text" : "as text (memory is short)");
+    with_fairy = show_title && options_get(OPTION_ASSISTANT) != ASSISTANT_OFF;
+    trail_next = 0;
+    trail_last_at = -1000;
+    for (int i = 0; i < TRAIL_POINTS; i++) {
+        trail[i].at = -100000;
+    }
+    debugf("intro: logo %s, title %s, fairy %s\n", show_logo ? "on" : "off",
+        !show_title ? "off" : wordmark ? "picture" : (title == INTRO_TITLE_TEXT) ? "as text" : "as text (memory is short)",
+        with_fairy ? "draws it" : "off");
     music_volume(0.0f);
 }
 
@@ -284,6 +333,57 @@ void intro_fade_draw (void) {
     intro_fade_rect(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
 }
 
+/* Where Vee is at time t, for a title from x0 to x1 around line y_mid.
+   @return false while she isn't on the screen yet. */
+static bool fairy_at (int t, float x0, float x1, float y_mid, float *x, float *y) {
+    float u = (float) (t - FAIRY_FROM_MS) / FAIRY_ACROSS_MS;
+    if (u < 0.0f) {
+        return false;
+    }
+    float end_x = x1 + 30.0f;
+    if (u <= 1.0f) {
+        float e = u * u * (3.0f - 2.0f * u);     /* in and out gently */
+        *x = -40.0f + (end_x + 40.0f) * e;
+        *y = y_mid + FAIRY_WAVE * sinf(u * 3.0f * (float) M_PI);
+        return true;
+    }
+    float v = (float) (t - FAIRY_FROM_MS - FAIRY_ACROSS_MS) / FAIRY_AWAY_MS;
+    if (v > 1.0f) {
+        return false;
+    }
+    /* A loop-the-loop just past the title's end, then away, low, off the right edge. */
+    if (v < FAIRY_LOOP_SHARE) {
+        float a = 2.0f * (float) M_PI * (v / FAIRY_LOOP_SHARE);
+        *x = end_x + FAIRY_LOOP_R * sinf(a);
+        *y = y_mid - FAIRY_LOOP_R + FAIRY_LOOP_R * cosf(a);
+        return true;
+    }
+    float w = (v - FAIRY_LOOP_SHARE) / (1.0f - FAIRY_LOOP_SHARE);
+    *x = end_x + (DISPLAY_WIDTH + 60.0f - end_x) * w * w;
+    *y = y_mid + (FAIRY_EXIT_Y - y_mid) * w * (2.0f - w);
+    return true;
+}
+
+/* The sparkles she leaves: added as she goes, each fading and sinking. */
+static void trail_draw (int t, bool add, float x, float y) {
+    if (add && t - trail_last_at >= TRAIL_EVERY_MS) {
+        trail_last_at = t;
+        int n = trail_next;
+        trail[n].x = x - 10.0f + (float) ((n * 37) % 21);    /* scattered a little round her */
+        trail[n].y = y - 8.0f + (float) ((n * 53) % 17);
+        trail[n].at = t;
+        trail_next = (n + 1) % TRAIL_POINTS;
+    }
+    for (int i = 0; i < TRAIL_POINTS; i++) {
+        int age = t - trail[i].at;
+        if (age < 0 || age >= TRAIL_LIFE_MS) {
+            continue;
+        }
+        float k = 1.0f - (float) age / TRAIL_LIFE_MS;
+        assistant_star_draw(trail[i].x, trail[i].y + age * 0.03f, 4.0f + 10.0f * k, (uint8_t) (255 * k), (i & 1) != 0);
+    }
+}
+
 bool intro_display (menu_t *menu, surface_t *display) {
     if (!playing) {
         return false;
@@ -323,6 +423,18 @@ bool intro_display (menu_t *menu, surface_t *display) {
         intro_logo_draw(DISPLAY_CENTER_X, logo_y, LOGO_SIZE, ((t % LOGO_TURN_MS) * 360.0f) / LOGO_TURN_MS);
     }
 
+    /* Vee and how much of the title she has drawn so far. */
+    float title_x0 = wordmark ? DISPLAY_CENTER_X - (wordmark->width / 2) : DISPLAY_CENTER_X - 160;
+    float title_x1 = wordmark ? DISPLAY_CENTER_X + (wordmark->width / 2) : DISPLAY_CENTER_X + 160;
+    float title_mid = wordmark ? (show_logo ? WORDMARK_Y : DISPLAY_CENTER_Y - (wordmark->height / 2)) + wordmark->height / 2
+        : (show_logo ? TITLE_Y + TITLE_HEIGHT / 2 : DISPLAY_CENTER_Y);
+    float fairy_x = 0.0f, fairy_y = 0.0f;
+    bool fairy_shown = with_fairy && !over && fairy_at(t, title_x0, title_x1, title_mid, &fairy_x, &fairy_y);
+    if (with_fairy && !over && t < FAIRY_FROM_MS + FAIRY_ACROSS_MS) {
+        int reveal = fairy_shown ? (int) (fairy_x - 4.0f) : 0;     /* the title shows up to just behind her */
+        rdpq_set_scissor(0, 0, (reveal < 0) ? 0 : (reveal > DISPLAY_WIDTH ? DISPLAY_WIDTH : reveal), DISPLAY_HEIGHT);
+    }
+
     if (show_title && wordmark) {
         int y = show_logo ? WORDMARK_Y : DISPLAY_CENTER_Y - (wordmark->height / 2);
         rdpq_mode_push();
@@ -346,6 +458,14 @@ bool intro_display (menu_t *menu, surface_t *display) {
                 rdpq_set_mode_fill(theme_get()->accent);
                 rdpq_fill_rectangle(DISPLAY_CENTER_X - half_bar, BAR_Y + shift, DISPLAY_CENTER_X + half_bar, BAR_Y + shift + BAR_HEIGHT);
             rdpq_mode_pop();
+        }
+    }
+    rdpq_set_scissor(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+
+    if (with_fairy && !over) {
+        trail_draw(t, fairy_shown, fairy_x, fairy_y);
+        if (fairy_shown) {
+            assistant_fairy_draw(fairy_x, fairy_y, FAIRY_SIZE, 255);
         }
     }
 

@@ -585,6 +585,7 @@ static const int game_marks[] = { 10, 25, 50, 100 };
 
 #define EARLY_MS        (10000)     /* a reaction waits at least this long after switching on */
 #define REACT_QUIET_MS  (2500)
+#define HANDOFF_QUIET_MS (400)    /* after the intro's fairy: the welcome follows almost at once */
 #define REACT_GAP_MS    (30000)     /* and this long after anything else said */
 #define LONG_SESSION    (20 * 60)   /* a session this long is worth a word on the way back */
 #define VERY_LONG       (2 * 60 * 60)
@@ -775,9 +776,10 @@ static void started_check (menu_t *menu) {
             }
         }
     }
-    if (intro_power_on()) {
+    if (intro_power_on() || intro_fairy_flew()) {    /* switched on, or Vee just flew off in the intro (it plays after RESET too) */
         greeting(menu, pending_count > 0);
     }
+    debugf("assistant: started, %d welcome(s) waiting, power-on %d, clock %ld\n", pending_count, (int) intro_power_on(), (long) menu->current_time);
 
     /* Milestones: later, never as the first thing said. */
     queue_not_before = FIRST_TALK_MS;
@@ -1308,8 +1310,16 @@ void assistant_update (menu_t *menu) {
             due = i;
         }
     }
-    if (due >= 0 && screen_is(menu, WHERE_COVERS) && now >= EARLY_MS && quiet >= REACT_QUIET_MS
+    /* Vee has just flown off at the end of the intro: her welcome follows
+       straight away on the Games tab, as if she had flown here. */
+    static bool handoff = false;
+    if (!handoff && due >= 0 && pending[due].not_before == 0 && screen_is(menu, WHERE_COVERS)) {
+        handoff = intro_fairy_handoff();
+    }
+    if (due >= 0 && screen_is(menu, WHERE_COVERS)
+        && (handoff ? quiet >= HANDOFF_QUIET_MS : (now >= EARLY_MS && quiet >= REACT_QUIET_MS))
         && !animations_popup_up() && (!last_talk_ms || now - last_talk_ms >= REACT_GAP_MS)) {
+        handoff = false;
         saying_tip = -1;
         saying_bits = pending[due].bits;
         last_talk_ms = now;
@@ -1741,6 +1751,47 @@ void assistant_portrait_draw (int x, int y, int size) {
     idle_offset(now, &dx, &dy);
     burst_draw(portrait_star, p.x + dx, p.y + dy, size, p.burst);
     picture_draw(portrait, p.x + dx, p.y + dy, (int) (size * p.scale), now, p.alpha);
+}
+
+static void portrait_load (void) {
+    skin_load();
+    if (portrait && portrait_choice != skin.choice) {
+        assistant_portrait_free();
+    }
+    if (!portrait) {
+        char path[64];
+        if (skin.choice > 0) {
+            snprintf(path, sizeof(path), "rom:/assistant/%s.sprite", skin_files[skin.choice - 1]);
+        } else {
+            snprintf(path, sizeof(path), "%s", FAIRY_PATH);
+        }
+        portrait = sprite_load(path);
+        portrait_star = sprite_load(SPARKLE_PATH);
+        portrait_choice = skin.choice;
+        portrait_since = get_ticks_ms();
+    }
+}
+
+void assistant_fairy_draw (float x, float y, int size, uint8_t alpha) {
+    portrait_load();
+    picture_draw(portrait, x, y, size, get_ticks_ms(), alpha);
+}
+
+void assistant_star_draw (float x, float y, float size, uint8_t alpha, bool white) {
+    portrait_load();
+    if (!portrait_star || size < 1.0f) {
+        return;
+    }
+    color_t c = white ? RGBA32(0xFF, 0xFF, 0xFF, 0xFF) : fairy_tint();
+    rdpq_mode_push();
+        rdpq_set_mode_standard();
+        rdpq_mode_combiner(RDPQ_COMBINER1((0,0,0,PRIM), (TEX0,0,PRIM,0)));
+        rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+        rdpq_mode_filter(FILTER_BILINEAR);
+        rdpq_set_prim_color(RGBA32(c.r, c.g, c.b, alpha));
+        rdpq_sprite_blit(portrait_star, (int) (x - size / 2), (int) (y - size / 2),
+                         &(rdpq_blitparms_t) { .scale_x = size / 16.0f, .scale_y = size / 16.0f });
+    rdpq_mode_pop();
 }
 
 void assistant_portrait_free (void) {
