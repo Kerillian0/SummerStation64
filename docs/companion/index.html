@@ -318,7 +318,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
         <button type="button" class="btn ghost" id="saveIni" hidden>Save as file</button>
         <button type="button" class="btn ghost" id="savePng" hidden>Save background.png</button>
       </div>
-      <p class="hint">On the SD card, give each theme a folder of its own in menu/themes, named as you want it listed: menu/themes/My Theme/theme.ini. Then pick it in Settings &gt; Display &gt; Theme (up to 32 themes). <a href="#guide-themes">Making a theme</a> explains every setting.</p>
+      <p class="hint">On the SD card, give each theme a folder of its own in menu/themes, named as you want it listed: menu/themes/My Theme/theme.ini. Then pick it in Settings &gt; Look &gt; Theme &gt; Theme (up to 32 themes). <a href="#guide-themes">Making a theme</a> explains every setting.</p>
       <p class="hint" id="saveHint" hidden>The file saves as theme.txt because of browser limits. The menu reads theme.txt too, so renaming it is optional.</p>
       <div class="status" id="status" role="status"></div>
     </section>
@@ -497,7 +497,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
   <header>
     <h1 class="page-title">Missing Metadata</h1>
     <p>Fill in the covers, labels and details your games are missing, from your own pictures and notes. The menu
-      makes the list: on the console, open <b>Settings &gt; Library &gt; Find Missing Metadata</b> first. Everything
+      makes the list: on the console, open <b>Settings &gt; Games &gt; Game Folders &gt; Find Missing Metadata</b> first. Everything
       happens in this browser: nothing is uploaded anywhere.</p>
   </header>
 
@@ -653,7 +653,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
 <div class="wrap">
   <header>
     <h1 class="page-title">Clips</h1>
-    <p>Turn a clip recorded on the console into an animated GIF. On the console: <b>Settings &gt; System &gt; Record Clip</b>.
+    <p>Turn a clip recorded on the console into an animated GIF. On the console: <b>Settings &gt; Console &gt; Clips &gt; Record Clip</b>.
       Everything happens in this browser: nothing is uploaded anywhere.</p>
   </header>
 
@@ -734,7 +734,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
         <span class="status" id="sndStatus">Pick at least one sound.</span>
       </div>
       <p class="hint">Unzip it at the top of the SD card: the files land in <code>menu/themes/<b>name</b>/</code>. Then choose
-        the theme in <b>Settings &gt; Display &gt; Theme</b>. A theme can also carry its own text font as
+        the theme in <b>Settings &gt; Look &gt; Theme &gt; Theme</b>. A theme can also carry its own text font as
         <code>font.font64</code>, made with libdragon's mkfont (it applies after a restart). Limits and tips are in
         <a href="#guide-themes">Making a theme</a>.</p>
     </section>
@@ -777,7 +777,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
         </div>
         <label>Background <input type="color" id="picBack" value="#1b2028"></label>
       </div>
-      <p class="hint">Shape and ring only change the preview: on the console they are set in Settings &gt; Profiles. Background fills
+      <p class="hint">Shape and ring only change the preview: on the console they are set in Settings &gt; Games &gt; Profiles. Background fills
         any see-through parts, since the console reads only a card picture's colors.</p>
       <div id="picList"></div>
     </section>
@@ -789,7 +789,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
         <span class="status" id="picStatus">Pick at least one picture.</span>
       </div>
       <p class="hint">Unzip it at the top of the SD card: the pictures land in <code>menu/avatars/</code>. Then choose one in
-        <b>Settings &gt; Profiles &gt; Profile Picture</b>. Each is a 64 × 64 PNG named after its picture; more on this in
+        <b>Settings &gt; Games &gt; Profiles &gt; Profile Picture</b>. Each is a 64 × 64 PNG named after its picture; more on this in
         <a href="#guide-profiles">Profiles</a>.</p>
     </section>
   </div>
@@ -910,8 +910,8 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
           <a href="https://github.com/n64-tools/n64-flashcart-menu-metadata/releases">metadata pack</a> and copy its <code>metadata</code> folder
           into the card's <code>menu</code> folder (<code>menu/metadata/</code>).</li>
         <li><b>Optional</b>: run <a href="#prep">Card Prep</a> once to give each game a check mark for a known good dump, and make a theme in the
-          <a href="#themes">Theme Maker</a> (each theme in a folder of its own, <code>menu/themes/My Theme/theme.ini</code>, then picked in Settings &gt; Display &gt; Theme),
-          or right on the console with <b>Settings &gt; Display &gt; Edit Theme</b> (see <a href="#guide-themes-console">Making one on the console</a>).</li>
+          <a href="#themes">Theme Maker</a> (each theme in a folder of its own, <code>menu/themes/My Theme/theme.ini</code>, then picked in Settings &gt; Look &gt; Theme &gt; Theme),
+          or right on the console with <b>Settings &gt; Look &gt; Theme &gt; Edit Theme</b> (see <a href="#guide-themes-console">Making one on the console</a>).</li>
       </ol>
       <p class="note">Your saves stay where they are. Before each game starts, the menu also keeps a dated copy of its save in
         <code>saves/backups/</code> (five per game); a game's Options menu has <b>Restore save</b>.</p>
@@ -924,7 +924,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
         Game Boy and homebrew, you add your own. The console finds what is missing and this page fills it in.</p>
       <h3>Step by step</h3>
       <ol>
-        <li><b>Make the list on the console.</b> Open <b>Settings &gt; Library &gt; Find Missing Metadata</b> and stay on
+        <li><b>Make the list on the console.</b> Open <b>Settings &gt; Games &gt; Game Folders &gt; Find Missing Metadata</b> and stay on
           that page until it says it is done (a few seconds). <b>Missing Metadata</b> underneath says how many games lack
           something. The list is saved as <code>menu/missingart.txt</code> on the card.</li>
         <li><b>Put the card in your computer</b> (switch the console off first).</li>
@@ -1039,7 +1039,7 @@ short-desc = Mario explores Princess Peach's castle.</code></pre>
 80207723 0001 120 stars
 8020770B 00C7</code></pre>
       <p>A line starting <code>:</code> is a code switched off (the console's list writes these); <code>#</code> starts a
-        comment. To type codes in on the console, turn on <b>Settings &gt; System &gt; Advanced Game Options</b>: Game
+        comment. To type codes in on the console, turn on <b>Settings &gt; Look &gt; Game Info &gt; Advanced Game Options</b>: Game
         info's R menu then has the <b>Datel Code Editor</b>.</p>
       <div class="qa"><b>A cheat doesn't work</b>
         <p>Keep the list's enable code ticked ("Must be on", or codes starting F1, FF or EE). Codes that need a button held
@@ -1059,15 +1059,15 @@ short-desc = Mario explores Princess Peach's castle.</code></pre>
         <li>Make a folder for it: <code>menu/themes/<b>My Theme</b>/</code>. The folder's name is what the menu lists, so use the name you want
           to see (40 characters at most).</li>
         <li>Put <code>theme.ini</code> in that folder (<code>theme.txt</code> works too).</li>
-        <li>Open <b>Settings &gt; Display &gt; Theme</b> and pick it. It applies at once. The menu looks for new folders each time Settings opens.</li>
+        <li>Open <b>Settings &gt; Look &gt; Theme &gt; Theme</b> and pick it. It applies at once. The menu looks for new folders each time Settings opens.</li>
       </ol>
       <p>Up to 32 themes are listed, A to Z, after the built-in ones. A folder with no theme file in it is skipped. Each player
-        (<b>Settings &gt; Profiles</b>) picks a theme of their own.</p>
+        (<b>Settings &gt; Games &gt; Profiles</b>) picks a theme of their own.</p>
       <p class="note">If a theme ever leaves the menu hard to read, hold <b>Z</b> while switching the console on. Safe Mode shows the stock look and
         changes nothing on the card.</p>
 
       <h3 id="guide-themes-console">Making one on the console</h3>
-      <p><b>Settings &gt; Display &gt; Edit Theme</b> changes the theme you're using, with no computer needed. The whole menu shows each change as you
+      <p><b>Settings &gt; Look &gt; Theme &gt; Edit Theme</b> changes the theme you're using, with no computer needed. The whole menu shows each change as you
         make it, and a small sample of the Games screen sits beside the list.</p>
       <ul>
         <li><b>What it changes:</b> the colors (Text, Dim text, Accent, Panels and covers, Selected row, Tab bar and badges, Outlines), the background
@@ -1141,13 +1141,15 @@ rounded_corners = 1</code></pre>
         <tbody>
           <tr><td><code>text</code></td><td>Most text: game names, tabs, Settings rows, file names.</td></tr>
           <tr><td><code>text_dim</code></td><td>Quieter text, such as help lines and details.</td></tr>
-          <tr><td><code>accent</code></td><td>The selected tab, the line under the selected row in Settings and Folders, scroll bar thumbs, the marker on the position bar,
+          <tr><td><code>accent</code></td><td>The selected tab (also Settings' Look, Games and Console), the line under the selected page in Settings and Folders, the dot of a
+            setting's value and the bar beside a changed setting, scroll bar thumbs, the marker on the position bar,
             the filled part of volume sliders, the selection ring or corners, and the profile picker's ring. The ring on covers can take the cover's color instead
             (<b>Tint Ring From Art</b>).</td></tr>
-          <tr><td><code>panel</code></td><td>The panel under the covers, the band behind the button hints, Game info's boxes, the letter dial, the profile picker's rows, and
+          <tr><td><code>panel</code></td><td>The panel under the covers, the band behind the button hints, Game info's boxes, Settings' panels, the letter dial, the profile picker's rows, and
             the plain sides of a box with no side art. The panel and the hint band are slightly see-through.</td></tr>
-          <tr><td><code>highlight</code></td><td>The selected row on the Folders tab and in pop-up menus.</td></tr>
-          <tr><td><code>tab_inactive</code></td><td>Tabs that aren't selected, plain badges, the tracks of scroll bars and the position bar, and the empty part of volume sliders.</td></tr>
+          <tr><td><code>highlight</code></td><td>The selected row in Settings, on the Folders tab and in pop-up menus.</td></tr>
+          <tr><td><code>tab_inactive</code></td><td>Tabs that aren't selected, plain badges, Off in Settings, the dots of values not in use, the tracks of scroll bars and the
+            position bar, and the empty part of volume sliders.</td></tr>
           <tr><td><code>border</code></td><td>Thin outlines round pop-ups, loading bars, the music player's seek bar and the clock and code editors.</td></tr>
           <tr><td><code>tab_active</code></td><td>The selected value in the clock and cheat code editors. The selected tab uses <code>accent</code>.</td></tr>
           <tr><td><code>tab_active_border</code><br><code>tab_inactive_border</code></td><td>Still read, but nothing draws them now. You can leave them out.</td></tr>
@@ -1268,7 +1270,7 @@ rounded_corners = 1</code></pre>
       </ul>
 
       <h3>Memory</h3>
-      <p>Most N64s have no Expansion Pak, and the menu leaves extras out when memory runs short (<b>Settings &gt; System &gt; Memory</b> says what). To keep a theme kind to
+      <p>Most N64s have no Expansion Pak, and the menu leaves extras out when memory runs short (<b>Settings &gt; Console &gt; Tools &gt; Memory</b> says what). To keep a theme kind to
         those consoles:</p>
       <div class="tablewrap"><table>
         <thead><tr><th>Part of the theme</th><th>Memory it takes</th></tr></thead>
@@ -1309,7 +1311,7 @@ rounded_corners = 1</code></pre>
       <h2><i style="background:var(--n-green)"></i>Around the menu</h2>
 
       <h3>The intro</h3>
-      <p>The intro plays when the console is switched on (Settings &gt; System &gt; <b>Intro</b>: Off, On, or Both to play it after RESET as
+      <p>The intro plays when the console is switched on (Settings &gt; Look &gt; Start-up &gt; <b>Intro</b>: Off, On, or Both to play it after RESET as
         well). Two more rows choose what it shows:</p>
       <ul>
         <li><b>Intro Logo</b>: the spinning logo as <b>Vaporwave</b> (patterned sides), <b>Classic</b> (the console's own colors) or
@@ -1322,7 +1324,7 @@ rounded_corners = 1</code></pre>
 
       <h3>Typing a name</h3>
       <p>Naming a collection, a profile or a theme, or renaming a file, opens an on-screen keyboard. If you'd rather spell names on the
-        round dial, choose it in Settings &gt; Controls &gt; <b>Name Entry</b>.</p>
+        round dial, choose it in Settings &gt; Console &gt; Controls &gt; <b>Name Entry</b>.</p>
       <div class="tablewrap"><table>
         <thead><tr><th>Button</th><th>On the keyboard</th></tr></thead>
         <tbody>
@@ -1342,13 +1344,13 @@ rounded_corners = 1</code></pre>
     <section id="guide-profiles">
       <h2><i style="background:var(--n-green)"></i>Profiles</h2>
       <p>Up to four players can share the console, each with their own saves, Recent, Favorites, play counts, collections,
-        hidden games, settings and theme. Make one in Settings &gt; Profiles &gt; <b>New Profile</b>. With two or more, the menu
+        hidden games, settings and theme. Make one in Settings &gt; Games &gt; Profiles &gt; <b>New Profile</b>. With two or more, the menu
         asks <b>Who's playing?</b> at power-on, with the last player already chosen. A new profile starts every game with a
         fresh save, and deleting one leaves its saves on the card.</p>
 
       <h3>Profile pictures</h3>
       <p>Each player has a picture, shown on "Who's playing?" and beside their name under the tabs. Choose it in Settings &gt;
-        Profiles &gt; <b>Profile Picture</b> (it also opens straight after a new profile is named):</p>
+        Games &gt; Profiles &gt; <b>Profile Picture</b> (it also opens straight after a new profile is named):</p>
       <ul>
         <li><b>None</b> shows the player's initial in their color.</li>
         <li>Then come the pictures built into the menu, and after them any PNG in <code>menu/avatars/</code> on the SD card (up to
@@ -1376,7 +1378,7 @@ rounded_corners = 1</code></pre>
       <h2><i style="background:var(--n-green)"></i>Hardware</h2>
       <h3>Expansion Pak or Jumper Pak</h3>
       <p>SummerStation64 runs fully on a console <b>without</b> the Expansion Pak (with the Jumper Pak, 4MB). With 4MB it picks the smaller
-        character set and leaves out a few extras when memory runs short, such as art on the side covers; <b>Settings &gt; System &gt; Memory</b>
+        character set and leaves out a few extras when memory runs short, such as art on the side covers; <b>Settings &gt; Console &gt; Tools &gt; Memory</b>
         says what was left out. Some games need the Expansion Pak themselves (Majora's Mask, Donkey Kong 64, most of Perfect Dark); the menu
         warns before starting them. Third-party Expansion Paks work the same as Nintendo's.</p>
       <h3>SD card</h3>
@@ -1387,14 +1389,14 @@ rounded_corners = 1</code></pre>
       <ul>
         <li><b>Composite</b> works well: the menu is designed and tested on a small composite CRT.</li>
         <li><b>S-Video</b> is sharper and works on NTSC consoles with the right cable; <b>RGB</b> needs a PAL console or a modded NTSC one.</li>
-        <li><b>HDMI</b> mods and adapters, and upscalers (RetroTINK, OSSC and the like), work too. Try <b>Settings &gt; Display &gt; Video Output:
+        <li><b>HDMI</b> mods and adapters, and upscalers (RetroTINK, OSSC and the like), work too. Try <b>Settings &gt; Console &gt; TV &amp; Video &gt; Video Output:
           240p</b> for a sharper, steadier picture on CRTs and upscalers (it applies after a restart).</li>
         <li><b>Analogue 3D</b> and <b>ModRetro M64</b>: players report v0.1 working on both. Not tested here, so reports of anything odd are very welcome.</li>
       </ul>
       <h3>Controllers</h3>
       <p>The menu answers to any controller. <b>Hold START for a second</b> to save a screenshot to <code>menu/screenshots/</code>
         on any controller. If START switches your controller off (the 8BitDo mod kit, for
-        one), set <b>Settings &gt; System &gt; Screenshot Button</b> to <b>Hold L + R</b>. With two or more controllers plugged in, the Games tab gets a
+        one), set <b>Settings &gt; Console &gt; Screenshots &gt; Screenshot Button</b> to <b>Hold L + R</b>. With two or more controllers plugged in, the Games tab gets a
         <b>Party</b> filter step for games that many can play.</p>
     </section>
 
@@ -1435,10 +1437,10 @@ rounded_corners = 1</code></pre>
       <div class="qa"><b>What do the ✓, ? and ✗ marks mean?</b>
         <p>They come from Card Prep. <b>✓</b>: exactly a known good dump. <b>?</b>: the file differs from the known dump. Often that is harmless
           (an old tool changed a header byte, or the file is padded), but if the game misbehaves, try another copy. <b>✗</b>: the file name marks it
-          as a bad dump. Hacks, translations and fixed dumps get no mark. Turn them off in <b>Settings &gt; Display &gt; Dump Check Marks</b>.</p></div>
+          as a bad dump. Hacks, translations and fixed dumps get no mark. Turn them off in <b>Settings &gt; Look &gt; Badges &gt; Dump Check Marks</b>.</p></div>
       <div class="qa"><b>Covers or the intro picture are missing on a 4MB console</b>
-        <p>The menu leaves extras out rather than run out of memory. <b>Settings &gt; System &gt; Memory</b> says what; the <b>Latin</b>
-          character set (Settings &gt; System) frees the most.</p></div>
+        <p>The menu leaves extras out rather than run out of memory. <b>Settings &gt; Console &gt; Tools &gt; Memory</b> says what; the <b>Latin</b>
+          character set (Settings &gt; Console &gt; TV &amp; Video) frees the most.</p></div>
       <div class="qa"><b>Reporting a problem</b>
         <p>Open an issue on <a href="https://github.com/Kerillian0/SummerStation64/issues/new/choose">GitHub</a>: the form asks for your setup. A
           photo of the screen and the debug log help the most.</p></div>
@@ -4999,7 +5001,7 @@ async function cardChosen(root, menuFiles, all, files, picked) {
   var text = await cardText(ART_REPORT), note = '';
   if (text === null) {
     note = '<span class="bad">No menu/missingart.txt in "' + esc(picked || '?') + '"</span>, so N64 games aren\'t listed. Pick the top folder of the SD card (the one holding the <b>menu</b> folder). ' +
-      'If it isn\'t there either: on the console, open Settings &gt; Library &gt; Find Missing Metadata, then pick the card again. ';
+      'If it isn\'t there either: on the console, open Settings &gt; Games &gt; Game Folders &gt; Find Missing Metadata, then pick the card again. ';
   } else {
     var parsed = parseMissingArt(text);
     if (!parsed) {
@@ -6096,7 +6098,7 @@ async function readCardClips(root, files) {
 function showClips() {
   var body = $('clipRows');
   body.textContent = '';
-  if (!clips.length) { body.innerHTML = '<tr><td colspan="4" class="U">No clips found. Record one on the console: Settings &gt; System &gt; Record Clip.</td></tr>'; return; }
+  if (!clips.length) { body.innerHTML = '<tr><td colspan="4" class="U">No clips found. Record one on the console: Settings &gt; Console &gt; Clips &gt; Record Clip.</td></tr>'; return; }
   clips.forEach(function (c) {
     var tr = document.createElement('tr'), fps = c.info ? c.info.fps : 15;
     [c.name, c.frames.length + ' frames', (c.frames.length / fps).toFixed(1) + ' s at ' + fps + ' a second'].forEach(function (t) {
