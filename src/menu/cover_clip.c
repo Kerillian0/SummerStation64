@@ -5,6 +5,7 @@
 #include "animations.h"
 #include "carousel_art.h"
 #include "cover_clip.h"
+#include "cover_deal.h"
 #include "cover_list.h"
 #include "games_filter.h"
 #include "hack_games.h"
@@ -139,6 +140,9 @@ void cover_clip_after_draw (menu_t *menu) {
     } else if (!menu_open && (buttons_held() || new_press)) {
         rest_since = now;
         hidden = playing;
+    }
+    if (cover_deal_running()) {
+        rest_since = now;   /* the covers are being dealt in: the rest starts once they have landed */
     }
 
     if (!looked && wanted() && selected >= 0 && selected < covers->entries && now - rest_since >= LOOK_AFTER_MS) {

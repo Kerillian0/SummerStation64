@@ -9,6 +9,7 @@
 
 #include "baked_meta.h"
 #include "game_index.h"
+#include "cover_deal.h"
 #include "game_learn.h"
 #include "games_filter.h"
 #include "path.h"
@@ -58,9 +59,9 @@ void game_learn_update (menu_t *menu) {
         time_spent_ms = 0;
         busy = (all > 0);
     }
-    if (menu->browser.selected != selected) {
+    if (menu->browser.selected != selected || cover_deal_running()) {
         selected = menu->browser.selected;
-        rested_since = now;
+        rested_since = now;     /* moved, or the covers are still being dealt in (a card read a frame would make it stutter) */
     }
     if (!busy || (now - rested_since) < REST_MS) {
         return;

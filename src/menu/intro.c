@@ -6,6 +6,7 @@
 #include <libdragon.h>
 #include "theme_pack.h"
 #include "assistant.h"
+#include "cover_deal.h"
 #include "animations.h"
 #include "volume.h"
 #include "memory_note.h"
@@ -148,6 +149,18 @@ static void fade_ask (void) {
 static float fade_progress (void) {
     int length = (options_get(OPTION_FADE) == FADE_1_SECOND) ? FADE_FAST_MS : FADE_MS;
     float t = (float) (get_ticks_ms() - fade_from) / length;
+    return (t > 1.0f) ? 1.0f : t;
+}
+
+/* The picture's part of the fade. With the covers to deal in it takes a
+   second whatever the setting (the music still rises over the chosen time):
+   the fade's darkening and the deal together are too much for one frame, so
+   the deal waits for the picture to be up (cover_deal.h). */
+static float picture_progress (void) {
+    if (!cover_deal_ahead()) {
+        return fade_progress();
+    }
+    float t = (float) (get_ticks_ms() - fade_from) / FADE_FAST_MS;
     return (t > 1.0f) ? 1.0f : t;
 }
 
@@ -302,7 +315,7 @@ int intro_fade_dark (void) {
     }
     /* The picture brightens quickly at first and then more slowly, so the
        menu can be read long before the fade is over. */
-    float left = 1.0f - fade_progress();
+    float left = 1.0f - picture_progress();
     int dark = (int) (left * left * 255.0f);
     return (dark < 0) ? 0 : ((dark > 255) ? 255 : dark);
 }

@@ -11,6 +11,7 @@
 #include "../assistant.h"
 #include "../assistant_ask.h"
 #include "../cover_clip.h"
+#include "../cover_deal.h"
 #include "../debug_stats.h"
 #include "../cart_load.h"
 #include "../fonts.h"
@@ -1926,7 +1927,24 @@ void carousel_draw (menu_t *menu) {
     }
     const float back = back_since ? animations_progress(back_since, CAROUSEL_BACK_MS) : 1.0f;
     const int tab_shift = (int) (tabs_slide() * CAROUSEL_TAB_SLIDE_PX); // just switched tab: the whole row comes in from the side
-    drawn_moving = (slide != 0.0f) || (tab_shift != 0);
+    // The menu has just started: the covers deal themselves in, once their art is in (cover_deal.h).
+    int with_art = 0;
+    float art_shape_now;
+    for (int offset = -3; offset <= 3; offset++) {
+        int i = cover_list_neighbor(menu, offset);
+        if (i >= 0 && (offset == 0 || side_covers) && carousel_art_aspect(menu, i, &art_shape_now)) {
+            if (offset >= -2 && offset <= 2) {
+                with_art++;
+            }
+            if (cover_deal_running()) {
+                color_t tint_now;
+                carousel_art_tint_state(menu, i, &tint_now);    // worked out as its art arrives, not on its first frame in the deal
+            }
+        }
+    }
+    cover_deal_frame(carousel_art_aspect(menu, covers->selected, &art_shape_now), with_art, intro_fade_dark() == 0);
+    const bool dealing = cover_deal_running();
+    drawn_moving = (slide != 0.0f) || (tab_shift != 0);    // not the deal: its covers keep the cheap fade they have at rest
     const int bright = drawn_moving ? 255 : (255 - carousel_dark); // while covers slide, the fade darkens the whole row at once
     carousel_dark = 0;
     bool center_dimmed = false;
@@ -1970,6 +1988,12 @@ void carousel_draw (menu_t *menu) {
             if (alpha <= 0.0f) {
                 continue;
             }
+            int deal_dx = 0, deal_dy = 0;
+            float deal_scale = 1.0f, deal_alpha = 1.0f;
+            if (dealing && !cover_deal_place(offset, &deal_dx, &deal_dy, &deal_scale, &deal_alpha)) {
+                continue; // not dealt in yet
+            }
+            alpha *= deal_alpha;
 
             // Size shrinks from the center size to the side size over the first position.
             float grow = (away < 1.0f) ? (1.0f - away) : 0.0f;
@@ -1977,8 +2001,8 @@ void carousel_draw (menu_t *menu) {
             int h = (int) carousel_lerp(CAROUSEL_SIDE_H, CAROUSEL_CENTER_H, grow);
             carousel_fit_to_art(menu, i, &w, &h); // a tall Japanese box is drawn tall, without bars at its sides
             if (offset == 0) {
-                w = (int) (w * pop);
-                h = (int) (h * pop);
+                w = (int) (w * pop * deal_scale);
+                h = (int) (h * pop * deal_scale);
             }
 
             // Angled Side Covers: a cover turns away as it leaves the center,
@@ -2009,6 +2033,14 @@ void carousel_draw (menu_t *menu) {
                     w = from_w + (int) ((w - from_w) * e);
                     h = from_h + (int) ((h - from_h) * e);
                 }
+            }
+            if (dealing) {
+                if (x0 < 0 || (x0 + w) > screen_w) {
+                    continue; // off the edge at rest too: never dealt in
+                }
+                x0 += deal_dx;
+                y0 += deal_dy;
+                x0 = (x0 < 0) ? 0 : ((x0 + w > screen_w) ? screen_w - w : x0); // dealt in from the screen's edge, not past it
             }
             if (x0 < 0 || (x0 + w) > screen_w) {
                 continue; // still off the edge of the screen
@@ -2147,7 +2179,7 @@ void carousel_draw (menu_t *menu) {
     ring_h = (int) (ring_h * pop);
     bool ring_hidden;
     color_t ring_color = carousel_ring_color(menu, covers->selected, t->accent, &ring_hidden);
-    ring_hidden = ring_hidden || (back < 1.0f);    // the cover is still flying back into it
+    ring_hidden = ring_hidden || (back < 1.0f) || cover_deal_hides_ring();    // the cover is still flying back into it, or being dealt in
     // Corner brackets stand a little further above and below the cover than the ring.
     const int ring_pad_y = (options_get(OPTION_SELECTION) == SELECTION_CORNERS) ? 9 : 5;
     if (!ring_hidden && options_get(OPTION_SELECTION) != SELECTION_OFF) {
