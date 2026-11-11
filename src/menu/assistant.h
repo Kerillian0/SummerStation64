@@ -11,6 +11,7 @@
 #ifndef ASSISTANT_H__
 #define ASSISTANT_H__
 
+#include <libdragon.h>
 #include "menu_state.h"
 
 typedef enum {
@@ -60,5 +61,15 @@ void assistant_update (menu_t *menu);
 /** On the screens it can appear on, the last thing drawn before the
  *  Performance Overlay. */
 void assistant_draw (menu_t *menu);
+
+/** For the Ask page (assistant_ask.c): the fairy in use, its colour and mood. */
+const char *assistant_name (void);
+color_t assistant_color (void);
+bool assistant_snarky (void);
+
+/** The fairy's picture, its middle at x, y, `size` pixels high (loaded the
+ *  first time); free it when the page closes. */
+void assistant_portrait_draw (int x, int y, int size);
+void assistant_portrait_free (void);
 
 #endif

@@ -1309,6 +1309,45 @@ static float ease_out (float t) {
     return 1.0f - rest * rest * rest;
 }
 
+/* The fairy's picture, its middle at x, y, `size` pixels high: a skin turns
+   back and forth like a coin, Spark flaps its wings. */
+static void picture_draw (sprite_t *picture, float x, float y, int size, uint64_t now) {
+    rdpq_mode_push();
+        rdpq_set_mode_standard();
+        rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+        rdpq_mode_filter(FILTER_BILINEAR);
+        if (skin.choice > 0) {
+            /* A skin has one picture: it faces one way, then turns (squashed
+               through the middle, like a coin) to face the other, and back. */
+            float scale = (float) size / SKIN_SIZE;
+            int cycle = (int) (now % (2 * (TURN_EVERY_MS + TURN_MS)));
+            int half = TURN_EVERY_MS + TURN_MS;
+            int phase = cycle % half;
+            float facing = (phase < TURN_EVERY_MS) ? 1.0f : cosf((float) M_PI * (phase - TURN_EVERY_MS) / TURN_MS);
+            if (cycle >= half) {
+                facing = -facing;
+            }
+            float across = fabsf(facing) < 0.06f ? 0.06f : fabsf(facing);
+            int width = (int) (size * across);
+            rdpq_sprite_blit(picture, (int) x - width / 2, (int) y - size / 2, &(rdpq_blitparms_t) {
+                .scale_x = scale * across,
+                .scale_y = scale,
+                .flip_x = facing < 0.0f,
+            });
+        } else {
+            /* Spark, its wings flapping: two pictures side by side, drawn larger. */
+            int frame = (int) ((now / FLAP_MS) % 2);
+            float scale = size / (float) FAIRY_SIZE;
+            rdpq_sprite_blit(picture, (int) x - size / 2, (int) y - size / 2, &(rdpq_blitparms_t) {
+                .s0 = frame * FAIRY_SIZE,
+                .width = FAIRY_SIZE,
+                .scale_x = scale,
+                .scale_y = scale,
+            });
+        }
+    rdpq_mode_pop();
+}
+
 void assistant_draw (menu_t *menu) {
     if (state == QUIET || menu->mode != talk_screen || !fairy || !words) {
         return;
@@ -1394,40 +1433,50 @@ void assistant_draw (menu_t *menu) {
         }
     }
 
-    rdpq_mode_push();
-        rdpq_set_mode_standard();
-        rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
-        rdpq_mode_filter(FILTER_BILINEAR);
+    picture_draw(fairy, x, y, PERCH_SIZE, now);
+}
+
+/* ---------- for the Ask page (assistant_ask.c) ---------- */
+
+static sprite_t *portrait = NULL;   /* its own copy: the perch's comes and goes */
+static int portrait_choice = -1;
+
+const char *assistant_name (void) {
+    skin_load();
+    return skin.name;
+}
+
+color_t assistant_color (void) {
+    skin_load();
+    return skin.color;
+}
+
+bool assistant_snarky (void) {
+    return snarky();
+}
+
+void assistant_portrait_draw (int x, int y, int size) {
+    skin_load();
+    if (portrait && portrait_choice != skin.choice) {
+        assistant_portrait_free();
+    }
+    if (!portrait) {
+        char path[64];
         if (skin.choice > 0) {
-            /* A skin has one picture: it faces one way, then turns (squashed
-               through the middle, like a coin) to face the other, and back. */
-            int size = PERCH_SIZE;
-            float scale = (float) size / SKIN_SIZE;
-            int cycle = (int) (now % (2 * (TURN_EVERY_MS + TURN_MS)));
-            int half = TURN_EVERY_MS + TURN_MS;
-            int phase = cycle % half;
-            float facing = (phase < TURN_EVERY_MS) ? 1.0f : cosf((float) M_PI * (phase - TURN_EVERY_MS) / TURN_MS);
-            if (cycle >= half) {
-                facing = -facing;
-            }
-            float across = fabsf(facing) < 0.06f ? 0.06f : fabsf(facing);
-            int width = (int) (size * across);
-            rdpq_sprite_blit(fairy, (int) x - width / 2, (int) y - size / 2, &(rdpq_blitparms_t) {
-                .scale_x = scale * across,
-                .scale_y = scale,
-                .flip_x = facing < 0.0f,
-            });
+            snprintf(path, sizeof(path), "rom:/assistant/%s.sprite", skin_files[skin.choice - 1]);
         } else {
-            /* Spark, its wings flapping: two pictures side by side, drawn larger. */
-            int frame = (int) ((now / FLAP_MS) % 2);
-            float scale = PERCH_SIZE / (float) FAIRY_SIZE;
-            int size = (int) (FAIRY_SIZE * scale);
-            rdpq_sprite_blit(fairy, (int) x - size / 2, (int) y - size / 2, &(rdpq_blitparms_t) {
-                .s0 = frame * FAIRY_SIZE,
-                .width = FAIRY_SIZE,
-                .scale_x = scale,
-                .scale_y = scale,
-            });
+            snprintf(path, sizeof(path), "%s", FAIRY_PATH);
         }
-    rdpq_mode_pop();
+        portrait = sprite_load(path);
+        portrait_choice = skin.choice;
+    }
+    picture_draw(portrait, (float) x, (float) y, size, get_ticks_ms());
+}
+
+void assistant_portrait_free (void) {
+    if (portrait) {
+        rspq_wait();    /* the chip may still be drawing it */
+        sprite_free(portrait);
+        portrait = NULL;
+    }
 }

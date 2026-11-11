@@ -1,0 +1,148 @@
+ask 1
+; The assistant's questions and answers (Settings > Look > Assistant > Ask,
+; and Z on the cover tabs). Our own words, from the Companion's Guide.
+;
+;   open e|s <line>   a short opener in the Eager or Snarky mood, picked at
+;                     random before each answer
+;   topic <name>      starts a topic (the left column)
+;   q <question>      starts a question in that topic
+;   a <text>          a paragraph of its answer (several make several)
+;
+; %n is the fairy's name. Keep a question to one row (about 40 characters)
+; and an answer to about 600 characters: it scrolls, but short reads best.
+; Settings paths must match settings_menu.c.
+
+open e Ooh, good question!
+open e I know this one!
+open e Happy to help!
+open e Great question. Here goes!
+open s Ugh, fine. Listen closely.
+open s You could have read the guide, you know.
+open s Again? Okay, okay.
+open s Lucky for you, I'm in a good mood.
+
+topic Getting started
+q Who are you?
+a I'm %n, the menu's assistant! I pop up now and then with tips, and I answer questions here.
+a Settings > Look > Assistant sets how often I talk (or switches me off), my mood, and which fairy I am.
+q How do I put my games on the card?
+a Put them in a folder, for example N64. On the console, open the Folders tab, go into that folder, press Z and choose "Set current directory as default". The Games tab then shows them as covers.
+a To add more folders, open each one on the Folders tab and choose Z, "Add this folder to Games".
+q What do the buttons do?
+a Left and right move along the covers, L and R change tab, and C-up / C-down filter the row.
+a A opens a game's info page, and A there plays it. Z opens Options; hold Z to search by letter. Up and down turn the box over, and holding B lets the stick spin it.
+a START opens Settings. Hold START for a second to save a screenshot.
+q How do I play a game faster?
+a Settings > Console > Controls has Quick Launch (tap A to play, hold A for the info page) and Hold A To Launch (the other way round).
+q Which edition do I have?
+a The Art Edition has box art built into the menu file. The Standard edition is a small download that reads covers from the card's menu/metadata folder.
+a Settings > Console > About > Menu Information shows the version.
+q How do I update the menu?
+a Download the new sc64menu.n64 and copy it over the old one at the top of the card. Your settings, saves and lists stay where they are, in the menu folder and beside your games.
+
+topic Finding games
+q How do the tabs work?
+a L and R step through up to four tabs. Games, Favorites and Folders come first. Settings > Games > Tabs can add Recent, Homebrew, Hacks, Retro, Collections, or any one of your collections.
+a Each tab goes back to the game you left it on.
+q How do I find one game quickly?
+a Hold Z on the covers for the letter dial. Point the stick at a letter and the covers jump there; A adds the letter, so you can spell more, and B takes one away. Let go of Z to stay.
+a Or press Z, "Random game" to let the menu pick for you.
+q What are the filters?
+a C-up and C-down step the Games row through All, USA, Japan, Europe, 64DD and Hacks. With two or more controllers plugged in there's Party too: games for that many players.
+a A step with no games is skipped.
+q How do I sort the games?
+a Settings > Games > Library > Sort By: by name either way, recently played, release date, developer, or recently added (with a New badge for 30 days).
+q What are collections?
+a The Collections tab holds series (all the Zelda games, say) and multiplayer sets, made for you. Your own come first.
+a Press Z on any game and choose "Add to collection..." to make one or add to it. Add the tab in Settings > Games > Tabs.
+q How do I hide a game?
+a Press Z on its cover and choose "Hide this game". It stays on the card and in the Folders tab.
+a To bring it back, press Z on it in the Folders tab, or use Settings > Games > Game Folders > Unhide All Games.
+
+topic Box art and clips
+q Why does a game have no cover?
+a The Art Edition has covers for most N64 games. Others show a plain box.
+a Settings > Games > Game Folders > Find Missing Metadata lists every game lacking art or details in menu/missingart.txt. The Companion's Missing Metadata tab then fills them in from your computer.
+q Where do covers go on the card?
+a In menu/metadata/ and the four letters of the game's code, one folder each: NSME goes in menu/metadata/N/S/M/E/. The front is boxart_front.png.
+a The game's code is in its info page's Details (START). NES, SNES and Game Boy games go in menu/metadata/nes/ (or snes, gb, gbc) and a folder named like the game's file.
+q My own picture doesn't show.
+a Check the name is all lower case and ends .png: the menu reads PNG only.
+a On the Art Edition, built-in covers come first, so a card picture only shows for games without one. For your own art everywhere, use the Standard edition.
+q How do I get title logos and clips?
+a Download the Logos-and-Clips zip from the release and unzip it at the top of the card. The files go into menu/metadata/ beside the box art.
+a Logos work on every console. Clips need the Expansion Pak and play on the info page after a moment (Settings > Look > Game Info > Video Previews).
+q What do the check marks mean?
+a They come from the Companion's Card Prep. A green check: a known good dump. An amber ?: the file differs from it, often harmlessly. A red X: the name marks it a bad dump.
+a Turn them off in Settings > Look > Badges > Dump Check Marks.
+
+topic Themes and looks
+q How do I change the colors?
+a Settings > Look > Theme > Theme picks a built-in look or one of yours. Edit Theme, just below, changes colors, background and pattern right here, and New Theme starts one from scratch.
+q How do I add a theme from my computer?
+a Put it in a folder of its own on the card: menu/themes/My Theme/theme.ini. The folder's name is what the list shows.
+a The Companion's Theme Maker makes the file, and its Sounds tab makes music and button sounds for a theme.
+q How do I make the menu livelier?
+a Settings > Look > Theme > Animations: Showy adds movement everywhere. Snappy keeps the menu quick and plain.
+a Look > Covers and Look > 3D Boxes change how the games are shown, including cartridges instead of boxes.
+q Something looks broken after a change!
+a Hold Z while switching the console on. Safe Mode starts the menu without the theme, your settings and the background picture, and changes nothing on the card. Then fix the setting.
+q What is the bar beside a setting?
+a That setting is changed from how it came. Set it back and the bar goes away.
+
+topic Players and saves
+q Can several people share the console?
+a Yes! Settings > Games > Profiles > New Profile adds a player, up to four. Each has their own saves, Recent, Favorites, play counts, collections and settings.
+a With two or more, the menu asks "Who's playing?" at power-on.
+q Where are my saves?
+a In a saves folder beside your games, as before. Other players' saves sit in a folder of their own inside it, so a new player starts every game fresh.
+a Deleting a profile leaves its saves on the card.
+q I lost my save! Can I get it back?
+a Maybe! Before a game starts, the menu keeps a dated copy of its save in saves/backups/: five per game, never the same one twice.
+a On the game's info page, press R for Options and choose "Restore save". The save you have now is kept too.
+q How is time played counted?
+a From starting a game until the menu comes back: by RESET, or by the power switch if the console is back on within 4 hours. It shows in the Played box on the info page.
+q How do I take screenshots and clips?
+a Hold START for a second: the screen is saved in menu/screenshots/. If START switches your controller off, Settings > Console > Screenshots > Screenshot Button can use L + R.
+a For a clip, Settings > Console > Clips > Record Clip. The Companion's Clips tab turns it into a GIF.
+q How do I manage a Controller Pak?
+a Settings > Console > Tools > Controller Pak Manager backs its notes up to the card, restores them, deletes one or formats the Pak.
+
+topic Hacks, homebrew
+q How does the menu spot ROM hacks?
+a By the file name ("hack", "redux") and by files sharing a game's code. They get an orange Hack badge and their own filter step.
+a If it gets one wrong, press Z on it: "Mark as ROM hack" or "Remove from Hacks". A folder can be marked as holding hacks from the Folders tab.
+q Can hacks share the original's cover?
+a Yes: Settings > Games > Library > Game Versions: Grouped. A on the cover then lists every version to pick from.
+q Can a hack have its own cover?
+a Yes. The Companion's Hacks tab gives a hack a code of its own (it writes menu/hacks.txt), so it can have its own art and details. It also suggests known hacks.
+q Where's my homebrew?
+a Homebrew is spotted by its game code. Add the Homebrew tab in Settings > Games > Tabs.
+a If one is missed, press Z on it: "Mark as homebrew". Settings > Games > Library can keep homebrew and hacks off the Games tab.
+
+topic 64DD and more
+q How do I play 64DD disks?
+a Put the .ndd files in a folder and add it to Games. They show under the 64DD filter step.
+a A disk that adds to a cartridge game (F-Zero X's Expansion Kit) pairs with it by itself when the cartridge is in a Games folder. Z on the disk picks a cartridge by hand.
+q How do I use cheats?
+a They need the Expansion Pak. The Companion's Cheats tab writes a game's codes to a .datel file beside it.
+a Then press Z on the game's info page: a list of its cheats to switch on and off. They run from the start.
+q A cheat doesn't work.
+a Keep the list's enable code on ("Must be on"). Codes for another region or version usually don't work: pick the list matching your copy. Some homebrew can't take cheats at all.
+q Can I play NES, SNES, Game Boy?
+a Yes, with emulators: put them in menu/emulators/ on the card (neon64bu.rom for NES, sodium64.z64 for SNES, gb.v64 and gbc.v64 for Game Boy).
+a Put the games in a Games folder and add the Retro tab in Settings > Games > Tabs. Their art goes in menu/metadata/nes/ (or snes, gb, gbc).
+
+topic Trouble
+q The menu says "Watchdog timeout".
+a The cart has to read the whole menu file within five seconds. A fragmented or badly formatted card is too slow: back it up, reformat it (FAT32 or exFAT), and copy everything back.
+a The Standard edition is much smaller, if that doesn't help.
+q A game won't start.
+a Some games need the Expansion Pak (Majora's Mask, Donkey Kong 64, most of Perfect Dark); the menu warns first. Otherwise try another copy: an amber ? from Card Prep means it differs from the known good dump.
+q Something is missing on my console.
+a Without the Expansion Pak, the menu leaves extras out rather than run out of memory, such as art on the side covers. Settings > Console > Tools > Memory says what.
+a Settings > Console > TV & Video > Character Set: Latin Only frees the most.
+q The picture flickers or looks soft.
+a Settings > Console > TV & Video > Video Output: 240p is steadier on CRTs and upscalers, 480i sharper. It applies after a restart.
+q How do I report a problem?
+a Open an issue on the project's GitHub page: the form asks for your setup. A photo of the screen and the debug log (from the cart's sc64deployer) help the most.

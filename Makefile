@@ -84,6 +84,7 @@ SRCS = \
 	menu/sound.c \
 	menu/animations.c \
 	menu/assistant.c \
+	menu/assistant_ask.c \
 	menu/avatars.c \
 	menu/avatar_pick.c \
 	menu/art_trim.c \
@@ -282,6 +283,12 @@ $(BUILD_DIR)/$(PROJECT_NAME).dfs: $(wildcard $(FILESYSTEM_DIR)/meta)
 # Genre, players and play modes per game code (assets/data/make_game_data.py).
 $(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM_DIR)/gamedata.txt
 $(FILESYSTEM_DIR)/gamedata.txt: $(ASSETS_DIR)/data/gamedata.txt
+	@echo "    [DATA] $@"
+	@cp "$<" $@
+
+# The assistant's questions and answers (Settings > Look > Assistant > Ask a Question).
+$(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM_DIR)/ask.txt
+$(FILESYSTEM_DIR)/ask.txt: $(ASSETS_DIR)/data/ask.txt
 	@echo "    [DATA] $@"
 	@cp "$<" $@
 

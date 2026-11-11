@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "../assistant.h"
+#include "../assistant_ask.h"
 #include "../fonts.h"
 #include "../folder_memory.h"
 #include "../font_choice.h"
@@ -149,6 +150,16 @@ static void apply_theme (menu_t *menu) {
 }
 
 static const char *notice;  /* a note over Settings: defined with the profile rows below */
+
+static void open_ask (menu_t *menu) {
+    (void) menu;
+    assistant_ask_open(false);
+}
+
+static const char *ask_info (menu_t *menu) {
+    (void) menu;
+    return assistant_name();    /* who answers */
+}
 
 static void reset_assistant (menu_t *menu) {
     (void) menu;
@@ -433,6 +444,8 @@ static const item_t assistant_items[] = {
         "Eager is cheerful and keen to help. Snarky gives the same advice with an attitude."),
     CHOICES("Assistant Character", OPTION_ASSISTANT_SKIN, ASSISTANT_SKIN_COUNT, assistant_skin_name, NULL,
         "Which fairy the assistant is: Spark, the menu's own, or another one built into the menu. A fairy talks about its own games when you rest on them."),
+    ACTION_INFO("Ask a Question", open_ask, ask_info,
+        "Questions about the menu, answered by the assistant: getting started, finding games, box art, themes, saves, hacks, 64DD, cheats and trouble. Works with the assistant on or off."),
     ACTION("Reset Assistant Tips", reset_assistant,
         "The assistant says each tip once, and skips tips about things you already use. This lets it say the ones it has said again."),
 };
@@ -813,6 +826,10 @@ static void process (menu_t *menu) {
     }
     if (theme_editor_active()) {
         theme_editor_process(menu);
+        return;
+    }
+    if (assistant_ask_active()) {
+        assistant_ask_process(menu);   /* Look > Assistant > Ask a Question */
         return;
     }
     if (avatar_pick_active()) {
@@ -1294,6 +1311,14 @@ static void draw (menu_t *menu, surface_t *d) {
     if (theme_editor_active()) {
         theme_editor_draw();
         letter_wheel_draw();    // naming the theme
+        debug_stats_overlay_draw();
+        rdpq_detach_show();
+        return;
+    }
+
+    if (assistant_ask_active()) {
+        assistant_ask_draw();
+        animations_draw_late(menu->mode);
         debug_stats_overlay_draw();
         rdpq_detach_show();
         return;
