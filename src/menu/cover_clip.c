@@ -21,7 +21,9 @@ static uint32_t name_seen = 0;      /* the selected game's name: a filter step c
 static uint64_t rest_since = 0;
 static bool looked = false;
 static bool found = false;
-static bool playing = false;     /* video_preview_update() has been called for it since the last rest began */
+static bool playing = false;     /* its clip is in use (loading, playing, or paused while hidden) */
+static bool hidden = false;      /* a press paused it and the cover shows, until it has rested again */
+static uint64_t last_press = 0;  /* the last press seen (animations_last_press_ms()) */
 static char clip_path[256];
 
 const char *cover_clip_name (int choice) {
@@ -33,11 +35,15 @@ static bool wanted (void) {
     return options_get(OPTION_COVER_CLIPS) != 0;
 }
 
-/* Any button held down (B to turn the box, a direction held): not resting. */
+/* Any button but Z held down (B to turn the box, a direction held): not resting. */
 static bool buttons_held (void) {
     for (int port = 0; port < 4; port++) {
-        if (joypad_is_connected(port) && joypad_get_buttons(port).raw) {
-            return true;
+        if (joypad_is_connected(port)) {
+            joypad_buttons_t held = joypad_get_buttons(port);
+            held.z = 0;     /* Z opens the Options menu, with the clip playing on */
+            if (held.raw) {
+                return true;
+            }
         }
     }
     return false;
@@ -58,6 +64,7 @@ static bool z_held (void) {
 void cover_clip_reset (void) {
     carousel_art_clip_free();
     playing = false;
+    hidden = false;
     looked = false;
     found = false;
     index_seen = -2;
@@ -104,36 +111,34 @@ void cover_clip_after_draw (menu_t *menu) {
     const cover_list_t *covers = cover_list_current(menu);
     int selected = covers->selected;
 
-    /* Another game: its clip stops and is freed. A press or a button held
-       (same game): the rest starts again, and a clip that was showing hides
-       (the cover is back at once) and waits where it was, for the rest to
-       bring it back or for Game info to carry it on. */
+    /* Another game: its clip stops and is freed. Z, and anything pressed
+       while the Options menu or another pop-up is open: the clip plays on.
+       Another press or a button held (same game): the rest starts again,
+       and a clip that was showing hides (the cover is back at once) and
+       waits where it was, for the rest to bring it back or for Game info
+       to carry it on. */
     uint32_t name = (selected >= 0 && selected < covers->entries) ? name_hash(covers->list[selected].name) : 0;
     bool moved = (selected != index_seen || (const void *) covers->list != list_seen || name != name_seen);
     uint64_t pressed = animations_last_press_ms();
+    bool new_press = (pressed != last_press);
+    last_press = pressed;
+    bool menu_open = z_held() || animations_popup_up();
     if (moved) {
         if (playing) {
             video_preview_stop();
             carousel_art_clip_free();
             playing = false;
         }
+        hidden = false;
         rest_since = now;
         index_seen = selected;
         list_seen = covers->list;
         name_seen = name;
         looked = false;
         found = false;
-    } else if (z_held() || animations_popup_up()) {
-        /* Z: the Options menu (or, held, the letter dial), and while any
-           pop-up is open: the clip stops. */
-        if (playing) {
-            video_preview_stop();
-            carousel_art_clip_free();
-            playing = false;
-        }
+    } else if (!menu_open && (buttons_held() || new_press)) {
         rest_since = now;
-    } else if (buttons_held() || pressed > rest_since) {
-        rest_since = buttons_held() ? now : pressed;
+        hidden = playing;
     }
 
     if (!looked && wanted() && selected >= 0 && selected < covers->entries && now - rest_since >= LOOK_AFTER_MS) {
@@ -146,9 +151,13 @@ void cover_clip_after_draw (menu_t *menu) {
 
 float cover_clip_frame (menu_t *menu, int index) {
     uint64_t rested = get_ticks_ms() - rest_since;
-    if (!found || !wanted() || index != index_seen || rested < (playing ? RESUME_AFTER_MS : LOOK_AFTER_MS)) {
+    if (!found || !wanted() || index != index_seen) {
         return 1.0f;
     }
+    if (hidden ? rested < RESUME_AFTER_MS : (!playing && rested < LOOK_AFTER_MS)) {
+        return 1.0f;    /* the cover alone: not rested yet, or paused by a press */
+    }
+    hidden = false;
     video_preview_update(clip_path);
     playing = true;
     int w, h;
