@@ -31,6 +31,9 @@ import zipfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ART = os.path.join(ROOT, "filesystem", "art")
 ART_ASIDE = os.path.join(ROOT, "build", "art-set-aside")
+# The assistant's skins (assets/assistant/make_skins.py): Art Edition only, like the covers.
+SKINS = os.path.join(ROOT, "filesystem", "assistant")
+SKINS_ASIDE = os.path.join(ROOT, "build", "assistant-set-aside")
 BUILT = os.path.join(ROOT, "output", "sc64menu.n64")
 PACK_SOURCES = [os.path.join(ROOT, "build", "logos", "menu"), os.path.join(ROOT, "build", "previews", "menu")]
 PACK_NOTICE = """Title logos and preview clips for SummerStation64
@@ -89,6 +92,10 @@ def main():
         if os.path.isdir(ART_ASIDE):
             sys.exit(f"The art is in {ART_ASIDE} from an earlier run that stopped: move it back to {ART} first.")
         sys.exit("No baked art in filesystem/art: run  python3 assets/boxart/make_baked_art.py  first.")
+    if os.path.isdir(SKINS_ASIDE):
+        sys.exit(f"The assistant's skins are in {SKINS_ASIDE} from an earlier run that stopped: move them back to {SKINS} first.")
+    if not os.path.isdir(SKINS):
+        print("Note: no assistant skins baked (filesystem/assistant): the Art Edition has Spark only.")
     changed = subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"], cwd=ROOT,
                              capture_output=True, text=True).stdout.strip()
     if changed:
@@ -100,14 +107,19 @@ def main():
     say("Baking the game details")
     subprocess.run([sys.executable, "assets/boxart/make_baked_meta.py"], cwd=ROOT, check=True)
 
-    say(f"Standard edition (no covers), v{version}")
+    say(f"Standard edition (no covers, no assistant skins), v{version}")
     os.rename(ART, ART_ASIDE)
+    skins = os.path.isdir(SKINS)
+    if skins:
+        os.rename(SKINS, SKINS_ASIDE)
     try:
         build(version)
         with zipfile.ZipFile(standard_zip, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
             z.write(BUILT, "sc64menu.n64")
     finally:
         os.rename(ART_ASIDE, ART)
+        if skins:
+            os.rename(SKINS_ASIDE, SKINS)
 
     say(f"Art Edition (covers built in), v{version}")
     build(version)

@@ -12,6 +12,10 @@ fairy.png: two 40 x 40 pictures side by side (wings up, wings down), full
 color with soft edges (RGBA32 in the menu, 12.5 KB), loaded only while the
 assistant is on screen. A skin's own picture (a fairy of the player's) can
 take its place.
+
+sparkle.png: a 16 x 16 four-pointed star with a soft glow, white in 16
+shades (128 bytes), tinted by the menu: the sparkles where a new line
+sweeps in while the assistant chats (Showy).
 """
 import math
 
@@ -75,3 +79,20 @@ sheet.paste(frame(True), (0, 0))
 sheet.paste(frame(False), (SIZE, 0))
 sheet.save("fairy.png")
 print(f"fairy.png: two {SIZE} x {SIZE} pictures")
+
+
+# The sparkle: a four-pointed star (two thin diamonds crossed) over a soft glow.
+SPARK = 16
+big = SPARK * SCALE
+c = big / 2
+spark = Image.new("L", (big, big), 0)
+sp = spark.load()
+for y in range(big):
+    for x in range(big):
+        dx, dy = abs(x - c) / c, abs(y - c) / c
+        glow = max(0.0, 1.0 - math.hypot(dx, dy) * 1.6) ** 2
+        star = 1.0 if (dx + dy * 6 < 1.0 or dy + dx * 6 < 1.0) else 0.0
+        sp[x, y] = int(255 * min(1.0, star + glow))
+spark = spark.resize((SPARK, SPARK), Image.LANCZOS).point(lambda v: (v // 17) * 17)
+spark.save("sparkle.png")
+print(f"sparkle.png: {SPARK} x {SPARK}")

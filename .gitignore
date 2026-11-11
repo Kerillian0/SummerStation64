@@ -23,6 +23,8 @@
 # Profile pictures the owner bakes in (see assets/profiles/README.md)
 /assets/profiles/source/
 /filesystem/avatars/
+/assets/assistant/source/
+/filesystem/assistant/
 
 # Ignore external development tools
 /tools/*

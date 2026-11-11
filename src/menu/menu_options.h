@@ -48,6 +48,7 @@ typedef enum {
     OPTION_ANIMATIONS,  /**< an animations_t value (see animations.h) */
     OPTION_ASSISTANT,   /**< an assistant_often_t value (see assistant.h) */
     OPTION_ASSISTANT_MOOD, /**< an assistant_mood_t value */
+    OPTION_ASSISTANT_SKIN, /**< 0 Spark, 1 on a baked skin (see assistant.h) */
     OPTION_PARTY_TEST,  /**< hidden, for testing: count this many controllers (see party.h); 0 counts the real ones */
     OPTION_COUNT
 } option_t;

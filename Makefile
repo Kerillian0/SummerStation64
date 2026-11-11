@@ -211,6 +211,7 @@ IMAGES = \
 	cart_back.png \
 	cart_bottom.png \
 	fairy.png \
+	sparkle.png \
 	wordmark.png
 
 # The smallest formats that hold them: 16 colors for the paks, 16 shades for the button disc.
@@ -231,6 +232,7 @@ $(FILESYSTEM_DIR)/cart_bottom.sprite: MKSPRITE_FLAGS=--format RGBA16
 $(FILESYSTEM_DIR)/wordmark.sprite: MKSPRITE_FLAGS=--format RGBA32
 # The assistant's fairy glows: soft edges too.
 $(FILESYSTEM_DIR)/fairy.sprite: MKSPRITE_FLAGS=--format RGBA32
+$(FILESYSTEM_DIR)/sparkle.sprite: MKSPRITE_FLAGS=--format I4
 
 OBJS = $(addprefix $(BUILD_DIR)/, $(addsuffix .o,$(basename $(SRCS))))
 MINIZ_OBJS = $(filter $(BUILD_DIR)/libs/miniz/%.o,$(OBJS))

@@ -27,8 +27,12 @@
 #define FILE_HEADER     "assistant 1"
 
 #define FAIRY_PATH      "rom:/fairy.sprite"
+#define SPARKLE_PATH    "rom:/sparkle.sprite"     /* a 16 px star, tinted (make_fairy.py) */
 #define FAIRY_SIZE      (40)        /* each of its two pictures (wings up, wings down) */
 #define FAIRY_NAME      "Spark"
+#define FAIRY_COLOR     RGBA32(0xFF, 0x7A, 0x6A, 0xFF)  /* its own coral: the edge of its text box */
+#define SWAP_MS         (900)       /* Showy: a new line sweeping in while it stays (420 was too quick to see) */
+#define SPARKLES        (10)
 #define FLAP_MS         (110)
 
 #define FIRST_TALK_MS   (45000)     /* not in the first moments after switching on */
@@ -120,6 +124,136 @@ static const tip_t tips[] = {
 };
 #define TIPS_COUNT  ((int) (sizeof(tips) / sizeof(tips[0])))
 
+/* ---------- skins: other fairies (assets/assistant/README.md) ---------- */
+
+/* Baked into the menu file by assets/assistant/make_skins.py (the Art
+   Edition only): rom:/assistant/list.txt names them, <name>.sprite is the
+   picture (56 x 56, one, turned now and then), <name>.txt its name, color,
+   home games (first three letters of their codes) and lines about them. */
+#define SKINS_MAX       (8)
+#define SKIN_SIZE       (56)
+#define SKIN_LINES      (16)
+#define SKIN_LINE_LENGTH (120)
+#define TURN_EVERY_MS   (1400)      /* a skin faces one way this long, then turns to face the other */
+#define TURN_MS         (220)
+
+static char skin_files[SKINS_MAX][20];
+static char skin_names[SKINS_MAX][24];
+static int skin_count = -1;     /* -1: list not read yet */
+
+static void skins_list (void) {
+    if (skin_count >= 0) {
+        return;
+    }
+    skin_count = 0;
+    FILE *f = fopen("rom:/assistant/list.txt", "r");
+    if (!f) {
+        return;
+    }
+    char line[64];
+    while (skin_count < SKINS_MAX && fgets(line, sizeof(line), f)) {
+        line[strcspn(line, "\r\n")] = '\0';
+        if (!line[0]) {
+            continue;
+        }
+        snprintf(skin_files[skin_count], sizeof(skin_files[0]), "%s", line);
+        snprintf(skin_names[skin_count], sizeof(skin_names[0]), "%s", line);
+        char path[64];
+        snprintf(path, sizeof(path), "rom:/assistant/%s.txt", line);
+        FILE *t = fopen(path, "r");
+        if (t) {
+            char row[160];
+            while (fgets(row, sizeof(row), t)) {
+                if (strncmp(row, "name ", 5) == 0) {
+                    row[strcspn(row, "\r\n")] = '\0';
+                    snprintf(skin_names[skin_count], sizeof(skin_names[0]), "%s", row + 5);
+                    break;
+                }
+            }
+            fclose(t);
+        }
+        skin_count++;
+    }
+    fclose(f);
+}
+
+const char *assistant_skin_name (int choice) {
+    if (choice == 0) {
+        return FAIRY_NAME;
+    }
+    skins_list();
+    return (choice >= 1 && choice <= skin_count) ? skin_names[choice - 1] : "";
+}
+
+/* The skin in use: Spark (choice 0) or one read from its file. */
+static struct {
+    int choice;                 /* -1: not loaded yet */
+    char name[24];
+    color_t color;
+    char games[8][3];
+    int game_count;
+    char eager[SKIN_LINES][SKIN_LINE_LENGTH];
+    int eager_count;
+    char snarky[SKIN_LINES][SKIN_LINE_LENGTH];
+    int snarky_count;
+} skin = { .choice = -1 };
+static int home_next = 0;
+
+static void skin_load (void) {
+    int choice = options_get(OPTION_ASSISTANT_SKIN);
+    skins_list();
+    if (choice < 0 || choice > skin_count) {
+        choice = 0;     /* a skin no longer in the menu file */
+    }
+    if (choice == skin.choice) {
+        return;
+    }
+    memset(&skin, 0, sizeof(skin));
+    skin.choice = choice;
+    snprintf(skin.name, sizeof(skin.name), "%s", FAIRY_NAME);
+    skin.color = FAIRY_COLOR;
+    if (choice == 0) {
+        return;
+    }
+    snprintf(skin.name, sizeof(skin.name), "%s", skin_names[choice - 1]);
+    char path[64];
+    snprintf(path, sizeof(path), "rom:/assistant/%s.txt", skin_files[choice - 1]);
+    FILE *f = fopen(path, "r");
+    if (!f) {
+        return;
+    }
+    char row[SKIN_LINE_LENGTH + 8];
+    while (fgets(row, sizeof(row), f)) {
+        row[strcspn(row, "\r\n")] = '\0';
+        unsigned int rgb;
+        if (sscanf(row, "color %x", &rgb) == 1) {
+            skin.color = RGBA32((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF, 0xFF);
+        } else if (strncmp(row, "games ", 6) == 0) {
+            for (char *code = strtok(row + 6, " "); code && skin.game_count < 8; code = strtok(NULL, " ")) {
+                if (strlen(code) >= 3) {
+                    memcpy(skin.games[skin.game_count++], code, 3);
+                }
+            }
+        } else if (strncmp(row, "e ", 2) == 0 && skin.eager_count < SKIN_LINES) {
+            snprintf(skin.eager[skin.eager_count++], SKIN_LINE_LENGTH, "%s", row + 2);
+        } else if (strncmp(row, "s ", 2) == 0 && skin.snarky_count < SKIN_LINES) {
+            snprintf(skin.snarky[skin.snarky_count++], SKIN_LINE_LENGTH, "%s", row + 2);
+        }
+    }
+    fclose(f);
+    debugf("assistant: skin %s, %d games, %d + %d lines\n", skin.name, skin.game_count, skin.eager_count, skin.snarky_count);
+}
+
+/* Is this game one of the skin's own (by the first three letters of its code)? */
+static bool skin_home (const char *code) {
+    for (int i = 0; code && code[0] && i < skin.game_count; i++) {
+        if (memcmp(skin.games[i], code, 3) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 /* ---------- the player's file ---------- */
 
 static int loaded_for = -1;     /* profiles_generation() */
@@ -193,7 +327,11 @@ static uint64_t last_talk_ms = 0;
 static int talk_screen = -1;                /* the screen it is talking on */
 static rdpq_paragraph_t *words = NULL;     /* what it is saying, laid out once */
 static int words_height = 0;
+static rdpq_paragraph_t *old_words = NULL; /* Showy: the line before, sweeping away */
+static int old_height = 0;
+static uint64_t swap_since = 0;
 static sprite_t *fairy = NULL;
+static sprite_t *sparkle = NULL;
 static int next_tip = 0;                    /* where to start looking, so tips take turns */
 static int saying_tip = -1;                 /* the tip being said: counted as said once it is talking */
 static uint32_t saying_bits = 0;            /* the milestones being said: the same */
@@ -240,9 +378,17 @@ static void let_go (void) {
         rdpq_paragraph_free(words);
         words = NULL;
     }
+    if (old_words) {
+        rdpq_paragraph_free(old_words);
+        old_words = NULL;
+    }
     if (fairy) {
         sprite_free(fairy);
         fairy = NULL;
+    }
+    if (sparkle) {
+        sprite_free(sparkle);
+        sparkle = NULL;
     }
     state = QUIET;
 }
@@ -263,13 +409,21 @@ static int band_text_width (void) {
 }
 
 /* Lay out what it says, in the band's width: its name in orange first. */
-static void set_words (const char *message) {
-    if (words) {
+static void set_words (const char *message, bool swap) {
+    if (old_words) {
+        rdpq_paragraph_free(old_words);
+        old_words = NULL;
+    }
+    if (words && swap && animations_showy()) {
+        old_words = words;      /* swept away as the new line comes in */
+        old_height = words_height;
+        swap_since = get_ticks_ms();
+    } else if (words) {
         rdpq_paragraph_free(words);
     }
     /* Its name in orange first, then what it says. */
     char text[TEXT_LENGTH + 32];
-    snprintf(text, sizeof(text), "^%02X%s:^00 %s", STL_ORANGE, FAIRY_NAME, message);
+    snprintf(text, sizeof(text), "^%02X%s:^00 %s", STL_ORANGE, skin.name, message);
     int bytes = strlen(text);
     words = rdpq_paragraph_build(&(rdpq_textparms_t) {
         .width = band_text_width(),
@@ -281,10 +435,18 @@ static void set_words (const char *message) {
 }
 
 static void say (const char *message) {
+    skin_load();
     if (!fairy) {
-        fairy = sprite_load(FAIRY_PATH);
+        if (skin.choice > 0) {
+            char path[64];
+            snprintf(path, sizeof(path), "rom:/assistant/%s.sprite", skin_files[skin.choice - 1]);
+            fairy = sprite_load(path);
+        } else {
+            fairy = sprite_load(FAIRY_PATH);
+        }
+        sparkle = sprite_load(SPARKLE_PATH);
     }
-    set_words(message);
+    set_words(message, false);
     state = ARRIVING;
     state_since = get_ticks_ms();
 }
@@ -494,6 +656,8 @@ static bool unplayed_check (menu_t *menu) {
    seconds, until a button is pressed: about the game it is resting on, a
    joke, a look at the play stats, or a tip (said before or not). */
 #define LINGER_AFTER_MS (60000)
+#define HOME_QUIET_MS   (2500)      /* resting on the skin's own game this long */
+#define HOME_GAP_MS     (45000)     /* and this long after anything else said */
 #define LINGER_SAY_MS   (8000)
 
 static bool lingering = false;
@@ -544,15 +708,20 @@ static const genre_line_t genre_lines[] = {
 };
 
 /* The game the screen is on: its name, path and what the table knows. */
+static char code_here[5];     /* game_here(): the game's code, "" if not known */
+
 static bool game_here (menu_t *menu, char *name, size_t name_size, char *path_out, size_t path_size, const game_data_t **data) {
     *data = NULL;
+    code_here[0] = '\0';
     if (menu->mode == MENU_MODE_LOAD_ROM) {
         if (!menu->load.rom_path) {
             return false;
         }
         snprintf(path_out, path_size, "%s", path_get(menu->load.rom_path));
         game_name(path_out, name, name_size);
-        *data = game_data_find(menu->load.rom_info.game_code);
+        memcpy(code_here, menu->load.rom_info.game_code, 4);
+        code_here[4] = '\0';
+        *data = game_data_find(code_here);
         return true;
     }
     const cover_list_t *covers = cover_list_current(menu);
@@ -568,7 +737,22 @@ static bool game_here (menu_t *menu, char *name, size_t name_size, char *path_ou
     path_free(path);
     snprintf(name, name_size, "%s", display_name(entry));
     const game_index_entry_t *known = game_index_find(path_out, (covers->list == menu->browser.list) ? entry->size : 0);
+    if (known) {
+        memcpy(code_here, known->code, 4);
+        code_here[4] = '\0';
+    }
     *data = known ? game_data_find(known->code) : NULL;
+    return true;
+}
+
+/* One of the skin's lines about its own game, in the mood chosen. */
+static bool home_line (char *out, size_t size) {
+    int count = snarky() ? skin.snarky_count : skin.eager_count;
+    if (count == 0) {
+        return false;
+    }
+    snprintf(out, size, "%s", snarky() ? skin.snarky[home_next % count] : skin.eager[home_next % count]);
+    home_next++;
     return true;
 }
 
@@ -578,6 +762,14 @@ static bool line_game (menu_t *menu, char *out, size_t size) {
     const game_data_t *data;
     if (!game_here(menu, name, sizeof(name), path, sizeof(path), &data)) {
         return false;
+    }
+    /* The skin's own game: every other time, one of its lines about it. */
+    static bool home_turn = true;
+    if (skin_home(code_here)) {
+        home_turn = !home_turn;
+        if (!home_turn && home_line(out, size)) {
+            return true;
+        }
     }
     for (int k = 0; k < 3; k++) {
         int which = (game_next + k) % 3;
@@ -719,7 +911,8 @@ void assistant_update (menu_t *menu) {
     uint64_t now = get_ticks_ms();
 
     if (state != QUIET) {
-        if (often == ASSISTANT_OFF || menu->mode != talk_screen || (in_corner() && !screen_is(menu, WHERE_COVERS))) {
+        if (often == ASSISTANT_OFF || menu->mode != talk_screen || (in_corner() && !screen_is(menu, WHERE_COVERS))
+            || options_get(OPTION_ASSISTANT_SKIN) != skin.choice) {
             let_go();   /* switched off, or the player has moved to another screen */
             return;
         }
@@ -741,7 +934,7 @@ void assistant_update (menu_t *menu) {
                 char text[TEXT_LENGTH];
                 linger_line(menu, text, sizeof(text));
                 lingering = true;
-                set_words(text);
+                set_words(text, true);
                 state_since = now;
                 debugf("assistant: %s\n", text);
             } else {
@@ -790,6 +983,41 @@ void assistant_update (menu_t *menu) {
         pending_count--;
         memmove(&pending[0], &pending[1], sizeof(pending[0]) * pending_count);
         return;
+    }
+
+    /* Resting on the skin's own game: a word about it, once per game while
+       the console is on, not too soon after anything else. */
+    skin_load();
+    if (skin.game_count > 0 && quiet >= HOME_QUIET_MS && !animations_popup_up()
+        && (!last_talk_ms || now - last_talk_ms >= HOME_GAP_MS)) {
+        static int checked_selected = -2;
+        static const void *checked_list = NULL;
+        static uint32_t said_key = 0;
+        const cover_list_t *covers = cover_list_current(menu);
+        const void *list = (menu->mode == MENU_MODE_LOAD_ROM) ? (const void *) menu->load.rom_path : (const void *) covers->list;
+        int selected = (menu->mode == MENU_MODE_LOAD_ROM) ? -1 : covers->selected;
+        if (selected != checked_selected || list != checked_list) {
+            checked_selected = selected;
+            checked_list = list;
+            char name[96], path[256], text[TEXT_LENGTH];
+            const game_data_t *data;
+            if (game_here(menu, name, sizeof(name), path, sizeof(path), &data) && skin_home(code_here)) {
+                uint32_t key = 2166136261u;
+                for (const unsigned char *c = (const unsigned char *) path; *c; c++) {
+                    key = (key ^ *c) * 16777619u;
+                }
+                if (key != said_key && home_line(text, sizeof(text))) {
+                    said_key = key;
+                    saying_tip = -1;
+                    saying_bits = 0;
+                    last_talk_ms = now;
+                    talk_screen = menu->mode;
+                    say(text);
+                    debugf("assistant: home game, %s\n", text);
+                    return;
+                }
+            }
+        }
     }
 
     /* Idle for a minute: come and stay. */
@@ -845,7 +1073,8 @@ void assistant_draw (menu_t *menu) {
     /* The band: the hints' place, grown upward if the words need a third line. */
     int bx0, by0, bx1, by1;
     games_ui_hints_rect(&bx0, &by0, &bx1, &by1);
-    int words_needed = words_height + (BAND_PAD * 2) - 4;
+    int tallest = (old_words && old_height > words_height) ? old_height : words_height;
+    int words_needed = tallest + (BAND_PAD * 2) - 4;
     if (by1 - by0 < words_needed) {
         by0 = (by1 - words_needed) & ~1;
     }
@@ -872,25 +1101,86 @@ void assistant_draw (menu_t *menu) {
     /* The words, in the band, while it talks: the hints under it are covered. */
     if (state == TALKING) {
         const theme_t *th = theme_get();
-        games_ui_round_fill(bx0 - 2, by0 - 2, bx1 + 2, by1 + 2, th->accent);
+        games_ui_round_fill(bx0 - 2, by0 - 2, bx1 + 2, by1 + 2, skin.color);
         games_ui_round_fill(bx0, by0, bx1, by1, RGBA32(th->panel.r, th->panel.g, th->panel.b, 0xFF));
-        int text_y = by0 + ((by1 - by0) - words_height) / 2;
-        rdpq_paragraph_render(words, bx0 + BAND_PAD, text_y & ~1);
+        int text_y = (by0 + ((by1 - by0) - words_height) / 2) & ~1;
+        float swap = old_words ? animations_progress(swap_since, SWAP_MS) : 1.0f;
+        if (swap >= 1.0f) {
+            if (old_words) {
+                rdpq_paragraph_free(old_words);
+                old_words = NULL;
+            }
+            rdpq_paragraph_render(words, bx0 + BAND_PAD, text_y);
+        } else {
+            /* Showy: the old line slides away left as the new one sweeps
+               in from the right, with sparkles where the two meet. */
+            float e = ease_out(swap);
+            int width = bx1 - bx0;
+            int edge = (int) ((1.0f - e) * width) & ~1;
+            int old_y = (by0 + ((by1 - by0) - old_height) / 2) & ~1;
+            rdpq_set_scissor(bx0 + 2, by0, bx1 - 2, by1);
+            rdpq_paragraph_render(old_words, bx0 + BAND_PAD - ((width - edge) & ~1), old_y);
+            rdpq_paragraph_render(words, bx0 + BAND_PAD + edge, text_y);
+            /* Little stars, white and the fairy's colour in turn, twinkling
+               along the edge and fading as the new line settles. */
+            rdpq_mode_push();
+                rdpq_set_mode_standard();
+                rdpq_mode_combiner(RDPQ_COMBINER1((0,0,0,PRIM), (TEX0,0,PRIM,0)));
+                rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+                rdpq_mode_filter(FILTER_BILINEAR);
+                uint8_t fade = (uint8_t) (255.0f * (1.0f - swap * swap));
+                for (int i = 0; i < SPARKLES; i++) {
+                    color_t tint = (i & 1) ? skin.color : RGBA32(0xFF, 0xFF, 0xFF, 0xFF);
+                    rdpq_set_prim_color(RGBA32(tint.r, tint.g, tint.b, fade));
+                    float twinkle = 0.65f + 0.35f * sinf((float) now * 0.03f + i * 1.7f);
+                    float size = (8 + (i * 29) % 7) * twinkle;
+                    int sx = bx0 + edge + ((i * 53) % 32) - 16;
+                    int sy = by0 + 4 + (i * 37) % ((by1 - by0) - 8);
+                    float k = size / 16.0f;
+                    rdpq_sprite_blit(sparkle, sx - (int) (size / 2), sy - (int) (size / 2), &(rdpq_blitparms_t) {
+                        .scale_x = k,
+                        .scale_y = k,
+                    });
+                }
+            rdpq_mode_pop();
+            rdpq_set_scissor(0, 0, display_get_width(), display_get_height());
+        }
     }
 
-    /* The fairy, its wings flapping: two pictures side by side, drawn larger. */
-    int frame = (int) ((now / FLAP_MS) % 2);
-    float scale = (in_corner() ? FAIRY_DRAW : FAIRY_SIZE) / (float) FAIRY_SIZE;
-    int size = (int) (FAIRY_SIZE * scale);
     rdpq_mode_push();
         rdpq_set_mode_standard();
         rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
         rdpq_mode_filter(FILTER_BILINEAR);
-        rdpq_sprite_blit(fairy, (int) x - size / 2, (int) y - size / 2, &(rdpq_blitparms_t) {
-            .s0 = frame * FAIRY_SIZE,
-            .width = FAIRY_SIZE,
-            .scale_x = scale,
-            .scale_y = scale,
-        });
+        if (skin.choice > 0) {
+            /* A skin has one picture: it faces one way, then turns (squashed
+               through the middle, like a coin) to face the other, and back. */
+            int size = in_corner() ? FAIRY_DRAW : 44;
+            float scale = (float) size / SKIN_SIZE;
+            int cycle = (int) (now % (2 * (TURN_EVERY_MS + TURN_MS)));
+            int half = TURN_EVERY_MS + TURN_MS;
+            int phase = cycle % half;
+            float facing = (phase < TURN_EVERY_MS) ? 1.0f : cosf((float) M_PI * (phase - TURN_EVERY_MS) / TURN_MS);
+            if (cycle >= half) {
+                facing = -facing;
+            }
+            float across = fabsf(facing) < 0.06f ? 0.06f : fabsf(facing);
+            int width = (int) (size * across);
+            rdpq_sprite_blit(fairy, (int) x - width / 2, (int) y - size / 2, &(rdpq_blitparms_t) {
+                .scale_x = scale * across,
+                .scale_y = scale,
+                .flip_x = facing < 0.0f,
+            });
+        } else {
+            /* Spark, its wings flapping: two pictures side by side, drawn larger. */
+            int frame = (int) ((now / FLAP_MS) % 2);
+            float scale = (in_corner() ? FAIRY_DRAW : FAIRY_SIZE) / (float) FAIRY_SIZE;
+            int size = (int) (FAIRY_SIZE * scale);
+            rdpq_sprite_blit(fairy, (int) x - size / 2, (int) y - size / 2, &(rdpq_blitparms_t) {
+                .s0 = frame * FAIRY_SIZE,
+                .width = FAIRY_SIZE,
+                .scale_x = scale,
+                .scale_y = scale,
+            });
+        }
     rdpq_mode_pop();
 }

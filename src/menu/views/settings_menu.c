@@ -248,6 +248,8 @@ static const item_t display_items[] = {
         "A fairy that flies in now and then with a tip, a joke or a word about your games. Leave the menu alone for a minute and it stays to chat. Any button sends it away. Rarely, Now and Then or Chatty: how often it comes by itself. Off: never."),
     CHOICES("Assistant Mood", OPTION_ASSISTANT_MOOD, ASSISTANT_MOOD_COUNT, assistant_mood_name, NULL,
         "Eager is cheerful and keen to help. Snarky gives the same advice with an attitude."),
+    CHOICES("Assistant Character", OPTION_ASSISTANT_SKIN, ASSISTANT_SKIN_COUNT, assistant_skin_name, NULL,
+        "Which fairy the assistant is: Spark, the menu's own, or another one built into the menu. A fairy talks about its own games when you rest on them."),
     ACTION("Reset Assistant Tips", reset_assistant,
         "The assistant says each tip once, and skips tips about things you already use. This lets it say the ones it has said again."),
     FEATURE("Cover Slide", FEATURE_CAROUSEL_ANIMATION, "Covers slide into place when you move left or right."),

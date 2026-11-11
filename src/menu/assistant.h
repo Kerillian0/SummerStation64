@@ -43,6 +43,11 @@ typedef enum {
 const char *assistant_often_name (int choice);
 const char *assistant_mood_name (int choice);
 
+/** The fairies to choose from: 0 is Spark, the menu's own; 1 on, the skins
+ *  baked into the menu file ("" past the last). */
+#define ASSISTANT_SKIN_COUNT    (9)
+const char *assistant_skin_name (int choice);
+
 /** The player has used one of the features the tips suggest. */
 void assistant_note_used (assistant_used_t what);
 
