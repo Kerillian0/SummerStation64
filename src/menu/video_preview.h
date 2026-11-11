@@ -97,6 +97,16 @@ float video_preview_fade (void);
  */
 void video_preview_carry_on (const char *path);
 
+/** Whether this clip is playing now with a picture to show (carried on from a cover). */
+bool video_preview_playing (const char *path);
+
+/**
+ * Draw the clip's picture stretched into x, y, w, h, for a box that moves or
+ * changes size every frame (Game info's flight): drawn into a picture of
+ * the clip's own size first, so nothing is recorded again per frame.
+ */
+bool video_preview_draw_moving (int x, int y, int w, int h);
+
 /** Decode a little ahead. Call while the menu waits for the next frame. */
 void video_preview_poll (void);
 

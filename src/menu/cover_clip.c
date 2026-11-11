@@ -46,6 +46,15 @@ static bool buttons_held (void) {
 /* Leaving the covers doesn't stop the clip: Game info for this game carries
    it on (video_preview_carry_on()); otherwise video_preview.c frees it once
    no screen has shown it for 4 seconds. */
+static bool z_held (void) {
+    for (int port = 0; port < 4; port++) {
+        if (joypad_is_connected(port) && joypad_get_buttons(port).z) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void cover_clip_reset (void) {
     carousel_art_clip_free();
     playing = false;
@@ -114,6 +123,15 @@ void cover_clip_after_draw (menu_t *menu) {
         name_seen = name;
         looked = false;
         found = false;
+    } else if (z_held() || animations_popup_up()) {
+        /* Z: the Options menu (or, held, the letter dial), and while any
+           pop-up is open: the clip stops. */
+        if (playing) {
+            video_preview_stop();
+            carousel_art_clip_free();
+            playing = false;
+        }
+        rest_since = now;
     } else if (buttons_held() || pressed > rest_since) {
         rest_since = buttons_held() ? now : pressed;
     }

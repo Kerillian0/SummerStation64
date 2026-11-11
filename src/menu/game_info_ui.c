@@ -270,6 +270,25 @@ static void draw_cover (surface_t *image) {
    then, and for games without one, the cover. */
 static void draw_cover_or_clip (surface_t *image, const char *clip) {
     int w, h;
+    /* Showy, the clip carried on from its cover: the clip itself flies in,
+       from the cover's place on the row to its place here. */
+    float fly = fly_progress();
+    if (fly < 1.0f && clip && video_preview_playing(clip)) {
+        video_preview_update(clip);
+        if (video_preview_fit(COVER_WIDTH, COVER_HEIGHT, &w, &h)) {
+            int tx = COVER_X + (COVER_WIDTH - w) / 2, ty = COVER_Y + (COVER_HEIGHT - h) / 2;
+            float e = animations_ease_out(fly);
+            int from_w = fly_from[2] - fly_from[0], from_h = fly_from[3] - fly_from[1];
+            int x = fly_from[0] + (int) ((tx - fly_from[0]) * e);
+            int y = fly_from[1] + (int) ((ty - fly_from[1]) * e);
+            int fw = from_w + (int) ((w - from_w) * e);
+            int fh = from_h + (int) ((h - from_h) * e);
+            fill(x - 3, y - 3, x + fw + 3, y + fh + 3, cover_ring_color());
+            if (video_preview_draw_moving(x, y, fw, fh)) {
+                return;
+            }
+        }
+    }
     if (clip) {
         video_preview_update(clip);
     }
@@ -715,7 +734,7 @@ void game_info_ui_draw (menu_t *menu, component_boxart_t *art, const game_info_v
     }
     /* The clip goes with the front cover: on the game's other pictures it
        waits, and carries on when the front comes back. */
-    draw_cover_or_clip(image, (view->front_picture && fly_progress() >= 1.0f) ? view->clip : NULL);
+    draw_cover_or_clip(image, (view->front_picture && (fly_progress() >= 1.0f || video_preview_playing(view->clip))) ? view->clip : NULL);   /* a new clip waits for the landing; one carried on flies in */
 
     /* The genre, when it came out and who made it, above the title: the
        developer last, so a long name is what gets cut short, not the date. */

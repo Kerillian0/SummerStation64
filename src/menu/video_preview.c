@@ -75,6 +75,7 @@ static video_preview_stats_t stats;
 
 static yuv_blitter_t blitter = { 0 };
 static int blit_x = -1, blit_y = -1, blit_w = -1, blit_h = -1;
+static surface_t moving = { 0 };    /* video_preview_draw_moving(): the picture, at the clip's own size, then stretched */
 static bool carry_on = false;       /* handed from a cover to Game info: carry on without fading in again */
 static yuv_blitter_t fill_blitter = { 0 };     /* video_preview_render(): the clip cropped to fill a picture */
 static int fill_w = -1, fill_h = -1;
@@ -274,6 +275,10 @@ static void free_playback (void) {
         yuv_blitter_free(&fill_blitter);
         fill_blitter.block = NULL;
         fill_w = fill_h = -1;
+    }
+    if (moving.buffer) {
+        surface_free(&moving);
+        moving = (surface_t) { 0 };
     }
     if (video) {
         video_close(video);
@@ -664,6 +669,35 @@ bool video_preview_showing (void) {
        to read it in (about 25 ms against 6), and it starts as soon as before. */
     bool busy = (state == VP_LOADING || state == VP_WAITING || (state == VP_PLAYING && video));
     return busy && (get_ticks_ms() - last_update_ms) <= AWAY_MS;
+}
+
+bool video_preview_playing (const char *path) {
+    return path && path[0] && state == VP_PLAYING && have_frame && strcmp(path, want_path) == 0;
+}
+
+bool video_preview_draw_moving (int x, int y, int w, int h) {
+    if (state != VP_PLAYING || !have_frame || w < 4 || h < 4) {
+        return false;
+    }
+    if (!moving.buffer) {
+        moving = surface_alloc(FMT_RGBA16, info.width, info.height);   /* about 55 KB for 192 x 144 */
+        if (!moving.buffer) {
+            return false;
+        }
+    }
+    if (!video_preview_render(&moving, NULL, 0.0f)) {
+        return false;
+    }
+    rdpq_mode_push();
+        rdpq_set_mode_standard();
+        rdpq_mode_filter(FILTER_BILINEAR);
+        rdpq_mode_combiner(RDPQ_COMBINER_TEX);
+        rdpq_tex_blit(&moving, x, y, &(rdpq_blitparms_t) {
+            .scale_x = w / (float) moving.width,
+            .scale_y = h / (float) moving.height,
+        });
+    rdpq_mode_pop();
+    return true;
 }
 
 void video_preview_carry_on (const char *path) {
