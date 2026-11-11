@@ -5,7 +5,6 @@
 
 #include <libdragon.h>
 
-#include "assistant.h"
 #include "animations.h"
 #include "avatars.h"
 #include "profiles.h"
@@ -275,9 +274,7 @@ void games_ui_topbar_draw (menu_t *menu, games_tab_t selected) {
         if (player_shown()) {
             player_draw();
         }
-        if (assistant_in_corner()) {
-            /* the assistant's fairy is in this corner while it talks (assistant.h) */
-        } else if (ports_shown()) {
+        if (ports_shown()) {
             controller_marks_draw();
         } else if (features_enabled(FEATURE_MEMORY_BADGE)) {
             memory_badge_draw();

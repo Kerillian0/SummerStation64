@@ -48,11 +48,10 @@
    (the right cover's top is at y 128, less its 4 px float); its words take
    the band of button hints at the bottom while it talks. On Game info,
    where the cover fills that corner, it sits at the band's right end. */
-#define FAIRY_DRAW      (52)        /* drawn this size, from its 40 px pictures */
-#define CORNER_X        (VISIBLE_AREA_X1 - 16 - 30)    /* its middle: the badge's place, inside the safe area */
-#define CORNER_Y        (GAMES_UI_TOPBAR_BOTTOM + 34)  /* bob and all, clear of the covers below */
+#define PERCH_SIZE      (42)        /* drawn this size */
+#define PERCH_X         (GAMES_UI_CONTENT_X1 + 22) /* its middle: right of the title panel and position bar (they end at 560) */
+#define PERCH_ABOVE     (8)         /* its middle this far above the band's top edge: perched on its corner */
 #define BAND_PAD        (12)
-#define BAND_FAIRY_ROOM (60)        /* Game info: the band's right end, kept for the fairy */
 #define TEXT_LENGTH     (200)
 
 /* ---------- what it says ---------- */
@@ -419,19 +418,12 @@ static void let_go (void) {
     state = QUIET;
 }
 
-static bool in_corner (void) {
-    return talk_screen != MENU_MODE_LOAD_ROM;
-}
-
-bool assistant_in_corner (void) {
-    return state != QUIET && in_corner();
-}
 
 /* The text's width in the band. */
 static int band_text_width (void) {
     int x0, y0, x1, y1;
     games_ui_hints_rect(&x0, &y0, &x1, &y1);
-    return (x1 - x0) - (BAND_PAD * 2) - (in_corner() ? 0 : BAND_FAIRY_ROOM);
+    return (x1 - x0) - (BAND_PAD * 2);
 }
 
 /* Lay out what it says, in the band's width: its name in orange first. */
@@ -497,6 +489,7 @@ static const int game_marks[] = { 10, 25, 50, 100 };
 static struct {
     char text[TEXT_LENGTH];
     uint32_t bits;          /* milestones it says (marked once it is talking) */
+    uint64_t not_before;    /* 0: a welcome, said first; else not before this time since power-on */
 } pending[PENDING_MAX];
 static int pending_count = 0;
 static bool started_checked = false;
@@ -504,6 +497,8 @@ static bool started_checked = false;
 static bool snarky (void) {
     return options_get(OPTION_ASSISTANT_MOOD) == ASSISTANT_SNARKY;
 }
+
+static uint64_t queue_not_before = 0;  /* what queue() gives the next ones */
 
 static void queue (uint32_t bits, const char *fmt, ...) __attribute__ ((format (printf, 2, 3)));
 static void queue (uint32_t bits, const char *fmt, ...) {
@@ -515,6 +510,7 @@ static void queue (uint32_t bits, const char *fmt, ...) {
     vsnprintf(pending[pending_count].text, TEXT_LENGTH, fmt, args);
     va_end(args);
     pending[pending_count].bits = bits;
+    pending[pending_count].not_before = queue_not_before;
     pending_count++;
 }
 
@@ -573,7 +569,7 @@ static bool skin_pick (int kind, const char *key, char *out, size_t size);   /* 
 
 /* Said at power-on: the day first (a holiday, the N64's birthday), else
    the weekend, else the time of day. */
-static void greeting (menu_t *menu) {
+static void greeting (menu_t *menu, bool welcomed_back) {
     if (menu->current_time <= 0) {
         return;
     }
@@ -600,6 +596,8 @@ static void greeting (menu_t *menu) {
         queue(0, "%s", s ? "Christmas Eve. Still hoping for a new cartridge under the tree?" : "It's Christmas Eve! Time to cozy up with a favorite!");
     } else if (month == 12 && day == 25) {
         queue(0, "%s", s ? "Merry Christmas. Now, about that backlog." : "Merry Christmas! I hope you got some new games!");
+    } else if (welcomed_back) {
+        /* the welcome back is the greeting */
     } else if (hour < 5) {
         queue(0, "%s", s ? "It's past midnight. The games will still be here tomorrow. Probably."
                          : "It's getting late! One more game, then off to bed?");
@@ -626,9 +624,7 @@ static void started_check (menu_t *menu) {
     const char *rom;
     uint32_t length, count, seconds;
     skin_load();
-    if (intro_power_on()) {
-        greeting(menu);
-    }
+    queue_not_before = 0;               /* welcomes: said first */
     if (play_stats_settled(&rom, &length, &count, &seconds)) {
         game_name(rom, name, sizeof(name));
         const char *dot = strrchr(rom, '.');
@@ -674,7 +670,12 @@ static void started_check (menu_t *menu) {
             }
         }
     }
+    if (intro_power_on()) {
+        greeting(menu, pending_count > 0);
+    }
 
+    /* Milestones: later, never as the first thing said. */
+    queue_not_before = FIRST_TALK_MS;
     uint32_t all_seconds;
     int games;
     play_stats_totals(&all_seconds, &games);
@@ -1124,7 +1125,8 @@ void assistant_update (menu_t *menu) {
     }
 
     if (state != QUIET) {
-        if (often == ASSISTANT_OFF || menu->mode != talk_screen || (in_corner() && !screen_is(menu, WHERE_COVERS))
+        if (often == ASSISTANT_OFF || menu->mode != talk_screen
+            || (talk_screen != MENU_MODE_LOAD_ROM && !screen_is(menu, WHERE_COVERS))
             || options_get(OPTION_ASSISTANT_SKIN) != skin.choice) {
             let_go();   /* switched off, or the player has moved to another screen */
             return;
@@ -1183,18 +1185,33 @@ void assistant_update (menu_t *menu) {
         started_check(menu);
     }
 
-    /* Something that just happened: soon, once the player has paused. */
+    /* Something that just happened: soon, once the player has paused. The
+       welcomes (back from a game, good morning) come first; nothing else is
+       said until they have been, nor in the first 45 seconds. */
     uint64_t quiet = now - animations_last_press_ms();
-    if (pending_count > 0 && screen_is(menu, WHERE_COVERS) && now >= EARLY_MS && quiet >= REACT_QUIET_MS
+    bool welcoming = false;
+    int due = -1;
+    for (int i = 0; i < pending_count; i++) {
+        if (pending[i].not_before == 0) {
+            welcoming = true;
+        }
+        if (due < 0 && pending[i].not_before <= now) {
+            due = i;
+        }
+    }
+    if (due >= 0 && screen_is(menu, WHERE_COVERS) && now >= EARLY_MS && quiet >= REACT_QUIET_MS
         && !animations_popup_up() && (!last_talk_ms || now - last_talk_ms >= REACT_GAP_MS)) {
         saying_tip = -1;
-        saying_bits = pending[0].bits;
+        saying_bits = pending[due].bits;
         last_talk_ms = now;
         talk_screen = menu->mode;
-        say(pending[0].text);
-        debugf("assistant: %s\n", pending[0].text);
+        say(pending[due].text);
+        debugf("assistant: %s\n", pending[due].text);
         pending_count--;
-        memmove(&pending[0], &pending[1], sizeof(pending[0]) * pending_count);
+        memmove(&pending[due], &pending[due + 1], sizeof(pending[0]) * (pending_count - due));
+        return;
+    }
+    if (welcoming || now < FIRST_TALK_MS) {
         return;
     }
 
@@ -1308,13 +1325,14 @@ void assistant_draw (menu_t *menu) {
         by0 = (by1 - words_needed) & ~1;
     }
 
-    /* Where the fairy rests: the corner, or the band's right end. */
-    float rest_x = in_corner() ? CORNER_X : (bx1 - (BAND_FAIRY_ROOM / 2) - 4);
-    float rest_y = in_corner() ? CORNER_Y : ((by0 + by1) / 2);
+    /* Where the fairy rests: perched on the band's top right corner, below
+       the right-hand cover, clear of the title panel and position bar. */
+    float rest_x = PERCH_X;
+    float rest_y = by0 - PERCH_ABOVE;
 
     /* Flying in from the right, hovering with a gentle bob, then off up and away. */
     float x = rest_x, y = rest_y;
-    float off_x = display_get_width() + FAIRY_DRAW;
+    float off_x = display_get_width() + PERCH_SIZE;
     if (state == ARRIVING) {
         float e = ease_out(t / ARRIVE_MS > 1.0f ? 1.0f : t / ARRIVE_MS);
         x = off_x + (rest_x - off_x) * e;
@@ -1383,7 +1401,7 @@ void assistant_draw (menu_t *menu) {
         if (skin.choice > 0) {
             /* A skin has one picture: it faces one way, then turns (squashed
                through the middle, like a coin) to face the other, and back. */
-            int size = in_corner() ? FAIRY_DRAW : 44;
+            int size = PERCH_SIZE;
             float scale = (float) size / SKIN_SIZE;
             int cycle = (int) (now % (2 * (TURN_EVERY_MS + TURN_MS)));
             int half = TURN_EVERY_MS + TURN_MS;
@@ -1402,7 +1420,7 @@ void assistant_draw (menu_t *menu) {
         } else {
             /* Spark, its wings flapping: two pictures side by side, drawn larger. */
             int frame = (int) ((now / FLAP_MS) % 2);
-            float scale = (in_corner() ? FAIRY_DRAW : FAIRY_SIZE) / (float) FAIRY_SIZE;
+            float scale = PERCH_SIZE / (float) FAIRY_SIZE;
             int size = (int) (FAIRY_SIZE * scale);
             rdpq_sprite_blit(fairy, (int) x - size / 2, (int) y - size / 2, &(rdpq_blitparms_t) {
                 .s0 = frame * FAIRY_SIZE,
