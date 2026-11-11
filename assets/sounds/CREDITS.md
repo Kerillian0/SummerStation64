@@ -10,6 +10,7 @@ file is replaced: some of these licences require credit.
 | `bgm.wav` | [soundimage.org, Looping Music](https://soundimage.org/looping-music/). Track title: Cyber-dream-loop | Eric Matyas | [Soundimage International Public License](https://soundimage.org/sample-page/) | **Yes**, see below |
 | `back.wav`, `cursorsound.wav`, `enter.wav`, `error.wav` | N64FlashcartMenu (upstream) | see upstream | as upstream | as upstream |
 | `intro_generated.wav` (not in the build) | written by `make_intro.py` | this project | as this project | No |
+| `thunk.wav` | written by `make_thunk.py` (the cartridge going home as a game starts) | this project | as this project | No |
 
 ## What the background music's licence asks for
 

@@ -194,7 +194,8 @@ SOUNDS_WAV = \
 	enter.wav \
 	error.wav \
 	intro.wav \
-	settings.wav
+	settings.wav \
+	thunk.wav
 
 SOUNDS_XM ?=
 

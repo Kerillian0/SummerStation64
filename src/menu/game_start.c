@@ -52,6 +52,7 @@
 #define HOME_TOP        (416.0f)    /* clicked in: its top this far down the screen, the rest below the edge */
 #define STAGE_BRIGHT    (0x58)      /* the backdrop as Game info draws it */
 #define CART_MIN_FREE   (160 * 1024)
+#define THUNK_PATH      "rom:/thunk.wav64"  /* assets/sounds/make_thunk.py */
 /* The back every cartridge shares, its grey plastic colored to match the front (as on the cover rows). */
 #define CART_BACK_PLASTIC   (176)
 #define CART_LABEL_X0       (0.14f)
@@ -76,6 +77,8 @@ static component_boxart_t *cart_art = NULL;
 static sprite_t *back_sprite = NULL;    /* the back every cartridge shares (and the front of one without a picture) */
 static surface_t back_surface;
 static sprite_t *pcb = NULL;
+static wav64_t *thunk = NULL;       /* the cartridge going home, held in memory (rom:/ is gone by then) */
+static bool thunked = false;
 static surface_t pcb_surface;
 static color_t box_side, cart_body;
 static float from_x, from_y, from_w;    /* the cover's place on Game info */
@@ -187,6 +190,11 @@ static void free_all (void) {
         sprite_free(pcb);
         pcb = NULL;
     }
+    if (thunk) {
+        mixer_ch_stop(SOUND_SFX_CHANNEL);
+        wav64_close(thunk);
+        thunk = NULL;
+    }
     front = NULL;
 }
 
@@ -218,6 +226,10 @@ bool game_start_begin (menu_t *menu, component_boxart_t *cover) {
     }
     back_sprite = sprite_from_rom("rom:/cart_back.sprite", &back_surface);
     pcb = sprite_from_rom("rom:/cart_bottom.sprite", &pcb_surface);
+    if (menu->settings.soundfx_enabled && memory_free_for(CART_MIN_FREE) && file_there(THUNK_PATH)) {
+        thunk = wav64_load(THUNK_PATH, &(wav64_loadparms_t) { .streaming_mode = WAV64_STREAMING_NONE });     /* whole, into memory */
+    }
+    thunked = false;
     surface_t *cart = cart_front();
     cart_body = plastic_of(cart);
     if (back_sprite && cart_art && cart_art->image) {
@@ -425,6 +437,11 @@ static void loading_draw (menu_t *menu, uint64_t now) {
         } else if (bounce <= 0.0f) {
             cart_y = mixf(lifted, home_y + 9.0f, slam * slam);   /* faster and faster */
         } else {
+            if (!thunked && thunk) {
+                thunked = true;     /* it lands: the soft thunk */
+                mixer_ch_set_vol(SOUND_SFX_CHANNEL, volume_effects(), volume_effects());
+                wav64_play(thunk, SOUND_SFX_CHANNEL);
+            }
             float k = 1.0f - bounce;
             cart_y = home_y + 9.0f * k * cosf(3.0f * (float) M_PI * bounce);
         }
@@ -460,6 +477,7 @@ static void frame (surface_t *d) {
     game_start_draw(menu_now);
     rdpq_detach_show();
     frame_rate_end_frame();     /* up on the screen at once */
+    mixer_try_play();   /* only the thunk can be playing: it is in memory, everything else was stopped */
 }
 
 bool game_start_load_begin (void) {
