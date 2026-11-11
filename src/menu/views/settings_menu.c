@@ -920,7 +920,7 @@ static void process (menu_t *menu) {
 #define ITEMS_WIDTH     (VISIBLE_AREA_X1 - TEXT_MARGIN_HORIZONTAL - ITEMS_X)
 #define VISIBLE_ROWS    (8)     /* settings shown at once; longer lists scroll */
 #define HELP_Y          (ROWS_Y + (VISIBLE_ROWS * ROW_HEIGHT) + 4)
-#define HELP_HEIGHT     (LAYOUT_ACTIONS_SEPARATOR_Y - 8 - HELP_Y)
+#define HELP_GAP        (6)     /* between the help text and the hint band */
 #define ROW_PADDING     (6)
 #define INFO_NAME_WIDTH (176)   /* an information row's name ("Missing Metadata"); its value gets the rest */
 #define SCROLLBAR_X     (ITEMS_X + ITEMS_WIDTH + 3)
@@ -1056,6 +1056,30 @@ static void draw_item (menu_t *menu, const item_t *it, int y) {
     }
 }
 
+/* The button hints: one row with the cover rows' icons, in the lower of
+   their two places, on the same dark band (only round that row, so the
+   help above keeps its room). */
+static int hints_top (void) {
+    int x0, y0, x1, y1;
+    games_ui_hints_rect(&x0, &y0, &x1, &y1);
+    return y0 + ((y1 - y0) / 2);
+}
+
+static void draw_hints (const char *a_action, bool slider) {
+    int x0, y0, x1, y1;
+    games_ui_hints_rect(&x0, &y0, &x1, &y1);
+    const theme_t *t = theme_get();
+    games_ui_round_fill(x0, hints_top(), x1, y1, RGBA32(t->panel.r, t->panel.g, t->panel.b, 0xD8));
+    int x = GAMES_UI_HINTS_X;
+    if (slider) {
+        x = games_ui_hint_draw(x, 1, "◀▶", "Change");
+    } else if (a_action) {
+        x = games_ui_hint_draw(x, 1, "A", a_action);
+    }
+    games_ui_hint_draw(x, 1, "B", "Back");
+    games_ui_hint_right_draw(1, "L R", "Look, Games, Console");
+}
+
 static void draw_help (menu_t *menu, const item_t *it) {
     const char *note = "";
     char stock[64];
@@ -1080,7 +1104,7 @@ static void draw_help (menu_t *menu, const item_t *it) {
 
     rdpq_text_printf(&(rdpq_textparms_t) {
         .width = ITEMS_WIDTH - (ROW_PADDING * 2),
-        .height = HELP_HEIGHT,
+        .height = hints_top() - HELP_GAP - HELP_Y,
         .wrap = WRAP_WORD,
         .style_id = STL_GRAY,
     }, FNT_DEFAULT, ITEMS_X + ROW_PADDING, HELP_Y, "%s%s", it->help, note);
@@ -1201,23 +1225,10 @@ static void draw (menu_t *menu, surface_t *d) {
 
     if (in_items) {
         const item_t *it = &cat->items[item];
-        ui_components_actions_bar_text_draw(
-            STL_DEFAULT,
-            ALIGN_LEFT, VALIGN_TOP,
-            "%s\n"
-            "B: Back",
-            (it->type == ITEM_ACTION) ? "A: Select" : (it->type == ITEM_INFO) ? "" : (it->type == ITEM_SLIDER) ? "Left/Right: Change" : "A: Change"
-        );
+        draw_hints((it->type == ITEM_ACTION) ? "Select" : (it->type == ITEM_INFO) ? NULL : "Change", it->type == ITEM_SLIDER);
     } else {
-        ui_components_actions_bar_text_draw(
-            STL_DEFAULT,
-            ALIGN_LEFT, VALIGN_TOP,
-            "A: Open\n"
-            "B: Back"
-        );
+        draw_hints("Open", false);
     }
-    ui_components_actions_bar_text_draw(STL_DEFAULT, ALIGN_RIGHT, VALIGN_TOP, "L / R: %s, %s, %s\n",
-                                        groups[0].label, groups[1].label, groups[2].label);
 
     pick_draw();
 
