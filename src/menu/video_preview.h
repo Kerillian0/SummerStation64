@@ -88,6 +88,14 @@ bool video_preview_fit (int w, int h, int *shown_w, int *shown_h);
 /** 0 to 1 while the clip fades in over the cover; 1 once it has. */
 float video_preview_fade (void);
 
+/**
+ * The clip goes on to the next screen (a cover's clip into its Game info):
+ * the next video_preview_update() with the same path carries on where it
+ * is, without fading in again. A clip no screen draws for 2 seconds is
+ * stopped and freed by video_preview_poll().
+ */
+void video_preview_carry_on (void);
+
 /** Decode a little ahead. Call while the menu waits for the next frame. */
 void video_preview_poll (void);
 

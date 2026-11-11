@@ -858,6 +858,9 @@ bool carousel_art_draw_box_clip (menu_t *menu, int index, int x0, int y0, int w,
         return false;   /* a cartridge, or the box turned over: the flat clip instead */
     }
     surface_t *cover = slot_image(slot);
+    if (cover->height > cover->width) {
+        return false;   /* a tall (Japanese) box: the flat clip, which keeps the clip whole */
+    }
     if (!clip_front.buffer || clip_front.width != cover->width || clip_front.height != cover->height) {
         carousel_art_clip_free();
         int bytes = cover->width * cover->height * 2;

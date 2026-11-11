@@ -41,16 +41,29 @@ static bool buttons_held (void) {
     return false;
 }
 
+static bool handing_over = false;   /* A pressed while the clip plays: it goes on into Game info */
+
 void cover_clip_reset (void) {
-    if (playing) {
+    if (playing && !handing_over) {
         video_preview_stop();
         carousel_art_clip_free();
     }
     playing = false;
+    handing_over = false;
     looked = false;
     found = false;
     index_seen = -2;
     list_seen = NULL;
+}
+
+/* A held on any controller: the game's info opens (or it starts) on letting go. */
+static bool a_held (void) {
+    for (int port = 0; port < 4; port++) {
+        if (joypad_is_connected(port) && joypad_get_buttons(port).a) {
+            return true;
+        }
+    }
+    return false;
 }
 
 /* The code a game's clip goes by: a hack's own (hacks.txt), else the game's,
@@ -83,6 +96,15 @@ void cover_clip_after_draw (menu_t *menu) {
     uint64_t now = get_ticks_ms();
     const cover_list_t *covers = cover_list_current(menu);
     int selected = covers->selected;
+
+    /* A on a playing clip: Game info is about to open, and the clip goes
+       on there (video_preview_carry_on()); it isn't stopped here. */
+    if (playing && selected == index_seen && a_held()) {
+        handing_over = true;
+        video_preview_carry_on();
+        return;
+    }
+    handing_over = false;
 
     /* Another game, a press, or a button held: the rest starts again and a
        clip that was showing stops (the cover is back at once). */

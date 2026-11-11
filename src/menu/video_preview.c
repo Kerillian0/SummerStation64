@@ -27,6 +27,7 @@
 #define LOOP_FRAMES         (3)         /* menu frames the last picture is held for while the first decodes again */
 #define MAX_STEP_MS         (100)       /* the clip's clock never jumps more than this in one frame */
 #define AWAY_MS             (250)       /* not drawn for this long: the screen was left or the picture changed */
+#define FORGET_MS           (2000)      /* not drawn for this long: nothing took it over, so it is freed */
 
 /* libdragon's decoder stops the console if it can't get memory, so the room
    is checked first. It wants about 16 pictures' worth (the ones decoded
@@ -74,6 +75,7 @@ static video_preview_stats_t stats;
 
 static yuv_blitter_t blitter = { 0 };
 static int blit_x = -1, blit_y = -1, blit_w = -1, blit_h = -1;
+static bool carry_on = false;       /* handed from a cover to Game info: carry on without fading in again */
 static yuv_blitter_t fill_blitter = { 0 };     /* video_preview_render(): the clip cropped to fill a picture */
 static int fill_w = -1, fill_h = -1;
 
@@ -304,6 +306,7 @@ void video_preview_stop (void) {
     clip_size = clip_loaded = 0;
     want_path[0] = '\0';
     state = VP_OFF;
+    carry_on = false;
 }
 
 static void fail (const char *why) {
@@ -613,8 +616,12 @@ void video_preview_update (const char *path) {
     uint64_t step = now - last_update_ms;
     if (step > AWAY_MS) {
         /* Shown again after a while (the other pictures, a pop-up): fade
-           in again from where it was. */
-        fade_since_ms = now;
+           in again from where it was; or, handed over from a cover to
+           Game info, simply carry on. */
+        if (!carry_on) {
+            fade_since_ms = now;
+        }
+        carry_on = false;
     }
     if (step > MAX_STEP_MS) {
         step = MAX_STEP_MS;
@@ -651,7 +658,15 @@ bool video_preview_showing (void) {
     return busy && (get_ticks_ms() - last_update_ms) <= AWAY_MS;
 }
 
+void video_preview_carry_on (void) {
+    carry_on = (state == VP_PLAYING);
+}
+
 void video_preview_poll (void) {
+    if (state != VP_OFF && (get_ticks_ms() - last_update_ms) > FORGET_MS) {
+        video_preview_stop();   /* left behind (a cover's clip that Game info didn't take over) */
+        return;
+    }
     if (state == VP_LOADING && (get_ticks_ms() - last_update_ms) <= AWAY_MS) {
         /* One piece, if it should be done before the next frame is due;
            the main loop comes round again soon. Reading regardless made
