@@ -10,6 +10,7 @@
 #include "assistant.h"
 #include "fonts.h"
 #include "games_ui.h"
+#include "intro.h"
 #include "menu_features.h"
 #include "menu_options.h"
 #include "cover_list.h"
@@ -132,7 +133,7 @@ static const tip_t tips[] = {
    home games (first three letters of their codes) and lines about them. */
 #define SKINS_MAX       (8)
 #define SKIN_SIZE       (56)
-#define SKIN_LINES      (16)
+#define SKIN_LINES_MAX  (72)
 #define SKIN_LINE_LENGTH (120)
 #define TURN_EVERY_MS   (1400)      /* a skin faces one way this long, then turns to face the other */
 #define TURN_MS         (220)
@@ -192,12 +193,29 @@ static struct {
     color_t color;
     char games[8][3];
     int game_count;
-    char eager[SKIN_LINES][SKIN_LINE_LENGTH];
-    int eager_count;
-    char snarky[SKIN_LINES][SKIN_LINE_LENGTH];
-    int snarky_count;
+    struct {
+        uint8_t kind;           /* LINE_... */
+        char mood;              /* 'e' or 's' */
+        char key[6];            /* LINE_ON: a code's first three letters, or "zelda" */
+        char text[SKIN_LINE_LENGTH];
+    } lines[SKIN_LINES_MAX];
+    int line_count;
 } skin = { .choice = -1 };
-static int home_next = 0;
+
+/* What a skin's line is for (skin.txt: "e"/"s" lines are its own games'). */
+enum { LINE_HOME, LINE_ON, LINE_OPEN, LINE_BACK, LINE_KINDS };
+static int line_next[LINE_KINDS];
+
+static void skin_add (int kind, char mood, const char *key, const char *text) {
+    if (skin.line_count >= SKIN_LINES_MAX || (mood != 'e' && mood != 's') || !text[0]) {
+        return;
+    }
+    skin.lines[skin.line_count].kind = (uint8_t) kind;
+    skin.lines[skin.line_count].mood = mood;
+    snprintf(skin.lines[skin.line_count].key, sizeof(skin.lines[0].key), "%s", key);
+    snprintf(skin.lines[skin.line_count].text, SKIN_LINE_LENGTH, "%s", text);
+    skin.line_count++;
+}
 
 static void skin_load (void) {
     int choice = options_get(OPTION_ASSISTANT_SKIN);
@@ -222,7 +240,7 @@ static void skin_load (void) {
     if (!f) {
         return;
     }
-    char row[SKIN_LINE_LENGTH + 8];
+    char row[SKIN_LINE_LENGTH + 80];    /* room for "on zelda e " and the like before the line */
     while (fgets(row, sizeof(row), f)) {
         row[strcspn(row, "\r\n")] = '\0';
         unsigned int rgb;
@@ -234,14 +252,22 @@ static void skin_load (void) {
                     memcpy(skin.games[skin.game_count++], code, 3);
                 }
             }
-        } else if (strncmp(row, "e ", 2) == 0 && skin.eager_count < SKIN_LINES) {
-            snprintf(skin.eager[skin.eager_count++], SKIN_LINE_LENGTH, "%s", row + 2);
-        } else if (strncmp(row, "s ", 2) == 0 && skin.snarky_count < SKIN_LINES) {
-            snprintf(skin.snarky[skin.snarky_count++], SKIN_LINE_LENGTH, "%s", row + 2);
+        } else if ((row[0] == 'e' || row[0] == 's') && row[1] == ' ') {
+            skin_add(LINE_HOME, row[0], "", row + 2);         /* about its own games */
+        } else if (strncmp(row, "open ", 5) == 0 && row[6] == ' ') {
+            skin_add(LINE_OPEN, row[5], "", row + 7);         /* opening one of its games' info */
+        } else if (strncmp(row, "back ", 5) == 0 && row[6] == ' ') {
+            skin_add(LINE_BACK, row[5], "", row + 7);         /* back from playing one */
+        } else if (strncmp(row, "on ", 3) == 0) {
+            char key[8], mood[2];
+            int used = 0;
+            if (sscanf(row + 3, "%7s %1s %n", key, mood, &used) == 2 && used > 0) {
+                skin_add(LINE_ON, mood[0], key, row + 3 + used);   /* about another game */
+            }
         }
     }
     fclose(f);
-    debugf("assistant: skin %s, %d games, %d + %d lines\n", skin.name, skin.game_count, skin.eager_count, skin.snarky_count);
+    debugf("assistant: skin %s, %d games, %d lines\n", skin.name, skin.game_count, skin.line_count);
 }
 
 /* Is this game one of the skin's own (by the first three letters of its code)? */
@@ -467,7 +493,7 @@ static const int game_marks[] = { 10, 25, 50, 100 };
 #define VERY_LONG       (2 * 60 * 60)
 #define UNPLAYED_DAYS   (365)
 
-#define PENDING_MAX     (3)
+#define PENDING_MAX     (4)
 static struct {
     char text[TEXT_LENGTH];
     uint32_t bits;          /* milestones it says (marked once it is talking) */
@@ -543,13 +569,75 @@ static int new_mark (const int *marks, int count, int first_bit, int value, uint
 }
 
 /* Once, when the covers first show: back from a game, a milestone, the hour. */
+static bool skin_pick (int kind, const char *key, char *out, size_t size);   /* further down, with the game lines */
+
+/* Said at power-on: the day first (a holiday, the N64's birthday), else
+   the weekend, else the time of day. */
+static void greeting (menu_t *menu) {
+    if (menu->current_time <= 0) {
+        return;
+    }
+    struct tm *now = localtime(&menu->current_time);
+    if (!now) {
+        return;
+    }
+    int month = now->tm_mon + 1, day = now->tm_mday, hour = now->tm_hour;
+    bool s = snarky();
+    if (month == 1 && day == 1) {
+        queue(0, "%s", s ? "New year, same old backlog." : "Happy New Year! Here's to a year full of games!");
+    } else if (month == 2 && day == 14) {
+        queue(0, "%s", s ? "Valentine's Day. Player two, where are you?" : "Happy Valentine's Day! Share a two-player game with someone special!");
+    } else if (month == 6 && day == 23) {
+        int years = now->tm_year + 1900 - 1996;     /* it came out in Japan on 23 June 1996 */
+        if (s) {
+            queue(0, "The N64 turns %d today. Still going strong. Unlike its first Rumble Pak batteries.", years);
+        } else {
+            queue(0, "Happy birthday, Nintendo 64! %d years old today!", years);
+        }
+    } else if (month == 10 && day == 31) {
+        queue(0, "%s", s ? "Halloween. Turn off the lights and pick something scary. I dare you." : "Happy Halloween! Something spooky, perhaps?");
+    } else if (month == 12 && day == 24) {
+        queue(0, "%s", s ? "Christmas Eve. Still hoping for a new cartridge under the tree?" : "It's Christmas Eve! Time to cozy up with a favorite!");
+    } else if (month == 12 && day == 25) {
+        queue(0, "%s", s ? "Merry Christmas. Now, about that backlog." : "Merry Christmas! I hope you got some new games!");
+    } else if (hour < 5) {
+        queue(0, "%s", s ? "It's past midnight. The games will still be here tomorrow. Probably."
+                         : "It's getting late! One more game, then off to bed?");
+    } else if (now->tm_wday == 0 || now->tm_wday == 6) {
+        queue(0, "%s", s ? "The weekend. No excuses now." : "It's the weekend! Plenty of time for games!");
+    } else if (hour < 12) {
+        queue(0, "%s", s ? "Morning already? Fine. Pick a game." : "Good morning! Ready for some games?");
+    } else if (hour < 17) {
+        queue(0, "%s", s ? "Afternoon gaming. Very productive." : "Good afternoon! Perfect time for a game!");
+    } else if (hour < 22) {
+        queue(0, "%s", s ? "Evening. The best time to ignore everything else." : "Good evening! Time to unwind with a game!");
+    } else {
+        queue(0, "%s", s ? "Late again? Sleep is overrated, apparently." : "It's getting late! Maybe one game before bed?");
+    }
+}
+
+/* Back from a game, after a minute or more. */
+static const char *back_eager[] = { "Welcome back from %s! Was it fun?", "Back from %s! How did it go?" };
+static const char *back_snarky[] = { "Back from %s already? That was quick.", "%s again, huh. Did you win this time?" };
+static int back_next = 0;
+
 static void started_check (menu_t *menu) {
-    char name[96], took[48], total[48];
+    char name[96], took[48], total[48], text[TEXT_LENGTH];
     const char *rom;
     uint32_t length, count, seconds;
+    skin_load();
+    if (intro_power_on()) {
+        greeting(menu);
+    }
     if (play_stats_settled(&rom, &length, &count, &seconds)) {
         game_name(rom, name, sizeof(name));
         const char *dot = strrchr(rom, '.');
+        const game_index_entry_t *known = game_index_find(rom, 0);
+        char code[5] = "";
+        if (known) {
+            memcpy(code, known->code, 4);
+            code[4] = '\0';
+        }
         if (dot && strcasecmp(dot, ".ndd") == 0 && !(said_bits & (1u << SAID_64DD))) {
             queue(1u << SAID_64DD, "%s", snarky()
                 ? "A 64DD game. Look at you, collecting the rare stuff."
@@ -560,6 +648,8 @@ static void started_check (menu_t *menu) {
             } else {
                 queue(0, "That was your %d%s time playing %s! You really love that one!", (int) count, ordinal((int) count), name);
             }
+        } else if (length >= 60 && skin_home(code) && skin_pick(LINE_BACK, NULL, text, sizeof(text))) {
+            queue(0, "%s", text);           /* back from one of the skin's own games */
         } else if (length >= VERY_LONG) {
             duration(length, took, sizeof(took));
             if (snarky()) {
@@ -574,6 +664,13 @@ static void started_check (menu_t *menu) {
                 queue(0, "Back from %s after %s? I was starting to think you'd moved in.", name, took);
             } else {
                 queue(0, "Welcome back! %s for %s. That makes %s in all!", name, took, total);
+            }
+        } else if (length >= 60) {
+            if (skin_home(code) && skin_pick(LINE_BACK, NULL, text, sizeof(text))) {
+                queue(0, "%s", text);       /* back from one of the skin's own games */
+            } else {
+                queue(0, snarky() ? back_snarky[back_next % 2] : back_eager[back_next % 2], name);
+                back_next++;
             }
         }
     }
@@ -596,15 +693,6 @@ static void started_check (menu_t *menu) {
             queue(bits, "%d different games tried. Commitment issues?", game_marks[mark]);
         } else {
             queue(bits, "That's %d different games you've played! What a collection!", game_marks[mark]);
-        }
-    }
-
-    if (menu->current_time > 0) {
-        struct tm *now = localtime(&menu->current_time);
-        if (now && now->tm_hour < 4) {
-            queue(0, "%s", snarky()
-                ? "It's past midnight. The games will still be here tomorrow. Probably."
-                : "It's getting late! One more game, then off to bed?");
         }
     }
 }
@@ -657,7 +745,7 @@ static bool unplayed_check (menu_t *menu) {
    joke, a look at the play stats, or a tip (said before or not). */
 #define LINGER_AFTER_MS (60000)
 #define HOME_QUIET_MS   (2500)      /* resting on the skin's own game this long */
-#define HOME_GAP_MS     (45000)     /* and this long after anything else said */
+#define HOME_GAP_MS     (45000)     /* and this long after anything else said (Now and Then; Rarely 3 min, Chatty 30 s) */
 #define LINGER_SAY_MS   (8000)
 
 static bool lingering = false;
@@ -745,15 +833,114 @@ static bool game_here (menu_t *menu, char *name, size_t name_size, char *path_ou
     return true;
 }
 
-/* One of the skin's lines about its own game, in the mood chosen. */
-static bool home_line (char *out, size_t size) {
-    int count = snarky() ? skin.snarky_count : skin.eager_count;
-    if (count == 0) {
+/* One of the skin's lines of this kind (and key), in the mood chosen, in turn. */
+static bool skin_pick (int kind, const char *key, char *out, size_t size) {
+    char mood = snarky() ? 's' : 'e';
+    int found[SKIN_LINES_MAX], n = 0;
+    for (int i = 0; i < skin.line_count; i++) {
+        if (skin.lines[i].kind == kind && skin.lines[i].mood == mood && (!key || strcmp(skin.lines[i].key, key) == 0)) {
+            found[n++] = i;
+        }
+    }
+    if (n == 0) {
         return false;
     }
-    snprintf(out, size, "%s", snarky() ? skin.snarky[home_next % count] : skin.eager[home_next % count]);
-    home_next++;
+    snprintf(out, size, "%s", skin.lines[found[line_next[kind]++ % n]].text);
     return true;
+}
+
+static bool home_line (char *out, size_t size) {
+    return skin_pick(LINE_HOME, NULL, out, size);
+}
+
+/* Does `text` hold `word`, whatever the case? */
+static bool holds (const char *text, const char *word) {
+    size_t n = strlen(word);
+    for (; *text; text++) {
+        if (strncasecmp(text, word, n) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/* Lines every fairy has for well-known games, found by the name shown (so
+   every dump and region matches). The first match wins: the more particular
+   names come first. Our own words, about the games, never quoted from them. */
+typedef struct {
+    const char *name;
+    const char *eager;
+    const char *snarky;
+} game_line_t;
+
+static const game_line_t game_lines[] = {
+    { "Mario Kart", "Mario Kart 64! Watch out for those blue shells!", "Mario Kart 64. Friendships will be tested." },
+    { "Mario Party", "Mario Party! Grab some friends and some dice!", "Mario Party. Say goodbye to your palms. And your friends." },
+    { "Mario Tennis", "Mario Tennis! Game, set, match!", "Mario Tennis. Try not to serve into the net this time." },
+    { "Mario Golf", "Mario Golf! Fore!", "Mario Golf. Mind the sand traps. And the water. And the trees." },
+    { "Paper Mario", "Paper Mario! A flat-out great adventure!", "Paper Mario. Thin hero, thick story." },
+    { "Super Mario 64", "Super Mario 64! Time to jump into some paintings!", "Super Mario 64. 120 stars. No pressure." },
+    { "Smash", "Super Smash Bros.! May the best brawler win!", "Smash Bros. Friendships end over items in this one." },
+    { "GoldenEye", "GoldenEye 007! Time for some secret agent work!", "GoldenEye. Whoever picks the short character owes everyone an apology." },
+    { "Perfect Dark", "Perfect Dark! Joanna's ready for action!", "Perfect Dark. Very dark. Fairly perfect." },
+    { "Banjo-Tooie", "Banjo-Tooie! The bear and the bird are back!", "Banjo-Tooie. More jiggies. More notes. More everything." },
+    { "Banjo", "Banjo-Kazooie! Let's collect some jiggies!", "Banjo-Kazooie. Hope you like musical notes. All of them." },
+    { "Donkey Kong 64", "Donkey Kong 64! So many bananas to find!", "Donkey Kong 64. Bring snacks. You'll be collecting for a while." },
+    { "Diddy Kong", "Diddy Kong Racing! Cars, boats and planes!", "Diddy Kong Racing. Hope you like balloons." },
+    { "Conker", "Conker's Bad Fur Day! Maybe not one for the kids...", "Conker's Bad Fur Day. Hide this one from your little siblings." },
+    { "Star Fox", "Star Fox 64! Time to try a barrel roll!", "Star Fox 64. Someone will tell you to roll. Just do it." },
+    { "F-Zero", "F-Zero X! Thirty racers at top speed!", "F-Zero X. Blink and you've crashed." },
+    { "Wave Race", "Wave Race 64! Surf's up!", "Wave Race 64. The water's beautiful. Your landings, less so." },
+    { "1080", "1080 Snowboarding! Hit the slopes!", "1080 Snowboarding. Try landing one of those spins." },
+    { "Pokemon Snap", "Pokemon Snap! Say cheese!", "Pokemon Snap. The only game where throwing apples at wildlife is encouraged." },
+    { "Pokemon Stadium", "Pokemon Stadium! Bring your team over from Game Boy!", "Pokemon Stadium. Hope your Transfer Pak still works." },
+    { "Pokemon Puzzle", "Pokemon Puzzle League! Line them up!", "Pokemon Puzzle League. The blocks rise. So does the panic." },
+    { "Yoshi", "Yoshi's Story! What a happy little world!", "Yoshi's Story. So much fruit. So little time." },
+    { "Kirby", "Kirby 64! Mix up those powers!", "Kirby 64. Small, pink, eats everything. Relatable." },
+    { "Turok", "Turok! Watch out for dinosaurs!", "Turok. The fog is there to keep things mysterious. Totally." },
+    { "Blast Corps", "Blast Corps! Clear the way!", "Blast Corps. Knocking down buildings for a good cause." },
+    { "Jet Force", "Jet Force Gemini! Let's save those Tribals!", "Jet Force Gemini. Count the Tribals. All of them." },
+    { "Pilotwings", "Pilotwings 64! Up, up and away!", "Pilotwings 64. Gentle landings are optional, apparently." },
+    { "Harvest Moon", "Harvest Moon 64! Time to tend the farm!", "Harvest Moon 64. The turnips won't water themselves." },
+    { "Bomberman", "Bomberman 64! Blast away!", "Bomberman 64. Mind your own bombs." },
+    { "Doom", "Doom 64! Lights down, volume up!", "Doom 64. Bring a flashlight. And courage." },
+    { "Glover", "Glover! A magic glove and a bouncy ball!", "Glover. A glove. A ball. Physics." },
+    { "Episode I", "Star Wars Racer! Start your engines!", "Star Wars Racer. Lean into the turns. Literally." },
+    { "Rogue Squadron", "Rogue Squadron! Into the cockpit!", "Rogue Squadron. Hope you like fog. And lasers." },
+    { "Tetris", "Tetris! Stack them up!", "Tetris. You'll see falling blocks when you close your eyes tonight." },
+    { "Excitebike", "Excitebike 64! Pop a wheelie!", "Excitebike 64. Mind the jumps. And the landings." },
+    { "Ogre Battle", "Ogre Battle 64! A grand campaign awaits!", "Ogre Battle 64. Clear your schedule." },
+    { "Snowboard Kids", "Snowboard Kids! Hit the slopes!", "Snowboard Kids. Cute, and secretly ruthless." },
+    { "Rayman", "Rayman 2! No arms, no legs, no problem!", "Rayman 2. The limbs still aren't attached." },
+    { "Ocarina of Time", "Ocarina of Time! Hyrule awaits!", "Ocarina of Time. Fairy not included. Well, one is." },
+    { "Majora", "Majora's Mask! Three days to save Termina!", "Majora's Mask. The moon is watching you. Again." },
+};
+
+/* Something particular about this game: the skin's own (its home games),
+   its words about another game (by code, or "zelda" for the rest of that
+   series), else the line every fairy has for a well-known game. */
+static bool special_line (const char *code, const char *name, char *out, size_t size) {
+    if (skin_home(code)) {
+        return home_line(out, size);
+    }
+    char key[4] = "";
+    if (code && strlen(code) >= 3) {
+        memcpy(key, code, 3);
+        key[3] = '\0';
+        if (skin_pick(LINE_ON, key, out, size)) {
+            return true;
+        }
+    }
+    if (holds(name, "zelda") && skin_pick(LINE_ON, "zelda", out, size)) {
+        return true;
+    }
+    for (int i = 0; i < (int) (sizeof(game_lines) / sizeof(game_lines[0])); i++) {
+        if (holds(name, game_lines[i].name)) {
+            snprintf(out, size, "%s", snarky() ? game_lines[i].snarky : game_lines[i].eager);
+            return true;
+        }
+    }
+    return false;
 }
 
 /* Something about the game it is resting on. */
@@ -763,13 +950,11 @@ static bool line_game (menu_t *menu, char *out, size_t size) {
     if (!game_here(menu, name, sizeof(name), path, sizeof(path), &data)) {
         return false;
     }
-    /* The skin's own game: every other time, one of its lines about it. */
-    static bool home_turn = true;
-    if (skin_home(code_here)) {
-        home_turn = !home_turn;
-        if (!home_turn && home_line(out, size)) {
-            return true;
-        }
+    /* Every other time, something particular about it, if there is something. */
+    static bool special_turn = true;
+    special_turn = !special_turn;
+    if (!special_turn && special_line(code_here, name, out, size)) {
+        return true;
     }
     for (int k = 0; k < 3; k++) {
         int which = (game_next + k) % 3;
@@ -894,6 +1079,28 @@ static void linger_line (menu_t *menu, char *out, size_t size) {
     }
 }
 
+/* Opening a game's info page: a word once the cover has landed. */
+#define OPEN_AFTER_MS   (1300)
+#define OPEN_GAP_MS     (60000)     /* not again within a minute of anything said */
+static const char *open_eager[] = { "%s! Great choice!", "Ooh, %s. Let's have a look!", "%s! I've heard good things!" };
+static const char *open_snarky[] = { "%s? Bold choice.", "%s. Sure, why not.", "Looking at %s again? Just play it already." };
+static int open_next = 0;
+static uint64_t opened_at = 0;      /* when a Game info page opened (0: said, or not open) */
+
+static bool line_open (menu_t *menu, char *out, size_t size) {
+    char name[96], path[256];
+    const game_data_t *data;
+    if (!game_here(menu, name, sizeof(name), path, sizeof(path), &data)) {
+        return false;
+    }
+    if (skin_home(code_here) && skin_pick(LINE_OPEN, NULL, out, size)) {
+        return true;
+    }
+    snprintf(out, size, snarky() ? open_snarky[open_next % 3] : open_eager[open_next % 3], name);
+    open_next++;
+    return true;
+}
+
 static int pick_tip (menu_t *menu) {
     for (int k = 0; k < TIPS_COUNT; k++) {
         int i = (next_tip + k) % TIPS_COUNT;
@@ -909,6 +1116,12 @@ static int pick_tip (menu_t *menu) {
 void assistant_update (menu_t *menu) {
     int often = options_get(OPTION_ASSISTANT);
     uint64_t now = get_ticks_ms();
+
+    static int last_mode = -1;
+    if ((int) menu->mode != last_mode) {
+        last_mode = menu->mode;
+        opened_at = (menu->mode == MENU_MODE_LOAD_ROM) ? now : 0;
+    }
 
     if (state != QUIET) {
         if (often == ASSISTANT_OFF || menu->mode != talk_screen || (in_corner() && !screen_is(menu, WHERE_COVERS))
@@ -985,11 +1198,27 @@ void assistant_update (menu_t *menu) {
         return;
     }
 
-    /* Resting on the skin's own game: a word about it, once per game while
-       the console is on, not too soon after anything else. */
+    /* A Game info page just opened: a word about the game. */
+    if (opened_at && now - opened_at >= OPEN_AFTER_MS && quiet >= 1000 && !animations_popup_up()) {
+        opened_at = 0;
+        char text[TEXT_LENGTH];
+        if ((!last_talk_ms || now - last_talk_ms >= OPEN_GAP_MS) && line_open(menu, text, sizeof(text))) {
+            saying_tip = -1;
+            saying_bits = 0;
+            last_talk_ms = now;
+            talk_screen = menu->mode;
+            say(text);
+            debugf("assistant: opening, %s\n", text);
+            return;
+        }
+    }
+
+    /* Resting on a game: something particular about it (the skin's own
+       games, another one it knows, a well-known game), once per game in a
+       row, not too soon after anything else. */
     skin_load();
-    if (skin.game_count > 0 && quiet >= HOME_QUIET_MS && !animations_popup_up()
-        && (!last_talk_ms || now - last_talk_ms >= HOME_GAP_MS)) {
+    if (quiet >= HOME_QUIET_MS && !animations_popup_up() && menu->mode != MENU_MODE_LOAD_ROM
+        && (!last_talk_ms || now - last_talk_ms >= (often == ASSISTANT_RARELY ? 3 * HOME_GAP_MS + 45000 : often == ASSISTANT_CHATTY ? 30000 : HOME_GAP_MS))) {
         static int checked_selected = -2;
         static const void *checked_list = NULL;
         static uint32_t said_key = 0;
@@ -1001,19 +1230,19 @@ void assistant_update (menu_t *menu) {
             checked_list = list;
             char name[96], path[256], text[TEXT_LENGTH];
             const game_data_t *data;
-            if (game_here(menu, name, sizeof(name), path, sizeof(path), &data) && skin_home(code_here)) {
+            if (game_here(menu, name, sizeof(name), path, sizeof(path), &data)) {
                 uint32_t key = 2166136261u;
                 for (const unsigned char *c = (const unsigned char *) path; *c; c++) {
                     key = (key ^ *c) * 16777619u;
                 }
-                if (key != said_key && home_line(text, sizeof(text))) {
+                if (key != said_key && special_line(code_here, name, text, sizeof(text))) {
                     said_key = key;
                     saying_tip = -1;
                     saying_bits = 0;
                     last_talk_ms = now;
                     talk_screen = menu->mode;
                     say(text);
-                    debugf("assistant: home game, %s\n", text);
+                    debugf("assistant: about the game, %s\n", text);
                     return;
                 }
             }

@@ -34,8 +34,18 @@ s A snarky line about its games.
   seconds, the fairy says one of its lines; while the menu is idle they
   join the lines it rotates through.
 - `e` and `s` lines: what it says about its games in the Eager and the
-  Snarky mood, up to 16 of each, one line each (about 110 characters fit
-  in two rows of the band).
+  Snarky mood, one line each (about 110 characters fit in two rows of the
+  band).
+- `on <key> e|s <line>`: what it says about another game. The key is the
+  first three letters of that game's code (`on NZS e ...`), or `zelda` for
+  any game with "Zelda" in its name that isn't one of its own.
+- `open e|s <line>`: said when one of its own games' info page opens.
+- `back e|s <line>`: said when you come back from playing one of its own
+  games.
+
+At most 72 lines in all per skin. Games the skin has no line for get the
+menu's own lines for well-known games (`game_lines` in
+`src/menu/assistant.c`).
 
 Then run `python3 assets/assistant/make_skins.py` and build. Settings >
 Display > Assistant Character lists Spark first, then the skins in
