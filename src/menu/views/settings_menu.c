@@ -1317,8 +1317,11 @@ static void draw (menu_t *menu, surface_t *d) {
     }
     for (int i = 0; i < groups[group].count; i++) {
         int y = ROWS_Y + (i * ROW_HEIGHT) + rise;
-        draw_page_icon(first_icon + i, LEFT_X + ROW_PADDING, y + (ROW_HEIGHT - PAGE_ICON) / 2);
-        draw_text(LEFT_X + PAGE_ICON + 6, y, LEFT_WIDTH - PAGE_ICON - 6, ALIGN_LEFT, STL_DEFAULT, groups[group].pages[i].label);
+        /* Tight round the icon, and no padding at the name's end: "Game Folders" just fits. */
+        int name_x = LEFT_X + 4 + PAGE_ICON + 4;
+        draw_page_icon(first_icon + i, LEFT_X + 4, y + (ROW_HEIGHT - PAGE_ICON) / 2);
+        rdpq_text_printf(&(rdpq_textparms_t) { .width = LEFT_X + LEFT_WIDTH - name_x, .height = ROW_HEIGHT, .valign = VALIGN_CENTER,
+            .wrap = WRAP_ELLIPSES, .style_id = STL_DEFAULT }, FNT_DEFAULT, name_x, y, "%s", groups[group].pages[i].label);
     }
 
     // A page with more rows than fit gets a bar showing how far down you are.
