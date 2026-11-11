@@ -35,6 +35,7 @@
 #include "../theme.h"
 #include "../theme_editor.h"
 #include "../tv_patterns.h"
+#include "../pad_test.h"
 #include "../animations.h"
 #include "../avatar_pick.h"
 #include "../avatars.h"
@@ -206,6 +207,11 @@ static void new_theme (menu_t *menu) {
 static void open_test_patterns (menu_t *menu) {
     (void) menu;
     tv_patterns_open();
+}
+
+static void open_pad_test (menu_t *menu) {
+    (void) menu;
+    pad_test_open();
 }
 
 static void apply_video_previews (menu_t *menu) {
@@ -596,6 +602,7 @@ static const item_t clip_items[] = {
 static const item_t tool_items[] = {
     ACTION("Controller Pak Manager", open_controller_paks, "The notes (game saves) on a Controller Pak: back them up to the SD card, restore one or a whole dump, delete one, or format the Pak."),
     ACTION("Test Patterns", open_test_patterns, "Pictures for setting up your TV: a grid with borders showing how much of the picture's edge it cuts off, and color bars with grey steps for brightness and color. A or right shows the next one, B comes back here."),
+    ACTION("Controller Test", open_pad_test, "Every button lights up on a drawn controller as you press it, and the stick's range is measured to show how worn it is. With a Rumble Pak, Z + A rumbles it. Hold B for two seconds to come back here."),
     ACTION("Clock", open_clock, "Set the date and time of the cart's clock, used for the clock on the tab bar, dated save backups and time played."),
     INFO("Memory", memory_note_info, "Free memory now. When memory runs short the menu leaves extras out instead of stopping; any left out since power-on are listed here."),
     CHOICES("Performance Overlay", OPTION_PERF_OVERLAY, 2, debug_stats_overlay_name, NULL,
@@ -907,6 +914,10 @@ static void process (menu_t *menu) {
     }
     if (tv_patterns_active()) {
         tv_patterns_process(menu);     /* Console > Tools > Test Patterns */
+        return;
+    }
+    if (pad_test_active()) {
+        pad_test_process(menu);        /* Console > Tools > Controller Test */
         return;
     }
     if (assistant_ask_active()) {
@@ -1398,6 +1409,13 @@ static void draw (menu_t *menu, surface_t *d) {
 
     if (letter_wheel_keyboard_showing()) {
         letter_wheel_draw();    // naming a profile or a theme: the keyboard hides the page, so it isn't drawn
+        debug_stats_overlay_draw();
+        rdpq_detach_show();
+        return;
+    }
+
+    if (pad_test_active()) {
+        pad_test_draw();
         debug_stats_overlay_draw();
         rdpq_detach_show();
         return;

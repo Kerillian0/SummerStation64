@@ -100,6 +100,7 @@ SRCS = \
 	menu/profile_pick.c \
 	menu/theme_editor.c \
 	menu/tv_patterns.c \
+	menu/pad_test.c \
 	menu/name_keyboard.c \
 	menu/game_marks.c \
 	menu/favorite_toggle.c \
