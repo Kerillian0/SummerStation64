@@ -9,6 +9,7 @@
 #include <time.h>
 
 #include "../assistant.h"
+#include "../assistant_ask.h"
 #include "../debug_stats.h"
 #include "../cart_load.h"
 #include "../fonts.h"
@@ -941,6 +942,14 @@ static bool versions_open (menu_t *menu, entry_t *cover) {
 // Options > "Random game" on the Games tab: jump to any other game in the row
 // (within the filter in use). The row is a few dozen to a few hundred games,
 // so the console's own random numbers are plenty.
+// Options > "Ask Spark..." on the cover tabs: the assistant's questions
+// (a page of Settings; B there comes back to this tab).
+static char ask_text[40];
+static void ask_assistant (menu_t *menu, void *arg) {
+    assistant_ask_open(true);
+    menu->next_mode = MENU_MODE_SETTINGS_EDITOR;
+}
+
 static void random_game (menu_t *menu, void *arg) {
     assistant_note_used(ASSISTANT_USED_RANDOM);
     if (menu->browser.entries < 2) {
@@ -1145,6 +1154,7 @@ static void card_menu_show (void) {
         { .text = "Hide this game", .action = hide_game }, \
         { .text = "Mark as homebrew", .action = toggle_homebrew }, \
         { .text = "Mark as ROM hack", .action = toggle_hack }, \
+        { .text = "Ask...", .action = ask_assistant }, \
         { .text = "Hide this game", .action = folders_hide }, \
         { .text = "Rename...", .action = rename_entry }, \
         { .text = "Show entry properties", .action = show_properties }, \
@@ -1169,10 +1179,11 @@ static void entry_menu_fill (menu_t *menu) {
     for (int i = 0; entry_menu_rows.list[i].text != NULL; i++) {
         __typeof__(entry_menu_rows.list[0]) row = entry_menu_rows.list[i];
         bool cover_row = (row.action == random_game || row.action == toggle_favorite || row.action == show_game_info
-                          || row.action == add_to_collection || row.action == hide_game || row.action == toggle_homebrew || row.action == toggle_hack);
+                          || row.action == add_to_collection || row.action == hide_game || row.action == toggle_homebrew || row.action == toggle_hack
+                          || row.action == ask_assistant);
         if (!folders_tab) {
             // A cover tab: the game's own rows only.
-            if (!cover_row || (row.action != random_game && !game)
+            if (!cover_row || (row.action != random_game && row.action != ask_assistant && !game)
                 || (row.action == toggle_favorite && !favorite_toggle_allowed(e))
                 || ((row.action == toggle_homebrew || row.action == toggle_hack) && (e->type != ENTRY_TYPE_ROM || collections_tab))) {
                 continue;
@@ -1219,6 +1230,10 @@ static void entry_menu_fill (menu_t *menu) {
             } else if (row.action == toggle_hack && kind == GAME_KIND_HACK) {
                 row.text = "Remove from Hacks";
             }
+        }
+        if (row.action == ask_assistant) {
+            snprintf(ask_text, sizeof(ask_text), "Ask %s...", assistant_name());
+            row.text = ask_text;
         }
         if (row.action == folders_hide && hidden_games_is(path_get(path))) {
             row.text = "Unhide this game";

@@ -1,5 +1,6 @@
 #include <stdarg.h>
 #include "../assistant.h"
+#include "../assistant_ask.h"
 #include "../animations.h"
 #include "../debug_stats.h"
 #include "../bookkeeping.h"
@@ -47,18 +48,26 @@ static void row_ask_hide (menu_t *menu, void *arg) {
 static void row_add_to_collection (menu_t *menu, void *arg);
 static void row_favorite (menu_t *menu, void *arg);
 static void row_game_info (menu_t *menu, void *arg);
+static void row_ask (menu_t *menu, void *arg) {
+    assistant_ask_open(true);     // the assistant's questions, a page of Settings; B comes back here
+    menu->next_mode = MENU_MODE_SETTINGS_EDITOR;
+}
+static char row_ask_text[40];
 static component_context_menu_t row_context_menu = { .list = {
     { .text = "Random game", .action = row_random },
     { .text = "Add to Favorites", .action = row_favorite },
     { .text = "Game info", .action = row_game_info },
     { .text = "Add to collection...", .action = row_add_to_collection },
     { .text = "Hide this game", .action = row_ask_hide },
+    { .text = "Ask...", .action = row_ask },
     COMPONENT_CONTEXT_MENU_LIST_END,
 }};
 static void row_menu_show (menu_t *menu, bool favorites) {
     // On Favorites every game is one, and taking it out asks first.
     row_context_menu.list[1].text = favorites ? "Remove from Favorites"
         : favorite_toggle_text(menu, path_get(item_list[selected_item].primary_path));
+    snprintf(row_ask_text, sizeof(row_ask_text), "Ask %s...", assistant_name());
+    row_context_menu.list[5].text = row_ask_text;
     ui_components_context_menu_init(&row_context_menu);     // counts the rows
     ui_components_context_menu_show(&row_context_menu);
 }
