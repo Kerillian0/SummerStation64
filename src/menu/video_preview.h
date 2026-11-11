@@ -38,6 +38,7 @@
 #define VIDEO_PREVIEW_H__
 
 #include <stdbool.h>
+#include <libdragon.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -71,6 +72,15 @@ void video_preview_update (const char *path);
  * centred). Returns false, drawing nothing, until a picture is ready.
  */
 bool video_preview_draw (int x, int y, int w, int h);
+
+/**
+ * Draw the clip's current picture into `target` (an RGBA16 picture), its
+ * middle cropped to the target's shape and stretched to fill it, then
+ * `over` (the cover) on top at `over_alpha` (0 to 1) if given: the front of
+ * a 3D box with the clip on it. Returns false, drawing nothing, until a
+ * picture is ready.
+ */
+bool video_preview_render (surface_t *target, const surface_t *over, float over_alpha);
 
 /** The size the picture would be drawn at in a box this size, if the clip is ready. */
 bool video_preview_fit (int w, int h, int *shown_w, int *shown_h);

@@ -6,6 +6,7 @@
 #include "memory_note.h"
 #include "animations.h"
 #include "cover_clip.h"
+#include "video_preview.h"
 #include "carousel_art.h"
 #include "retro.h"
 #include "art_tint.h"
@@ -836,6 +837,44 @@ static int arrive_bright (slot_t *slot) {
     return (t >= 1.0f) ? art_bright : (int) (art_bright * animations_ease_out(t));
 }
 
+/* A clip on the box's front (carousel_art_draw_box_clip()): the picture it
+   is drawn into each frame, the cover's size, only while a clip shows. */
+static surface_t clip_front = { 0 };
+static surface_t *front_override = NULL;
+
+void carousel_art_clip_free (void) {
+    if (clip_front.buffer) {
+        rspq_wait();    /* the chip may still be reading it */
+        surface_free(&clip_front);
+        clip_front = (surface_t) { 0 };
+    }
+}
+
+bool carousel_art_draw_box (menu_t *menu, int index, int x0, int y0, int w, int h);
+
+bool carousel_art_draw_box_clip (menu_t *menu, int index, int x0, int y0, int w, int h, float cover_left) {
+    slot_t *slot = slot_find(menu, index);
+    if (index != center_index || !slot || !art_ready(slot->art) || slot->cart || flip != FLIP_NONE || side != IMAGE_BOXART_FRONT) {
+        return false;   /* a cartridge, or the box turned over: the flat clip instead */
+    }
+    surface_t *cover = slot_image(slot);
+    if (!clip_front.buffer || clip_front.width != cover->width || clip_front.height != cover->height) {
+        carousel_art_clip_free();
+        int bytes = cover->width * cover->height * 2;
+        if (!memory_free_for(bytes + (256 * 1024))) {
+            return false;
+        }
+        clip_front = surface_alloc(FMT_RGBA16, cover->width, cover->height);
+    }
+    if (!video_preview_render(&clip_front, cover, cover_left)) {
+        return false;
+    }
+    front_override = &clip_front;
+    bool drawn = carousel_art_draw_box(menu, index, x0, y0, w, h);
+    front_override = NULL;
+    return drawn;
+}
+
 bool carousel_art_draw_box (menu_t *menu, int index, int x0, int y0, int w, int h) {
     slot_t *slot = slot_find(menu, index);
     bool flipping = (flip != FLIP_NONE);
@@ -862,7 +901,7 @@ bool carousel_art_draw_box (menu_t *menu, int index, int x0, int y0, int w, int 
     float amount = 1.0f - (1.0f - t) * (1.0f - t);     /* eases out */
 
     box3d_art_t art = {
-        .front = ready ? slot_image(slot) : NULL,
+        .front = front_override ? front_override : (ready ? slot_image(slot) : NULL),   /* a clip on its front, or the cover */
         .front_w = box_front_w,
         .front_h = box_front_h,
         .side = theme_get()->panel,
@@ -973,6 +1012,7 @@ void carousel_art_reset (void) {
     flip = FLIP_NONE;
     game_index_flush();     /* leaving the covers: save what was learned about the games */
     cover_clip_reset();
+    carousel_art_clip_free();
 }
 
 void carousel_art_update (menu_t *menu, bool side_covers) {

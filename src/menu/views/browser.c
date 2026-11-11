@@ -2056,7 +2056,13 @@ void carousel_draw (menu_t *menu) {
 
             // Rested 2 seconds: the game's clip in the cover's place, the cover fading out over it.
             if (resting_center && !drawn_moving && back >= 1.0f && carousel_art_flip_width() >= 1.0f) {
-                float cover_left = cover_clip_draw(menu, i, x0, y0, w, h, &clip_w, &clip_h);
+                float cover_left = cover_clip_frame(menu, i);
+                // With 3D Box on, on the box's front, with its depth, hover and lean.
+                if (cover_left < 1.0f && features_enabled(FEATURE_BOX_3D) && carousel_art_draw_box_clip(menu, i, x0, y0, w, h, cover_left)) {
+                    carousel_art_brightness(255);
+                    continue;
+                }
+                cover_left = (cover_left < 1.0f) ? cover_clip_draw(menu, i, x0, y0, w, h, &clip_w, &clip_h) : 1.0f;
                 if (cover_left < 1.0f) {
                     clip_on = true;
                     if (cover_left > 0.0f) {

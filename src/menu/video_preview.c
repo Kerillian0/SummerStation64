@@ -74,6 +74,8 @@ static video_preview_stats_t stats;
 
 static yuv_blitter_t blitter = { 0 };
 static int blit_x = -1, blit_y = -1, blit_w = -1, blit_h = -1;
+static yuv_blitter_t fill_blitter = { 0 };     /* video_preview_render(): the clip cropped to fill a picture */
+static int fill_w = -1, fill_h = -1;
 
 /* ---------- the clip in memory, as files the decoder can read ----------
 
@@ -258,13 +260,18 @@ bool video_preview_find (const char *storage_prefix, const char game_code[4], ch
 /* ---------- starting and stopping ---------- */
 
 static void free_playback (void) {
-    if (video || blitter.block) {
+    if (video || blitter.block || fill_blitter.block) {
         rspq_wait();    /* nothing may still be drawing from its pictures */
     }
     if (blitter.block) {
         yuv_blitter_free(&blitter);
         blitter.block = NULL;
         blit_x = blit_y = blit_w = blit_h = -1;
+    }
+    if (fill_blitter.block) {
+        yuv_blitter_free(&fill_blitter);
+        fill_blitter.block = NULL;
+        fill_w = fill_h = -1;
     }
     if (video) {
         video_close(video);
@@ -694,6 +701,8 @@ float video_preview_fade (void) {
     return (since >= FADE_MS) ? 1.0f : (since / (float) FADE_MS);
 }
 
+static yuv_frame_t current_frame (void);   /* the picture to show now (below) */
+
 bool video_preview_draw (int x, int y, int w, int h) {
     int fw, fh;
     if (!video_preview_fit(w, h, &fw, &fh)) {
@@ -718,6 +727,14 @@ bool video_preview_draw (int x, int y, int w, int h) {
         blit_h = fh;
     }
 
+    yuv_frame_t frame = current_frame();
+    rdpq_mode_push();
+        yuv_blitter_run(&blitter, &frame);
+    rdpq_mode_pop();
+    return true;
+}
+
+static yuv_frame_t current_frame (void) {
     yuv_frame_t frame;
     if (looping > 0 && hold_ready) {
         int y_size = info.width * info.height;
@@ -730,8 +747,60 @@ bool video_preview_draw (int x, int y, int w, int h) {
     } else {
         frame = video_get_frame(video);
     }
-    rdpq_mode_push();
-        yuv_blitter_run(&blitter, &frame);
-    rdpq_mode_pop();
+    return frame;
+}
+
+bool video_preview_render (surface_t *target, const surface_t *over, float over_alpha) {
+    int tw = target->width, th = target->height;
+    if (state != VP_PLAYING || !have_frame || tw < 4 || th < 4) {
+        return false;
+    }
+    /* The part of the clip with the target's shape, from its middle,
+       stretched to fill it (recorded once for a size, then replayed). */
+    if (!fill_blitter.block || tw != fill_w || th != fill_h) {
+        if (fill_blitter.block) {
+            rspq_wait();
+            yuv_blitter_free(&fill_blitter);
+        }
+        float aspect = (info.aspect_ratio > 0.1f) ? info.aspect_ratio : ((float) info.width / info.height);
+        float target_aspect = (float) tw / th;
+        int src_w = info.width, src_h = info.height;
+        if (aspect > target_aspect) {
+            src_w = ((int) (info.width * (target_aspect / aspect))) & ~1;
+        } else {
+            src_h = ((int) (info.height * (aspect / target_aspect))) & ~1;
+        }
+        fill_blitter = yuv_blitter_new(info.width, info.height, 0, 0, &(rdpq_blitparms_t) {
+            .s0 = ((info.width - src_w) / 2) & ~1,
+            .t0 = ((info.height - src_h) / 2) & ~1,
+            .width = src_w,
+            .height = src_h,
+            .scale_x = tw / (float) src_w,
+            .scale_y = th / (float) src_h,
+            .filtering = true,
+        }, &info.colorspace);
+        fill_w = tw;
+        fill_h = th;
+    }
+    yuv_frame_t frame = current_frame();
+    rdpq_attach(target, NULL);
+        rdpq_mode_push();
+            yuv_blitter_run(&fill_blitter, &frame);
+        rdpq_mode_pop();
+        if (over && over_alpha > 0.0f) {
+            /* The cover, fading out over the clip. */
+            rdpq_mode_push();
+                rdpq_set_mode_standard();
+                rdpq_mode_filter(FILTER_BILINEAR);
+                rdpq_set_prim_color(RGBA32(0xFF, 0xFF, 0xFF, (uint8_t) (over_alpha * 255.0f)));
+                rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);
+                rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+                rdpq_tex_blit(over, 0, 0, &(rdpq_blitparms_t) {
+                    .scale_x = tw / (float) over->width,
+                    .scale_y = th / (float) over->height,
+                });
+            rdpq_mode_pop();
+        }
+    rdpq_detach();
     return true;
 }

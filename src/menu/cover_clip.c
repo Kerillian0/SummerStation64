@@ -44,6 +44,7 @@ static bool buttons_held (void) {
 void cover_clip_reset (void) {
     if (playing) {
         video_preview_stop();
+        carousel_art_clip_free();
     }
     playing = false;
     looked = false;
@@ -90,6 +91,7 @@ void cover_clip_after_draw (menu_t *menu) {
     if (moved || buttons_held() || pressed > rest_since) {
         if (playing) {
             video_preview_stop();
+            carousel_art_clip_free();
             playing = false;
         }
         rest_since = (moved || buttons_held()) ? now : pressed;
@@ -109,15 +111,24 @@ void cover_clip_after_draw (menu_t *menu) {
     }
 }
 
-float cover_clip_draw (menu_t *menu, int index, int x0, int y0, int w, int h, int *shown_w, int *shown_h) {
+float cover_clip_frame (menu_t *menu, int index) {
     if (!found || !wanted() || index != index_seen || get_ticks_ms() - rest_since < LOOK_AFTER_MS) {
         return 1.0f;
     }
     video_preview_update(clip_path);
     playing = true;
-    if (!video_preview_fit(w, h, shown_w, shown_h)) {
+    int w, h;
+    if (!video_preview_fit(64, 64, &w, &h)) {
         return 1.0f;    /* still loading, or the cover's moment alone */
     }
-    video_preview_draw(x0, y0, w, h);
     return 1.0f - video_preview_fade();
+}
+
+float cover_clip_draw (menu_t *menu, int index, int x0, int y0, int w, int h, int *shown_w, int *shown_h) {
+    float cover_left = cover_clip_frame(menu, index);
+    if (cover_left >= 1.0f || !video_preview_fit(w, h, shown_w, shown_h)) {
+        return 1.0f;
+    }
+    video_preview_draw(x0, y0, w, h);
+    return cover_left;
 }

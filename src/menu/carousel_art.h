@@ -124,6 +124,16 @@ float carousel_art_flip_width (void);
 /** The code a cover's pictures (and clip) go by, if the game list knows it already: no card read. */
 bool carousel_art_code (menu_t *menu, int index, char code[5]);
 
+/**
+ * 3D Box with a clip (cover_clip.h): the selected box, its front showing the
+ * clip's current picture, the cover over it at `cover_left` (1 to 0) as it
+ * fades. False for a cartridge or a box turned over (the flat clip then).
+ */
+bool carousel_art_draw_box_clip (menu_t *menu, int index, int x0, int y0, int w, int h, float cover_left);
+
+/** Free the picture a clip on the box is drawn into (the clip stopped). */
+void carousel_art_clip_free (void);
+
 /** Free all art, e.g. when leaving the browser. */
 void carousel_art_reset (void);
 

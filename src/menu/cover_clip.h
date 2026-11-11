@@ -25,7 +25,14 @@ void cover_clip_after_draw (menu_t *menu);
 void cover_clip_reset (void);
 
 /**
- * Draw the clip for list entry `index` in the cover's box, if it is ready.
+ * Keep the clip for list entry `index` going (call each frame its cover is
+ * at rest in the middle). @return The cover's remaining opacity over the
+ * clip: 1 while there is no picture yet, down to 0.
+ */
+float cover_clip_frame (menu_t *menu, int index);
+
+/**
+ * Draw the clip for list entry `index` flat in the cover's box, if it is ready.
  * @param shown_w, shown_h  Out: the size it was drawn at (for the ring).
  * @return The cover's remaining opacity over it (1 = the cover still fully
  *         shows, so nothing was drawn; 0 = the clip alone).
