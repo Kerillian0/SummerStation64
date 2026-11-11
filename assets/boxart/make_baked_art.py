@@ -52,6 +52,22 @@ def trim_black_frame(picture):
     while bottom < most(h) and dark_line([px[x, h - 1 - bottom] for x in range(w)]): bottom += 1
     while left < most(w) and dark_line([px[left, y] for y in range(h)]): left += 1
     while right < most(w) and dark_line([px[w - 1 - right, y] for y in range(h)]): right += 1
+    # A long, thin label (top label, spine) padded with black at both ends:
+    # cut both fully, up to a sixth of its length, when the two bands are
+    # about the same width (Dark Rift, NHL Breakaway 98, Mortal Kombat
+    # Mythologies, Super Mario 64 PAL). Black at one end only is the label's
+    # own design (Perfect Dark, Turok 2): the usual limit. Same as art_trim.c.
+    def padded(first, last, length, line):
+        if first < most(length) or last < most(length):
+            return first, last
+        a, b = first, last
+        while a < length // 6 and dark_line(line(a)): a += 1
+        while b < length // 6 and dark_line(line(length - 1 - b)): b += 1
+        return (a, b) if abs(a - b) <= 3 else (first, last)
+    if w >= 3 * h:
+        left, right = padded(left, right, w, lambda x: [px[x, y] for y in range(h)])
+    elif h >= 3 * w:
+        top, bottom = padded(top, bottom, h, lambda y: [px[x, y] for x in range(w)])
     return picture.crop((left, top, w - right, h - bottom))
 
 

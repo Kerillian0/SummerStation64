@@ -42,6 +42,28 @@ static int most (int size) {
     return size / 20 > 2 ? size / 20 : 2;
 }
 
+/* A long, thin label (a top label, a spine) whose scan was padded out with
+   black at both ends: cut both ends fully, up to a sixth of its length, when
+   the two black bands are about the same width (Dark Rift, NHL Breakaway 98,
+   Mortal Kombat Mythologies, Super Mario 64 PAL: 15 px of 158). Black at one
+   end only is the label's own design (Perfect Dark, Turok 2) and keeps the
+   usual limit. */
+#define PADDED_MOST(size)   ((size) / 6)
+#define PADDED_EVEN         (3)
+
+static void padded_ends (const surface_t *image, bool columns, int length, int *first, int *last) {
+    if (*first < most(length) || *last < most(length)) {
+        return;
+    }
+    int a = *first, b = *last;
+    while (a < PADDED_MOST(length) && (columns ? dark_column(image, a) : dark_row(image, a))) a++;
+    while (b < PADDED_MOST(length) && (columns ? dark_column(image, length - 1 - b) : dark_row(image, length - 1 - b))) b++;
+    if (a - b <= PADDED_EVEN && b - a <= PADDED_EVEN) {
+        *first = a;
+        *last = b;
+    }
+}
+
 void art_trim_decoded (png_err_t err, surface_t *image) {
     bool wanted = trim_next;
     trim_next = false;
@@ -58,6 +80,11 @@ void art_trim_decoded (png_err_t err, surface_t *image) {
     while (bottom < most(h) && dark_row(image, h - 1 - bottom)) bottom++;
     while (left < most(w) && dark_column(image, left)) left++;
     while (right < most(w) && dark_column(image, w - 1 - right)) right++;
+    if (w >= 3 * h) {
+        padded_ends(image, true, w, &left, &right);
+    } else if (h >= 3 * w) {
+        padded_ends(image, false, h, &top, &bottom);
+    }
     if (top + bottom + left + right == 0) {
         return;
     }
