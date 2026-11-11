@@ -740,7 +740,13 @@ static void pick_draw (void) {
     animations_dialog_end();
 }
 
-static void change_item (menu_t *menu, const item_t *it) {
+/* Rows with a value that left and right step through (A steps forward). */
+static bool has_value (const item_t *it) {
+    return it->type == ITEM_SWITCH || it->type == ITEM_FEATURE || it->type == ITEM_CHOICE;
+}
+
+/* dir: 1 the next value (A, right), -1 the one before (left). */
+static void change_item (menu_t *menu, const item_t *it, int dir) {
     switch (it->type) {
         case ITEM_SWITCH: {
             bool *value = switch_value(menu, it);
@@ -752,9 +758,10 @@ static void change_item (menu_t *menu, const item_t *it) {
             break;
         }
         case ITEM_FEATURE: {
-            /* Default -> On -> Off -> Default */
+            /* Default -> On -> Off -> Default (left goes the other way) */
             int value = features_user_get(it->feature);
-            int next = (value == FEATURE_UNSET) ? 1 : (value == 1) ? 0 : FEATURE_UNSET;
+            int next = (dir > 0) ? ((value == FEATURE_UNSET) ? 1 : (value == 1) ? 0 : FEATURE_UNSET)
+                                 : ((value == FEATURE_UNSET) ? 0 : (value == 0) ? 1 : FEATURE_UNSET);
             features_user_change(it->feature, next);
             if (it->feature == FEATURE_REVIEW_SCORES) {
                 resort_browser(menu);   /* Sort By's Review Score comes and goes with it */
@@ -764,7 +771,7 @@ static void change_item (menu_t *menu, const item_t *it) {
         case ITEM_CHOICE: {
             int next = options_get(it->option);
             for (int tries = 0; tries < it->choice_count; tries++) {
-                next = (next + 1) % it->choice_count;
+                next = (next + dir + it->choice_count) % it->choice_count;
                 if (it->choice_name(next)[0]) {
                     break;      /* a value with no name is not in use (a tab for a collection there isn't) */
                 }
@@ -900,7 +907,10 @@ static void process (menu_t *menu) {
             sound_play_effect(SFX_ENTER);   /* more than four values: a list to pick from */
             return;
         }
-        change_item(menu, &cat->items[item]);
+        change_item(menu, &cat->items[item], 1);
+        sound_play_effect(SFX_SETTING);
+    } else if (has_value(&cat->items[item]) && (menu->actions.go_left || menu->actions.go_right)) {
+        change_item(menu, &cat->items[item], menu->actions.go_right ? 1 : -1);   /* the arrows beside the value */
         sound_play_effect(SFX_SETTING);
     } else if (menu->actions.back || menu->actions.go_left) {
         in_items = false;
@@ -1007,13 +1017,52 @@ static void draw_slider (const item_t *it, int y) {
     }
 }
 
-static void draw_item (menu_t *menu, const item_t *it, int y) {
+#define PILL_WIDTH      (48)
+#define PILL_HEIGHT     (20)
+#define DOT_SIZE        (6)
+#define DOT_STEP        (10)
+#define DOTS_MOST       (6)     /* more values than this get no dots (themes, tabs, sort orders) */
+
+/* On and Off as a small rounded pill at the row's right: green On, grey Off. */
+static void draw_pill (int y, bool on) {
+    int x1 = ITEMS_X + ITEMS_WIDTH - ROW_PADDING;
+    int y0 = y + (ROW_HEIGHT - PILL_HEIGHT) / 2;
+    games_ui_round_fill(x1 - PILL_WIDTH, y0, x1, y0 + PILL_HEIGHT, on ? RGBA32(0x14, 0x94, 0x34, 0xFF) : theme_get()->tab_inactive);
+    rdpq_text_printf(&(rdpq_textparms_t) { .width = PILL_WIDTH, .height = PILL_HEIGHT, .align = ALIGN_CENTER, .valign = VALIGN_CENTER,
+        .style_id = on ? STL_WHITE : STL_GRAY }, FNT_DEFAULT, x1 - PILL_WIDTH, y0, "%s", on_off(on));
+}
+
+/* A dot per value, the one in use in the accent color. @return The room they took. */
+static int draw_dots (int y, int count, int current) {
+    if (count < 2 || count > DOTS_MOST) {
+        return 0;
+    }
+    int x1 = ITEMS_X + ITEMS_WIDTH - ROW_PADDING;
+    int x = x1 - (count * DOT_STEP) + (DOT_STEP - DOT_SIZE);
+    int y0 = y + (ROW_HEIGHT - DOT_SIZE) / 2;
+    for (int i = 0; i < count; i++, x += DOT_STEP) {
+        draw_fill(x, y0, x + DOT_SIZE, y0 + DOT_SIZE, (i == current) ? theme_get()->accent : theme_get()->tab_inactive);
+    }
+    return (count * DOT_STEP) + 4;
+}
+
+static void draw_item (menu_t *menu, const item_t *it, int y, bool selected) {
     const char *value = "";
     menu_font_style_t style = STL_DEFAULT;
 
+    int dots = 0;       /* room the value's dots take at the right */
+    bool arrows = false;
+
     switch (it->type) {
         case ITEM_SWITCH:
-            value = switch_text(it, *switch_value(menu, it));
+            if (!it->on_text && !it->off_text) {
+                draw_text(ITEMS_X, y, ITEMS_WIDTH, ALIGN_LEFT, STL_DEFAULT, it->label);
+                draw_pill(y, *switch_value(menu, it));
+                return;
+            }
+            value = switch_text(it, *switch_value(menu, it));     /* two named values (480i / 240p) */
+            dots = draw_dots(y, 2, *switch_value(menu, it) ? 1 : 0);
+            arrows = selected;
             break;
         case ITEM_FEATURE: {
             int user = features_user_get(it->feature);
@@ -1023,17 +1072,33 @@ static void draw_item (menu_t *menu, const item_t *it, int y) {
                    the other launch mode is on.) */
                 value = features_enabled(it->feature) ? "Default (On)" : "Default (Off)";
                 style = STL_GRAY;
+                arrows = selected;
             } else {
-                value = on_off(user != 0);
+                draw_text(ITEMS_X, y, ITEMS_WIDTH, ALIGN_LEFT, STL_DEFAULT, it->label);
+                draw_pill(y, user != 0);
+                return;
             }
             break;
         }
-        case ITEM_CHOICE:
-            value = it->choice_name(options_get(it->option));
+        case ITEM_CHOICE: {
+            int current = options_get(it->option);
+            value = it->choice_name(current);
             if (!value[0]) {
                 value = it->choice_name(0);     /* a value not in use now (Review Score with Review Scores off) works as the first */
+                current = 0;
             }
+            int values[DOTS_MOST + 1];
+            int count = choice_values(it, values, DOTS_MOST + 1);
+            int place = 0;
+            for (int i = 0; i < count && i <= DOTS_MOST; i++) {
+                if (values[i] == current) {
+                    place = i;
+                }
+            }
+            dots = draw_dots(y, count, place);
+            arrows = selected;
             break;
+        }
         case ITEM_ACTION:
             if (it->info) {
                 value = it->info(menu);     /* an action that also says how it stands (Record Clip) */
@@ -1053,9 +1118,15 @@ static void draw_item (menu_t *menu, const item_t *it, int y) {
         /* Long values (folder paths) get most of the row. */
         draw_text(ITEMS_X, y, INFO_NAME_WIDTH, ALIGN_LEFT, STL_DEFAULT, it->label);
         draw_text(ITEMS_X + INFO_NAME_WIDTH, y, ITEMS_WIDTH - INFO_NAME_WIDTH, ALIGN_RIGHT, style, value);
+    } else if (arrows) {
+        /* The selected row: arrows say left and right change it. */
+        char shown[96];
+        snprintf(shown, sizeof(shown), "◀ %s ▶", value);
+        draw_text(ITEMS_X, y, ITEMS_WIDTH, ALIGN_LEFT, STL_DEFAULT, it->label);
+        draw_text(ITEMS_X, y, ITEMS_WIDTH - dots, ALIGN_RIGHT, style, shown);
     } else {
         draw_text(ITEMS_X, y, ITEMS_WIDTH, ALIGN_LEFT, STL_DEFAULT, it->label);
-        draw_text(ITEMS_X, y, ITEMS_WIDTH, ALIGN_RIGHT, style, value);
+        draw_text(ITEMS_X, y, ITEMS_WIDTH - dots, ALIGN_RIGHT, style, value);
     }
 }
 
@@ -1085,12 +1156,21 @@ static void draw_hints (const char *a_action, bool slider) {
 
 /* The panel along the bottom: a heading, then the help in grey, the full
    width of both columns. */
-static void draw_help_box (const char *heading, const char *help, const char *note) {
+#define HELP_BADGE_WIDTH (178)
+
+static void draw_help_box (const char *heading, const char *help, const char *note, const char *badge) {
     int x0 = LEFT_X - PANEL_PAD, x1 = ITEMS_X + ITEMS_WIDTH + PANEL_PAD;
     int y1 = hints_top() - HELP_GAP;
     games_ui_round_fill(x0, HELP_Y, x1, y1, theme_get()->panel);
     rdpq_text_printf(&(rdpq_textparms_t) { .width = x1 - x0 - (HELP_PAD * 2), .height = HELP_HEADING, .valign = VALIGN_CENTER,
         .wrap = WRAP_ELLIPSES, .style_id = STL_DEFAULT }, FNT_DEFAULT, x0 + HELP_PAD, HELP_Y + 2, "%s", heading);
+    if (badge) {
+        /* A warning about the setting, in orange at the heading's right. */
+        int bx1 = x1 - HELP_PAD, by0 = HELP_Y + 2 + (HELP_HEADING - PILL_HEIGHT) / 2;
+        games_ui_round_fill(bx1 - HELP_BADGE_WIDTH, by0, bx1, by0 + PILL_HEIGHT, RGBA32(0xD8, 0x70, 0x10, 0xFF));
+        rdpq_text_printf(&(rdpq_textparms_t) { .width = HELP_BADGE_WIDTH, .height = PILL_HEIGHT, .align = ALIGN_CENTER,
+            .valign = VALIGN_CENTER, .style_id = STL_WHITE }, FNT_DEFAULT, bx1 - HELP_BADGE_WIDTH, by0, "%s", badge);
+    }
     rdpq_text_printf(&(rdpq_textparms_t) {
         .width = x1 - x0 - (HELP_PAD * 2),
         .height = y1 - (HELP_Y + 2 + HELP_HEADING) - 2,
@@ -1107,11 +1187,12 @@ static void draw_page_help (const category_t *cat) {
     for (int i = 0; i < cat->count && n < (int) sizeof(rows) - 1; i++) {
         n += snprintf(rows + n, sizeof(rows) - n, "%s%s", (i > 0) ? ", " : "", cat->items[i].label);
     }
-    draw_help_box(cat->label, rows, "");
+    draw_help_box(cat->label, rows, "", NULL);
 }
 
 static void draw_help (menu_t *menu, const item_t *it) {
     const char *note = "";
+    const char *badge = NULL;
     char stock[64];
     bool console = (it->type == ITEM_SWITCH) || (it->type == ITEM_CHOICE && (it->option == OPTION_FONT || it->option == OPTION_AVATAR_SHAPE))
         || (it->type == ITEM_INFO && it->info == default_folder);     /* config.ini and Character Set: not per profile */
@@ -1124,15 +1205,15 @@ static void draw_help (menu_t *menu, const item_t *it) {
         note = "\nSame for every player.";
     } else if (it->type == ITEM_FEATURE) {
         if (!features_available(it->feature)) {
-            note = "\nNeeds the Expansion Pak.";
+            badge = "Needs Expansion Pak";
         } else {
-            note = "\nDefault follows the theme. Press A to cycle Default, On, Off.";
+            note = "\nDefault follows the theme. A or left / right: Default, On, Off.";
         }
     } else if (it->type == ITEM_INFO && it->info == memory_note_info) {
         note = memory_note_details();
     }
 
-    draw_help_box(it->label, it->help, note);
+    draw_help_box(it->label, it->help, note, badge);
 }
 
 #define PAGE_SLIDE_MS   (180)
@@ -1249,7 +1330,7 @@ static void draw (menu_t *menu, surface_t *d) {
     }
     for (int i = first_row; i < last_row; i++) {
         int y = ROWS_Y + ((i - first_row) * ROW_HEIGHT) + page_shift + rise;
-        draw_item(menu, &cat->items[i], y);
+        draw_item(menu, &cat->items[i], y, in_items && i == item);
     }
     if (page_shift != 0 || rise != 0) {
         rdpq_set_scissor(0, 0, display_get_width(), display_get_height());
