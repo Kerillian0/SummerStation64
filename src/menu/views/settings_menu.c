@@ -245,7 +245,7 @@ static const item_t display_items[] = {
     CHOICES("Animations", OPTION_ANIMATIONS, ANIMATIONS_COUNT, animations_name, NULL,
         "Snappy keeps the menu quick and plain. Showy adds movement everywhere: covers, names and badges arrive in turn, the cover flies into Game info and back, highlights and tabs glide, pop-ups open and close, Settings rises in, and the player cards lift. Any button press finishes an animation at once."),
     CHOICES("Assistant", OPTION_ASSISTANT, ASSISTANT_COUNT, assistant_often_name, NULL,
-        "A fairy that flies in now and then with a tip about something you haven't tried yet, then flies off. Any button sends it away. Rarely, Now and Then or Chatty: how often it may come. Off: never."),
+        "A fairy that flies in now and then with a tip, a joke or a word about your games. Leave the menu alone for a minute and it stays to chat. Any button sends it away. Rarely, Now and Then or Chatty: how often it comes by itself. Off: never."),
     CHOICES("Assistant Mood", OPTION_ASSISTANT_MOOD, ASSISTANT_MOOD_COUNT, assistant_mood_name, NULL,
         "Eager is cheerful and keen to help. Snarky gives the same advice with an attitude."),
     ACTION("Reset Assistant Tips", reset_assistant,

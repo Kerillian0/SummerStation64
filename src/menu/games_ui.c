@@ -5,6 +5,7 @@
 
 #include <libdragon.h>
 
+#include "assistant.h"
 #include "animations.h"
 #include "avatars.h"
 #include "profiles.h"
@@ -226,7 +227,14 @@ static void player_draw (void) {
 #define TAB_GLIDE_MS        (180)
 #define TAB_GLIDE_FRESH_MS  (1000)  /* the new tab's screen can take a moment to come up */
 
+static games_tab_t tab_shown = GAMES_TAB_GAMES;
+
+games_tab_t games_ui_tab_shown (void) {
+    return tab_shown;
+}
+
 void games_ui_topbar_draw (menu_t *menu, games_tab_t selected) {
+    tab_shown = selected;
     games_tab_t shown[GAMES_TAB_COUNT];
     int count = tabs_list(shown);
 
@@ -267,7 +275,9 @@ void games_ui_topbar_draw (menu_t *menu, games_tab_t selected) {
         if (player_shown()) {
             player_draw();
         }
-        if (ports_shown()) {
+        if (assistant_in_corner()) {
+            /* the assistant's fairy is in this corner while it talks (assistant.h) */
+        } else if (ports_shown()) {
             controller_marks_draw();
         } else if (features_enabled(FEATURE_MEMORY_BADGE)) {
             memory_badge_draw();
@@ -630,6 +640,13 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const cha
 /* Button hints */
 #define HINTS_Y         (388)
 #define HINT_ROW_HEIGHT (BADGE_HEIGHT + 4)
+
+void games_ui_hints_rect (int *x0, int *y0, int *x1, int *y1) {
+    *x0 = GAMES_UI_CONTENT_X0 - 8;
+    *y0 = HINTS_Y - 5;
+    *x1 = GAMES_UI_CONTENT_X1 + 8;
+    *y1 = HINTS_Y + (2 * HINT_ROW_HEIGHT) + 1;
+}
 #define HINT_GAP        (14)
 
 /* The A and B buttons keep their well-known colors; the rest are plain. */

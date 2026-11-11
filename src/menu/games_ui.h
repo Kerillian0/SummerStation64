@@ -40,6 +40,12 @@ typedef enum {
  */
 void games_ui_topbar_draw (menu_t *menu, games_tab_t selected);
 
+/** The tab the tab bar last showed as selected. */
+games_tab_t games_ui_tab_shown (void);
+
+/** Where the band behind the button hints is drawn. */
+void games_ui_hints_rect (int *x0, int *y0, int *x1, int *y1);
+
 /** How the Controller, Rumble and Transfer Pak badges look (option `pak_badges`). */
 typedef enum {
     PAK_BADGES_OFF,

@@ -36,6 +36,15 @@ static int stat_count = 0;
 static bool loaded = false;
 static int loaded_for = 0;     /* profiles_generation() when loaded */
 
+/* The session settled at this start, for play_stats_settled(). */
+static struct {
+    bool known;
+    char rom[PATH_LENGTH];
+    uint32_t length;
+    uint32_t count;
+    uint32_t seconds;
+} settled;
+
 /* The session begun at the last game start, until the menu settles it. */
 static struct {
     bool open;
@@ -179,6 +188,11 @@ void play_stats_settle (bool power_on) {
     stat_t *s = find(path_hash(session.rom));
     if (s && length > 0 && length <= most && features_enabled(FEATURE_PLAY_STATS)) {
         s->seconds += (uint32_t) length;
+        settled.known = true;
+        snprintf(settled.rom, sizeof(settled.rom), "%s", session.rom);
+        settled.length = (uint32_t) length;
+        settled.count = s->count;
+        settled.seconds = s->seconds;
         debugf("time played: %s, %ld min (%s), %lu min in all\n", session.rom, length / 60,
             power_on ? "power switch, back on soon" : "reset", (unsigned long) (s->seconds / 60));
     } else {
@@ -186,6 +200,29 @@ void play_stats_settle (bool power_on) {
             power_on ? "power switch, off over 4 hours" : "no clock, or over 12 hours");
     }
     save();
+}
+
+bool play_stats_settled (const char **rom_path, uint32_t *length, uint32_t *count, uint32_t *seconds) {
+    if (!settled.known) {
+        return false;
+    }
+    *rom_path = settled.rom;
+    *length = settled.length;
+    *count = settled.count;
+    *seconds = settled.seconds;
+    return true;
+}
+
+void play_stats_totals (uint32_t *seconds, int *games) {
+    load();
+    *seconds = 0;
+    *games = 0;
+    for (int i = 0; i < stat_count; i++) {
+        *seconds += stats[i].seconds;
+        if (stats[i].count > 0) {
+            (*games)++;
+        }
+    }
 }
 
 uint32_t play_stats_seconds (const char *rom_path) {

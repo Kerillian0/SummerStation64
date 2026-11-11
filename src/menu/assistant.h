@@ -52,6 +52,10 @@ void assistant_reset (void);
 /** Once a frame (menu.c): whether it is time to say something. */
 void assistant_update (menu_t *menu);
 
+/** The fairy is in the top right corner (the cover rows), where the
+ *  Memory Badge or the controller marks give way to it. */
+bool assistant_in_corner (void);
+
 /** On the screens it can appear on, the last thing drawn before the
  *  Performance Overlay. */
 void assistant_draw (menu_t *menu);

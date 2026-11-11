@@ -47,6 +47,17 @@ uint32_t play_stats_seconds (const char *rom_path);
  */
 int play_stats_get (const char *rom_path, time_t *last);
 
+/**
+ * The session settled when the menu started (play_stats_settle()), if it
+ * was counted: the game's path, how long it lasted, and that game's starts
+ * and time played since. For the assistant's "welcome back".
+ * @return False if no session was settled at this start.
+ */
+bool play_stats_settled (const char **rom_path, uint32_t *length, uint32_t *count, uint32_t *seconds);
+
+/** All time played, in seconds, and how many different games have been started. */
+void play_stats_totals (uint32_t *seconds, int *games);
+
 /** A game's file was renamed (file_rename.h): its counts go with it. */
 void play_stats_rename (const char *old_path, const char *new_path);
 
