@@ -1193,7 +1193,7 @@ static void draw_hints (const char *a_action, bool slider, bool any_changed) {
         x = games_ui_hint_draw(x, 1, "A", a_action);
     }
     x = games_ui_hint_draw(x, 1, "B", "Back");
-    games_ui_hint_draw(x, 1, "L R", "Headings");
+    games_ui_hint_draw(x, 1, "L R", "Change Tab");
 
     /* What the accent bar beside a row means, against the right edge, while
        the page shown has one. Lined up with the hints' row. */
