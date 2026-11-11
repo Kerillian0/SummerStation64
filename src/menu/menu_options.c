@@ -59,6 +59,9 @@ static const option_info_t option_info[OPTION_COUNT] = {
     [OPTION_ASSISTANT_MOOD] = { "assistant_mood", 0 }, /* eager */
     [OPTION_ASSISTANT_SKIN] = { "assistant_skin", 0 }, /* Vee, the menu's own */
     [OPTION_ASSISTANT_COLOR] = { "assistant_color", 0 }, /* the fairy's own */
+    [OPTION_ASSISTANT_ARRIVAL] = { "assistant_arrival", 0 }, /* flies in */
+    [OPTION_ASSISTANT_IDLE] = { "assistant_idle", 0 }, /* bobs */
+    [OPTION_ASSISTANT_GLOW] = { "assistant_glow", 0 }, /* steady */
     [OPTION_PARTY_TEST] = { "party_test", 0 }, /* count the real controllers */
 };
 

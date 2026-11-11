@@ -483,6 +483,12 @@ static const item_t fairy_items[] = {
         "Which fairy the assistant is: Vee, the menu's own, or another one built into the menu. A fairy talks about its own games when you rest on them."),
     CHOICES("Fairy Color", OPTION_ASSISTANT_COLOR, ASSISTANT_COLOR_COUNT, assistant_color_name, NULL,
         "The fairy's colour: the glow behind it, the edge of its text box, its sparkles and its name. Vee itself takes the colour too. Its Own is each fairy's usual colour; Theme Accent follows the theme."),
+    CHOICES("Arrival", OPTION_ASSISTANT_ARRIVAL, ASSISTANT_ARRIVAL_COUNT, assistant_arrival_name, NULL,
+        "How the fairy comes and goes. Fly In: from the right, and off up and away. Sparkle: it pops out of a burst of sparkles. Fade: it appears and fades away. Drop In: it drops from above with a little bounce. The fairy here shows it."),
+    CHOICES("Idle Motion", OPTION_ASSISTANT_IDLE, ASSISTANT_IDLE_COUNT, assistant_idle_name, NULL,
+        "How the fairy moves while it talks. Bob: gently up and down. Still: it stays put. Wander: a slow figure-eight round its perch. Bounce: little hops."),
+    CHOICES("Glow Pulse", OPTION_ASSISTANT_GLOW, ASSISTANT_GLOW_COUNT, assistant_glow_name, NULL,
+        "The glow behind the fairy can breathe, slowly growing brighter and dimmer. Off keeps it steady."),
 };
 static const category_t fairy_page = { "Fairy Look", fairy_items, COUNT(fairy_items) };
 

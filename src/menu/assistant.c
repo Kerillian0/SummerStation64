@@ -1413,19 +1413,138 @@ static float ease_out (float t) {
     return 1.0f - rest * rest * rest;
 }
 
+/* How it comes and goes, how it moves while it stays, and how its glow
+   breathes (Settings > Look > Assistant > Fairy Look...). */
+enum { ARRIVAL_FLY, ARRIVAL_SPARKLE, ARRIVAL_FADE, ARRIVAL_DROP };
+enum { IDLE_BOB, IDLE_STILL, IDLE_WANDER, IDLE_BOUNCE };
+enum { GLOW_STEADY, GLOW_GENTLE, GLOW_STRONG };
+
+const char *assistant_arrival_name (int choice) {
+    static const char *names[ASSISTANT_ARRIVAL_COUNT] = { "Fly In", "Sparkle", "Fade", "Drop In" };
+    return (choice >= 0 && choice < ASSISTANT_ARRIVAL_COUNT) ? names[choice] : "";
+}
+
+const char *assistant_idle_name (int choice) {
+    static const char *names[ASSISTANT_IDLE_COUNT] = { "Bob", "Still", "Wander", "Bounce" };
+    return (choice >= 0 && choice < ASSISTANT_IDLE_COUNT) ? names[choice] : "";
+}
+
+const char *assistant_glow_name (int choice) {
+    static const char *names[ASSISTANT_GLOW_COUNT] = { "Off", "Gentle", "Strong" };
+    return (choice >= 0 && choice < ASSISTANT_GLOW_COUNT) ? names[choice] : "";
+}
+
+/* Where the fairy is, how large and how solid, `e` (0 to 1) of the way
+   through coming (or going), with its resting place at rest_x, rest_y.
+   burst: how far a sparkle burst has gone (-1 for none). */
+typedef struct {
+    float x, y, scale;
+    uint8_t alpha;
+    float burst;
+} pose_t;
+
+static pose_t pose (bool coming, float e, float rest_x, float rest_y, int size) {
+    pose_t p = { rest_x, rest_y, 1.0f, 255, -1.0f };
+    float off_x = display_get_width() + size;
+    switch (options_get(OPTION_ASSISTANT_ARRIVAL)) {
+        case ARRIVAL_SPARKLE:       /* pops out of a burst of sparkles, and back into one */
+            p.scale = coming ? animations_ease_back(e) : 1.0f - (e * e);
+            p.burst = e;
+            break;
+        case ARRIVAL_FADE:
+            p.alpha = (uint8_t) (255.0f * (coming ? e : 1.0f - e));
+            break;
+        case ARRIVAL_DROP:          /* drops from above with a little bounce, and rises away */
+            p.y = coming ? -size + ((rest_y + size) * animations_ease_back(e)) : rest_y - ((rest_y + size) * e * e);
+            break;
+        default: {                  /* flies in from the right, rising, and off up and away */
+            float k = coming ? ease_out(e) : e * e;
+            p.x = coming ? off_x + ((rest_x - off_x) * k) : rest_x + ((off_x - rest_x) * k);
+            p.y = coming ? (rest_y + 40) - (40 * k) : rest_y - (60 * k);
+            break;
+        }
+    }
+    return p;
+}
+
+/* How it moves while it stays. */
+static void idle_offset (uint64_t now, float *dx, float *dy) {
+    float t = (float) now;
+    *dx = 0.0f;
+    *dy = 0.0f;
+    switch (options_get(OPTION_ASSISTANT_IDLE)) {
+        case IDLE_STILL:
+            break;
+        case IDLE_WANDER: {         /* a slow figure-eight round its perch */
+            float w = t * 2.0f * (float) M_PI / 4200.0f;
+            *dx = 10.0f * sinf(w);
+            *dy = 5.0f * sinf(2.0f * w);
+            break;
+        }
+        case IDLE_BOUNCE:           /* little hops */
+            *dy = -8.0f * fabsf(sinf(t * (float) M_PI / 900.0f));
+            break;
+        default:
+            *dy = 3.0f * sinf(t * 0.0039f);    /* about 1.6 s a bob */
+            break;
+    }
+}
+
+/* Sparkles flying out from the fairy (the Sparkle arrival), `e` of the way. */
+#define BURST_STARS     (8)
+
+static void burst_draw (sprite_t *star, float x, float y, int size, float e) {
+    if (!star || e < 0.0f || e >= 1.0f) {
+        return;
+    }
+    color_t tint = fairy_tint();
+    rdpq_mode_push();
+        rdpq_set_mode_standard();
+        rdpq_mode_combiner(RDPQ_COMBINER1((0,0,0,PRIM), (TEX0,0,PRIM,0)));
+        rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+        rdpq_mode_filter(FILTER_BILINEAR);
+        uint8_t fade = (uint8_t) (255.0f * (1.0f - e));
+        for (int i = 0; i < BURST_STARS; i++) {
+            float a = (i * 2.0f * (float) M_PI / BURST_STARS) + 0.4f;
+            float r = size * (0.25f + (0.75f * e));
+            float s = 12.0f * (1.0f - (0.4f * e));
+            color_t c = (i & 1) ? tint : RGBA32(0xFF, 0xFF, 0xFF, 0xFF);
+            rdpq_set_prim_color(RGBA32(c.r, c.g, c.b, fade));
+            rdpq_sprite_blit(star, (int) (x + (r * cosf(a)) - (s / 2)), (int) (y + (r * sinf(a)) - (s / 2)),
+                             &(rdpq_blitparms_t) { .scale_x = s / 16.0f, .scale_y = s / 16.0f });
+        }
+    rdpq_mode_pop();
+}
+
 /* The fairy's picture, its middle at x, y, `size` pixels high: a skin turns
    back and forth like a coin, Vee flaps its wings. */
 #define GLOW_PATH       "rom:/glow.sprite"  /* a soft round glow, tinted (make_fairy.py) */
 #define GLOW_SCALE      (1.9f)              /* across, against the fairy's size */
 #define GLOW_ALPHA      (140)
 
-static void picture_draw (sprite_t *picture, float x, float y, int size, uint64_t now) {
+static void picture_draw (sprite_t *picture, float x, float y, int size, uint64_t now, uint8_t alpha) {
     static sprite_t *glow = NULL;   /* 1 KB, kept once loaded */
     if (!glow) {
         glow = sprite_load(GLOW_PATH);
     }
     color_t tint = fairy_tint();
     fonts_set_fairy_color(tint);    /* its name before its words */
+    if (size < 2) {
+        return;
+    }
+
+    /* Glow Pulse: the glow breathes, a little larger and brighter, then back. */
+    float wave = sinf((float) now * 2.0f * (float) M_PI / 2400.0f);
+    float glow_alpha = GLOW_ALPHA, glow_scale = GLOW_SCALE;
+    if (options_get(OPTION_ASSISTANT_GLOW) == GLOW_GENTLE) {
+        glow_alpha += 45.0f * wave;
+        glow_scale *= 1.0f + (0.05f * wave);
+    } else if (options_get(OPTION_ASSISTANT_GLOW) == GLOW_STRONG) {
+        glow_alpha = 150.0f + (90.0f * wave);
+        glow_scale *= 1.0f + (0.14f * wave);
+    }
+    glow_alpha *= alpha / 255.0f;
+
     rdpq_mode_push();
         rdpq_set_mode_standard();
         rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
@@ -1433,13 +1552,14 @@ static void picture_draw (sprite_t *picture, float x, float y, int size, uint64_
 
         /* A glow in its colour behind it, for every fairy. */
         rdpq_mode_combiner(RDPQ_COMBINER1((0,0,0,PRIM), (TEX0,0,PRIM,0)));
-        rdpq_set_prim_color(RGBA32(tint.r, tint.g, tint.b, GLOW_ALPHA));
-        float glow_size = size * GLOW_SCALE;
+        rdpq_set_prim_color(RGBA32(tint.r, tint.g, tint.b, (uint8_t) glow_alpha));
+        float glow_size = size * glow_scale;
         float k = glow_size / 32.0f;
         rdpq_sprite_blit(glow, (int) (x - glow_size / 2), (int) (y - glow_size / 2), &(rdpq_blitparms_t) { .scale_x = k, .scale_y = k });
 
         if (skin.choice > 0) {
-            rdpq_mode_combiner(RDPQ_COMBINER_TEX);      /* a skin's own picture, as drawn */
+            rdpq_mode_combiner(RDPQ_COMBINER1((0,0,0,TEX0), (TEX0,0,PRIM,0)));    /* a skin's own picture, as drawn (fading) */
+            rdpq_set_prim_color(RGBA32(0xFF, 0xFF, 0xFF, alpha));
             /* A skin has one picture: it faces one way, then turns (squashed
                through the middle, like a coin) to face the other, and back. */
             float scale = (float) size / SKIN_SIZE;
@@ -1461,8 +1581,8 @@ static void picture_draw (sprite_t *picture, float x, float y, int size, uint64_
             /* Vee, its wings flapping: two pictures side by side, drawn larger.
                Its shades of white are painted in its colour: the darkest
                parts the colour itself, its heart white. */
-            rdpq_mode_combiner(RDPQ_COMBINER1((1,PRIM,TEX0,PRIM), (0,0,0,TEX0)));
-            rdpq_set_prim_color(tint);
+            rdpq_mode_combiner(RDPQ_COMBINER1((1,PRIM,TEX0,PRIM), (TEX0,0,PRIM,0)));
+            rdpq_set_prim_color(RGBA32(tint.r, tint.g, tint.b, alpha));
             int frame = (int) ((now / FLAP_MS) % 2);
             float scale = size / (float) FAIRY_SIZE;
             rdpq_sprite_blit(picture, (int) x - size / 2, (int) y - size / 2, &(rdpq_blitparms_t) {
@@ -1497,20 +1617,16 @@ void assistant_draw (menu_t *menu) {
     float rest_x = PERCH_X;
     float rest_y = by0 - PERCH_ABOVE;
 
-    /* Flying in from the right, hovering with a gentle bob, then off up and away. */
-    float x = rest_x, y = rest_y;
-    float off_x = display_get_width() + PERCH_SIZE;
+    /* Coming and going as the player chose (Arrival), moving while it stays (Idle Motion). */
+    pose_t p = { rest_x, rest_y, 1.0f, 255, -1.0f };
     if (state == ARRIVING) {
-        float e = ease_out(t / ARRIVE_MS > 1.0f ? 1.0f : t / ARRIVE_MS);
-        x = off_x + (rest_x - off_x) * e;
-        y = (rest_y + 40) - 40 * e;
+        p = pose(true, t / ARRIVE_MS > 1.0f ? 1.0f : t / ARRIVE_MS, rest_x, rest_y, PERCH_SIZE);
     } else if (state == LEAVING) {
-        float e = t / LEAVE_MS > 1.0f ? 1.0f : t / LEAVE_MS;
-        e = e * e;
-        x = rest_x + (off_x - rest_x) * e;
-        y = rest_y - 60 * e;
+        p = pose(false, t / LEAVE_MS > 1.0f ? 1.0f : t / LEAVE_MS, rest_x, rest_y, PERCH_SIZE);
     }
-    y += 3.0f * sinf((float) now * 0.0039f);    /* about 1.6 s a bob */
+    float dx, dy;
+    idle_offset(now, &dx, &dy);
+    float x = p.x + dx, y = p.y + dy;
 
     /* The words, in the band, while it talks: the hints under it are covered. */
     if (state == TALKING) {
@@ -1561,13 +1677,17 @@ void assistant_draw (menu_t *menu) {
         }
     }
 
-    picture_draw(fairy, x, y, PERCH_SIZE, now);
+    burst_draw(sparkle, x, y, PERCH_SIZE, p.burst);
+    picture_draw(fairy, x, y, (int) (PERCH_SIZE * p.scale), now, p.alpha);
 }
 
 /* ---------- for the Ask page (assistant_ask.c) ---------- */
 
 static sprite_t *portrait = NULL;   /* its own copy: the perch's comes and goes */
+static sprite_t *portrait_star = NULL;
 static int portrait_choice = -1;
+static int portrait_arrival = -1;   /* the Arrival it last showed: a change shows it again */
+static uint64_t portrait_since = 0;
 
 const char *assistant_name (void) {
     return fairy_name();
@@ -1595,9 +1715,24 @@ void assistant_portrait_draw (int x, int y, int size) {
             snprintf(path, sizeof(path), "%s", FAIRY_PATH);
         }
         portrait = sprite_load(path);
+        portrait_star = sprite_load(SPARKLE_PATH);
         portrait_choice = skin.choice;
+        portrait_since = get_ticks_ms();    /* it arrives as it would on the covers */
     }
-    picture_draw(portrait, (float) x, (float) y, size, get_ticks_ms());
+    uint64_t now = get_ticks_ms();
+    if (options_get(OPTION_ASSISTANT_ARRIVAL) != portrait_arrival) {
+        portrait_arrival = options_get(OPTION_ASSISTANT_ARRIVAL);
+        portrait_since = now;
+    }
+    float e = (float) (now - portrait_since) / ARRIVE_MS;
+    pose_t p = { (float) x, (float) y, 1.0f, 255, -1.0f };
+    if (e < 1.0f) {
+        p = pose(true, e, (float) x, (float) y, size);
+    }
+    float dx, dy;
+    idle_offset(now, &dx, &dy);
+    burst_draw(portrait_star, p.x + dx, p.y + dy, size, p.burst);
+    picture_draw(portrait, p.x + dx, p.y + dy, (int) (size * p.scale), now, p.alpha);
 }
 
 void assistant_portrait_free (void) {
@@ -1605,5 +1740,10 @@ void assistant_portrait_free (void) {
         rspq_wait();    /* the chip may still be drawing it */
         sprite_free(portrait);
         portrait = NULL;
+        if (portrait_star) {
+            sprite_free(portrait_star);
+            portrait_star = NULL;
+        }
+        portrait_arrival = -1;
     }
 }

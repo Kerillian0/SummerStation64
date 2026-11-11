@@ -47,6 +47,14 @@ const char *assistant_color_name (int choice);
 /** How many values Fairy Color has: its own, the theme's accent, then named colours. */
 #define ASSISTANT_COLOR_COUNT  (12)
 
+/** How it comes and goes, moves while it stays, and how its glow breathes (Fairy Look). */
+#define ASSISTANT_ARRIVAL_COUNT (4)
+#define ASSISTANT_IDLE_COUNT    (4)
+#define ASSISTANT_GLOW_COUNT    (3)
+const char *assistant_arrival_name (int choice);
+const char *assistant_idle_name (int choice);
+const char *assistant_glow_name (int choice);
+
 /** The fairies to choose from: 0 is Vee, the menu's own (named by the player, if they did); 1 on, the skins
  *  baked into the menu file ("" past the last). */
 #define ASSISTANT_SKIN_COUNT    (9)

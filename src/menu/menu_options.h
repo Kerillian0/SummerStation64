@@ -50,6 +50,9 @@ typedef enum {
     OPTION_ASSISTANT_MOOD, /**< an assistant_mood_t value */
     OPTION_ASSISTANT_SKIN, /**< 0 Vee (the menu's own), 1 on a baked skin (see assistant.h) */
     OPTION_ASSISTANT_COLOR, /**< 0 the fairy's own, 1 the theme's accent, 2 on a named colour (assistant.c) */
+    OPTION_ASSISTANT_ARRIVAL, /**< how the fairy comes and goes (assistant.c) */
+    OPTION_ASSISTANT_IDLE, /**< how it moves while it stays */
+    OPTION_ASSISTANT_GLOW, /**< its glow: steady, or breathing gently or strongly */
     OPTION_PARTY_TEST,  /**< hidden, for testing: count this many controllers (see party.h); 0 counts the real ones */
     OPTION_COUNT
 } option_t;
