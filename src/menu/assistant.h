@@ -47,7 +47,7 @@ const char *assistant_color_name (int choice);
 /** How many values Fairy Color has: its own, the theme's accent, then named colours. */
 #define ASSISTANT_COLOR_COUNT  (12)
 
-/** The fairies to choose from: 0 is Spark, the menu's own; 1 on, the skins
+/** The fairies to choose from: 0 is Vee, the menu's own (named by the player, if they did); 1 on, the skins
  *  baked into the menu file ("" past the last). */
 #define ASSISTANT_SKIN_COUNT    (9)
 const char *assistant_skin_name (int choice);
@@ -64,6 +64,12 @@ void assistant_update (menu_t *menu);
 /** On the screens it can appear on, the last thing drawn before the
  *  Performance Overlay. */
 void assistant_draw (menu_t *menu);
+
+/** The longest name the player may give their fairy. */
+#define ASSISTANT_NAME_MAX  (16)
+
+/** Give the fairy in use a name of the player's (per player); empty or NULL gives it back its own. */
+void assistant_rename (const char *name);
 
 /** For the Ask page (assistant_ask.c): the fairy in use, its colour and mood. */
 const char *assistant_name (void);

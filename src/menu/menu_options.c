@@ -57,7 +57,7 @@ static const option_info_t option_info[OPTION_COUNT] = {
     [OPTION_ANIMATIONS] = { "animations", 0 }, /* snappy: the menu as it always was */
     [OPTION_ASSISTANT] = { "assistant", 2 }, /* now and then */
     [OPTION_ASSISTANT_MOOD] = { "assistant_mood", 0 }, /* eager */
-    [OPTION_ASSISTANT_SKIN] = { "assistant_skin", 0 }, /* Spark */
+    [OPTION_ASSISTANT_SKIN] = { "assistant_skin", 0 }, /* Vee, the menu's own */
     [OPTION_ASSISTANT_COLOR] = { "assistant_color", 0 }, /* the fairy's own */
     [OPTION_PARTY_TEST] = { "party_test", 0 }, /* count the real controllers */
 };

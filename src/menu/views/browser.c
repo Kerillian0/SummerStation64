@@ -942,7 +942,7 @@ static bool versions_open (menu_t *menu, entry_t *cover) {
 // Options > "Random game" on the Games tab: jump to any other game in the row
 // (within the filter in use). The row is a few dozen to a few hundred games,
 // so the console's own random numbers are plenty.
-// Options > "Ask Spark..." on the cover tabs: the assistant's questions
+// Options > "Ask Vee..." on the cover tabs: the assistant's questions
 // (a page of Settings; B there comes back to this tab).
 static char ask_text[40];
 static void ask_assistant (menu_t *menu, void *arg) {

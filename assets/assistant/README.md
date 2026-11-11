@@ -1,6 +1,6 @@
 # Assistant skins
 
-The menu's assistant is Spark, its own fairy (`assets/images/make_fairy.py`).
+The menu's assistant is Vee, its own fairy (`assets/images/make_fairy.py`).
 A skin swaps in another fairy: its picture, name, color and lines about
 its own games. Skins are built into the menu file by
 `make_skins.py`, and only into the Art Edition: `scripts/make_release.py`
@@ -48,5 +48,5 @@ menu's own lines for well-known games (`game_lines` in
 `src/menu/assistant.c`).
 
 Then run `python3 assets/assistant/make_skins.py` and build. Settings >
-Look > Fairy Look > Character lists Spark first, then the skins in
+Look > Assistant > Fairy Look... > Character lists Vee first, then the skins in
 folder-name order.

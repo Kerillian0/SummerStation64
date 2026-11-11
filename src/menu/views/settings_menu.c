@@ -156,6 +156,29 @@ static void open_ask (menu_t *menu) {
     assistant_ask_open(false);
 }
 
+/* Fairy Name: typed with the keyboard or dial; an empty name gives it back its own. */
+static void fairy_named (menu_t *menu, const char *name) {
+    (void) menu;
+    if (name) {
+        char kept[ASSISTANT_NAME_MAX + 1];
+        snprintf(kept, sizeof(kept), "%s", name);
+        assistant_rename(kept);
+        sound_play_effect(SFX_SETTING);
+    }
+}
+
+static void rename_fairy (menu_t *menu) {
+    (void) menu;
+    letter_wheel_name_begin("Fairy's name", assistant_name(), fairy_named);
+}
+
+static const char *fairy_name_info (menu_t *menu) {
+    (void) menu;
+    return assistant_name();
+}
+
+static void open_sub_page (const category_t *page);    /* with the page state, further down */
+
 static const char *ask_info (menu_t *menu) {
     (void) menu;
     return assistant_name();    /* who answers */
@@ -437,11 +460,15 @@ static const item_t game_info_items[] = {
     FEATURE("Advanced Game Options", FEATURE_ADVANCED_OPTIONS, "Game info's Options (R) also offers Set CIC Type, Set Save Type, Set TV Type, the Datel Code Editor and Clear RDRAM on boot. For games that need them; most never do. Choices already made stay in use when this is off."),
 };
 
+static void open_fairy_look_row (menu_t *menu);     /* with the fairy's rows, further down */
+
 static const item_t assistant_items[] = {
     CHOICES("Assistant", OPTION_ASSISTANT, ASSISTANT_COUNT, assistant_often_name, NULL,
         "A fairy that flies in now and then with a tip, a joke or a word about your games. Leave the menu alone for a minute and it stays to chat. Any button sends it away. Rarely, Now and Then or Chatty: how often it comes by itself. Off: never."),
     CHOICES("Assistant Mood", OPTION_ASSISTANT_MOOD, ASSISTANT_MOOD_COUNT, assistant_mood_name, NULL,
         "Eager is cheerful and keen to help. Snarky gives the same advice with an attitude."),
+    ACTION_INFO("Fairy Look...", open_fairy_look_row, ask_info,
+        "The fairy itself: its name, which fairy it is, its colour and how it moves. A opens its page, with the fairy shown on it."),
     ACTION_INFO("Ask a Question", open_ask, ask_info,
         "Questions about the menu, answered by the assistant: getting started, finding games, box art, themes, saves, hacks, 64DD, cheats and trouble. Works with the assistant on or off."),
     ACTION("Reset Assistant Tips", reset_assistant,
@@ -450,11 +477,24 @@ static const item_t assistant_items[] = {
 
 /* How the fairy looks; the page shows it perched on the help panel. */
 static const item_t fairy_items[] = {
+    ACTION_INFO("Fairy Name", rename_fairy, fairy_name_info,
+        "Give the fairy a name of your own (each fairy keeps its own name). Erase it all and keep the empty name to give it back its usual one."),
     CHOICES("Character", OPTION_ASSISTANT_SKIN, ASSISTANT_SKIN_COUNT, assistant_skin_name, NULL,
-        "Which fairy the assistant is: Spark, the menu's own, or another one built into the menu. A fairy talks about its own games when you rest on them."),
+        "Which fairy the assistant is: Vee, the menu's own, or another one built into the menu. A fairy talks about its own games when you rest on them."),
     CHOICES("Fairy Color", OPTION_ASSISTANT_COLOR, ASSISTANT_COLOR_COUNT, assistant_color_name, NULL,
-        "The fairy's colour: the glow behind it, the edge of its text box, its sparkles and its name. Spark itself takes the colour too. Its Own is each fairy's usual colour; Theme Accent follows the theme."),
+        "The fairy's colour: the glow behind it, the edge of its text box, its sparkles and its name. Vee itself takes the colour too. Its Own is each fairy's usual colour; Theme Accent follows the theme."),
 };
+static const category_t fairy_page = { "Fairy Look", fairy_items, COUNT(fairy_items) };
+
+/* A row that opens another page's rows in its place (Look > Assistant >
+   Fairy Look...); B goes back to the row it was opened from. */
+static const category_t *sub_page = NULL;
+static int sub_from_item = 0;
+
+static void open_fairy_look_row (menu_t *menu) {
+    (void) menu;
+    open_sub_page(&fairy_page);
+}
 
 static const item_t startup_items[] = {
     CHOICES("Intro", OPTION_INTRO, INTRO_CHOICE_COUNT, intro_choice_name, NULL,
@@ -608,7 +648,6 @@ static const category_t look_pages[] = {
     { "Badges", badge_items, COUNT(badge_items) },
     { "Game Info", game_info_items, COUNT(game_info_items) },
     { "Assistant", assistant_items, COUNT(assistant_items) },
-    { "Fairy Look", fairy_items, COUNT(fairy_items) },
     { "Start-up", startup_items, COUNT(startup_items) },
 };
 
@@ -646,6 +685,18 @@ static int category = 0;        /* the page within that heading */
 static int item = 0;
 static bool in_items = false;   /* false: choosing a page, true: inside one */
 static int first_row = 0;       /* first setting shown, when a category has more than fit */
+
+static void open_sub_page (const category_t *page) {
+    sub_from_item = item;
+    sub_page = page;
+    item = 0;
+    first_row = 0;
+}
+
+/* The page shown: a row's own page while one is open, else the chosen one. */
+static const category_t *current_page (void) {
+    return sub_page ? sub_page : &groups[group].pages[category];
+}
 
 static bool *switch_value (menu_t *menu, const item_t *it) {
     return (bool *) ((char *) &menu->settings + it->offset);
@@ -873,6 +924,7 @@ static void process (menu_t *menu) {
     joypad_buttons_t pressed = screenshot_pressed();
     if (pressed.l || pressed.r) {
         group = (group + (pressed.r ? 1 : COUNT(groups) - 1)) % COUNT(groups);
+        sub_page = NULL;
         category = 0;
         item = 0;
         in_items = false;
@@ -880,7 +932,7 @@ static void process (menu_t *menu) {
         return;
     }
 
-    const category_t *cat = &groups[group].pages[category];
+    const category_t *cat = current_page();
 
     if (!in_items) {
         if (menu->actions.go_up && category > 0) {
@@ -937,7 +989,12 @@ static void process (menu_t *menu) {
         change_item(menu, &cat->items[item], menu->actions.go_right ? 1 : -1);   /* the arrows beside the value */
         sound_play_effect(SFX_SETTING);
     } else if (menu->actions.back || menu->actions.go_left) {
-        in_items = false;
+        if (sub_page) {
+            sub_page = NULL;            /* back to the row it was opened from */
+            item = sub_from_item;
+        } else {
+            in_items = false;
+        }
         sound_play_effect(SFX_EXIT);
     }
 }
@@ -1339,7 +1396,7 @@ static void draw (menu_t *menu, surface_t *d) {
         return;
     }
 
-    const category_t *cat = &groups[group].pages[category];
+    const category_t *cat = current_page();
 
     draw_group_tabs();
     if (profiles_count() >= 2) {
@@ -1420,7 +1477,7 @@ static void draw (menu_t *menu, surface_t *d) {
     static int shown_category = -1;
     static uint64_t category_since = 0;
     static int category_dir = 1;
-    int page_key = (group * 32) + category;     /* pages are numbered heading by heading */
+    int page_key = (group * 32) + category + (sub_page ? 16 : 0);     /* pages are numbered heading by heading; a row's page after its own */
     if (page_key != shown_category) {
         if (shown_category >= 0) {
             category_dir = (page_key > shown_category) ? 1 : -1;
@@ -1509,6 +1566,7 @@ void view_settings_menu_init (menu_t *menu) {
     if (!features_enabled(FEATURE_REMEMBER_SETTINGS) && !back_from_tool) {
         group = 0;
         category = 0;
+        sub_page = NULL;
         item = 0;
         in_items = false;
         first_row = 0;

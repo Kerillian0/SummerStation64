@@ -36,7 +36,7 @@
 #define TEXT_PAD        (10)
 #define EDGE            (3)         /* the answer panel's edge, in the fairy's colour */
 #define PERCH           (42)        /* the fairy, perched on the top right corner */
-#define TITLE_WIDTH     (176)
+#define TITLE_WIDTH     (208)       /* "Ask " and a 16-letter name */
 #define SCROLL_STEP     (18)
 
 /* ---------- the questions, from rom:/ask.txt ---------- */

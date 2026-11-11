@@ -19,6 +19,6 @@ The spinning logo's shape is Nintendo's N64 logo.
 
 ## fairy.png, sparkle.png
 
-Spark, the menu assistant's own fairy, and the little star of its sparkles:
+Vee (once called Spark), the menu assistant's own fairy, and the little star of its sparkles:
 drawn from scratch by `make_fairy.py` in this folder (no outside artwork). A player's own fairy
 pictures (skins) are not part of this repository.

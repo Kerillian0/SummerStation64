@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Draws Spark, the menu assistant's own fairy (assistant.c). Drawn from
+"""Draws Vee, the menu assistant's own fairy (assistant.c). Drawn from
 scratch by the code below: a glowing orb with two pale wings.
 
 Needs Pillow (in the dev container: sudo apt-get install python3-pil).

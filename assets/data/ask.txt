@@ -24,7 +24,7 @@ open s Lucky for you, I'm in a good mood.
 topic Getting started
 q Who are you?
 a I'm %n, the menu's assistant! I pop up now and then with tips, and I answer questions here.
-a Settings > Look > Assistant sets how often I talk (or switches me off) and my mood. Look > Fairy Look picks which fairy I am and my colour.
+a Settings > Look > Assistant sets how often I talk (or switches me off) and my mood. Its Fairy Look row gives me a new name, picks which fairy I am and my colour.
 q How do I put my games on the card?
 a Put them in a folder, for example N64. On the console, open the Folders tab, go into that folder, press Z and choose "Set current directory as default". The Games tab then shows them as covers.
 a To add more folders, open each one on the Folders tab and choose Z, "Add this folder to Games".

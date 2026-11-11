@@ -33,8 +33,8 @@ The icons are kept as small as the console allows:
 - avatar_disc.png: a 64 x 64 white disc in 16 shades (2 KB), the round
   ring behind a profile picture, tinted to the player's color. Larger than
   button.png so its edge stays sharp at the picture's size.
-- settings_icons.png: Settings' 22 page icons, 18 x 18 each side by side
-  (396 x 18), white in 16 shades (about 3.6 KB), tinted by the menu.
+- settings_icons.png: Settings' 21 page icons, 18 x 18 each side by side
+  (378 x 18), white in 16 shades (about 3.4 KB), tinted by the menu.
 """
 from PIL import Image, ImageDraw
 
@@ -322,8 +322,8 @@ bottom.save("cart_bottom.png")
 print(f"cart_bottom.png: {BOTTOM_W} x {BOTTOM_H}")
 
 
-# Settings' page icons: 22 small white pictures side by side in one strip
-# (18 x 18 each, 396 x 18 in all, 16 shades: about 3.6 KB), in the order of
+# Settings' page icons: 21 small white pictures side by side in one strip
+# (18 x 18 each, 378 x 18 in all, 16 shades: about 3.4 KB), in the order of
 # the pages (Look, then Games, then Console). The menu tints them. Thick
 # strokes and plain shapes: they are seen on a composite CRT.
 ICON = 18
@@ -365,15 +365,6 @@ def icon_fairy(d, k):       # a glowing body with two wings
     d.ellipse(p(k, 2, 9, 7.5, 14), fill=170)
     d.ellipse(p(k, 10.5, 9, 16, 14), fill=170)
     d.ellipse(p(k, 5.5, 5.5, 12.5, 12.5), fill=W)
-def icon_wand(d, k):        # a magic wand with a star at its tip
-    d.line([(2 * k, 16 * k), (10 * k, 8 * k)], fill=W, width=int(2.4 * k))
-    import math
-    pts = []
-    for i in range(10):
-        a = -math.pi / 2 + i * math.pi / 5
-        r = 6.2 if i % 2 == 0 else 2.6
-        pts.append(((12.2 + r * math.cos(a)) * k, (6.2 + r * math.sin(a)) * k))
-    d.polygon(pts, fill=W)
 def icon_power(d, k):       # the power symbol: a broken ring and a bar
     d.arc(p(k, 2, 2.5, 16, 16.5), start=-50, end=230, fill=W, width=int(2.6 * k))
     d.rectangle(p(k, 7.7, 0.5, 10.3, 9), fill=W)
@@ -447,7 +438,7 @@ def icon_about(d, k):       # a question mark in a circle
     f = ImageFont.truetype(FONT, int(14 * k))
     d.text((9 * k, 9.4 * k), "?", font=f, fill=0, anchor="mm")
 
-PAGE_ICONS = [icon_theme, icon_covers, icon_box, icon_badges, icon_info, icon_fairy, icon_wand, icon_power,
+PAGE_ICONS = [icon_theme, icon_covers, icon_box, icon_badges, icon_info, icon_fairy, icon_power,
               icon_library, icon_names, icon_folder, icon_save, icon_tabs, icon_profile, icon_file,
               icon_controller, icon_sound, icon_tv, icon_camera, icon_film, icon_gear, icon_about]
 strip = Image.new("L", (ICON * len(PAGE_ICONS), ICON), 0)

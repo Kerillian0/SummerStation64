@@ -30,7 +30,7 @@
 #define FAIRY_PATH      "rom:/fairy.sprite"
 #define SPARKLE_PATH    "rom:/sparkle.sprite"     /* a 16 px star, tinted (make_fairy.py) */
 #define FAIRY_SIZE      (40)        /* each of its two pictures (wings up, wings down) */
-#define FAIRY_NAME      "Spark"
+#define FAIRY_NAME      "Vee"
 #define FAIRY_COLOR     RGBA32(0xFF, 0x7A, 0x6A, 0xFF)  /* its own coral: the edge of its text box */
 #define SWAP_MS         (900)       /* Showy: a new line sweeping in while it stays (420 was too quick to see) */
 #define SPARKLES        (10)
@@ -177,7 +177,21 @@ static void skins_list (void) {
     fclose(f);
 }
 
+static const char *fairy_key (int choice) {
+    return (choice >= 1 && choice <= skin_count) ? skin_files[choice - 1] : "own";
+}
+
+/* The player's own name for a fairy, or NULL. */
+static const char *given_name (int choice);
+
 const char *assistant_skin_name (int choice) {
+    skins_list();
+    if (choice >= 0 && choice <= skin_count) {
+        const char *given = given_name(choice);
+        if (given) {
+            return given;
+        }
+    }
     if (choice == 0) {
         return FAIRY_NAME;
     }
@@ -185,7 +199,7 @@ const char *assistant_skin_name (int choice) {
     return (choice >= 1 && choice <= skin_count) ? skin_names[choice - 1] : "";
 }
 
-/* The skin in use: Spark (choice 0) or one read from its file. */
+/* The skin in use: Vee (choice 0) or one read from its file. */
 static struct {
     int choice;                 /* -1: not loaded yet */
     char name[24];
@@ -281,6 +295,12 @@ static bool skin_home (const char *code) {
 
 /* ---------- the player's file ---------- */
 
+/* Names the player gave their fairies (per player, in assistant.txt as
+   "name <fairy> <name>"; the menu's own fairy is "own", a skin its folder). */
+#define NAMES_MAX       (SKINS_MAX + 1)
+static struct { char key[20]; char name[ASSISTANT_NAME_MAX + 1]; } names[NAMES_MAX];
+static int name_count = 0;
+
 static int loaded_for = -1;     /* profiles_generation() */
 static bool dirty = false;
 
@@ -290,6 +310,7 @@ static void load (void) {
     }
     loaded_for = profiles_generation();
     used_bits = seen_bits = said_bits = 0;
+    name_count = 0;
     char tmp[256];
     snprintf(tmp, sizeof(tmp), "%s", profiles_file(FILE_TMP_NAME));
     FILE *f = fopen(profiles_file(FILE_NAME), "r");
@@ -309,6 +330,16 @@ static void load (void) {
                 used_bits |= (uint32_t) bits;
             } else if (sscanf(line, "said %lx", &bits) == 1) {
                 said_bits = (uint32_t) bits;
+            } else if (strncmp(line, "name ", 5) == 0 && name_count < NAMES_MAX) {
+                char *key = line + 5;
+                char *text = strchr(key, ' ');
+                if (text) {
+                    *text++ = '\0';
+                    text[strcspn(text, "\r\n")] = '\0';
+                    snprintf(names[name_count].key, sizeof(names[0].key), "%s", key);
+                    snprintf(names[name_count].name, sizeof(names[0].name), "%s", text);
+                    name_count += (text[0] != '\0');
+                }
             }
         }
     }
@@ -326,12 +357,58 @@ static void save (void) {
     }
     fprintf(f, "%s\nseen %08lx\nused %08lx\nsaid %08lx\n", FILE_HEADER,
             (unsigned long) seen_bits, (unsigned long) used_bits, (unsigned long) said_bits);
+    for (int i = 0; i < name_count; i++) {
+        fprintf(f, "name %s %s\n", names[i].key, names[i].name);
+    }
     bool ok = (fclose(f) == 0);
     if (!ok || !safe_file_replace(tmp, path)) {
         debugf("assistant: could not replace %s\n", path);
         return;
     }
     dirty = false;
+}
+
+static const char *given_name (int choice) {
+    load();
+    const char *key = fairy_key(choice);
+    for (int i = 0; i < name_count; i++) {
+        if (strcmp(names[i].key, key) == 0) {
+            return names[i].name;
+        }
+    }
+    return NULL;
+}
+
+/* What the fairy in use is called: the player's name for it, or its own. */
+static const char *fairy_name (void) {
+    skin_load();
+    const char *given = given_name(skin.choice);
+    return given ? given : skin.name;
+}
+
+void assistant_rename (const char *name) {
+    skin_load();
+    load();
+    const char *key = fairy_key(skin.choice);
+    int at = 0;
+    while (at < name_count && strcmp(names[at].key, key) != 0) {
+        at++;
+    }
+    if (!name || !name[0]) {
+        if (at < name_count) {
+            names[at] = names[--name_count];    /* back to its usual name */
+        }
+    } else {
+        if (at == name_count) {
+            if (name_count >= NAMES_MAX) {
+                return;
+            }
+            name_count++;
+        }
+        snprintf(names[at].key, sizeof(names[0].key), "%s", key);
+        snprintf(names[at].name, sizeof(names[0].name), "%s", name);
+    }
+    save();     /* a name is worth keeping at once */
 }
 
 void assistant_note_used (assistant_used_t what) {
@@ -468,7 +545,7 @@ static void set_words (const char *message, bool swap) {
     }
     /* Its name in orange first, then what it says. */
     char text[TEXT_LENGTH + 32];
-    snprintf(text, sizeof(text), "^%02X%s:^00 %s", STL_FAIRY, skin.name, message);   /* the name in its colour */
+    snprintf(text, sizeof(text), "^%02X%s:^00 %s", STL_FAIRY, fairy_name(), message);   /* the name in its colour */
     int bytes = strlen(text);
     words = rdpq_paragraph_build(&(rdpq_textparms_t) {
         .width = band_text_width(),
@@ -1337,7 +1414,7 @@ static float ease_out (float t) {
 }
 
 /* The fairy's picture, its middle at x, y, `size` pixels high: a skin turns
-   back and forth like a coin, Spark flaps its wings. */
+   back and forth like a coin, Vee flaps its wings. */
 #define GLOW_PATH       "rom:/glow.sprite"  /* a soft round glow, tinted (make_fairy.py) */
 #define GLOW_SCALE      (1.9f)              /* across, against the fairy's size */
 #define GLOW_ALPHA      (140)
@@ -1381,7 +1458,7 @@ static void picture_draw (sprite_t *picture, float x, float y, int size, uint64_
                 .flip_x = facing < 0.0f,
             });
         } else {
-            /* Spark, its wings flapping: two pictures side by side, drawn larger.
+            /* Vee, its wings flapping: two pictures side by side, drawn larger.
                Its shades of white are painted in its colour: the darkest
                parts the colour itself, its heart white. */
             rdpq_mode_combiner(RDPQ_COMBINER1((1,PRIM,TEX0,PRIM), (0,0,0,TEX0)));
@@ -1493,8 +1570,7 @@ static sprite_t *portrait = NULL;   /* its own copy: the perch's comes and goes 
 static int portrait_choice = -1;
 
 const char *assistant_name (void) {
-    skin_load();
-    return skin.name;
+    return fairy_name();
 }
 
 color_t assistant_color (void) {
