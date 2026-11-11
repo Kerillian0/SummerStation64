@@ -25,11 +25,26 @@
 #define TOP_SHADE           (0.85f)
 #define SIDE_SHADE          (0.62f)
 #define BOTTOM_SHADE        (0.45f)
+/* An open box: the dark inside seen through the top, and the flap's plain
+   inside; how far the flap swings, past standing straight up. */
+#define INSIDE_SHADE        (0.18f)
+#define FLAP_INSIDE_SHADE   (0.55f)
+#define FLAP_OPEN_DEGREES   (115.0f)
 
 typedef struct { float x, y, z; } point_t;
 
-/* The box's corners: bit 0 right, bit 1 bottom, bit 2 back. */
-static point_t corners[8];
+/* The box's corners: bit 0 right, bit 1 bottom, bit 2 back; then the top
+   flap's free edge, left and right, when it is open. */
+#define CORNERS         (10)
+static point_t corners[CORNERS];
+static const int flap_out[4] = { 4, 5, 9, 8 };  /* its outside, the top label: like the top */
+static const int flap_in[4] = { 8, 9, 5, 4 };   /* its inside, plain board */
+
+/* The shared space's offset (pose->shift_*), added after the turn (so a thing
+   turns round its own middle) and before the tip,
+   and how far the top flap is swung open (degrees). */
+static point_t shift;
+static float flap_angle = 0.0f;
 
 /* Each face's corners as seen from outside it: top left, top right,
    bottom right, bottom left. */
@@ -172,8 +187,9 @@ static point_t turn_point (float x, float y, float z, float yaw, float pitch) {
     float turn = yaw * (float) M_PI / 180.0f;
     float tip = pitch * (float) M_PI / 180.0f;
     float cy = cosf(turn), sy = sinf(turn), cp = cosf(tip), sp = sinf(tip);
-    float x1 = x * cy - z * sy;
-    float z1 = x * sy + z * cy;
+    float x1 = x * cy - z * sy + shift.x;   /* turned round its own middle, then moved in the shared space */
+    float z1 = x * sy + z * cy + shift.z;
+    y += shift.y;
     return (point_t) { x1, y * cp - z1 * sp, y * sp + z1 * cp };
 }
 
@@ -188,7 +204,7 @@ static point_t turn_point (float x, float y, float z, float yaw, float pitch) {
 #define CART_BOTTOM_SHADE   (0.80f)
 
 static void cartridge_walls (const box3d_art_t *art, float bw, float bh, float bd, float yaw, float pitch) {
-    point_t saved[8];       /* the walls borrow the corner list; the front is drawn from it afterwards */
+    point_t saved[CORNERS];       /* the walls borrow the corner list; the front is drawn from it afterwards */
     memcpy(saved, corners, sizeof(saved));
     /* Its own outline (a retro cartridge's, traced from its picture), else the N64 one. */
     const float (*outline)[2] = (art->outline && art->outline_points >= 3) ? art->outline : cart_outline;
@@ -302,12 +318,19 @@ static void place (float bw, float bh, float bd, float yaw, float pitch) {
     float turn = yaw * (float) M_PI / 180.0f;
     float tip = pitch * (float) M_PI / 180.0f;
     float cy = cosf(turn), sy = sinf(turn), cp = cosf(tip), sp = sinf(tip);
-    for (int i = 0; i < 8; i++) {
+    float flap = flap_angle * (float) M_PI / 180.0f;
+    for (int i = 0; i < CORNERS; i++) {
         float x = (i & 1) ? bw / 2 : -bw / 2;
         float y = (i & 2) ? bh / 2 : -bh / 2;
         float z = (i & 4) ? bd / 2 : -bd / 2;
-        float x1 = x * cy - z * sy;     /* turned: the right edge goes back */
-        float z1 = x * sy + z * cy;
+        if (i >= 8) {   /* the flap's free edge, swung round the top's back edge */
+            x = (i & 1) ? bw / 2 : -bw / 2;
+            y = -bh / 2 - bd * sinf(flap);
+            z = bd / 2 - bd * cosf(flap);
+        }
+        float x1 = x * cy - z * sy + shift.x;   /* turned (the right edge goes back) round its own middle, then moved */
+        float z1 = x * sy + z * cy + shift.z;
+        y += shift.y;
         float y2 = y * cp - z1 * sp;    /* tipped: the top comes toward the viewer */
         float z2 = y * sp + z1 * cp;
         corners[i] = (point_t) { x1, y2, z2 };
@@ -376,27 +399,43 @@ void box3d_draw (const box3d_art_t *art, int x0, int y0, int w, int h, const box
     }
     bd *= amount;
 
-    /* Its size is worked out at the resting angles, so it keeps that size
-       while it sways or is turned by hand, and turns round its middle. */
-    camera = longest * CAMERA_DISTANCE;
-    scale = 1.0f;
-    offset_x = offset_y = 0.0f;
-    nearest = 1.0f;
-    place(bw, bh, bd, pose->fit_yaw * amount, pose->fit_pitch * amount);
-    float min_x = 1e9f, max_x = -1e9f, min_y = 1e9f, max_y = -1e9f;
-    for (int i = 0; i < 8; i++) {
-        float x, y, near;
-        project(corners[i], &x, &y, &near);
-        if (x < min_x) min_x = x;
-        if (x > max_x) max_x = x;
-        if (y < min_y) min_y = y;
-        if (y > max_y) max_y = y;
+    flap_angle = 0.0f;
+    shift = (point_t) { 0.0f, 0.0f, 0.0f };
+    if (pose->world) {
+        /* In the shared space: its size in pixels, one camera for all. */
+        float u = pose->width / bw;
+        bw *= u; bh *= u; bd *= u;
+        camera = pose->camera;
+        scale = 1.0f;
+        offset_x = pose->cx;
+        offset_y = pose->cy + pose->lift;
+        nearest = 1.0f;
+        shift = (point_t) { pose->shift_x, pose->shift_y, pose->shift_z };
+        float open = (pose->open < 0.0f) ? 0.0f : (pose->open > 1.3f) ? 1.3f : pose->open;     /* a little past open, to settle back */
+        flap_angle = open * FLAP_OPEN_DEGREES;
+    } else {
+        /* Its size is worked out at the resting angles, so it keeps that size
+           while it sways or is turned by hand, and turns round its middle. */
+        camera = longest * CAMERA_DISTANCE;
+        scale = 1.0f;
+        offset_x = offset_y = 0.0f;
+        nearest = 1.0f;
+        place(bw, bh, bd, pose->fit_yaw * amount, pose->fit_pitch * amount);
+        float min_x = 1e9f, max_x = -1e9f, min_y = 1e9f, max_y = -1e9f;
+        for (int i = 0; i < 8; i++) {
+            float x, y, near;
+            project(corners[i], &x, &y, &near);
+            if (x < min_x) min_x = x;
+            if (x > max_x) max_x = x;
+            if (y < min_y) min_y = y;
+            if (y > max_y) max_y = y;
+        }
+        float fit_x = w / (max_x - min_x);
+        float fit_y = h / (max_y - min_y);
+        scale = (fit_x < fit_y) ? fit_x : fit_y;
+        offset_x = x0 + w / 2.0f - (min_x + max_x) / 2.0f * scale;
+        offset_y = y0 + h / 2.0f - (min_y + max_y) / 2.0f * scale + pose->lift;
     }
-    float fit_x = w / (max_x - min_x);
-    float fit_y = h / (max_y - min_y);
-    scale = (fit_x < fit_y) ? fit_x : fit_y;
-    offset_x = x0 + w / 2.0f - (min_x + max_x) / 2.0f * scale;
-    offset_y = y0 + h / 2.0f - (min_y + max_y) / 2.0f * scale + pose->lift;
 
     place(bw, bh, bd, pose->yaw * amount, pose->pitch * amount);
     float min_z = 1e9f;
@@ -405,20 +444,50 @@ void box3d_draw (const box3d_art_t *art, int x0, int y0, int w, int h, const box
     }
     nearest = min_z + camera;
 
+    bool back_part = (pose->parts == 0 || (pose->parts & BOX3D_PART_BACK));
+    bool front_part = (pose->parts == 0 || (pose->parts & BOX3D_PART_FRONT));
     rdpq_mode_push();
         if (amount > 0.0f && art->cartridge) {
-            cartridge_walls(art, bw, bh, bd, pose->yaw * amount, pose->pitch * amount);
+            if (front_part) {
+                cartridge_walls(art, bw, bh, bd, pose->yaw * amount, pose->pitch * amount);
+            }
         } else if (amount > 0.0f) {
-            /* The bottom carries the same label as the top. */
-            top_face(faces[FACE_TOP], art->top, art->side, TOP_SHADE, art->bright);
-            top_face(faces[FACE_BOTTOM], art->top, art->side, BOTTOM_SHADE, art->bright);
-            side_face(faces[FACE_LEFT], art->back ? art->right : art->left, art->side, SIDE_SHADE, art->bright);
-            side_face(faces[FACE_RIGHT], art->back ? art->left : art->right, art->side, SIDE_SHADE, art->bright);
+            if (back_part && flap_angle > 0.0f) {
+                /* Open: the opening dark inside, and the flap standing on the
+                   top's back edge, its label outside and plain board inside. */
+                if (facing(faces[FACE_TOP])) {
+                    face_plain(faces[FACE_TOP], shaded(art->side, INSIDE_SHADE, art->bright));
+                }
+                if (facing(flap_out)) {
+                    top_face(flap_out, art->top, art->side, TOP_SHADE, art->bright);
+                } else if (facing(flap_in)) {
+                    face_plain(flap_in, shaded(art->side, FLAP_INSIDE_SHADE, art->bright));
+                }
+            } else if (back_part) {
+                top_face(faces[FACE_TOP], art->top, art->side, TOP_SHADE, art->bright);
+            }
+            if (front_part) {
+                /* The bottom carries the same label as the top. */
+                top_face(faces[FACE_BOTTOM], art->top, art->side, BOTTOM_SHADE, art->bright);
+                side_face(faces[FACE_LEFT], art->back ? art->right : art->left, art->side, SIDE_SHADE, art->bright);
+                side_face(faces[FACE_RIGHT], art->back ? art->left : art->right, art->side, SIDE_SHADE, art->bright);
+            }
         }
-        if (art->front && facing(faces[FACE_FRONT])) {
+        if (front_part && art->front && facing(faces[FACE_FRONT])) {
             draw_cutout = art->cartridge;
             face_picture(faces[FACE_FRONT], art->front, 1.0f, art->bright);
             draw_cutout = false;
         }
     rdpq_mode_pop();
+}
+
+void box3d_project (const box3d_pose_t *pose, float x, float y, float z, float *sx, float *sy) {
+    camera = pose->camera;
+    scale = 1.0f;
+    offset_x = pose->cx;
+    offset_y = pose->cy + pose->lift;
+    nearest = 1.0f;
+    shift = (point_t) { 0.0f, 0.0f, 0.0f };
+    float near;
+    project(turn_point(x, y, z, pose->yaw, pose->pitch), sx, sy, &near);
 }

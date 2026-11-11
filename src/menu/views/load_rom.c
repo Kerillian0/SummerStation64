@@ -9,6 +9,7 @@
 #include "../rom_info.h"
 #include "../sound.h"
 #include "boot/boot.h"
+#include "../game_start.h"
 #include "utils/fs.h"
 #include "../games_ui.h"
 #include "views.h"
@@ -719,6 +720,9 @@ static bool z_pressed (void) {
 }
 
 static void process (menu_t *menu) {
+    if (game_start_opening()) {
+        return; // the game is starting (game_start.h)
+    }
     if (cheat_menu_process(menu)) { // the game's cheats list is open
         return;
     }
@@ -779,6 +783,11 @@ static void process (menu_t *menu) {
 
 static void draw (menu_t *menu, surface_t *d) {
     rdpq_attach(d, NULL);
+    if (game_start_page_gone()) { // the game is starting: only its animation (game_start.h)
+        game_start_draw(menu);
+        rdpq_detach_show();
+        return;
+    }
 
     if (!game_info_ui_backdrop_ready(menu)) ui_components_background_draw(); // the backdrop covers the whole screen
 #ifdef FEATURE_AUTOLOAD_ROM_ENABLED
@@ -928,6 +937,11 @@ static void draw (menu_t *menu, surface_t *d) {
     }
 #endif
 
+    if (game_start_opening()) { // the page fading out under the box
+        game_start_draw(menu);
+        rdpq_detach_show();
+        return;
+    }
     animations_draw_late(menu->mode);  // Showy: a pop-up just closed shrinks away
     assistant_draw(menu);   // the assistant's fairy and bubble, when it is talking
     debug_stats_overlay_draw(); // Performance Overlay, if it is on
@@ -968,6 +982,9 @@ static void load (menu_t *menu) {
     video_preview_stop(); // its memory and the RSP back before the game is loaded
     save_backup_before_launch(menu); // keep a copy of the save as it is before this session
     cart_load_err_t err;
+    if (game_start_load_begin()) { // the cartridge goes into the console as it loads (game_start.h)
+        err = cart_load_n64_rom_and_save(menu, game_start_progress, game_start_progress);
+    } else {
 #ifdef FEATURE_AUTOLOAD_ROM_ENABLED
     if (!menu->settings.loading_progress_bar_enabled) {
         err = cart_load_n64_rom_and_save(menu, NULL, NULL);
@@ -977,11 +994,15 @@ static void load (menu_t *menu) {
 #else
     err = cart_load_n64_rom_and_save(menu, draw_progress, draw_creating_save);
 #endif
+    }
 
     if (err != CART_LOAD_OK) {
+        game_start_end();
         menu_show_error(menu, cart_load_convert_error_message(err));
         return;
     }
+    game_start_finish(); // the rest of the animation, ending on black
+    game_start_end();
 
     bookkeeping_history_add(&menu->bookkeeping, menu->load.rom_path, NULL, BOOKKEEPING_TYPE_ROM);
     play_stats_record(path_get(menu->load.rom_path), menu->current_time); // times played, last played, the session for time played
@@ -1031,6 +1052,7 @@ static void load (menu_t *menu) {
 }
 
 static void deinit (void) {
+    game_start_end();
     logo_free();
     video_preview_stop();
     clip_path[0] = '\0';
@@ -1129,6 +1151,10 @@ void view_load_rom_display (menu_t *menu, surface_t *display) {
 
     if (menu->load_pending.rom_file) {
         menu->load_pending.rom_file = false;
+        if (!game_start_begin(menu, boxart)) { // Box Opens plays its opening first (game_start.h)
+            load(menu);
+        }
+    } else if (game_start_ready()) {
         load(menu);
     }
 

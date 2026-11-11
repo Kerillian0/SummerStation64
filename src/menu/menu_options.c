@@ -63,6 +63,7 @@ static const option_info_t option_info[OPTION_COUNT] = {
     [OPTION_ASSISTANT_IDLE] = { "assistant_idle", 0 }, /* bobs */
     [OPTION_ASSISTANT_GLOW] = { "assistant_glow", 0 }, /* steady */
     [OPTION_COVER_CLIPS] = { "cover_clips", 1 }, /* on */
+    [OPTION_GAME_START] = { "game_start", 0 }, /* the box opens */
     [OPTION_PARTY_TEST] = { "party_test", 0 }, /* count the real controllers */
 };
 

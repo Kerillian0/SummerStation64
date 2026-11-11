@@ -8,6 +8,7 @@
 
 #include "animations.h"
 #include "assistant.h"
+#include "game_start.h"
 #include "fonts.h"
 #include "games_ui.h"
 #include "intro.h"
@@ -1220,6 +1221,9 @@ static int pick_tip (menu_t *menu) {
 }
 
 void assistant_update (menu_t *menu) {
+    if (menu->next_mode == MENU_MODE_BOOT || game_start_opening()) {
+        return;     /* a game is starting: the cart's copy of the menu file (rom:/, its pictures) is being overwritten */
+    }
     int often = options_get(OPTION_ASSISTANT);
     uint64_t now = get_ticks_ms();
 

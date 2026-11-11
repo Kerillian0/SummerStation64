@@ -45,9 +45,27 @@ typedef struct {
     float fit_yaw;      /**< the angles the box's size is worked out at, so it keeps */
     float fit_pitch;    /**< one size while it turns (the resting angles) */
     float lift;         /**< pixels to move it down (negative: up); between pixels is fine */
+    /* A shared space (the game-start animation, game_start.c): several
+       things drawn at one size and perspective instead of each fitted into
+       its own box. Left at 0, none of this is used. */
+    bool world;         /**< place it in the shared space: the fields below, not the fitting */
+    float width;        /**< its front's width in pixels (height and depth follow its pictures) */
+    float camera;       /**< the camera's distance in pixels, the same for everything in the space */
+    float cx, cy;       /**< where the space's middle shows on the screen */
+    float shift_x, shift_y, shift_z;    /**< its middle in the space, before the turn and tip (y down, z back) */
+    float open;         /**< a box's top flap: 0 shut, 1 open (swung up and back on its back edge) */
+    int parts;          /**< BOX3D_PART_BACK or _FRONT: draw half, for something to go inside; 0 all */
 } box3d_pose_t;
+
+/** The parts behind whatever is inside the box (its top, or the opening and
+ *  the flap), and the parts in front of it (front, sides, bottom). */
+#define BOX3D_PART_BACK     (1)
+#define BOX3D_PART_FRONT    (2)
 
 /** Draw the box fitted inside x0, y0, w, h (keeping its shape, centered), at the given pose. */
 void box3d_draw (const box3d_art_t *art, int x0, int y0, int w, int h, const box3d_pose_t *pose);
+
+/** Where a point of the shared space (pose->world) shows on the screen, at the pose's turn and tip. */
+void box3d_project (const box3d_pose_t *pose, float x, float y, float z, float *sx, float *sy);
 
 #endif /* BOX3D_H__ */

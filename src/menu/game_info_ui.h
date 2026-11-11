@@ -74,4 +74,14 @@ void game_info_ui_draw_page (menu_t *menu, component_boxart_t *art, const game_i
 /** "1998-10-26" -> "Oct 26, 1998" (or as it was, if it isn't a date). */
 void game_info_ui_format_date (char *out, size_t size, const char *text);
 
+/** Where the cover was last drawn (x0, y0, x1, y1). @return false if it hasn't been. */
+bool game_info_ui_cover_rect (int rect[4]);
+
+/** Leave the cover out (the game-start animation has taken it). */
+void game_info_ui_hide_cover (bool hide);
+
+/** The blurred backdrop over the whole screen at `bright` (0-255; the page uses 0x58), see-through below 255 alpha.
+ *  @return false if this game has none. */
+bool game_info_ui_backdrop_draw (menu_t *menu, int bright, int alpha);
+
 #endif /* GAME_INFO_UI_H__ */

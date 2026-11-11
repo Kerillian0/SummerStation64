@@ -9,6 +9,7 @@
 #include "../folder_memory.h"
 #include "../font_choice.h"
 #include "../intro.h"
+#include "../game_start.h"
 #include "../builtin_themes.h"
 #include "../card_themes.h"
 #include "../intro_logo.h"
@@ -514,6 +515,8 @@ static const item_t startup_items[] = {
         "The menu's name under the logo in the intro. Picture is the drawn title, Text the name in plain letters (it uses no extra memory), Off leaves it out. With the logo or the title off, the other sits in the middle."),
     CHOICES("Fade In", OPTION_FADE, FADE_COUNT, intro_fade_name, NULL,
         "When the menu starts, the picture comes up from black and the background music rises, over one or two seconds. Off shows the menu at once."),
+    CHOICES("Game Start", OPTION_GAME_START, GAME_START_COUNT, game_start_name, NULL,
+        "What shows while a game starts. Box Opens: the box opens and the cartridge comes out, spins and snaps into place while the game loads. Loading Bar is the plain bar."),
 };
 
 static const item_t library_items[] = {

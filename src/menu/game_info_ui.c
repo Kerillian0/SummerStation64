@@ -178,6 +178,29 @@ static float fly_progress (void) {
     return fly_since ? animations_progress(fly_since, COVER_FLY_MS) : 1.0f;
 }
 
+/* The game-start animation (game_start.c): where the cover was last drawn,
+   and the cover left out while the box flies from that place. */
+static int cover_at[4];
+static bool cover_known = false;
+static bool cover_hidden = false;
+
+static void cover_note (int x0, int y0, int x1, int y1) {
+    cover_at[0] = x0; cover_at[1] = y0; cover_at[2] = x1; cover_at[3] = y1;
+    cover_known = true;
+}
+
+bool game_info_ui_cover_rect (int rect[4]) {
+    if (!cover_known) {
+        return false;
+    }
+    memcpy(rect, cover_at, sizeof(cover_at));
+    return true;
+}
+
+void game_info_ui_hide_cover (bool hide) {
+    cover_hidden = hide;
+}
+
 static void fly_begin (menu_t *menu) {
     fly_screen = menu->mode;
     if (animations_cover_take(fly_screen, fly_from)) {
@@ -188,7 +211,21 @@ static void fly_begin (menu_t *menu) {
 /* The backdrop stretched over the whole screen. Stretching so small a
    picture this far with smoothing blurs it, and drawing it at a third of its
    brightness keeps the text on top readable. */
+static void draw_backdrop_at (surface_t *image, int bright, int alpha);
+
 static void draw_backdrop (surface_t *image) {
+    draw_backdrop_at(image, (int) (0x58 * animations_ease_out(fly_progress())), 0xFF);   /* brightens as the cover flies in */
+}
+
+bool game_info_ui_backdrop_draw (menu_t *menu, int bright, int alpha) {
+    if (!game_info_ui_backdrop_ready(menu)) {
+        return false;
+    }
+    draw_backdrop_at(&backdrop, bright, alpha);
+    return true;
+}
+
+static void draw_backdrop_at (surface_t *image, int bright, int alpha) {
     float scale_x = (float) DISPLAY_WIDTH / image->width;
     float scale_y = (float) DISPLAY_HEIGHT / image->height;
     float scale = (scale_x > scale_y) ? scale_x : scale_y;
@@ -198,9 +235,11 @@ static void draw_backdrop (surface_t *image) {
     rdpq_mode_push();
         rdpq_set_mode_standard();
         rdpq_mode_filter(FILTER_BILINEAR);
-        int bright = (int) (0x58 * animations_ease_out(fly_progress()));   /* brightens as the cover flies in */
-        rdpq_set_prim_color(RGBA32(bright, bright, bright, 0xFF));
+        rdpq_set_prim_color(RGBA32(bright, bright, bright, alpha));
         rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);
+        if (alpha < 0xFF) {
+            rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);   /* over the page: the page fades into it */
+        }
         rdpq_tex_blit(image, (DISPLAY_WIDTH - w) / 2, (DISPLAY_HEIGHT - h) / 2, &(rdpq_blitparms_t) {
             .scale_x = scale,
             .scale_y = scale,
@@ -231,6 +270,9 @@ static void draw_cover (surface_t *image) {
     int y = COVER_Y + (COVER_HEIGHT - h) / 2;
     animations_cover_note(fly_screen, x, y, x + w, y + h);     /* for B: the row's cover flies back from here */
     float scale_x = scale, scale_y = scale;
+    if (cover_hidden) {
+        return;     /* the game is starting: the box has left this place */
+    }
     float fly = fly_progress();
     if (fly < 1.0f) {
         float e = animations_ease_out(fly);
@@ -244,6 +286,7 @@ static void draw_cover (surface_t *image) {
             scale_y = (float) h / image->height;
         }
     }
+    cover_note(x, y, x + w, y + h);
 
     /* Ring in the cover's own color, or the accent color as on the Games
        screen. */
@@ -299,6 +342,7 @@ static void draw_cover_or_clip (surface_t *image, const char *clip) {
     int x = COVER_X + (COVER_WIDTH - w) / 2;
     int y = COVER_Y + (COVER_HEIGHT - h) / 2;
     animations_cover_note(fly_screen, x, y, x + w, y + h);     /* for B: the row's cover flies back from here */
+    cover_note(x, y, x + w, y + h);
     fill(x - 3, y - 3, x + w + 3, y + h + 3, cover_ring_color());
     video_preview_draw(COVER_X, COVER_Y, COVER_WIDTH, COVER_HEIGHT);
 
