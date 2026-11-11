@@ -1065,6 +1065,9 @@ static int draw_dots (int y, int count, int current) {
     return (count * DOT_STEP) + 4;
 }
 
+#define CHANGED_WIDTH   (4)     /* the accent bar beside a changed row */
+#define CHANGED_HEIGHT  (14)
+
 /* Whether the player has changed a row from how it comes: a switch from its
    stock value, a feature from Default, a choice or slider from its default. */
 static bool is_changed (menu_t *menu, const item_t *it) {
@@ -1076,9 +1079,6 @@ static bool is_changed (menu_t *menu, const item_t *it) {
         default:            return false;
     }
 }
-
-#define CHANGED_WIDTH   (4)
-#define CHANGED_HEIGHT  (14)
 
 static void draw_item (menu_t *menu, const item_t *it, int y, bool selected) {
     if (is_changed(menu, it)) {
@@ -1179,7 +1179,9 @@ static int hints_top (void) {
     return y0 + ((y1 - y0) / 2);
 }
 
-static void draw_hints (const char *a_action, bool slider) {
+#define LEGEND_TEXT     (66)    /* "Changed" in the body font */
+
+static void draw_hints (const char *a_action, bool slider, bool any_changed) {
     int x0, y0, x1, y1;
     games_ui_hints_rect(&x0, &y0, &x1, &y1);
     const theme_t *t = theme_get();
@@ -1190,8 +1192,23 @@ static void draw_hints (const char *a_action, bool slider) {
     } else if (a_action) {
         x = games_ui_hint_draw(x, 1, "A", a_action);
     }
-    games_ui_hint_draw(x, 1, "B", "Back");
-    games_ui_hint_right_draw(1, "L R", "Look, Games, Console");
+    int left_end = games_ui_hint_draw(x, 1, "B", "Back");
+    const char *groups_hint = "Look, Games, Console";
+    games_ui_hint_right_draw(1, "L R", groups_hint);
+
+    /* What the accent bars beside rows mean, between the hints, while the
+       page shown has one. */
+    int right_start = GAMES_UI_CONTENT_X1 - games_ui_hint_width("L R", groups_hint);
+    int legend = CHANGED_WIDTH + 6 + LEGEND_TEXT;
+    if (any_changed && right_start - left_end >= legend + 8) {
+        int lx = (left_end + right_start - legend) / 2;
+        int row_height = (y1 - y0) / 2;
+        int row_y = hints_top() + 5;
+        draw_fill(lx, row_y + (row_height - 4 - CHANGED_HEIGHT) / 2, lx + CHANGED_WIDTH, row_y + (row_height - 4 + CHANGED_HEIGHT) / 2,
+                  theme_get()->accent);
+        rdpq_text_printf(&(rdpq_textparms_t) { .width = LEGEND_TEXT + 8, .height = row_height - 4, .valign = VALIGN_CENTER,
+            .style_id = STL_GRAY }, FNT_DEFAULT, lx + CHANGED_WIDTH + 6, row_y, "Changed");
+    }
 }
 
 /* The panel along the bottom: a heading, then the help in grey, the full
@@ -1383,7 +1400,7 @@ static void draw (menu_t *menu, surface_t *d) {
     float page_t = animations_progress(category_since, PAGE_SLIDE_MS);
     int page_shift = (page_t < 1.0f) ? ((int) ((1.0f - animations_ease_out(page_t)) * PAGE_SLIDE_PX) & ~1) * category_dir : 0;
     if (page_shift != 0) {
-        rdpq_set_scissor(ITEMS_X, ROWS_Y, display_get_width(), ROWS_Y + (VISIBLE_ROWS * ROW_HEIGHT));
+        rdpq_set_scissor(ITEMS_X - PANEL_PAD, ROWS_Y, display_get_width(), ROWS_Y + (VISIBLE_ROWS * ROW_HEIGHT));   /* the changed marks slide too */
     }
     if (in_items) {
         draw_selection(ITEMS_X, animations_glide(&item_glide, ROWS_Y + ((item - first_row) * ROW_HEIGHT)) + rise, ITEMS_WIDTH, true);
@@ -1402,11 +1419,15 @@ static void draw (menu_t *menu, surface_t *d) {
         draw_page_help(cat);
     }
 
+    bool any_changed = false;
+    for (int i = 0; i < cat->count; i++) {
+        any_changed |= is_changed(menu, &cat->items[i]);
+    }
     if (in_items) {
         const item_t *it = &cat->items[item];
-        draw_hints((it->type == ITEM_ACTION) ? "Select" : (it->type == ITEM_INFO) ? NULL : "Change", it->type == ITEM_SLIDER);
+        draw_hints((it->type == ITEM_ACTION) ? "Select" : (it->type == ITEM_INFO) ? NULL : "Change", it->type == ITEM_SLIDER, any_changed);
     } else {
-        draw_hints("Open", false);
+        draw_hints("Open", false, any_changed);
     }
 
     pick_draw();
