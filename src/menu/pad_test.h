@@ -2,8 +2,9 @@
  * @file pad_test.h
  * @brief Controller test: Settings > Console > Tools > Controller Test.
  *
- * An N64 controller drawn on screen (shapes only, no picture) whose buttons
- * light up as they are pressed, the stick a knob moving in its gate. Beside
+ * The N64 controller's buttons, each where it sits on the controller (no
+ * drawing of the controller itself), lighting up as they are pressed; the
+ * stick a knob moving in its gate. Beside
  * it, the stick's range: how far it has reached in each of eight directions,
  * drawn against a new stick's reach, as a percentage and a word (Like new,
  * Worn, Very worn). The four ports along the top light when a controller is

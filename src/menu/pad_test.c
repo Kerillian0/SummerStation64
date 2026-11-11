@@ -243,7 +243,6 @@ static void shoulder (int x0, int y0, int x1, int y1, bool down, const char *lab
 
 static void draw_controller (joypad_inputs_t in, bool connected) {
     const float cx = PAD_CX, top = PAD_TOP;
-    color_t body = connected ? RGBA32(0x9C, 0x9C, 0xA4, 0xFF) : RGBA32(0x5A, 0x5A, 0x60, 0xFF);
     color_t well = RGBA32(0x3C, 0x3C, 0x42, 0xFF);
     joypad_buttons_t b = in.btn;
     if (!connected) {
@@ -251,18 +250,9 @@ static void draw_controller (joypad_inputs_t in, bool connected) {
         in.stick_x = in.stick_y = 0;
     }
 
-    /* L and R first, so the body hides their lower half. */
-    shoulder((int) cx - 162, (int) top - 22, (int) cx - 92, (int) top + 10, b.l, "L");
-    shoulder((int) cx + 92, (int) top - 22, (int) cx + 162, (int) top + 10, b.r, "R");
-
-    /* The body and its three handles. */
-    bar(cx - 128, top + 50, cx - 136, top + 178, 58, body);
-    disc(cx - 136, top + 178, 29, body);
-    bar(cx + 128, top + 50, cx + 136, top + 178, 58, body);
-    disc(cx + 136, top + 178, 29, body);
-    bar(cx, top + 50, cx, top + 168, 62, body);
-    disc(cx, top + 168, 31, body);
-    games_ui_round_fill((int) cx - 166, (int) top, (int) cx + 166, (int) top + 86, body);
+    /* Only the buttons, each where it is on the controller: L and R on top. */
+    shoulder((int) cx - 162, (int) top - 22, (int) cx - 92, (int) top + 4, b.l, "L");
+    shoulder((int) cx + 92, (int) top - 22, (int) cx + 162, (int) top + 4, b.r, "R");
 
     /* D-Pad. */
     const float dx = cx - 122, dy = top + 42, arm = 17, w = 15;
@@ -289,7 +279,7 @@ static void draw_controller (joypad_inputs_t in, bool connected) {
     disc(sx, sy, gate, well);
     float kx = sx + (in.stick_x / REACH_STRAIGHT) * (gate - 12);
     float ky = sy - (in.stick_y / REACH_STRAIGHT) * (gate - 12);
-    disc(kx, ky, 13, connected ? RGBA32(0xD8, 0xD8, 0xDC, 0xFF) : body);
+    disc(kx, ky, 13, connected ? RGBA32(0xD8, 0xD8, 0xDC, 0xFF) : RGBA32(0x5A, 0x5A, 0x60, 0xFF));
 
     /* Z sits under the middle handle. */
     shoulder((int) cx - 26, (int) top + 210, (int) cx + 26, (int) top + 236, b.z, "Z");

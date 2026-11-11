@@ -602,7 +602,7 @@ static const item_t clip_items[] = {
 static const item_t tool_items[] = {
     ACTION("Controller Pak Manager", open_controller_paks, "The notes (game saves) on a Controller Pak: back them up to the SD card, restore one or a whole dump, delete one, or format the Pak."),
     ACTION("Test Patterns", open_test_patterns, "Pictures for setting up your TV: a grid with borders showing how much of the picture's edge it cuts off, and color bars with grey steps for brightness and color. A or right shows the next one, B comes back here."),
-    ACTION("Controller Test", open_pad_test, "Every button lights up on a drawn controller as you press it, and the stick's range is measured to show how worn it is. With a Rumble Pak, Z + A rumbles it. Hold B for two seconds to come back here."),
+    ACTION("Controller Test", open_pad_test, "Each button lights up in its place on the controller as you press it, and the stick's range is measured to show how worn it is. With a Rumble Pak, Z + A rumbles it. Hold B for two seconds to come back here."),
     ACTION("Clock", open_clock, "Set the date and time of the cart's clock, used for the clock on the tab bar, dated save backups and time played."),
     INFO("Memory", memory_note_info, "Free memory now. When memory runs short the menu leaves extras out instead of stopping; any left out since power-on are listed here."),
     CHOICES("Performance Overlay", OPTION_PERF_OVERLAY, 2, debug_stats_overlay_name, NULL,
