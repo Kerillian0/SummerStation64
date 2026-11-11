@@ -966,6 +966,24 @@ static void draw_text (int x, int y, int width, rdpq_align_t align, menu_font_st
     }, FNT_DEFAULT, x + ROW_PADDING, y, "%s", text);
 }
 
+/* Each page's icon (rom:/settings_icons.sprite: 18 x 18 pictures side by
+   side, made by make_icons.py), tinted in the text color. */
+#define PAGE_ICON       (18)
+
+static void draw_page_icon (int index, int x, int y) {
+    static sprite_t *icons = NULL;
+    if (!icons) {
+        icons = sprite_load("rom:/settings_icons.sprite");     /* 3.4 KB, kept */
+    }
+    rdpq_mode_push();
+        rdpq_set_mode_standard();
+        rdpq_mode_combiner(RDPQ_COMBINER1((0,0,0,PRIM), (0,0,0,TEX0)));
+        rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+        rdpq_set_prim_color(theme_get()->text);
+        rdpq_sprite_blit(icons, x, y, &(rdpq_blitparms_t) { .s0 = index * PAGE_ICON, .width = PAGE_ICON });
+    rdpq_mode_pop();
+}
+
 #define GROUP_TAB_WIDTH (100)
 #define GROUP_TAB_GAP   (6)
 #define GROUP_TAB_Y     (TITLE_Y - 2)
@@ -1293,9 +1311,14 @@ static void draw (menu_t *menu, surface_t *d) {
 
     static animations_glide_t category_glide, item_glide;
     draw_selection(LEFT_X, animations_glide(&category_glide, ROWS_Y + (category * ROW_HEIGHT)) + rise, LEFT_WIDTH, !in_items);   /* Showy: glides */
+    int first_icon = 0;     /* the icons are in page order, heading by heading */
+    for (int g = 0; g < group; g++) {
+        first_icon += groups[g].count;
+    }
     for (int i = 0; i < groups[group].count; i++) {
         int y = ROWS_Y + (i * ROW_HEIGHT) + rise;
-        draw_text(LEFT_X, y, LEFT_WIDTH, ALIGN_LEFT, STL_DEFAULT, groups[group].pages[i].label);
+        draw_page_icon(first_icon + i, LEFT_X + ROW_PADDING, y + (ROW_HEIGHT - PAGE_ICON) / 2);
+        draw_text(LEFT_X + PAGE_ICON + 6, y, LEFT_WIDTH - PAGE_ICON - 6, ALIGN_LEFT, STL_DEFAULT, groups[group].pages[i].label);
     }
 
     // A page with more rows than fit gets a bar showing how far down you are.

@@ -212,6 +212,7 @@ IMAGES = \
 	cart_bottom.png \
 	fairy.png \
 	sparkle.png \
+	settings_icons.png \
 	wordmark.png
 
 # The smallest formats that hold them: 16 colors for the paks, 16 shades for the button disc.
@@ -223,6 +224,7 @@ $(FILESYSTEM_DIR)/mark_check.sprite: MKSPRITE_FLAGS=--format I4
 $(FILESYSTEM_DIR)/mark_cross.sprite: MKSPRITE_FLAGS=--format I4
 $(FILESYSTEM_DIR)/mark_question.sprite: MKSPRITE_FLAGS=--format I4
 $(FILESYSTEM_DIR)/corner.sprite: MKSPRITE_FLAGS=--format I4
+$(FILESYSTEM_DIR)/settings_icons.sprite: MKSPRITE_FLAGS=--format I4
 $(FILESYSTEM_DIR)/avatar_disc.sprite: MKSPRITE_FLAGS=--format I4
 $(FILESYSTEM_DIR)/logo_holo.sprite: MKSPRITE_FLAGS=--format RGBA16
 $(FILESYSTEM_DIR)/logo_stripes.sprite: MKSPRITE_FLAGS=--format RGBA16

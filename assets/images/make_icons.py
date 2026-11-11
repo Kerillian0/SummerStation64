@@ -33,6 +33,8 @@ The icons are kept as small as the console allows:
 - avatar_disc.png: a 64 x 64 white disc in 16 shades (2 KB), the round
   ring behind a profile picture, tinted to the player's color. Larger than
   button.png so its edge stays sharp at the picture's size.
+- settings_icons.png: Settings' 21 page icons, 18 x 18 each side by side
+  (378 x 18), white in 16 shades (about 3.4 KB), tinted by the menu.
 """
 from PIL import Image, ImageDraw
 
@@ -318,3 +320,129 @@ for i in range(25):                                                             
 bottom = shrink(bottom, BOTTOM_W, BOTTOM_H)
 bottom.save("cart_bottom.png")
 print(f"cart_bottom.png: {BOTTOM_W} x {BOTTOM_H}")
+
+
+# Settings' page icons: 21 small white pictures side by side in one strip
+# (18 x 18 each, 378 x 18 in all, 16 shades: about 3.4 KB), in the order of
+# the pages (Look, then Games, then Console). The menu tints them. Thick
+# strokes and plain shapes: they are seen on a composite CRT.
+ICON = 18
+from PIL import ImageFont
+def page_icon(draw):
+    big = Image.new("L", (ICON * SCALE, ICON * SCALE), 0)
+    draw(ImageDraw.Draw(big), SCALE)
+    return shrink(big, ICON, ICON).point(lambda v: (v // 17) * 17)
+
+W = 255
+def p(k, *xy):
+    return [v * k for v in xy]
+
+def icon_theme(d, k):       # a painter's palette with its thumb hole and paint dots
+    d.ellipse(p(k, 1, 2, 17, 16), fill=W)
+    d.ellipse(p(k, 10.5, 9.5, 14.5, 13.5), fill=0)
+    for cx, cy in ((5, 6), (9, 4.6), (5, 11)):
+        d.ellipse(p(k, cx - 1.6, cy - 1.6, cx + 1.6, cy + 1.6), fill=0)
+def icon_covers(d, k):      # a row of covers: the middle one larger
+    d.rectangle(p(k, 0.5, 5, 4, 13), fill=W)
+    d.rectangle(p(k, 14, 5, 17.5, 13), fill=W)
+    d.rectangle(p(k, 5.5, 2, 12.5, 16), fill=W)
+    d.rectangle(p(k, 7, 3.5, 11, 6), fill=0)
+def icon_box(d, k):         # a cube seen from above
+    top = [(9, 1), (16.5, 5), (9, 9), (1.5, 5)]
+    d.polygon([(x * k, y * k) for x, y in top], fill=W)
+    d.polygon([(x * k, y * k) for x, y in [(1.5, 6.5), (8.2, 10.3), (8.2, 17.5), (1.5, 13.5)]], fill=W)
+    d.polygon([(x * k, y * k) for x, y in [(9.8, 10.3), (16.5, 6.5), (16.5, 13.5), (9.8, 17.5)]], fill=160)
+def icon_badges(d, k):      # a price tag with its hole
+    d.polygon([(x * k, y * k) for x, y in [(1, 9), (8, 2), (16.5, 2), (16.5, 10), (9.5, 17)]], fill=W)
+    d.ellipse(p(k, 11.5, 4.5, 14.5, 7.5), fill=0)
+def icon_info(d, k):        # i in a circle
+    d.ellipse(p(k, 1, 1, 17, 17), fill=W)
+    d.ellipse(p(k, 7.6, 3.6, 10.4, 6.4), fill=0)
+    d.rectangle(p(k, 7.7, 7.6, 10.3, 14), fill=0)
+def icon_fairy(d, k):       # a glowing body with two wings
+    d.ellipse(p(k, 0.5, 2, 8, 8.5), fill=170)
+    d.ellipse(p(k, 10, 2, 17.5, 8.5), fill=170)
+    d.ellipse(p(k, 2, 9, 7.5, 14), fill=170)
+    d.ellipse(p(k, 10.5, 9, 16, 14), fill=170)
+    d.ellipse(p(k, 5.5, 5.5, 12.5, 12.5), fill=W)
+def icon_power(d, k):       # the power symbol: a broken ring and a bar
+    d.arc(p(k, 2, 2.5, 16, 16.5), start=-50, end=230, fill=W, width=int(2.6 * k))
+    d.rectangle(p(k, 7.7, 0.5, 10.3, 9), fill=W)
+def icon_library(d, k):     # books on a shelf, one leaning
+    d.rectangle(p(k, 1, 3, 4.5, 16), fill=W)
+    d.rectangle(p(k, 5.5, 1, 9, 16), fill=W)
+    d.polygon([(x * k, y * k) for x, y in [(10.5, 4.5), (13.6, 3.2), (17.4, 15), (14.2, 16.3)]], fill=W)
+    d.rectangle(p(k, 0.5, 16, 17.5, 17.5), fill=W)
+def icon_names(d, k):       # "Aa"
+    f = ImageFont.truetype(FONT, int(15 * k))
+    d.text((9 * k, 9.4 * k), "Aa", font=f, fill=W, anchor="mm")
+def icon_folder(d, k):      # a folder with its tab
+    d.rectangle(p(k, 1, 3, 7.5, 6), fill=W)
+    d.rectangle(p(k, 1, 5, 17, 15.5), fill=W)
+    d.rectangle(p(k, 2.6, 7.6, 15.4, 8.6), fill=0)
+def icon_save(d, k):        # a floppy disk
+    d.polygon([(x * k, y * k) for x, y in [(1, 1), (14, 1), (17, 4), (17, 17), (1, 17)]], fill=W)
+    d.rectangle(p(k, 4.5, 1, 12, 6), fill=0)
+    d.rectangle(p(k, 9.2, 2, 11, 5), fill=W)
+    d.rectangle(p(k, 4, 10, 14, 17), fill=0)
+def icon_tabs(d, k):        # three tabs over a bar, the first one raised
+    d.rectangle(p(k, 0.5, 2.5, 6, 9), fill=W)
+    d.rectangle(p(k, 6.8, 5, 11.6, 9), fill=150)
+    d.rectangle(p(k, 12.4, 5, 17.5, 9), fill=150)
+    d.rectangle(p(k, 0.5, 9, 17.5, 16), fill=W)
+def icon_profile(d, k):     # a person: head and shoulders
+    d.ellipse(p(k, 5, 0.8, 13, 8.8), fill=W)
+    d.pieslice(p(k, 1, 10, 17, 26), start=180, end=360, fill=W)
+def icon_file(d, k):        # a page with its corner turned
+    d.polygon([(x * k, y * k) for x, y in [(3, 1), (11, 1), (15.5, 5.5), (15.5, 17), (3, 17)]], fill=W)
+    d.polygon([(x * k, y * k) for x, y in [(11, 1), (11, 5.5), (15.5, 5.5)]], fill=120)
+    for y in (9, 12.5):
+        d.rectangle(p(k, 5.5, y, 13, y + 1.4), fill=0)
+def icon_controller(d, k):  # a pad: a wide body, a cross and two buttons
+    d.rounded_rectangle(p(k, 0.5, 4, 17.5, 14), radius=4 * k, fill=W)
+    d.rectangle(p(k, 3.2, 7.9, 7.8, 10.1), fill=0)
+    d.rectangle(p(k, 4.4, 6.7, 6.6, 11.3), fill=0)
+    d.ellipse(p(k, 11, 6.2, 13.4, 8.6), fill=0)
+    d.ellipse(p(k, 13.2, 9, 15.6, 11.4), fill=0)
+def icon_sound(d, k):       # a speaker and two waves
+    d.polygon([(x * k, y * k) for x, y in [(1, 6.5), (4.5, 6.5), (9, 2.5), (9, 15.5), (4.5, 11.5), (1, 11.5)]], fill=W)
+    d.arc(p(k, 5.5, 4.5, 14, 13.5), start=-50, end=50, fill=W, width=int(1.8 * k))
+    d.arc(p(k, 4, 1, 17.5, 17), start=-50, end=50, fill=W, width=int(1.8 * k))
+def icon_tv(d, k):          # a television with its antenna
+    d.line([(6 * k, 1 * k), (9 * k, 4.5 * k), (12 * k, 1 * k)], fill=W, width=int(1.6 * k))
+    d.rounded_rectangle(p(k, 0.5, 4.5, 17.5, 16.5), radius=2.5 * k, fill=W)
+    d.rounded_rectangle(p(k, 2.5, 6.5, 13, 14.5), radius=1.5 * k, fill=0)
+    d.ellipse(p(k, 14, 7, 16.4, 9.4), fill=0)
+def icon_camera(d, k):      # a camera: body, bump and lens
+    d.rectangle(p(k, 5.5, 2.5, 12.5, 5), fill=W)
+    d.rounded_rectangle(p(k, 0.5, 4.5, 17.5, 16), radius=2 * k, fill=W)
+    d.ellipse(p(k, 5, 6.5, 13, 14.5), fill=0)
+    d.ellipse(p(k, 7, 8.5, 11, 12.5), fill=W)
+def icon_film(d, k):        # a strip of film with its holes
+    d.rectangle(p(k, 0.5, 2, 17.5, 16), fill=W)
+    for x in (2, 6.2, 10.4, 14.6):
+        d.rectangle(p(k, x, 3.2, x + 1.8, 4.8), fill=0)
+        d.rectangle(p(k, x, 13.2, x + 1.8, 14.8), fill=0)
+    d.rectangle(p(k, 2, 6.4, 16, 11.6), fill=0)
+def icon_gear(d, k):        # a cog
+    import math
+    pts = []
+    for i in range(32):
+        a = i * math.pi / 16
+        r = 8.5 if (i % 4) in (1, 2) else 6.2
+        pts.append(((9 + r * math.cos(a)) * k, (9 + r * math.sin(a)) * k))
+    d.polygon(pts, fill=W)
+    d.ellipse(p(k, 6.2, 6.2, 11.8, 11.8), fill=0)
+def icon_about(d, k):       # a question mark in a circle
+    d.ellipse(p(k, 1, 1, 17, 17), fill=W)
+    f = ImageFont.truetype(FONT, int(14 * k))
+    d.text((9 * k, 9.4 * k), "?", font=f, fill=0, anchor="mm")
+
+PAGE_ICONS = [icon_theme, icon_covers, icon_box, icon_badges, icon_info, icon_fairy, icon_power,
+              icon_library, icon_names, icon_folder, icon_save, icon_tabs, icon_profile, icon_file,
+              icon_controller, icon_sound, icon_tv, icon_camera, icon_film, icon_gear, icon_about]
+strip = Image.new("L", (ICON * len(PAGE_ICONS), ICON), 0)
+for i, draw in enumerate(PAGE_ICONS):
+    strip.paste(page_icon(draw), (i * ICON, 0))
+strip.save("settings_icons.png")
+print(f"settings_icons.png: {len(PAGE_ICONS)} icons of {ICON} x {ICON}")
