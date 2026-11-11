@@ -384,6 +384,62 @@ static void trail_draw (int t, bool add, float x, float y) {
     }
 }
 
+/* A glint: once the title is in, a slanted band of light sweeps across it
+   once. The picture is drawn again over itself in small cells, each blended
+   toward white by how near the band it is (the chip's adding mode overflows,
+   so it is a blend), so the light shows only where the letters are. */
+#define GLINT_MS        (650)
+#define GLINT_AFTER_MS  (700)       /* from the start, when Vee isn't drawing the title */
+#define GLINT_HALF      (30.0f)     /* half the band's width */
+#define GLINT_SLANT     (0.45f)     /* across per line down: it leans like a shine on glass */
+#define GLINT_STRENGTH  (180)       /* at its middle, of 255 */
+#define GLINT_CELL_W    (4)
+#define GLINT_CELL_H    (12)
+
+static int glint_start (void) {
+    return with_fairy ? FAIRY_FROM_MS + FAIRY_ACROSS_MS + 150 : GLINT_AFTER_MS;
+}
+
+/* Where the band's middle is (across the title's middle line), or false when there is none. */
+static bool glint_at (int t, float x0, float x1, float height, float *band) {
+    float u = (float) (t - glint_start()) / GLINT_MS;
+    if (u <= 0.0f || u >= 1.0f) {
+        return false;
+    }
+    u = u * u * (3.0f - 2.0f * u);
+    float lean = GLINT_SLANT * height / 2 + GLINT_HALF;
+    *band = (x0 - lean) + (x1 - x0 + 2 * lean) * u;
+    return true;
+}
+
+static void glint_picture (int t, sprite_t *picture, int x, int y) {
+    float band;
+    if (!glint_at(t, x, x + picture->width, picture->height, &band)) {
+        return;
+    }
+    float mid_y = picture->height / 2.0f;
+    rdpq_mode_push();
+        rdpq_set_mode_standard();
+        rdpq_mode_combiner(RDPQ_COMBINER1((0,0,0,PRIM), (TEX0,0,PRIM,0)));    /* white, as see-through as the letters */
+        rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+        for (int cy = 0; cy < picture->height; cy += GLINT_CELL_H) {
+            int ch = (cy + GLINT_CELL_H <= picture->height) ? GLINT_CELL_H : picture->height - cy;
+            float shift = (mid_y - (cy + ch / 2.0f)) * GLINT_SLANT;     /* higher lines further right */
+            int from = (int) (band + shift - GLINT_HALF - x) & ~(GLINT_CELL_W - 1);
+            for (int cx = (from < 0) ? 0 : from; cx < picture->width && cx < band + shift + GLINT_HALF - x; cx += GLINT_CELL_W) {
+                float d = fabsf((x + cx + GLINT_CELL_W / 2.0f) - (band + shift)) / GLINT_HALF;
+                if (d >= 1.0f) {
+                    continue;
+                }
+                float k = (1.0f - d) * (1.0f - d);
+                int cw = (cx + GLINT_CELL_W <= picture->width) ? GLINT_CELL_W : picture->width - cx;
+                rdpq_set_prim_color(RGBA32(0xFF, 0xFF, 0xFF, (uint8_t) (GLINT_STRENGTH * k)));
+                rdpq_sprite_blit(picture, x + cx, y + cy, &(rdpq_blitparms_t) { .s0 = cx, .t0 = cy, .width = cw, .height = ch });
+            }
+        }
+    rdpq_mode_pop();
+}
+
 bool intro_display (menu_t *menu, surface_t *display) {
     if (!playing) {
         return false;
@@ -442,6 +498,7 @@ bool intro_display (menu_t *menu, surface_t *display) {
             rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
             rdpq_sprite_blit(wordmark, DISPLAY_CENTER_X - (wordmark->width / 2), y, NULL);
         rdpq_mode_pop();
+        glint_picture(t, wordmark, DISPLAY_CENTER_X - (wordmark->width / 2), y);
     } else if (show_title) {
         /* The name and its line, moved up together when there is no logo. */
         int shift = show_logo ? 0 : (DISPLAY_CENTER_Y - ((BAR_Y + BAR_HEIGHT - TITLE_Y) / 2)) - TITLE_Y;
@@ -452,6 +509,19 @@ bool intro_display (menu_t *menu, surface_t *display) {
             .valign = VALIGN_CENTER,
             .style_id = STL_DEFAULT,
         }, FNT_TITLE, 0, TITLE_Y + shift, "%s", MENU_DISPLAY_NAME);
+        float band;
+        if (glint_at(t, title_x0, title_x1, TITLE_HEIGHT, &band)) {
+            /* The name again in white, only inside a narrow band: the glint on plain letters. */
+            rdpq_set_scissor((int) (band - GLINT_HALF / 2), 0, (int) (band + GLINT_HALF / 2), DISPLAY_HEIGHT);
+            rdpq_text_printf(&(rdpq_textparms_t) {
+                .width = DISPLAY_WIDTH,
+                .height = TITLE_HEIGHT,
+                .align = ALIGN_CENTER,
+                .valign = VALIGN_CENTER,
+                .style_id = STL_WHITE,
+            }, FNT_TITLE, 0, TITLE_Y + shift, "%s", MENU_DISPLAY_NAME);
+            rdpq_set_scissor(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+        }
     
         if (half_bar > 0) {
             rdpq_mode_push();
