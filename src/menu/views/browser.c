@@ -10,6 +10,7 @@
 
 #include "../assistant.h"
 #include "../assistant_ask.h"
+#include "../cover_clip.h"
 #include "../debug_stats.h"
 #include "../cart_load.h"
 #include "../fonts.h"
@@ -1932,6 +1933,8 @@ void carousel_draw (menu_t *menu) {
     const int side_w = angled ? (int) (CAROUSEL_SIDE_W * CAROUSEL_ANGLED_W) : CAROUSEL_SIDE_W; // turned covers take less room
     const int first = CAROUSEL_CENTER_W / 2 + CAROUSEL_GAP + side_w / 2;
     const int step = side_w + CAROUSEL_GAP;
+    bool clip_on = false;       // the selected game's clip is in its cover's place (cover_clip.h)
+    int clip_w = 0, clip_h = 0;
 
     // Draw outer covers first so the center one sits on top. While sliding,
     // every cover sits a fraction of a position away from where it will rest.
@@ -2051,6 +2054,19 @@ void carousel_draw (menu_t *menu) {
                 continue;
             }
 
+            // Rested 2 seconds: the game's clip in the cover's place, the cover fading out over it.
+            if (resting_center && !drawn_moving && back >= 1.0f && carousel_art_flip_width() >= 1.0f) {
+                float cover_left = cover_clip_draw(menu, i, x0, y0, w, h, &clip_w, &clip_h);
+                if (cover_left < 1.0f) {
+                    clip_on = true;
+                    if (cover_left > 0.0f) {
+                        carousel_art_draw(menu, i, x0, y0, w, h, (int) (cover_left * 255.0f), true);
+                    }
+                    carousel_art_brightness(255);
+                    continue;
+                }
+            }
+
             if (resting_center && features_enabled(FEATURE_BOX_3D) && carousel_art_draw_box(menu, i, x0, y0, w, h)) {
                 carousel_art_brightness(255);
                 continue; // 3D Box: the cover as a box with depth
@@ -2108,6 +2124,10 @@ void carousel_draw (menu_t *menu) {
     // box and a tall one.
     int ring_w, ring_h;
     carousel_ring_size(menu, covers->selected, &ring_w, &ring_h);
+    if (clip_on) {
+        ring_w = clip_w;    // round the clip, not the cover it took the place of
+        ring_h = clip_h;
+    }
     ring_w = (int) (ring_w * pop);
     ring_h = (int) (ring_h * pop);
     bool ring_hidden;

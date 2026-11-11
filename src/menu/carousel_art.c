@@ -5,6 +5,7 @@
 
 #include "memory_note.h"
 #include "animations.h"
+#include "cover_clip.h"
 #include "carousel_art.h"
 #include "retro.h"
 #include "art_tint.h"
@@ -324,6 +325,10 @@ static bool known_code (menu_t *menu, int index, char code[5]) {
     path_free(path);
     code[4] = '\0';
     return found;
+}
+
+bool carousel_art_code (menu_t *menu, int index, char code[5]) {
+    return known_code(menu, index, code);
 }
 
 /* Start decoding the art for an entry. Returns NULL if it has none.
@@ -967,6 +972,7 @@ void carousel_art_reset (void) {
     side = IMAGE_BOXART_FRONT;
     flip = FLIP_NONE;
     game_index_flush();     /* leaving the covers: save what was learned about the games */
+    cover_clip_reset();
 }
 
 void carousel_art_update (menu_t *menu, bool side_covers) {
@@ -976,6 +982,7 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
         carousel_art_reset();
         return;
     }
+    cover_clip_after_draw(menu);    /* the selected game's clip, once it has rested (cover_clip.h) */
 
     uint64_t now = get_ticks_ms();
     int selected = cover_list_current(menu)->selected;

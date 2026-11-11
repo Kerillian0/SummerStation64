@@ -53,6 +53,7 @@ typedef enum {
     OPTION_ASSISTANT_ARRIVAL, /**< how the fairy comes and goes (assistant.c) */
     OPTION_ASSISTANT_IDLE, /**< how it moves while it stays */
     OPTION_ASSISTANT_GLOW, /**< its glow: steady, or breathing gently or strongly */
+    OPTION_COVER_CLIPS, /**< 1: preview clips on the cover rows too (cover_clip.c) */
     OPTION_PARTY_TEST,  /**< hidden, for testing: count this many controllers (see party.h); 0 counts the real ones */
     OPTION_COUNT
 } option_t;

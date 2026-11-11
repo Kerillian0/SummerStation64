@@ -4,6 +4,7 @@
 
 #include "../assistant.h"
 #include "../assistant_ask.h"
+#include "../cover_clip.h"
 #include "../fonts.h"
 #include "../folder_memory.h"
 #include "../font_choice.h"
@@ -457,6 +458,8 @@ static const item_t badge_items[] = {
 static const item_t game_info_items[] = {
     FEATURE("Scroll Descriptions", FEATURE_DESC_SCROLL, "On Game info, a long description drifts up slowly after 10 seconds; the D-Pad or stick scrolls it by hand. Off cuts it short with ..."),
     SWITCH("Video Previews", video_previews_enabled, true, apply_video_previews, "On Game info, a short clip of the game plays in the cover's place after a moment, for games with a preview.h264 beside their box art on the SD card. Needs the Expansion Pak."),
+    CHOICES("Clips on Covers", OPTION_COVER_CLIPS, 2, cover_clip_name, NULL,
+        "With Video Previews on, the clip also plays on the rows of covers (Games, Recent, Favorites, collections) once a game's cover has rested for 2 seconds. Any button brings the cover back."),
     FEATURE("Advanced Game Options", FEATURE_ADVANCED_OPTIONS, "Game info's Options (R) also offers Set CIC Type, Set Save Type, Set TV Type, the Datel Code Editor and Clear RDRAM on boot. For games that need them; most never do. Choices already made stay in use when this is off."),
 };
 

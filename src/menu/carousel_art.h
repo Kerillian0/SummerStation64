@@ -121,6 +121,9 @@ bool carousel_art_flip (void);
  */
 float carousel_art_flip_width (void);
 
+/** The code a cover's pictures (and clip) go by, if the game list knows it already: no card read. */
+bool carousel_art_code (menu_t *menu, int index, char code[5]);
+
 /** Free all art, e.g. when leaving the browser. */
 void carousel_art_reset (void);
 
