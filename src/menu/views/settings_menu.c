@@ -912,15 +912,18 @@ static void process (menu_t *menu) {
 
 #define ROW_HEIGHT      (26)
 #define TITLE_Y         (VISIBLE_AREA_Y0 + 10)
-#define ROWS_Y          (TITLE_Y + 28)
+#define ROWS_Y          (TITLE_Y + 32)
 #define LEFT_X          (VISIBLE_AREA_X0 + TEXT_MARGIN_HORIZONTAL)
 #define LEFT_WIDTH      (148)
 #define DIVIDER_X       (LEFT_X + LEFT_WIDTH + 8)
 #define ITEMS_X         (DIVIDER_X + 12)
 #define ITEMS_WIDTH     (VISIBLE_AREA_X1 - TEXT_MARGIN_HORIZONTAL - ITEMS_X)
 #define VISIBLE_ROWS    (8)     /* settings shown at once; longer lists scroll */
-#define HELP_Y          (ROWS_Y + (VISIBLE_ROWS * ROW_HEIGHT) + 4)
-#define HELP_GAP        (6)     /* between the help text and the hint band */
+#define PANEL_PAD       (4)     /* the panels reach this far round their rows */
+#define HELP_Y          (ROWS_Y + (VISIBLE_ROWS * ROW_HEIGHT) + PANEL_PAD + 6)  /* top of the help panel */
+#define HELP_GAP        (4)     /* between the help panel and the hint band */
+#define HELP_PAD        (8)     /* inside the help panel */
+#define HELP_HEADING    (22)
 #define ROW_PADDING     (6)
 #define INFO_NAME_WIDTH (176)   /* an information row's name ("Missing Metadata"); its value gets the rest */
 #define SCROLLBAR_X     (ITEMS_X + ITEMS_WIDTH + 3)
@@ -936,9 +939,9 @@ static void draw_fill (int x0, int y0, int x1, int y1, color_t color) {
 /* The pane being used gets a solid bar; the other keeps a thin underline. */
 static void draw_selection (int x, int y, int width, bool focused) {
     if (focused) {
-        ui_components_box_draw(x, y, x + width, y + ROW_HEIGHT, FILE_LIST_HIGHLIGHT_COLOR);
+        games_ui_round_fill(x, y, x + width, y + ROW_HEIGHT, FILE_LIST_HIGHLIGHT_COLOR);
     } else {
-        draw_fill(x, y + ROW_HEIGHT - 2, x + width, y + ROW_HEIGHT, theme_get()->accent);
+        draw_fill(x + 4, y + ROW_HEIGHT - 2, x + width - 4, y + ROW_HEIGHT, theme_get()->accent);
     }
 }
 
@@ -1080,6 +1083,33 @@ static void draw_hints (const char *a_action, bool slider) {
     games_ui_hint_right_draw(1, "L R", "Look, Games, Console");
 }
 
+/* The panel along the bottom: a heading, then the help in grey, the full
+   width of both columns. */
+static void draw_help_box (const char *heading, const char *help, const char *note) {
+    int x0 = LEFT_X - PANEL_PAD, x1 = ITEMS_X + ITEMS_WIDTH + PANEL_PAD;
+    int y1 = hints_top() - HELP_GAP;
+    games_ui_round_fill(x0, HELP_Y, x1, y1, theme_get()->panel);
+    rdpq_text_printf(&(rdpq_textparms_t) { .width = x1 - x0 - (HELP_PAD * 2), .height = HELP_HEADING, .valign = VALIGN_CENTER,
+        .wrap = WRAP_ELLIPSES, .style_id = STL_DEFAULT }, FNT_DEFAULT, x0 + HELP_PAD, HELP_Y + 2, "%s", heading);
+    rdpq_text_printf(&(rdpq_textparms_t) {
+        .width = x1 - x0 - (HELP_PAD * 2),
+        .height = y1 - (HELP_Y + 2 + HELP_HEADING) - 2,
+        .wrap = WRAP_WORD,
+        .style_id = STL_GRAY,
+    }, FNT_DEFAULT, x0 + HELP_PAD, HELP_Y + 2 + HELP_HEADING, "%s%s", help, note);
+}
+
+/* On the page list: the page's name and what is on it. */
+static void draw_page_help (const category_t *cat) {
+    static char rows[512];
+    int n = 0;
+    rows[0] = '\0';
+    for (int i = 0; i < cat->count && n < (int) sizeof(rows) - 1; i++) {
+        n += snprintf(rows + n, sizeof(rows) - n, "%s%s", (i > 0) ? ", " : "", cat->items[i].label);
+    }
+    draw_help_box(cat->label, rows, "");
+}
+
 static void draw_help (menu_t *menu, const item_t *it) {
     const char *note = "";
     char stock[64];
@@ -1102,12 +1132,7 @@ static void draw_help (menu_t *menu, const item_t *it) {
         note = memory_note_details();
     }
 
-    rdpq_text_printf(&(rdpq_textparms_t) {
-        .width = ITEMS_WIDTH - (ROW_PADDING * 2),
-        .height = hints_top() - HELP_GAP - HELP_Y,
-        .wrap = WRAP_WORD,
-        .style_id = STL_GRAY,
-    }, FNT_DEFAULT, ITEMS_X + ROW_PADDING, HELP_Y, "%s%s", it->help, note);
+    draw_help_box(it->label, it->help, note);
 }
 
 #define PAGE_SLIDE_MS   (180)
@@ -1174,6 +1199,17 @@ static void draw (menu_t *menu, surface_t *d) {
         rdpq_set_scissor(LEFT_X, ROWS_Y, display_get_width(), ROWS_Y + (VISIBLE_ROWS * ROW_HEIGHT));
     }
 
+    /* Rounded panels behind the page list and the rows, in the theme's panel color. */
+    int panel_y0 = ROWS_Y - PANEL_PAD, panel_y1 = ROWS_Y + (VISIBLE_ROWS * ROW_HEIGHT) + PANEL_PAD;
+    if (rise != 0) {
+        rdpq_set_scissor(0, 0, display_get_width(), display_get_height());
+    }
+    games_ui_round_fill(LEFT_X - PANEL_PAD, panel_y0, LEFT_X + LEFT_WIDTH + PANEL_PAD, panel_y1, theme_get()->panel);
+    games_ui_round_fill(ITEMS_X - PANEL_PAD, panel_y0, ITEMS_X + ITEMS_WIDTH + PANEL_PAD, panel_y1, theme_get()->panel);
+    if (rise != 0) {
+        rdpq_set_scissor(LEFT_X, ROWS_Y, display_get_width(), ROWS_Y + (VISIBLE_ROWS * ROW_HEIGHT));
+    }
+
     static animations_glide_t category_glide, item_glide;
     draw_selection(LEFT_X, animations_glide(&category_glide, ROWS_Y + (category * ROW_HEIGHT)) + rise, LEFT_WIDTH, !in_items);   /* Showy: glides */
     for (int i = 0; i < groups[group].count; i++) {
@@ -1221,6 +1257,8 @@ static void draw (menu_t *menu, surface_t *d) {
 
     if (in_items) {
         draw_help(menu, &cat->items[item]);
+    } else {
+        draw_page_help(cat);
     }
 
     if (in_items) {
