@@ -4,7 +4,10 @@
  * intro, or straight away without one): the side covers slide in from
  * their own sides, the outermost first, fading in as they come, and the
  * selected game's cover drops into the middle last with a little bounce;
- * the ring appears round it once it has landed.
+ * the ring appears round it once it has landed. Back from a game (a session
+ * settled at this start), the row opens on that game, and in the middle's
+ * turn its cartridge rises from the bottom edge spinning, ends edge-on, and
+ * the cover comes round in its place.
  *
  * Once per start (power-on or RESET), on the first cover row shown, with
  * Cover Slide on, once the covers' art has loaded (loading makes slow
@@ -16,8 +19,14 @@
 #define COVER_DEAL_H__
 
 #include <stdbool.h>
+#include "menu_state.h"
 
-/** Start of the cover row's drawing: begins the deal the first time (it
+/** Very start of the cover row's drawing, before its selection is read: the
+ *  first time, begins the deal, and when the player is back from a game on
+ *  this row, selects it (on the Games list) and loads its cartridge. */
+void cover_deal_start (menu_t *menu);
+
+/** Start of the cover row's drawing: notices the deal's progress (it
  *  waits for the covers' art: `middle_art` the selected one has its art,
  *  `with_art` how many of the row's covers have theirs; and for the start-up
  *  fade's picture to be up, `faded_in`), notices its end. */
@@ -37,6 +46,14 @@ bool cover_deal_ahead (void);
  * @return false while it hasn't been dealt yet (not drawn).
  */
 bool cover_deal_place (int offset, int *dx, int *dy, float *scale, float *alpha);
+
+/**
+ * Back from a game, the middle cover's place at rest x0, y0, w, h: draws its
+ * cartridge rising and spinning (@return true: draw nothing else there), or
+ * gives `turn`, how far the cover is still turned as it comes round (degrees,
+ * 0 at rest), for carousel_art_turn().
+ */
+bool cover_deal_back (int x0, int y0, int w, int h, float *turn);
 
 /** The selected cover hasn't landed yet: no ring. */
 bool cover_deal_hides_ring (void);

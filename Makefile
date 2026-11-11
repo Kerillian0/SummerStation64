@@ -87,6 +87,7 @@ SRCS = \
 	menu/assistant_ask.c \
 	menu/cover_clip.c \
 	menu/cover_deal.c \
+	menu/cart_model.c \
 	menu/game_start.c \
 	menu/avatars.c \
 	menu/avatar_pick.c \

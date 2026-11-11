@@ -1905,6 +1905,8 @@ void carousel_draw (menu_t *menu) {
     if (covers->entries <= 0 || covers->selected < 0 || covers->selected >= covers->entries) {
         return;
     }
+    cover_deal_start(menu); // the first time: the covers will deal in, and back from a game its cover is selected (cover_deal.h)
+    covers = cover_list_current(menu);
     entry_t *selected_entry = &covers->list[covers->selected];
 
     const int screen_w = (int) display_get_width();
@@ -2038,6 +2040,11 @@ void carousel_draw (menu_t *menu) {
                 if (x0 < 0 || (x0 + w) > screen_w) {
                     continue; // off the edge at rest too: never dealt in
                 }
+                float back_turn;
+                if (offset == 0 && cover_deal_back(x0, y0, w, h, &back_turn)) {
+                    continue; // back from a game: its cartridge is in the middle
+                }
+                carousel_art_turn(offset == 0 ? back_turn : 0.0f);  // then the cover comes round in its place
                 x0 += deal_dx;
                 y0 += deal_dy;
                 x0 = (x0 < 0) ? 0 : ((x0 + w > screen_w) ? screen_w - w : x0); // dealt in from the screen's edge, not past it
@@ -2165,6 +2172,8 @@ void carousel_draw (menu_t *menu) {
             }, FNT_DEFAULT, x0 + 8, y0 + 44, "%s", display_name(e));
         }
     }
+
+    carousel_art_turn(0.0f);    // the welcome back's turn is for the middle cover only, this frame
 
     // The selection ring stays put in the center; covers slide through it.
     // It takes the selected cover's shape, changing smoothly between a wide

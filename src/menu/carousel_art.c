@@ -676,7 +676,24 @@ static void flip_update (menu_t *menu) {
     }
 }
 
+static bool art_quiet = false;     /* nothing left to load for the covers shown (carousel_art_quiet()) */
+
+bool carousel_art_quiet (void) {
+    return art_quiet;
+}
+
+/* The welcome back (cover_deal.c): the selected cover comes round from edge-on, as in a turn-over. */
+static float extra_turn = 0.0f;
+
+void carousel_art_turn (float degrees) {
+    extra_turn = degrees;
+}
+
 float carousel_art_flip_width (void) {
+    if (extra_turn != 0.0f && flip == FLIP_NONE) {
+        float c = cosf(extra_turn * (float) M_PI / 180.0f);
+        return (c < 0.0f) ? 0.0f : c;   /* a flat cover squashed as it comes round */
+    }
     float t = (float) (get_ticks_ms() - flip_at) / (features_enabled(FEATURE_BOX_3D) ? BOX_FLIP_HALF_MS : FLIP_HALF_MS);
     if (t > 1.0f) {
         t = 1.0f;
@@ -896,6 +913,9 @@ bool carousel_art_draw_box (menu_t *menu, int index, int x0, int y0, int w, int 
     if (box_since == 0) {
         box_since = now;
     }
+    if (extra_turn != 0.0f && now - box_since < BOX_EASE_MS) {
+        box_since = now - BOX_EASE_MS;  /* coming round (welcome back): a box already, not opening out from flat */
+    }
     float t = (float) (now - box_since) / BOX_EASE_MS;
     /* With 3D Side Covers it slid in as a box already: no opening out. */
     if (!features_enabled(FEATURE_CAROUSEL_ANIMATION) || t > 1.0f || (side_boxes_on() && !box_from_flat)) {
@@ -942,6 +962,10 @@ bool carousel_art_draw_box (menu_t *menu, int index, int x0, int y0, int w, int 
     pose.yaw = BOX_YAW + (pose.yaw - BOX_YAW) * settle;
     pose.pitch = BOX_PITCH + (pose.pitch - BOX_PITCH) * settle;
     pose.lift *= amount * settle;
+    if (extra_turn != 0.0f) {
+        pose.yaw += extra_turn;     /* coming round after the cartridge (welcome back): */
+        pose.amount = 1.0f;         /* the whole box, and the whole turn (the amount scales the angles) */
+    }
 
     /* Turning over: the box spins on the way it already leans until it is
        edge-on, the other side comes in, and it carries on round into place. */
@@ -1141,6 +1165,15 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
     for (int i = 0; i < SLOT_COUNT; i++) {
         if (slots[i].used && slots[i].cart && !slots[i].cart_ready && art_ready(slots[i].art)) {
             cart_prepare(&slots[i]);
+        }
+    }
+
+    /* Every cover wanted has been tried and has finished unpacking. */
+    art_quiet = true;
+    for (int j = 0; j < wanted_count; j++) {
+        slot_t *slot = slot_find(menu, wanted[j]);
+        if (!slot || slot->card_pending || (slot->art && slot->art->loading)) {
+            art_quiet = false;
         }
     }
 

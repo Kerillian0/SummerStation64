@@ -121,6 +121,12 @@ bool carousel_art_flip (void);
  */
 float carousel_art_flip_width (void);
 
+/** Turn the selected cover `degrees` round its upright (0 at rest; -90 edge-on), until set back to 0: the welcome back. */
+void carousel_art_turn (float degrees);
+
+/** Every cover on show has its art loaded and unpacked, or is known to have none (the deal waits for it). */
+bool carousel_art_quiet (void);
+
 /** The code a cover's pictures (and clip) go by, if the game list knows it already: no card read. */
 bool carousel_art_code (menu_t *menu, int index, char code[5]);
 

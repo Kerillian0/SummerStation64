@@ -7,6 +7,7 @@
 #include "art_tint.h"
 #include "baked_art.h"
 #include "box3d.h"
+#include "cart_model.h"
 #include "frame_rate.h"
 #include "game_info_ui.h"
 #include "game_start.h"
@@ -53,12 +54,6 @@
 #define STAGE_BRIGHT    (0x58)      /* the backdrop as Game info draws it */
 #define CART_MIN_FREE   (160 * 1024)
 #define THUNK_PATH      "rom:/thunk.wav64"  /* assets/sounds/make_thunk.py */
-/* The back every cartridge shares, its grey plastic colored to match the front (as on the cover rows). */
-#define CART_BACK_PLASTIC   (176)
-#define CART_LABEL_X0       (0.14f)
-#define CART_LABEL_X1       (0.86f)
-#define CART_LABEL_Y0       (0.28f)
-#define CART_LABEL_Y1       (0.84f)
 
 
 static enum { IDLE, OPENING, LOADING } stage = IDLE;
@@ -73,14 +68,9 @@ static uint64_t click_at = 0;       /* the wind-up began */
 
 static surface_t *front = NULL;     /* the cover (Game info's: not ours to free) */
 static component_boxart_t *top_art = NULL;
-static component_boxart_t *cart_art = NULL;
-static sprite_t *back_sprite = NULL;    /* the back every cartridge shares (and the front of one without a picture) */
-static surface_t back_surface;
-static sprite_t *pcb = NULL;
 static wav64_t *thunk = NULL;       /* the cartridge going home, held in memory (rom:/ is gone by then) */
 static bool thunked = false;
-static surface_t pcb_surface;
-static color_t box_side, cart_body;
+static color_t box_side;
 static float from_x, from_y, from_w;    /* the cover's place on Game info */
 static float box_w, box_h, cart_w, cart_h;
 
@@ -104,92 +94,13 @@ static bool file_there (const char *path) {
     return true;
 }
 
-/* sprite_load stops the menu when the file is missing or memory runs out: check first. */
-static sprite_t *sprite_from_rom (const char *path, surface_t *surface) {
-    if (!memory_free_for(CART_MIN_FREE) || !file_there(path)) {
-        return NULL;
-    }
-    sprite_t *sprite = sprite_load(path);
-    if (sprite) {
-        *surface = sprite_get_pixels(sprite);
-    }
-    return sprite;
-}
-
-static surface_t *cart_front (void) {
-    if (cart_art && cart_art->image) {
-        return cart_art->image;
-    }
-    return back_sprite ? &back_surface : NULL;
-}
-
-/* The plastic's color, from the picture's left grip (as the cover rows do). */
-static color_t plastic_of (surface_t *image) {
-    color_t grey = RGBA32(0x80, 0x80, 0x84, 0xFF);
-    if (!image || surface_get_format(image) != FMT_RGBA16) {
-        return grey;
-    }
-    int w = image->width, h = image->height;
-    uint16_t *px = image->buffer;
-    int stride = image->stride / 2;
-    int r = 0, g = 0, b = 0, n = 0;
-    for (int y = h * 35 / 100; y < h * 65 / 100; y += 2) {
-        for (int x = w * 2 / 100; x < w * 10 / 100; x++) {
-            uint16_t p = px[y * stride + x];
-            if (p & 1) {
-                r += (p >> 11) & 31; g += (p >> 6) & 31; b += (p >> 1) & 31; n++;
-            }
-        }
-    }
-    return n ? RGBA32(r * 255 / (31 * n), g * 255 / (31 * n), b * 255 / (31 * n), 0xFF) : grey;
-}
-
-/* The shared back's grey plastic in this cartridge's color; its label keeps its own. */
-static void back_tint (color_t body) {
-    surface_t *image = &back_surface;
-    if (surface_get_format(image) != FMT_RGBA16) {
-        return;
-    }
-    int tr = body.r * 255 / CART_BACK_PLASTIC, tg = body.g * 255 / CART_BACK_PLASTIC, tb = body.b * 255 / CART_BACK_PLASTIC;
-    tr = (tr > 255) ? 255 : tr; tg = (tg > 255) ? 255 : tg; tb = (tb > 255) ? 255 : tb;
-    int w = image->width, h = image->height;
-    int lx0 = (int) (w * CART_LABEL_X0), lx1 = (int) (w * CART_LABEL_X1);
-    int ly0 = (int) (h * CART_LABEL_Y0), ly1 = (int) (h * CART_LABEL_Y1);
-    uint16_t *px = image->buffer;
-    int stride = image->stride / 2;
-    for (int y = 0; y < h; y++) {
-        for (int x = 0; x < w; x++) {
-            uint16_t p = px[y * stride + x];
-            if (!(p & 1) || (x >= lx0 && x < lx1 && y >= ly0 && y < ly1)) {
-                continue;
-            }
-            int r = (((p >> 11) & 31) * tr) / 255;
-            int g = (((p >> 6) & 31) * tg) / 255;
-            int b = (((p >> 1) & 31) * tb) / 255;
-            px[y * stride + x] = (r << 11) | (g << 6) | (b << 1) | 1;
-        }
-    }
-    data_cache_hit_writeback(image->buffer, image->stride * h);
-}
-
 static void free_all (void) {
     rspq_wait();    /* nothing may still be drawing from them */
     if (top_art) {
         baked_art_free(top_art);
         top_art = NULL;
     }
-    if (cart_art) {
-        baked_art_free(cart_art);
-        cart_art = NULL;
-    }
-    if (back_sprite) {
-        sprite_free(back_sprite);
-        back_sprite = NULL;
-    }
-    if (pcb) {
-        sprite_free(pcb);
-        pcb = NULL;
-    }
+    cart_model_free();
     if (thunk) {
         mixer_ch_stop(SOUND_SFX_CHANNEL);
         wav64_close(thunk);
@@ -221,22 +132,13 @@ bool game_start_begin (menu_t *menu, component_boxart_t *cover) {
         box_w = BOX_LONG;
         box_h = BOX_LONG * 0.7f;
     }
-    if (baked_art_has(code, IMAGE_GAMEPAK_FRONT)) {
-        cart_art = baked_art_load(code, IMAGE_GAMEPAK_FRONT);
-    }
-    back_sprite = sprite_from_rom("rom:/cart_back.sprite", &back_surface);
-    pcb = sprite_from_rom("rom:/cart_bottom.sprite", &pcb_surface);
+    cart_model_load(code);   /* the game's cartridge, or the plain one */
     if (menu->settings.soundfx_enabled && memory_free_for(CART_MIN_FREE) && file_there(THUNK_PATH)) {
         thunk = wav64_load(THUNK_PATH, &(wav64_loadparms_t) { .streaming_mode = WAV64_STREAMING_NONE });     /* whole, into memory */
     }
     thunked = false;
-    surface_t *cart = cart_front();
-    cart_body = plastic_of(cart);
-    if (back_sprite && cart_art && cart_art->image) {
-        back_tint(cart_body);   /* a plain grey cartridge keeps its grey */
-    }
     cart_w = BOX_LONG * CART_SHARE;
-    cart_h = cart ? cart_w * cart->height / cart->width : cart_w * 0.65f;
+    cart_h = cart_w * cart_model_shape();
 
     int rect[4];
     if (game_info_ui_cover_rect(rect)) {
@@ -256,7 +158,7 @@ bool game_start_begin (menu_t *menu, component_boxart_t *cover) {
     click_at = 0;
     stage = OPENING;
     debugf("game start: box %s, top %s, cartridge %s\n", front ? "yes" : "no", top_art ? "yes" : "no",
-        cart_art ? "its own" : (back_sprite ? "plain" : "none"));
+        cart_model_own() ? "its own" : (cart_model_ready() ? "plain" : "none"));
     return true;
 }
 
@@ -303,34 +205,13 @@ static void box_draw (box3d_pose_t pose, float open, int parts, int light, int a
     box3d_draw(&art, 0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT, &pose);
 }
 
-/* The cartridge at (0, y, z) turned `turn` degrees; past a quarter turn its back shows. */
+/* The cartridge at (0, y, z) turned `turn` degrees (cart_model.h), `size` times its usual width. */
 static void cart_draw (box3d_pose_t pose, float y, float z, float turn, int light, int alpha, float size) {
-    surface_t *picture = cart_front();
-    if (!picture) {
-        return;
-    }
-    turn = fmodf(turn, 360.0f);
-    turn = (turn > 180.0f) ? turn - 360.0f : (turn < -180.0f) ? turn + 360.0f : turn;
-    if (turn > 90.0f || turn < -90.0f) {
-        picture = back_sprite ? &back_surface : picture;
-        turn += (turn > 0.0f) ? -180.0f : 180.0f;
-    }
-    box3d_art_t art = {
-        .front = picture,
-        .side = cart_body,
-        .bright = light,
-        .alpha = alpha,
-        .cartridge = true,
-        .bottom = pcb ? &pcb_surface : NULL,
-    };
     pose.width = cart_w * size;
-    pose.yaw = turn;
     pose.shift_x = 0.0f;
     pose.shift_y = y;
     pose.shift_z = z;
-    pose.open = 0.0f;
-    pose.parts = 0;
-    box3d_draw(&art, 0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT, &pose);
+    cart_model_draw(&pose, 0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT, turn, light, alpha);
 }
 
 /* The stage behind it all: the game's blurred backdrop, or black. */
