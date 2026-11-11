@@ -987,6 +987,7 @@ static void draw_page_icon (int index, int x, int y) {
 #define GROUP_TAB_WIDTH (100)
 #define GROUP_TAB_GAP   (6)
 #define GROUP_TAB_Y     (TITLE_Y - 2)
+#define PLAYER_PICTURE  (24)    /* the player's picture at the top right, with 2+ profiles */
 
 /* The headings as tabs, like the tab bar on the cover rows: the one in use
    an accent block with white letters (Showy: the block glides). */
@@ -1272,7 +1273,19 @@ static void draw (menu_t *menu, surface_t *d) {
     const category_t *cat = &groups[group].pages[category];
 
     draw_group_tabs();
-    draw_text(ITEMS_X, TITLE_Y, ITEMS_WIDTH, ALIGN_RIGHT, STL_GRAY, cat->label);
+    if (profiles_count() >= 2) {
+        /* Whose settings these are: the player's picture in a ring of their
+           color at the top right, their name before it (as under the tabs). */
+        int p = profiles_current();
+        int x1 = ITEMS_X + ITEMS_WIDTH + PANEL_PAD;
+        int name_x0 = LEFT_X + (3 * (GROUP_TAB_WIDTH + GROUP_TAB_GAP)) + 8;
+        avatars_draw(profiles_picture(p), x1 - PLAYER_PICTURE, GROUP_TAB_Y + (ROW_HEIGHT - PLAYER_PICTURE) / 2, PLAYER_PICTURE,
+                     profiles_color(p), profiles_name(p));
+        rdpq_text_printf(&(rdpq_textparms_t) { .width = x1 - PLAYER_PICTURE - 8 - name_x0, .height = ROW_HEIGHT, .align = ALIGN_RIGHT,
+            .valign = VALIGN_CENTER, .wrap = WRAP_ELLIPSES, .style_id = STL_DEFAULT }, FNT_DEFAULT, name_x0, GROUP_TAB_Y, "%s", profiles_name(p));
+    } else {
+        draw_text(ITEMS_X, TITLE_Y, ITEMS_WIDTH, ALIGN_RIGHT, STL_GRAY, cat->label);
+    }
 
     // Keep the selected setting inside the rows that fit above the description.
     if (!in_items || first_row > item) {
