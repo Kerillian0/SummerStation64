@@ -34,6 +34,7 @@
 #include "../sound.h"
 #include "../theme.h"
 #include "../theme_editor.h"
+#include "../tv_patterns.h"
 #include "../animations.h"
 #include "../avatar_pick.h"
 #include "../avatars.h"
@@ -200,6 +201,11 @@ static void open_theme_editor (menu_t *menu) {
 static void new_theme (menu_t *menu) {
     (void) menu;
     theme_editor_new();
+}
+
+static void open_test_patterns (menu_t *menu) {
+    (void) menu;
+    tv_patterns_open();
 }
 
 static void apply_video_previews (menu_t *menu) {
@@ -589,6 +595,7 @@ static const item_t clip_items[] = {
 
 static const item_t tool_items[] = {
     ACTION("Controller Pak Manager", open_controller_paks, "The notes (game saves) on a Controller Pak: back them up to the SD card, restore one or a whole dump, delete one, or format the Pak."),
+    ACTION("Test Patterns", open_test_patterns, "Pictures for setting up your TV: a grid with borders showing how much of the picture's edge it cuts off, and color bars with grey steps for brightness and color. A or right shows the next one, B comes back here."),
     ACTION("Clock", open_clock, "Set the date and time of the cart's clock, used for the clock on the tab bar, dated save backups and time played."),
     INFO("Memory", memory_note_info, "Free memory now. When memory runs short the menu leaves extras out instead of stopping; any left out since power-on are listed here."),
     CHOICES("Performance Overlay", OPTION_PERF_OVERLAY, 2, debug_stats_overlay_name, NULL,
@@ -896,6 +903,10 @@ static void process (menu_t *menu) {
     }
     if (theme_editor_active()) {
         theme_editor_process(menu);
+        return;
+    }
+    if (tv_patterns_active()) {
+        tv_patterns_process(menu);     /* Console > Tools > Test Patterns */
         return;
     }
     if (assistant_ask_active()) {
@@ -1373,6 +1384,13 @@ static bool rows_rise_pending = false;
 
 static void draw (menu_t *menu, surface_t *d) {
     rdpq_attach(d, NULL);
+
+    if (tv_patterns_active()) {
+        tv_patterns_draw();     // the whole screen: no background under it
+        debug_stats_overlay_draw();
+        rdpq_detach_show();
+        return;
+    }
 
     ui_components_background_draw();
 
