@@ -126,8 +126,8 @@ static const tip_t tips[] = {
 
 /* ---------- skins: other fairies (assets/assistant/README.md) ---------- */
 
-/* Baked into the menu file by assets/assistant/make_skins.py (the Art
-   Edition only): rom:/assistant/list.txt names them, <name>.sprite is the
+/* Baked into the menu file by assets/assistant/make_skins.py (the owner's
+   own builds only, never a release): rom:/assistant/list.txt names them, <name>.sprite is the
    picture (56 x 56, one, turned now and then), <name>.txt its name, color,
    home games (first three letters of their codes) and lines about them. */
 #define SKINS_MAX       (8)
@@ -850,7 +850,8 @@ static bool unplayed_check (menu_t *menu) {
    joke, a look at the play stats, or a tip (said before or not). */
 #define LINGER_AFTER_MS (60000)
 #define HOME_QUIET_MS   (2500)      /* resting on the skin's own game this long */
-#define HOME_GAP_MS     (45000)     /* and this long after anything else said (Now and Then; Rarely 3 min, Chatty 30 s) */
+#define HOME_GAP_MS     (45000)     /* and this long after anything else said (Now and Then; Rarely 3 min) */
+#define CHATTY_REST_MS  (5000)      /* Chatty: resting this long on any game gets a word about it, no gap */
 #define LINGER_SAY_MS   (8000)
 
 static bool lingering = false;
@@ -1336,10 +1337,12 @@ void assistant_update (menu_t *menu) {
 
     /* Resting on a game: something particular about it (the skin's own
        games, another one it knows, a well-known game), once per game in a
-       row, not too soon after anything else. */
+       row, not too soon after anything else. Chatty: every game rested on
+       for 5 seconds gets a word, particular or not, with no gap. */
     skin_load();
-    if (quiet >= HOME_QUIET_MS && !animations_popup_up() && menu->mode != MENU_MODE_LOAD_ROM
-        && (!last_talk_ms || now - last_talk_ms >= (often == ASSISTANT_RARELY ? 3 * HOME_GAP_MS + 45000 : often == ASSISTANT_CHATTY ? 30000 : HOME_GAP_MS))) {
+    bool chatty = (often == ASSISTANT_CHATTY);
+    if (quiet >= (chatty ? CHATTY_REST_MS : HOME_QUIET_MS) && !animations_popup_up() && menu->mode != MENU_MODE_LOAD_ROM
+        && (chatty || !last_talk_ms || now - last_talk_ms >= (often == ASSISTANT_RARELY ? 3 * HOME_GAP_MS + 45000 : HOME_GAP_MS))) {
         static int checked_selected = -2;
         static const void *checked_list = NULL;
         static uint32_t said_key = 0;
@@ -1356,7 +1359,8 @@ void assistant_update (menu_t *menu) {
                 for (const unsigned char *c = (const unsigned char *) path; *c; c++) {
                     key = (key ^ *c) * 16777619u;
                 }
-                if (key != said_key && special_line(code_here, name, text, sizeof(text))) {
+                if (key != said_key && (special_line(code_here, name, text, sizeof(text))
+                                        || (chatty && line_game(menu, text, sizeof(text))))) {
                     said_key = key;
                     saying_tip = -1;
                     saying_bits = 0;

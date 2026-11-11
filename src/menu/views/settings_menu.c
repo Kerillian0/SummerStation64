@@ -464,7 +464,7 @@ static void open_fairy_look_row (menu_t *menu);     /* with the fairy's rows, fu
 
 static const item_t assistant_items[] = {
     CHOICES("Assistant", OPTION_ASSISTANT, ASSISTANT_COUNT, assistant_often_name, NULL,
-        "A fairy that flies in now and then with a tip, a joke or a word about your games. Leave the menu alone for a minute and it stays to chat. Any button sends it away. Rarely, Now and Then or Chatty: how often it comes by itself. Off: never."),
+        "A fairy that flies in now and then with a tip, a joke or a word about your games. Leave the menu alone for a minute and it stays to chat. Any button sends it away. Rarely, Now and Then or Chatty: how often it comes by itself; Chatty also has a word about every game you rest on for 5 seconds. Off: never."),
     CHOICES("Assistant Mood", OPTION_ASSISTANT_MOOD, ASSISTANT_MOOD_COUNT, assistant_mood_name, NULL,
         "Eager is cheerful and keen to help. Snarky gives the same advice with an attitude."),
     ACTION_INFO("Fairy Look...", open_fairy_look_row, ask_info,

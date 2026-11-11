@@ -15,9 +15,9 @@ Run, from the repository's top folder:
 and build as usual. Each picture is trimmed to what isn't see-through,
 fitted into 56 x 56 and written to filesystem/assistant/ (also ignored by
 git) as <folder>.sprite, with its skin.txt as <folder>.txt and a list of
-the folders in list.txt. The menu offers them after its own fairy, Spark,
-in folder-name order. make_release.py leaves them out of the Standard
-edition.
+the folders in list.txt. The menu offers them after its own fairy, Vee,
+in folder-name order. They are for your own builds only: make_release.py
+leaves them out of both released editions.
 
 Needs Pillow (in the dev container: sudo apt-get install python3-pil).
 """

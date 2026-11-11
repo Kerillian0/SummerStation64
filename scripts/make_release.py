@@ -31,7 +31,8 @@ import zipfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ART = os.path.join(ROOT, "filesystem", "art")
 ART_ASIDE = os.path.join(ROOT, "build", "art-set-aside")
-# The assistant's skins (assets/assistant/make_skins.py): Art Edition only, like the covers.
+# The assistant's skins (assets/assistant/make_skins.py): the owner's own, never in a release
+# (neither edition); they are set aside for both builds and put back afterwards.
 SKINS = os.path.join(ROOT, "filesystem", "assistant")
 SKINS_ASIDE = os.path.join(ROOT, "build", "assistant-set-aside")
 BUILT = os.path.join(ROOT, "output", "sc64menu.n64")
@@ -72,6 +73,14 @@ def build(version):
         sys.exit("The build left no output/sc64menu.n64.")
 
 
+def no_skins(path, edition):
+    """Stop if a skin made it into a release file: each skin.txt starts "skin 1" then its name."""
+    with open(path, "rb") as f:
+        data = f.read()
+        if b"skin 1\nname " in data or b"skin 1\r\nname " in data:
+            sys.exit(f"The assistant's skins ended up in {edition}: not releasing it.")
+
+
 def sha1(path):
     h = hashlib.sha1()
     with open(path, "rb") as f:
@@ -94,8 +103,6 @@ def main():
         sys.exit("No baked art in filesystem/art: run  python3 assets/boxart/make_baked_art.py  first.")
     if os.path.isdir(SKINS_ASIDE):
         sys.exit(f"The assistant's skins are in {SKINS_ASIDE} from an earlier run that stopped: move them back to {SKINS} first.")
-    if not os.path.isdir(SKINS):
-        print("Note: no assistant skins baked (filesystem/assistant): the Art Edition has Spark only.")
     changed = subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"], cwd=ROOT,
                              capture_output=True, text=True).stdout.strip()
     if changed:
@@ -107,24 +114,28 @@ def main():
     say("Baking the game details")
     subprocess.run([sys.executable, "assets/boxart/make_baked_meta.py"], cwd=ROOT, check=True)
 
-    say(f"Standard edition (no covers, no assistant skins), v{version}")
-    os.rename(ART, ART_ASIDE)
     skins = os.path.isdir(SKINS)
     if skins:
-        os.rename(SKINS, SKINS_ASIDE)
+        os.rename(SKINS, SKINS_ASIDE)   # Navi and Tatl: the owner's builds only, never released
     try:
+        say(f"Standard edition (no covers), v{version}")
+        os.rename(ART, ART_ASIDE)
+        try:
+            build(version)
+            no_skins(BUILT, "the Standard edition")
+            with zipfile.ZipFile(standard_zip, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
+                z.write(BUILT, "sc64menu.n64")
+        finally:
+            os.rename(ART_ASIDE, ART)
+
+        say(f"Art Edition (covers built in), v{version}")
         build(version)
-        with zipfile.ZipFile(standard_zip, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
-            z.write(BUILT, "sc64menu.n64")
+        no_skins(BUILT, "the Art Edition")
+        shutil.copyfile(BUILT, art_rom)
     finally:
-        os.rename(ART_ASIDE, ART)
         if skins:
             os.rename(SKINS_ASIDE, SKINS)
-
-    say(f"Art Edition (covers built in), v{version}")
-    build(version)
-    shutil.copyfile(BUILT, art_rom)
-    forget_stale()      # the next plain build is the usual working copy, not named v<version>
+        forget_stale()      # the next plain build is the usual working copy (with the skins), not named v<version>
 
     pack = os.path.join(out, f"SummerStation64-v{version}-Logos-and-Clips.zip")
     sources = [s for s in PACK_SOURCES if os.path.isdir(s)]
@@ -155,7 +166,9 @@ def main():
     say("Done")
     for name in sorted(os.listdir(out)):
         print(f"  {name:45} {os.path.getsize(os.path.join(out, name)) / (1024 * 1024):6.1f} MB")
-    print(f"\nIn {out}. output/sc64menu.n64 is the Art Edition; test it before publishing.")
+    print(f"\nIn {out}. output/sc64menu.n64 is the Art Edition (no skins); test it before publishing.")
+    if skins:
+        print("Your own build with Navi and Tatl: run  make sc64  again.")
 
 
 main()

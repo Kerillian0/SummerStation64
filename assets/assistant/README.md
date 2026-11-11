@@ -3,8 +3,8 @@
 The menu's assistant is Vee, its own fairy (`assets/images/make_fairy.py`).
 A skin swaps in another fairy: its picture, name, color and lines about
 its own games. Skins are built into the menu file by
-`make_skins.py`, and only into the Art Edition: `scripts/make_release.py`
-leaves them out of the Standard edition.
+`make_skins.py`, and only into your own builds: `scripts/make_release.py`
+leaves them out of both released editions (and stops if one gets in).
 
 **The skins' pictures and lines are never committed.** `source/` and
 `filesystem/assistant/` are ignored by git, like the box art.
