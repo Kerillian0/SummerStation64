@@ -1117,6 +1117,7 @@ void view_load_rom_init (menu_t *menu) {
     if (!own_art || !video_preview_find(menu->storage_prefix, menu->load.rom_info.game_code, clip_path, sizeof(clip_path))) {
         clip_path[0] = '\0';   // no clip: the cover stays, as it always did
     }
+    video_preview_carry_on(clip_path); // the clip its cover was playing goes on from where it was (cover_clip.h)
 
     if (controls_consume_launch_request() && !rom_requires_missing_expansion_pak(menu)) menu->load_pending.rom_file = true; // quick launch
 }

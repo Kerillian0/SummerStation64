@@ -2062,7 +2062,16 @@ void carousel_draw (menu_t *menu) {
                     carousel_art_brightness(255);
                     continue;
                 }
-                cover_left = (cover_left < 1.0f) ? cover_clip_draw(menu, i, x0, y0, w, h, &clip_w, &clip_h) : 1.0f;
+                // Flat: in the cover's box, or for a tall (Japanese) box in the usual
+                // wide cover's size, so the clip isn't small.
+                int clip_x0 = x0, clip_y0 = y0, clip_bw = w, clip_bh = h;
+                if (h > w) {
+                    clip_bw = CAROUSEL_CENTER_W;
+                    clip_bh = CAROUSEL_CENTER_H;
+                    clip_x0 = x0 + (w - clip_bw) / 2;
+                    clip_y0 = y0 + (h - clip_bh) / 2;
+                }
+                cover_left = (cover_left < 1.0f) ? cover_clip_draw(menu, i, clip_x0, clip_y0, clip_bw, clip_bh, &clip_w, &clip_h) : 1.0f;
                 if (cover_left < 1.0f) {
                     clip_on = true;
                     if (cover_left > 0.0f) {

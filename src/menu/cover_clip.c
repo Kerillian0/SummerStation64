@@ -13,9 +13,11 @@
 #include "video_preview.h"
 
 #define LOOK_AFTER_MS   (500)   /* rested this long: look for its clip; video_preview.c waits 1.5 s more, so it starts at 2 s */
+#define RESUME_AFTER_MS (2000)  /* a clip hidden by a press shows again (where it was) after this long */
 
 static const void *list_seen = NULL;
 static int index_seen = -2;
+static uint32_t name_seen = 0;      /* the selected game's name: a filter step can put another game in the same place */
 static uint64_t rest_since = 0;
 static bool looked = false;
 static bool found = false;
@@ -41,29 +43,25 @@ static bool buttons_held (void) {
     return false;
 }
 
-static bool handing_over = false;   /* A pressed while the clip plays: it goes on into Game info */
-
+/* Leaving the covers doesn't stop the clip: Game info for this game carries
+   it on (video_preview_carry_on()); otherwise video_preview.c frees it once
+   no screen has shown it for 4 seconds. */
 void cover_clip_reset (void) {
-    if (playing && !handing_over) {
-        video_preview_stop();
-        carousel_art_clip_free();
-    }
+    carousel_art_clip_free();
     playing = false;
-    handing_over = false;
     looked = false;
     found = false;
     index_seen = -2;
     list_seen = NULL;
+    name_seen = 0;
 }
 
-/* A held on any controller: the game's info opens (or it starts) on letting go. */
-static bool a_held (void) {
-    for (int port = 0; port < 4; port++) {
-        if (joypad_is_connected(port) && joypad_get_buttons(port).a) {
-            return true;
-        }
+static uint32_t name_hash (const char *name) {
+    uint32_t h = 2166136261u;
+    for (const unsigned char *c = (const unsigned char *) name; c && *c; c++) {
+        h = (h ^ *c) * 16777619u;
     }
-    return false;
+    return h;
 }
 
 /* The code a game's clip goes by: a hack's own (hacks.txt), else the game's,
@@ -97,32 +95,27 @@ void cover_clip_after_draw (menu_t *menu) {
     const cover_list_t *covers = cover_list_current(menu);
     int selected = covers->selected;
 
-    /* A on a playing clip: Game info is about to open, and the clip goes
-       on there (video_preview_carry_on()); it isn't stopped here. */
-    if (playing && selected == index_seen && a_held()) {
-        handing_over = true;
-        video_preview_carry_on();
-        return;
-    }
-    handing_over = false;
-
-    /* Another game, a press, or a button held: the rest starts again and a
-       clip that was showing stops (the cover is back at once). */
-    bool moved = (selected != index_seen || (const void *) covers->list != list_seen);
+    /* Another game: its clip stops and is freed. A press or a button held
+       (same game): the rest starts again, and a clip that was showing hides
+       (the cover is back at once) and waits where it was, for the rest to
+       bring it back or for Game info to carry it on. */
+    uint32_t name = (selected >= 0 && selected < covers->entries) ? name_hash(covers->list[selected].name) : 0;
+    bool moved = (selected != index_seen || (const void *) covers->list != list_seen || name != name_seen);
     uint64_t pressed = animations_last_press_ms();
-    if (moved || buttons_held() || pressed > rest_since) {
+    if (moved) {
         if (playing) {
             video_preview_stop();
             carousel_art_clip_free();
             playing = false;
         }
-        rest_since = (moved || buttons_held()) ? now : pressed;
-        if (moved) {
-            index_seen = selected;
-            list_seen = covers->list;
-            looked = false;
-            found = false;
-        }
+        rest_since = now;
+        index_seen = selected;
+        list_seen = covers->list;
+        name_seen = name;
+        looked = false;
+        found = false;
+    } else if (buttons_held() || pressed > rest_since) {
+        rest_since = buttons_held() ? now : pressed;
     }
 
     if (!looked && wanted() && selected >= 0 && selected < covers->entries && now - rest_since >= LOOK_AFTER_MS) {
@@ -134,7 +127,8 @@ void cover_clip_after_draw (menu_t *menu) {
 }
 
 float cover_clip_frame (menu_t *menu, int index) {
-    if (!found || !wanted() || index != index_seen || get_ticks_ms() - rest_since < LOOK_AFTER_MS) {
+    uint64_t rested = get_ticks_ms() - rest_since;
+    if (!found || !wanted() || index != index_seen || rested < (playing ? RESUME_AFTER_MS : LOOK_AFTER_MS)) {
         return 1.0f;
     }
     video_preview_update(clip_path);

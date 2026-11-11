@@ -27,7 +27,7 @@
 #define LOOP_FRAMES         (3)         /* menu frames the last picture is held for while the first decodes again */
 #define MAX_STEP_MS         (100)       /* the clip's clock never jumps more than this in one frame */
 #define AWAY_MS             (250)       /* not drawn for this long: the screen was left or the picture changed */
-#define FORGET_MS           (2000)      /* not drawn for this long: nothing took it over, so it is freed */
+#define FORGET_MS           (4000)      /* not drawn for this long: nothing took it over, so it is freed */
 
 /* libdragon's decoder stops the console if it can't get memory, so the room
    is checked first. It wants about 16 pictures' worth (the ones decoded
@@ -301,6 +301,9 @@ static void free_clip (void) {
 }
 
 void video_preview_stop (void) {
+    if (state != VP_OFF) {
+        debugf("video preview: stopped\n");
+    }
     free_playback();
     free_clip();
     clip_size = clip_loaded = 0;
@@ -605,6 +608,9 @@ void video_preview_update (const char *path) {
     }
 
     if (strcmp(path, want_path) != 0) {
+        if (want_path[0]) {
+            debugf("video preview: %s in place of %s\n", path, want_path);
+        }
         video_preview_stop();
         snprintf(want_path, sizeof(want_path), "%s", path);
         state = VP_LOADING;
@@ -620,6 +626,8 @@ void video_preview_update (const char *path) {
            Game info, simply carry on. */
         if (!carry_on) {
             fade_since_ms = now;
+        } else {
+            debugf("video preview: carried on after %lu ms\n", (unsigned long) step);
         }
         carry_on = false;
     }
@@ -658,12 +666,16 @@ bool video_preview_showing (void) {
     return busy && (get_ticks_ms() - last_update_ms) <= AWAY_MS;
 }
 
-void video_preview_carry_on (void) {
-    carry_on = (state == VP_PLAYING);
+void video_preview_carry_on (const char *path) {
+    if (path && path[0] && state == VP_PLAYING && strcmp(path, want_path) == 0) {
+        carry_on = true;
+        debugf("video preview: %s carries on\n", path);
+    }
 }
 
 void video_preview_poll (void) {
     if (state != VP_OFF && (get_ticks_ms() - last_update_ms) > FORGET_MS) {
+        debugf("video preview: not shown for %d ms, freed\n", FORGET_MS);
         video_preview_stop();   /* left behind (a cover's clip that Game info didn't take over) */
         return;
     }
