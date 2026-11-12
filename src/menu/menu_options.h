@@ -56,6 +56,7 @@ typedef enum {
     OPTION_COVER_CLIPS, /**< 1: preview clips on the cover rows too (cover_clip.c) */
     OPTION_GAME_START,  /**< a game_start_t value: what shows while a game starts (game_start.h) */
     OPTION_PARTY_TEST,  /**< hidden, for testing: count this many controllers (see party.h); 0 counts the real ones */
+    OPTION_VERSIONS_LAYOUT, /**< a versions_layout_t value: where the column of a game's versions sits (versions_screen.h) */
     OPTION_COUNT
 } option_t;
 

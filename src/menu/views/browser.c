@@ -54,6 +54,7 @@
 #include "../tabs.h"
 #include "../folders_ui.h"
 #include "../intro.h"
+#include "../versions_screen.h"
 #include "../ui_components/constants.h"
 
 static const char *archive_extensions[] = { "zip", NULL };
@@ -889,8 +890,10 @@ static void version_name (char *out, size_t size, const char *name, bool hack) {
     snprintf(out, size, "%s%s", display_name_version(name), hack ? "  (hack)" : "");
 }
 
-// Opens the list if this cover stands for several files. @return true if it did.
-static bool versions_open (menu_t *menu, entry_t *cover) {
+// Opens the versions if this cover stands for several files: as the column of
+// covers (versions_screen.c), or with `screen` false as a pop-up list (choosing
+// one to hide). @return true if it did.
+static bool versions_open (menu_t *menu, entry_t *cover, bool screen) {
     if (folders_tab || cover->type != ENTRY_TYPE_ROM || games_filter_versions(menu, cover) < 2) {
         return false;
     }
@@ -936,6 +939,14 @@ static bool versions_open (menu_t *menu, entry_t *cover) {
     }
     versions_menu.list[n].text = NULL;
     version_launch = controls_consume_launch_request();
+    if (screen) {
+        const char *names[VERSIONS_MAX];
+        for (int i = 0; i < n; i++) {
+            names[i] = version_names[i];
+        }
+        versions_screen_open(menu, version_entries, names, n, version_default, version_launch);
+        return true;
+    }
     ui_components_context_menu_init(&versions_menu);
     ui_components_context_menu_show(&versions_menu);
     return true;
@@ -989,7 +1000,7 @@ static void hide_all_versions (menu_t *menu, void *arg) {
 }
 
 static void hide_one_version (menu_t *menu, void *arg) {
-    if (versions_open(menu, menu->browser.entry)) {
+    if (versions_open(menu, menu->browser.entry, false)) {
         for (int i = 0; versions_menu.list[i].text; i++) {
             versions_menu.list[i].action = hide_pick_version;   // this time choosing a row hides it
         }
@@ -1417,6 +1428,9 @@ static void browser_step_tab (menu_t *menu, int direction) {
 }
 
 static void process (menu_t *menu) {
+    if (versions_screen_process(menu)) {
+        return;     // the column of a game's versions
+    }
     if (file_rename_process(menu)) {
         return;     // spelling a file's new name
     }
@@ -1559,7 +1573,7 @@ static void process (menu_t *menu) {
                 menu->next_mode = MENU_MODE_MUSIC_PLAYER;
                 break;
             case ENTRY_TYPE_ROM:
-                if (!versions_open(menu, menu->browser.entry)) {
+                if (!versions_open(menu, menu->browser.entry, true)) {
                     menu->next_mode = MENU_MODE_LOAD_ROM;
                 }
                 break;
@@ -2340,6 +2354,15 @@ static void carousel_hints_draw (menu_t *menu) {
 #endif
 
 static void draw (menu_t *menu, surface_t *d) {
+    versions_screen_capture(d);     // as it opens, a blurred copy of the Games screen still in this buffer
+    if (versions_screen_active()) {
+        rdpq_attach(d, NULL);
+        versions_screen_draw(menu);
+        debug_stats_overlay_draw();
+        rdpq_detach_show();
+        return;
+    }
+
     rdpq_attach(d, NULL);
 
     // The fade-in. Darkening the whole screen with see-through black made the
@@ -2540,6 +2563,7 @@ void view_browser_init (menu_t *menu) {
         ui_components_context_menu_init(&archive_context_menu);
         ui_components_context_menu_init(&settings_context_menu);
         ui_components_context_menu_init(&versions_menu);       // empty, so hidden
+        versions_screen_close();
         ui_components_context_menu_init(&hide_menu);
         ui_components_context_menu_init(&card_menu);
         hide_count = 0;
@@ -2593,6 +2617,10 @@ void view_browser_display (menu_t *menu, surface_t *display) {
 
     draw(menu, display);
 
+    if (versions_screen_active()) {
+        versions_screen_after_draw(menu);   // its covers, one a frame; the row's own loading waits
+        return;
+    }
     // Cover art is fetched here, after the picture has been handed to the graphics chip, so the chip draws while the art loads
     if (!folders_tab && !cards_showing() && menu->next_mode == MENU_MODE_BROWSER) carousel_art_update(menu, features_enabled(FEATURE_SIDE_COVERS));
     if (cards_showing() && menu->next_mode == MENU_MODE_BROWSER) collections_ui_after_draw(menu); // the selected card's covers

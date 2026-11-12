@@ -36,6 +36,7 @@
 #include "../theme_editor.h"
 #include "../tv_patterns.h"
 #include "../pad_test.h"
+#include "../versions_screen.h"
 #include "../animations.h"
 #include "../avatar_pick.h"
 #include "../avatars.h"
@@ -447,6 +448,8 @@ static const item_t cover_items[] = {
         "How the selected cover is marked on the rows of covers: Corners puts a bracket at each corner, Ring a frame all round it, Off leaves it unmarked."),
     FEATURE("Trim Black Edges", FEATURE_TRIM_EDGES, "Box art from the SD card loses the thin black frame many scans have, so the picture reaches the box's edges. Only near-black lines across the whole edge, a few pixels at most."),
     FEATURE("Cover Slide", FEATURE_CAROUSEL_ANIMATION, "Covers slide into place when you move left or right."),
+    CHOICES("Versions Column", OPTION_VERSIONS_LAYOUT, VERSIONS_LAYOUT_COUNT, versions_screen_layout_name, NULL,
+        "A on a cover that stands for several versions of a game opens them as a column of covers. Left puts the column on the left with the names beside it; Centre puts it in the middle."),
 };
 
 static const item_t box_items[] = {
