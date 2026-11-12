@@ -85,6 +85,7 @@ SRCS = \
 	menu/rom_info.c \
 	menu/settings.c \
 	menu/sound.c \
+	menu/settings_search.c \
 	menu/animations.c \
 	menu/assistant.c \
 	menu/assistant_ask.c \

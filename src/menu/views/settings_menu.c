@@ -46,6 +46,7 @@
 #include "../profile_pick.h"
 #include "../video_preview.h"
 #include "../volume.h"
+#include "../settings_search.h"
 #include "../ui_components/constants.h"
 #include "settings_menu.h"
 #include "views.h"
@@ -730,6 +731,133 @@ static const category_t *current_page (void) {
     return sub_page ? sub_page : &groups[group].pages[category];
 }
 
+/* ---------- search (Z): every row whose name, or name and help, holds the words typed ---------- */
+
+#define SEARCH_MAX      (192)
+#define SEARCH_LENGTH   (28)    /* the naming keyboard's longest name, and its end */
+
+typedef struct {
+    const item_t *it;
+    int8_t group, page, row;        /* where the row is */
+    const category_t *sub;          /* a row's own page (Fairy Look) the row is on, or NULL */
+    int8_t sub_row;
+} search_hit_t;
+
+static search_hit_t hits[SEARCH_MAX];
+static int hit_count = 0;
+static int hit_names = 0;           /* the first this many matched by name */
+static int hit_row = 0, hit_first = 0;
+static char search_query[SEARCH_LENGTH];
+static bool search_view = false;    /* the list of what was found is showing */
+static bool from_search = false;    /* a row was gone to from that list: B goes back to it */
+static char no_match[SEARCH_LENGTH + 40];
+
+/* Where Settings was before searching, for B on the list. */
+static struct {
+    int group, category, item, first_row, sub_from_item;
+    bool in_items;
+    const category_t *sub_page;
+} before;
+
+static void search_add (settings_search_match_t pass, const item_t *it, int g, int p, int r, const category_t *sub, int sub_row) {
+    if (hit_count < SEARCH_MAX && settings_search_match(search_query, it->label, it->help) == pass) {
+        hits[hit_count++] = (search_hit_t) { .it = it, .group = g, .page = p, .row = r, .sub = sub, .sub_row = sub_row };
+    }
+}
+
+/* Names first, then help, each in the menu's own order; a row's own page's rows just after that row. */
+static void search_build (void) {
+    hit_count = 0;
+    settings_search_match_t passes[2] = { SETTINGS_SEARCH_NAME, SETTINGS_SEARCH_HELP };
+    for (int pass = 0; pass < 2; pass++) {
+        for (int g = 0; g < COUNT(groups); g++) {
+            for (int p = 0; p < groups[g].count; p++) {
+                const category_t *page = &groups[g].pages[p];
+                for (int r = 0; r < page->count; r++) {
+                    const item_t *it = &page->items[r];
+                    search_add(passes[pass], it, g, p, r, NULL, -1);
+                    if (it->type == ITEM_ACTION && it->action == open_fairy_look_row) {
+                        for (int k = 0; k < fairy_page.count; k++) {
+                            search_add(passes[pass], &fairy_page.items[k], g, p, r, &fairy_page, k);
+                        }
+                    }
+                }
+            }
+        }
+        if (pass == 0) {
+            hit_names = hit_count;
+        }
+    }
+    hit_row = 0;
+    hit_first = 0;
+}
+
+static void search_done (menu_t *menu, const char *typed) {
+    (void) menu;
+    if (!typed || !typed[0]) {
+        return;     /* given up: stay where we were */
+    }
+    char old[SEARCH_LENGTH];
+    snprintf(old, sizeof(old), "%s", search_query);
+    snprintf(search_query, sizeof(search_query), "%s", typed);
+    search_build();
+    debugf("settings search: \"%s\", %d found (%d by name)\n", search_query, hit_count, hit_names);
+    if (hit_count == 0) {
+        snprintf(no_match, sizeof(no_match), "No settings match \"%s\".", typed);
+        notice = no_match;
+        snprintf(search_query, sizeof(search_query), "%s", old);    /* the list shown before stays */
+        if (old[0]) {
+            search_build();
+        }
+        return;
+    }
+    search_view = true;
+    from_search = false;
+    sound_play_effect(SFX_ENTER);
+}
+
+static void search_begin (void) {
+    if (!search_view && !from_search) {
+        before.group = group;
+        before.category = category;
+        before.item = item;
+        before.first_row = first_row;
+        before.sub_from_item = sub_from_item;
+        before.in_items = in_items;
+        before.sub_page = sub_page;
+    }
+    /* A new search starts empty; from the list (or a row found) the words typed last can be changed. */
+    letter_wheel_name_begin("Search settings", (search_view || from_search) ? search_query : NULL, search_done);
+    sound_play_effect(SFX_ENTER);
+}
+
+static void search_leave (void) {
+    group = before.group;
+    category = before.category;
+    item = before.item;
+    first_row = before.first_row;
+    sub_from_item = before.sub_from_item;
+    in_items = before.in_items;
+    sub_page = before.sub_page;
+    search_view = false;
+    from_search = false;
+}
+
+static void search_jump (const search_hit_t *h) {
+    group = h->group;
+    category = h->page;
+    in_items = true;
+    sub_page = NULL;
+    item = h->row;
+    first_row = 0;
+    if (h->sub) {
+        open_sub_page(h->sub);      /* B on it still comes back here, to the list */
+        item = h->sub_row;
+    }
+    search_view = false;
+    from_search = true;
+}
+
 static bool *switch_value (menu_t *menu, const item_t *it) {
     return (bool *) ((char *) &menu->settings + it->offset);
 }
@@ -960,9 +1088,34 @@ static void process (menu_t *menu) {
         return;
     }
 
-    /* L and R step through the headings, going round, back to their first page. */
     joypad_buttons_t pressed = screenshot_pressed();
+    if (search_view) {
+        /* The list of rows found. */
+        if (pressed.z) {
+            search_begin();     /* change the words */
+        } else if (menu->actions.go_up && hit_row > 0) {
+            hit_row--;
+            sound_play_effect(SFX_CURSOR);
+        } else if (menu->actions.go_down && hit_row < hit_count - 1) {
+            hit_row++;
+            sound_play_effect(SFX_CURSOR);
+        } else if (menu->actions.enter) {
+            search_jump(&hits[hit_row]);
+            sound_play_effect(SFX_ENTER);
+        } else if (menu->actions.back) {
+            search_leave();
+            sound_play_effect(SFX_EXIT);
+        }
+        return;
+    }
+    if (pressed.z) {
+        search_begin();
+        return;
+    }
+
+    /* L and R step through the headings, going round, back to their first page. */
     if (pressed.l || pressed.r) {
+        from_search = false;
         group = (group + (pressed.r ? 1 : COUNT(groups) - 1)) % COUNT(groups);
         sub_page = NULL;
         category = 0;
@@ -1028,6 +1181,11 @@ static void process (menu_t *menu) {
     } else if (has_value(&cat->items[item]) && (menu->actions.go_left || menu->actions.go_right)) {
         change_item(menu, &cat->items[item], menu->actions.go_right ? 1 : -1);   /* the arrows beside the value */
         sound_play_effect(SFX_SETTING);
+    } else if (from_search && (menu->actions.back || menu->actions.go_left)) {
+        from_search = false;
+        sub_page = NULL;
+        search_view = true;         /* back to the list of rows found */
+        sound_play_effect(SFX_EXIT);
     } else if (menu->actions.back || menu->actions.go_left) {
         if (sub_page) {
             sub_page = NULL;            /* back to the row it was opened from */
@@ -1315,7 +1473,11 @@ static void draw_hints (const char *a_action, bool slider, bool any_changed) {
         x = games_ui_hint_draw(x, 1, "A", a_action);
     }
     x = games_ui_hint_draw(x, 1, "B", "Back");
-    games_ui_hint_draw(x, 1, "L R", "Change Tab");
+    /* "Change Tab" shortens to "Tab" when it wouldn't clear the Changed note. */
+    int limit = any_changed ? (GAMES_UI_CONTENT_X1 - (CHANGED_WIDTH + 6 + LEGEND_TEXT) - 12) : GAMES_UI_CONTENT_X1;
+    bool roomy = (x + games_ui_hint_width("Z", "Search") + 16 + games_ui_hint_width("L R", "Change Tab")) <= limit;
+    x = games_ui_hint_draw(x, 1, "Z", "Search");
+    games_ui_hint_draw(x, 1, "L R", roomy ? "Change Tab" : "Tab");
 
     /* What the accent bar beside a row means, against the right edge, while
        the page shown has one. Lined up with the hints' row. */
@@ -1393,6 +1555,62 @@ static void draw_help (menu_t *menu, const item_t *it) {
     draw_help_box(it->label, it->help, note, badge);
 }
 
+/* The list of rows found: each row's name, and where it is in grey at the right. */
+static void search_draw (menu_t *menu) {
+    const theme_t *t = theme_get();
+    int x0 = LEFT_X, x1 = ITEMS_X + ITEMS_WIDTH;
+
+    /* Along the top: "Search" as a heading's block, the words, and how many were found. */
+    games_ui_round_fill(LEFT_X, GROUP_TAB_Y, LEFT_X + GROUP_TAB_WIDTH, GROUP_TAB_Y + ROW_HEIGHT, t->accent);
+    rdpq_text_printf(&(rdpq_textparms_t) { .width = GROUP_TAB_WIDTH, .height = ROW_HEIGHT, .align = ALIGN_CENTER,
+        .valign = VALIGN_CENTER, .style_id = STL_WHITE }, FNT_DEFAULT, LEFT_X, GROUP_TAB_Y, "Search");
+    int words_x = LEFT_X + GROUP_TAB_WIDTH + 12;
+    rdpq_text_printf(&(rdpq_textparms_t) { .width = x1 - words_x - 110, .height = ROW_HEIGHT, .valign = VALIGN_CENTER,
+        .wrap = WRAP_ELLIPSES, .style_id = STL_DEFAULT }, FNT_DEFAULT, words_x, GROUP_TAB_Y, "\"%s\"", search_query);
+    rdpq_text_printf(&(rdpq_textparms_t) { .width = 104, .height = ROW_HEIGHT, .align = ALIGN_RIGHT, .valign = VALIGN_CENTER,
+        .style_id = STL_GRAY }, FNT_DEFAULT, x1 - 104, GROUP_TAB_Y, "%d found", hit_count);
+
+    if (hit_row < hit_first) {
+        hit_first = hit_row;
+    } else if (hit_row >= hit_first + VISIBLE_ROWS) {
+        hit_first = hit_row - VISIBLE_ROWS + 1;
+    }
+    games_ui_round_fill(x0 - PANEL_PAD, ROWS_Y - PANEL_PAD, x1 + PANEL_PAD, ROWS_Y + (VISIBLE_ROWS * ROW_HEIGHT) + PANEL_PAD, t->panel);
+    static animations_glide_t hit_glide;
+    draw_selection(x0, animations_glide(&hit_glide, ROWS_Y + ((hit_row - hit_first) * ROW_HEIGHT)), x1 - x0, true);
+    for (int i = hit_first; i < hit_count && i < hit_first + VISIBLE_ROWS; i++) {
+        const search_hit_t *h = &hits[i];
+        int y = ROWS_Y + ((i - hit_first) * ROW_HEIGHT);
+        char where[64];
+        const char *page = groups[h->group].pages[h->page].label;
+        if (h->sub) {
+            snprintf(where, sizeof(where), "%s > %s > %s", groups[h->group].label, page, h->sub->label);
+        } else {
+            snprintf(where, sizeof(where), "%s > %s", groups[h->group].label, page);
+        }
+        rdpq_text_printf(&(rdpq_textparms_t) { .width = 250, .height = ROW_HEIGHT, .valign = VALIGN_CENTER,
+            .wrap = WRAP_ELLIPSES, .style_id = STL_DEFAULT }, FNT_DEFAULT, x0 + ROW_PADDING, y, "%s", h->it->label);
+        rdpq_text_printf(&(rdpq_textparms_t) { .width = x1 - x0 - 262 - ROW_PADDING, .height = ROW_HEIGHT, .align = ALIGN_RIGHT,
+            .valign = VALIGN_CENTER, .wrap = WRAP_ELLIPSES, .style_id = STL_GRAY }, FNT_DEFAULT, x0 + 262, y, "%s", where);
+    }
+    if (hit_count > VISIBLE_ROWS) {
+        int track = VISIBLE_ROWS * ROW_HEIGHT;
+        int thumb = (track * VISIBLE_ROWS) / hit_count;
+        int thumb_y = ROWS_Y + ((track - thumb) * hit_first) / (hit_count - VISIBLE_ROWS);
+        draw_fill(SCROLLBAR_X, ROWS_Y, SCROLLBAR_X + SCROLLBAR_WIDTH, ROWS_Y + track, t->tab_inactive);
+        draw_fill(SCROLLBAR_X, thumb_y, SCROLLBAR_X + SCROLLBAR_WIDTH, thumb_y + thumb, t->accent);
+    }
+
+    draw_help(menu, hits[hit_row].it);
+
+    int hx0, hy0, hx1, hy1;
+    games_ui_hints_rect(&hx0, &hy0, &hx1, &hy1);
+    games_ui_round_fill(hx0, hints_top(), hx1, hy1, RGBA32(t->panel.r, t->panel.g, t->panel.b, 0xD8));
+    int x = games_ui_hint_draw(GAMES_UI_HINTS_X, 1, "A", "Go to");
+    x = games_ui_hint_draw(x, 1, "B", "Back");
+    games_ui_hint_draw(x, 1, "Z", "New Search");
+}
+
 #define PAGE_SLIDE_MS   (180)
 #define PAGE_SLIDE_PX   (24)
 #define ROWS_RISE_MS    (240)
@@ -1445,6 +1663,18 @@ static void draw (menu_t *menu, surface_t *d) {
 
     if (avatar_pick_active()) {
         avatar_pick_draw();
+        debug_stats_overlay_draw();
+        rdpq_detach_show();
+        return;
+    }
+
+    if (search_view) {
+        search_draw(menu);
+        letter_wheel_draw();    // changing the words
+        if (notice) {
+            ui_components_messagebox_draw("%s\n\nPress any button.", notice);
+        }
+        animations_draw_late(menu->mode);
         debug_stats_overlay_draw();
         rdpq_detach_show();
         return;
@@ -1624,6 +1854,14 @@ void view_settings_menu_init (menu_t *menu) {
         item = 0;
         in_items = false;
         first_row = 0;
+    }
+    if (!back_from_tool && (search_view || from_search)) {
+        search_leave();     /* a search is left with the screen */
+        if (!features_enabled(FEATURE_REMEMBER_SETTINGS)) {
+            group = category = item = first_row = 0;
+            in_items = false;
+            sub_page = NULL;
+        }
     }
 }
 
