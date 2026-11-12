@@ -536,7 +536,7 @@ static const item_t startup_items[] = {
 
 static const item_t library_items[] = {
     CHOICES("Sort By", OPTION_SORT_ORDER, SORT_COUNT, sort_order_name, resort_browser,
-        "Type: folders, then each kind of file. Name: by name. Recently Played: games you played come first. Release Date, Developer: oldest first, or by who made the game; the menu looks these up while the Games tab is left alone. Recently Added: the games the menu saw most recently first. Review Score (with Review Scores on, in Display): the highest scored first, then the games with no score."),
+        "Type: folders, then each kind of file. Name: by name. Recently Played: games you played come first. Release Date, Developer: oldest first, or by who made the game; the menu looks these up while the Games tab is left alone. Recently Added: the games the menu saw most recently first. Review Score (with Review Scores on, in Display): the highest scored first, then the games with no score. Time Played: the games you have played longest first."),
     CHOICES("Game Versions", OPTION_GAME_VERSIONS, GAME_VERSIONS_COUNT, games_filter_versions_name, resort_browser,
         "Separate shows every file as its own cover. Grouped shows one cover per game: its hacks and other copies go under it, and A lists them to choose from. The Hacks filter still shows every hack."),
     CHOICES("Region Copies", OPTION_REGION_COPIES, REGION_COPIES_COUNT, region_pick_copies_name, resort_browser,
@@ -545,6 +545,7 @@ static const item_t library_items[] = {
         "Whose copy gives a game's cover with Region Copies on One Cover. Changing it also forgets each game's own choice."),
     CHOICES("Homebrew on Games", OPTION_HOMEBREW_ON_GAMES, HOMEBREW_ON_GAMES_COUNT, games_filter_homebrew_name, resort_browser,
         "Hide keeps homebrew off the Games tab and its filters, on the Homebrew tab only (add it in Settings > Games > Tabs). Folders, Recent, Favorites and your own collections still show it."),
+    FEATURE("Never Played Step", FEATURE_NEVER_PLAYED_STEP, "C-up and C-down on the Games tab also step to Never Played: the games (and 64DD disks) you haven't started yet, each version on its own."),
     CHOICES("Hacks on Games", OPTION_HACKS_ON_GAMES, HACKS_ON_GAMES_COUNT, games_filter_homebrew_name, resort_browser,
         "Hide keeps ROM hacks off the Games tab, on the Hacks tab (add it in Settings > Games > Tabs) and the Hacks step only. Folders, Recent, Favorites and your own collections still show them."),
 };

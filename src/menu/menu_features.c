@@ -53,6 +53,7 @@ static const feature_info_t feature_info[FEATURE_COUNT] = {
     [FEATURE_NAME_SCROLL]         = { "name_scroll",         true,  false },
     [FEATURE_TRIM_EDGES]          = { "trim_edges",          true,  false },
     [FEATURE_REVIEW_SCORES]       = { "review_scores",       false, false },
+    [FEATURE_NEVER_PLAYED_STEP]   = { "never_played_step",   true,  false },
 };
 
 #define FEATURES_USER_PATH      profiles_file("features.ini")  /* the playing profile's */

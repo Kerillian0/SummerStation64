@@ -17,6 +17,7 @@ typedef enum {
     SORT_DEVELOPER,     /**< games by who made them, each developer's by date; unknown last */
     SORT_RECENTLY_ADDED, /**< games newest first, by the day the menu first saw them; older ones last, by name */
     SORT_REVIEW_SCORE,  /**< games by review score, highest first; unscored games and hacks last, by name */
+    SORT_TIME_PLAYED,   /**< games by time played, most first (a cover with folded versions: all of theirs); never played last, by name */
     SORT_COUNT
 } sort_order_t;
 
@@ -38,8 +39,8 @@ void sort_order_apply (menu_t *menu, int (*stock_compare) (const void *, const v
 
 /**
  * What the chosen order goes by for this entry, to show beside it: the
- * developer's name, or "Released 1998". NULL when the order is by name or
- * type, or nothing is known about the entry.
+ * developer's name, "Released 1998", or "Played 3h 20m". NULL when the order
+ * is by name or type, or nothing is known about the entry.
  * @param directory The folder the entry's name is relative to.
  */
 const char *sort_order_detail (path_t *directory, const entry_t *entry);

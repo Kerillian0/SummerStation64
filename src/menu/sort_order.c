@@ -11,6 +11,7 @@
 #include "game_index.h"
 #include "games_filter.h"
 #include "game_data.h"
+#include "play_stats.h"
 
 #define NAME_LENGTH (256)
 
@@ -28,6 +29,7 @@ const char *sort_order_name (int order) {
         case SORT_DEVELOPER: return "Developer";
         case SORT_RECENTLY_ADDED: return "Recently Added";
         case SORT_REVIEW_SCORE: return game_data_review_scores_shown() ? "Review Score" : "";
+        case SORT_TIME_PLAYED: return "Time Played";
         default: return "Type";
     }
 }
@@ -196,6 +198,56 @@ static int added_days (path_t *directory, const entry_t *e) {
     return (days < 0) ? 0x7FFFFFFF : days;
 }
 
+/* Time Played: seconds by entry->index, worked out once before sorting; a
+   cover with versions folded under it holds all of theirs. Kept after
+   sorting for sort_order_detail() (the list's order and indexes stay until
+   it is read again, which sorts it again). */
+static uint32_t *cover_seconds = NULL;
+static int cover_seconds_count = 0;
+
+static uint32_t played_seconds (path_t *directory, const entry_t *e) {
+    if ((e->type != ENTRY_TYPE_ROM && e->type != ENTRY_TYPE_DISK) || !directory) {
+        return 0;
+    }
+    path_t *path = path_clone_push(directory, (char *) e->name);
+    uint32_t seconds = play_stats_seconds(path_get(path));
+    path_free(path);
+    return seconds;
+}
+
+static uint32_t cover_played (const entry_t *e) {
+    if (cover_seconds && e->index >= 0 && e->index < cover_seconds_count) {
+        return cover_seconds[e->index];
+    }
+    return played_seconds(detail_directory, e);
+}
+
+static int compare_played (const void *pa, const void *pb) {
+    int order = folders_first(pa, pb);
+    if (order) {
+        return order;
+    }
+    uint32_t a = cover_played(pa);
+    uint32_t b = cover_played(pb);
+    return (a != b) ? ((a > b) ? -1 : 1) : compare_name_az(pa, pb);
+}
+
+static void find_cover_seconds (menu_t *menu) {
+    free(cover_seconds);
+    cover_seconds_count = games_filter_all_entries(menu->browser.entries);
+    cover_seconds = calloc(cover_seconds_count > 0 ? cover_seconds_count : 1, sizeof(uint32_t));
+    if (!cover_seconds) {
+        return;     /* each entry by its own time, then */
+    }
+    for (int i = 0; i < cover_seconds_count; i++) {
+        entry_t *e = &menu->browser.list[i];
+        int cover = games_filter_cover_index(e);
+        if (cover >= 0 && cover < cover_seconds_count) {
+            cover_seconds[cover] += played_seconds(menu->browser.directory, e);
+        }
+    }
+}
+
 /* With versions folded under one cover (Game Versions, Region Copies), a
    cover is as new as its newest version: worked out once before sorting,
    by entry->index. */
@@ -258,6 +310,22 @@ const char *sort_order_detail (path_t *directory, const entry_t *entry) {
     int order = sort_order_current();
     if (order == SORT_RECENTLY_ADDED) {
         return sort_order_added_text(added_days(directory, entry));
+    }
+    if (order == SORT_TIME_PLAYED) {
+        if (entry->type != ENTRY_TYPE_ROM && entry->type != ENTRY_TYPE_DISK) {
+            return NULL;
+        }
+        detail_directory = directory;
+        uint32_t seconds = cover_played(entry);
+        uint32_t minutes = (seconds + 59) / 60;
+        if (seconds == 0) {
+            return "Not played yet";
+        } else if (minutes < 60) {
+            snprintf(text, sizeof(text), "Played %lum", (unsigned long) minutes);
+        } else {
+            snprintf(text, sizeof(text), "Played %luh %lum", (unsigned long) (minutes / 60), (unsigned long) (minutes % 60));
+        }
+        return text;
     }
     if (order != SORT_RELEASE_DATE && order != SORT_DEVELOPER) {
         return NULL;
@@ -333,6 +401,11 @@ void sort_order_apply (menu_t *menu, int (*stock_compare) (const void *, const v
             detail_directory = menu->browser.directory;
             find_review_scores(menu);
             compare = compare_review;
+            break;
+        case SORT_TIME_PLAYED:
+            detail_directory = menu->browser.directory;
+            find_cover_seconds(menu);
+            compare = compare_played;
             break;
         default:
             break;

@@ -51,6 +51,7 @@ typedef enum {
     FEATURE_NAME_SCROLL,        /**< a name too long for the cover rows' title panel slides to its end and back */
     FEATURE_TRIM_EDGES,         /**< box art read from the card loses the black frame some scans carry */
     FEATURE_REVIEW_SCORES,      /**< review scores from the player's file: on the title panel and Game info, and Sort By's Review Score */
+    FEATURE_NEVER_PLAYED_STEP,  /**< C-up / C-down on the Games tab also offer Never Played */
     FEATURE_COUNT
 } feature_t;
 
