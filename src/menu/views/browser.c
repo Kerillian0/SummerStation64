@@ -2618,8 +2618,11 @@ void view_browser_display (menu_t *menu, surface_t *display) {
     draw(menu, display);
 
     if (versions_screen_active()) {
-        versions_screen_after_draw(menu);   // its covers, one a frame; the row's own loading waits
-        return;
+        if (menu->next_mode == MENU_MODE_BROWSER) {
+            versions_screen_after_draw(menu);   // its covers, one a frame; the row's own loading waits
+            return;
+        }
+        versions_screen_close();    // a version was picked and drawn one last time: Game info takes over
     }
     // Cover art is fetched here, after the picture has been handed to the graphics chip, so the chip draws while the art loads
     if (!folders_tab && !cards_showing() && menu->next_mode == MENU_MODE_BROWSER) carousel_art_update(menu, features_enabled(FEATURE_SIDE_COVERS));

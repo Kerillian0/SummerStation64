@@ -49,7 +49,7 @@
 #define BLUR_H          (60)
 #define BLUR_DARK       (0x68)
 
-typedef enum { CLOSED, OPENING, OPEN, CLOSING } state_t;
+typedef enum { CLOSED, OPENING, OPEN, CLOSING, PICKED } state_t;    /* PICKED: drawn one last frame, until the next screen takes over */
 
 static state_t state = CLOSED;
 static uint64_t state_since = 0;
@@ -77,6 +77,7 @@ static uint16_t blur_pixels[BLUR_W * BLUR_H] __attribute__((aligned(16)));
 static surface_t blur;
 static bool blur_wanted = false;
 static bool blur_ready = false;
+static bool blurred_now = false;    /* the blur was made this frame: the covers wait a frame */
 
 const char *versions_screen_layout_name (int choice) {
     return (choice == VERSIONS_LAYOUT_CENTRE) ? "Centre" : "Left";
@@ -218,6 +219,9 @@ bool versions_screen_process (menu_t *menu) {
     if (state == CLOSED) {
         return false;
     }
+    if (state == PICKED) {
+        return true;
+    }
     if (state == CLOSING) {
         if (get_ticks_ms() - state_since >= CLOSE_MS) {
             versions_screen_close();
@@ -243,7 +247,7 @@ bool versions_screen_process (menu_t *menu) {
         menu->browser.entry = rows[selected].entry;
         menu->next_mode = MENU_MODE_LOAD_ROM;
         controls_request_launch(launch);
-        versions_screen_close();
+        state = PICKED;     /* stays on screen (not the Games screen) until Game info opens; the browser closes it then */
         return true;
     }
     if (menu->actions.go_up && selected > 0) {
@@ -265,21 +269,26 @@ void versions_screen_capture (surface_t *d) {
         return;     /* the plain background is drawn instead */
     }
     uint64_t began = get_ticks_ms();
-    /* Each small pixel: the average of 16 of the 64 under it, read straight
-       from memory (the graphics chip wrote them, not the processor). */
+    /* Each small pixel: the average of 8 of the 64 under it, read straight
+       from memory (the graphics chip wrote them; the cache is left alone:
+       letting go of cache lines here crashed in the controller code). Eight
+       bytes are read at once, four pixels from one memory fetch: reading
+       pixels one by one, a fetch each, took 59 ms. */
     const uint8_t *base = (const uint8_t *) UncachedAddr(d->buffer);
     static uint16_t small[BLUR_W * BLUR_H];
     for (int by = 0; by < BLUR_H; by++) {
+        const uint64_t *top = (const uint64_t *) (base + ((by * 8) + 2) * d->stride);
+        const uint64_t *low = (const uint64_t *) (base + ((by * 8) + 5) * d->stride);
         for (int bx = 0; bx < BLUR_W; bx++) {
+            uint64_t q[2] = { top[bx * 2], low[(bx * 2) + 1] };     /* pixels 0-3 of one line, 4-7 of the other */
             int r = 0, g = 0, b = 0;
-            for (int sy = 0; sy < 8; sy += 2) {
-                const uint16_t *line = (const uint16_t *) (base + ((by * 8) + sy) * d->stride);
-                for (int sx = 0; sx < 8; sx += 2) {
-                    uint16_t p = line[(bx * 8) + sx];
+            for (int k = 0; k < 2; k++) {
+                for (int shift = 0; shift < 64; shift += 16) {
+                    uint16_t p = (uint16_t) (q[k] >> shift);
                     r += (p >> 11) & 31; g += (p >> 6) & 31; b += (p >> 1) & 31;
                 }
             }
-            small[(by * BLUR_W) + bx] = (uint16_t) (((r / 16) << 11) | ((g / 16) << 6) | ((b / 16) << 1) | 1);
+            small[(by * BLUR_W) + bx] = (uint16_t) (((r / 8) << 11) | ((g / 8) << 6) | ((b / 8) << 1) | 1);
         }
     }
     /* Then softened once more with each pixel's neighbours. */
@@ -302,6 +311,7 @@ void versions_screen_capture (surface_t *d) {
     data_cache_hit_writeback(blur_pixels, sizeof(blur_pixels));
     blur = surface_make(blur_pixels, FMT_RGBA16, BLUR_W, BLUR_H, BLUR_W * 2);
     blur_ready = true;
+    blurred_now = true;
     debugf("versions screen: Games screen blurred in %d ms\n", (int) (get_ticks_ms() - began));
 }
 
@@ -344,6 +354,9 @@ static void cover_draw (int row, float cx, float cy, float w, float h, bool chos
         fh = image->height * scale;
     }
     int x0 = (int) (cx - fw / 2), y0 = (int) (cy - fh / 2);
+    if (chosen && (state == OPEN || state == PICKED)) {
+        animations_cover_note(MENU_MODE_BROWSER, x0, y0, x0 + (int) fw, y0 + (int) fh);    /* Game info's cover flies from here */
+    }
     if (chosen) {
         games_ui_round_fill(x0 - 5, y0 - 5, x0 + (int) fw + 5, y0 + (int) fh + 5, t->accent);
     }
@@ -408,7 +421,7 @@ void versions_screen_draw (menu_t *menu) {
     }
 
     /* The names, once the column is open. */
-    if (state == OPEN) {
+    if (state == OPEN || state == PICKED) {
         int nx = names_x(), nw = NAMES_X1 - nx;
         for (int i = 0; i < count; i++) {
             float dy, grow;
@@ -427,7 +440,7 @@ void versions_screen_draw (menu_t *menu) {
     }
     rdpq_set_scissor(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
 
-    if (state == OPEN) {
+    if (state == OPEN || state == PICKED) {
         char heading[24];
         snprintf(heading, sizeof(heading), "%d versions", count);
         text_at(names_x(), CLIP_Y0 + 8, NAMES_X1 - names_x(), 22, FNT_DEFAULT, STL_GRAY, false, heading);
@@ -440,7 +453,11 @@ void versions_screen_draw (menu_t *menu) {
 
 /* One picture a frame, the selected version's first, then outward. */
 void versions_screen_after_draw (menu_t *menu) {
-    if (state == CLOSED || state == CLOSING) {
+    if (state != OPENING && state != OPEN) {
+        return;
+    }
+    if (blurred_now) {
+        blurred_now = false;    /* that frame had the blur's work: the first cover waits for the next */
         return;
     }
     for (int a = 0; a < art_count; a++) {
