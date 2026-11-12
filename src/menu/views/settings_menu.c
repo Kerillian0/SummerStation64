@@ -36,6 +36,7 @@
 #include "../theme_editor.h"
 #include "../tv_patterns.h"
 #include "../pad_test.h"
+#include "../library_stats.h"
 #include "../versions_screen.h"
 #include "../animations.h"
 #include "../avatar_pick.h"
@@ -209,6 +210,10 @@ static void new_theme (menu_t *menu) {
 static void open_test_patterns (menu_t *menu) {
     (void) menu;
     tv_patterns_open();
+}
+
+static void open_library_stats (menu_t *menu) {
+    library_stats_open(menu);
 }
 
 static void open_pad_test (menu_t *menu) {
@@ -570,6 +575,7 @@ static const item_t folder_items[] = {
 };
 
 static const item_t play_items[] = {
+    ACTION("Library Stats", open_library_stats, "A page about the games in your Games folders: how many, their size, your time played, the SD card's free space, the games by region and genre, your five most played and your status marks."),
     FEATURE("Back Up Saves", FEATURE_SAVE_BACKUPS, "When you start a game, keep its save from before, by date. Up to five per game, never the same one twice. A game's Options has \"Restore save\" to go back to one."),
     FEATURE("Count Plays", FEATURE_PLAY_STATS, "Keep count of how often each game is started and when it was last played, shown on its info screen."),
     FEATURE("Remember Position", FEATURE_REMEMBER_SELECTION, "Going back into a folder returns to the game you had selected there, also after playing."),
@@ -1048,6 +1054,10 @@ static void process (menu_t *menu) {
     }
     if (tv_patterns_active()) {
         tv_patterns_process(menu);     /* Console > Tools > Test Patterns */
+        return;
+    }
+    if (library_stats_active()) {
+        library_stats_process(menu);   /* Games > Saves & Play > Library Stats */
         return;
     }
     if (pad_test_active()) {
@@ -1633,6 +1643,13 @@ static void draw (menu_t *menu, surface_t *d) {
 
     if (letter_wheel_keyboard_showing()) {
         letter_wheel_draw();    // naming a profile or a theme: the keyboard hides the page, so it isn't drawn
+        debug_stats_overlay_draw();
+        rdpq_detach_show();
+        return;
+    }
+
+    if (library_stats_active()) {
+        library_stats_draw();
         debug_stats_overlay_draw();
         rdpq_detach_show();
         return;

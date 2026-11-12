@@ -86,6 +86,7 @@ SRCS = \
 	menu/settings.c \
 	menu/sound.c \
 	menu/settings_search.c \
+	menu/library_stats.c \
 	menu/animations.c \
 	menu/assistant.c \
 	menu/assistant_ask.c \
