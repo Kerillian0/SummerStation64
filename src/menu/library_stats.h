@@ -14,6 +14,11 @@
  * Cartridges and 64DD disks count; hidden games and Retro games don't. What
  * each game is comes from the game list in memory (game_index.h), so nothing
  * but the folders is read. The free space is asked for once per power-on.
+ *
+ * C-left / C-right (or left / right) step to Year in Review, a page per year
+ * newest first: that year's time played, games started, starts and games
+ * beaten (each against the year before), its five most played and the games
+ * first marked Beaten or 100% in it (play_years.h, game_status.h).
  */
 
 #ifndef LIBRARY_STATS_H__

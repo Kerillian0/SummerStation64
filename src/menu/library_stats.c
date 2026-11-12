@@ -17,6 +17,7 @@
 #include "menu_features.h"
 #include "path.h"
 #include "play_stats.h"
+#include "screenshot.h"
 #include "sound.h"
 #include "theme.h"
 #include "title_font.h"
@@ -54,6 +55,10 @@
 #define GENRE_Y1        (380)
 #define SMALL_ROW_H     (20)
 #define BAR_H           (8)
+/* A year's page: the big frame and the Beaten frame both run down to here. */
+#define YEAR_Y1         (382)
+#define YEAR_ROW_H      (40)
+#define BEATEN_ROWS     ((YEAR_Y1 - COLUMNS_Y0 - 26) / SMALL_ROW_H)
 
 static bool active = false;
 
@@ -88,12 +93,21 @@ static int genre_unknown = 0;
 static int games = 0;
 static uint64_t bytes = 0;
 static int statuses[GAME_STATUS_COUNT];
-static struct {
-    uint32_t seconds;
-    char name[NAME_LENGTH];
-    uint8_t font;       /* the 20 px title font if the name fits it, else the body font; picked once */
-} top[TOP_PLAYED];
-static int top_count = 0;
+/* The most played: of all time (page 0) and of each year (Year in Review, a page each). */
+typedef struct {
+    struct {
+        uint32_t seconds;
+        char name[NAME_LENGTH];
+        uint8_t font;   /* the 20 px title font if the name fits it, else the body font; picked once */
+    } rows[TOP_PLAYED];
+    int count;
+} top_t;
+#define YEARS_MAX       (8)
+static top_t top;
+static top_t year_top[YEARS_MAX];
+static int years[YEARS_MAX];        /* newest first: page 1 is years[0] */
+static int year_count = 0;
+static int page = 0;                /* 0 all time, then a year each */
 
 /* The card's free space: asked once per power-on (the first time it reads the whole FAT). */
 static bool free_known = false, free_failed = false;
@@ -122,8 +136,31 @@ void library_stats_open (menu_t *menu) {
     active = true;
     developer_count = 0;
     memset(statuses, 0, sizeof(statuses));
-    genre_count = genre_unknown = games = top_count = 0;
+    genre_count = genre_unknown = games = 0;
     bytes = 0;
+    top.count = 0;
+    memset(year_top, 0, sizeof(year_top));
+    page = 0;
+
+    /* The years: any with play noted (play_years.h), or a game beaten in them. */
+    year_count = play_stats_years(years, YEARS_MAX);
+    int beaten_years[YEARS_MAX];
+    int n = game_status_beaten_years(beaten_years, YEARS_MAX);
+    for (int i = 0; i < n; i++) {
+        bool seen = false;
+        for (int j = 0; j < year_count && !seen; j++) {
+            seen = (years[j] == beaten_years[i]);
+        }
+        if (seen || year_count >= YEARS_MAX) {
+            continue;
+        }
+        int at = year_count++;
+        while (at > 0 && years[at - 1] < beaten_years[i]) {
+            years[at] = years[at - 1];
+            at--;
+        }
+        years[at] = beaten_years[i];
+    }
     added_count = games_folders_list(menu, added);
     for (int i = 0; i < added_count; i++) {
         queue_add(added[i], i > 0);     /* the start folder alone; an added one with its folders */
@@ -173,25 +210,25 @@ static void note_developer (const char *name) {
     }
 }
 
-static void note_played (const char *file_name, uint32_t seconds) {
+static void note_played (top_t *t, const char *file_name, uint32_t seconds) {
     if (seconds == 0) {
         return;
     }
     int at;
-    if (top_count < TOP_PLAYED) {
-        at = top_count++;
-    } else if (top[TOP_PLAYED - 1].seconds >= seconds) {
+    if (t->count < TOP_PLAYED) {
+        at = t->count++;
+    } else if (t->rows[TOP_PLAYED - 1].seconds >= seconds) {
         return;     /* not among the five */
     } else {
         at = TOP_PLAYED - 1;
     }
-    while (at > 0 && top[at - 1].seconds < seconds) {
-        top[at] = top[at - 1];
+    while (at > 0 && t->rows[at - 1].seconds < seconds) {
+        t->rows[at] = t->rows[at - 1];
         at--;
     }
-    top[at].seconds = seconds;
-    snprintf(top[at].name, NAME_LENGTH, "%s", display_name_file(file_name));
-    top[at].font = 0;
+    t->rows[at].seconds = seconds;
+    snprintf(t->rows[at].name, NAME_LENGTH, "%s", display_name_file(file_name));
+    t->rows[at].font = 0;
 }
 
 static bool is_skipped_folder (const char *name) {
@@ -241,7 +278,13 @@ static void note_entry (menu_t *menu) {
         if (status > GAME_STATUS_NONE && status < GAME_STATUS_COUNT) {
             statuses[status]++;
         }
-        note_played(entry.d_name, play_stats_seconds(path));
+        note_played(&top, entry.d_name, play_stats_seconds(path));
+        for (int y = 0; y < year_count; y++) {
+            uint32_t starts, seconds;
+            if (play_stats_year_get(path, years[y], &starts, &seconds)) {
+                note_played(&year_top[y], entry.d_name, seconds);
+            }
+        }
     }
     path_pop(reading);
 }
@@ -297,6 +340,12 @@ void library_stats_process (menu_t *menu) {
         forget();
         sound_play_effect(SFX_EXIT);
         return;
+    }
+    joypad_buttons_t pressed = screenshot_pressed();
+    int step = (pressed.c_right || menu->actions.go_right) ? 1 : (pressed.c_left || menu->actions.go_left) ? -1 : 0;
+    if (step && page + step >= 0 && page + step <= year_count) {
+        page += step;   /* All time, then the years, newest first */
+        sound_play_effect(SFX_CURSOR);
     }
     if (counting) {
         count_step(menu);
@@ -419,38 +468,65 @@ static void draw_genres (void) {
 }
 
 /* The big frame: rank, name in the 20 px title font when it fits, time, and a bar of its share of the first. */
-static void draw_played (void) {
-    const theme_t *t = theme_get();
+static void draw_played (top_t *t, const char *heading, int y1, int row_h) {
+    const theme_t *theme = theme_get();
     int x0 = AREA_X0, x1 = PLAYED_X1;
-    frame(x0, COLUMNS_Y0, x1, PLAYED_Y1);
+    frame(x0, COLUMNS_Y0, x1, y1);
     rdpq_text_printf(&(rdpq_textparms_t) { .width = x1 - x0 - 24, .height = 30, .valign = VALIGN_CENTER, .style_id = STL_DEFAULT },
-        FNT_TITLE_MEDIUM, x0 + 12, COLUMNS_Y0 + 4, "Most Played");
-    if (top_count == 0) {
-        text(x0 + 12, PLAYED_ROW_Y0, x1 - x0 - 24, PLAYED_ROW_H, ALIGN_LEFT, STL_GRAY, "Nothing played yet.");
+        FNT_TITLE_MEDIUM, x0 + 12, COLUMNS_Y0 + 4, "%s", heading);
+    if (t->count == 0) {
+        text(x0 + 12, PLAYED_ROW_Y0, x1 - x0 - 24, row_h, ALIGN_LEFT, STL_GRAY, "Nothing played yet.");
         return;
     }
     int rank_w = 22, time_w = 72;
     int name_x = x0 + 12 + rank_w;
     int name_w = x1 - 12 - time_w - 8 - name_x;
-    for (int i = 0; i < top_count; i++) {
-        int y = PLAYED_ROW_Y0 + i * PLAYED_ROW_H;
-        if (!top[i].font) {
-            uint8_t pick = title_font_pick(top[i].name, name_w);
-            top[i].font = (pick == FNT_TITLE) ? FNT_TITLE_MEDIUM : pick;     /* at most 20 px: five long names */
+    int line_h = PLAYED_ROW_H - PLAYED_BAR_H;
+    uint32_t first = (t->rows[0].seconds / 60) ? (t->rows[0].seconds / 60) : 1;
+    for (int i = 0; i < t->count; i++) {
+        int y = PLAYED_ROW_Y0 + i * row_h;
+        if (!t->rows[i].font) {
+            uint8_t pick = title_font_pick(t->rows[i].name, name_w);
+            t->rows[i].font = (pick == FNT_TITLE) ? FNT_TITLE_MEDIUM : pick;     /* at most 20 px: five long names */
         }
         char rank[4], hours[16];
         snprintf(rank, sizeof(rank), "%d", i + 1);
-        time_text(hours, sizeof(hours), top[i].seconds);
-        int line_h = PLAYED_ROW_H - PLAYED_BAR_H;
+        time_text(hours, sizeof(hours), t->rows[i].seconds);
         text(x0 + 12, y, rank_w, line_h, ALIGN_LEFT, STL_GRAY, rank);
         rdpq_text_printf(&(rdpq_textparms_t) { .width = name_w, .height = line_h, .valign = VALIGN_CENTER,
-            .wrap = WRAP_ELLIPSES, .style_id = STL_DEFAULT }, top[i].font, name_x, y, "%s", top[i].name);
+            .wrap = WRAP_ELLIPSES, .style_id = STL_DEFAULT }, t->rows[i].font, name_x, y, "%s", t->rows[i].name);
         text(x1 - 12 - time_w, y, time_w, line_h, ALIGN_RIGHT, STL_DEFAULT, hours);
         int bar_x1 = x1 - 12;
-        int length = ((bar_x1 - name_x) * (int) (top[i].seconds / 60) / (int) ((top[0].seconds / 60) ? (top[0].seconds / 60) : 1)) & ~1;
+        int length = ((bar_x1 - name_x) * (int) (t->rows[i].seconds / 60) / (int) first) & ~1;
         length = (length < 2) ? 2 : (length > bar_x1 - name_x) ? (bar_x1 - name_x) : length;
-        rdpq_set_mode_fill(RGBA32(t->accent.r, t->accent.g, t->accent.b, 0xFF));
+        rdpq_set_mode_fill(RGBA32(theme->accent.r, theme->accent.g, theme->accent.b, 0xFF));
         rdpq_fill_rectangle(name_x, y + line_h, name_x + length, y + line_h + PLAYED_BAR_H);
+    }
+}
+
+/* A year's games beaten, by name, in the right-hand frame. */
+static void draw_beaten (int year) {
+    int x0 = SMALL_X0, x1 = AREA_X1, y0 = COLUMNS_Y0, y1 = YEAR_Y1;
+    frame(x0, y0, x1, y1);
+    char heading[32];
+    snprintf(heading, sizeof(heading), "Beaten in %d", year);
+    text(x0 + 10, y0 + 2, x1 - x0 - 20, 22, ALIGN_LEFT, STL_DEFAULT, heading);
+    const char *names[BEATEN_ROWS];
+    int n = game_status_beaten_in(year, names, BEATEN_ROWS);
+    if (n == 0) {
+        text(x0 + 10, y0 + 22, x1 - x0 - 20, SMALL_ROW_H, ALIGN_LEFT, STL_GRAY, "None marked.");
+        return;
+    }
+    int shown = (n > BEATEN_ROWS) ? BEATEN_ROWS - 1 : n;    /* the last row says how many more */
+    for (int i = 0; i < shown; i++) {
+        const char *slash = strrchr(names[i], '/');
+        text(x0 + 10, y0 + 22 + i * SMALL_ROW_H, x1 - x0 - 20, SMALL_ROW_H, ALIGN_LEFT, STL_GRAY,
+            display_name_file(slash ? slash + 1 : names[i]));
+    }
+    if (n > shown) {
+        char more[24];
+        snprintf(more, sizeof(more), "and %d more", n - shown);
+        text(x0 + 10, y0 + 22 + shown * SMALL_ROW_H, x1 - x0 - 20, SMALL_ROW_H, ALIGN_LEFT, STL_DEFAULT, more);
     }
 }
 
@@ -470,10 +546,54 @@ static void draw_statuses (void) {
     }
 }
 
-void library_stats_draw (void) {
-    rdpq_text_printf(&(rdpq_textparms_t) { .width = 360, .height = 34, .valign = VALIGN_CENTER },
-        FNT_TITLE, TITLE_X, TITLE_Y, "Library Stats");
+/* "+3h", "-45m" (time) or "+3", "-2", after a tile's word, in green or orange; "" when the same. */
+static void change_text (char *out, size_t size, const char *word, int64_t now, int64_t before, bool time) {
+    int64_t change = now - before;
+    if (change == 0) {
+        snprintf(out, size, "%s", word);
+        return;
+    }
+    char amount[16];
+    int64_t magnitude = (change < 0) ? -change : change;
+    if (time) {
+        if (magnitude >= 3600) {
+            snprintf(amount, sizeof(amount), "%dh", (int) (magnitude / 3600));
+        } else {
+            snprintf(amount, sizeof(amount), "%dm", (int) (magnitude / 60));
+        }
+    } else {
+        snprintf(amount, sizeof(amount), "%d", (int) magnitude);
+    }
+    snprintf(out, size, "%s ^%02X%c%s", word, (change > 0) ? STL_GREEN : STL_ORANGE, (change > 0) ? '+' : '-', amount);
+}
 
+/* A year's tiles: time played, games started, starts and games beaten, each against the year before when it has any. */
+static void year_tiles (int year) {
+    uint32_t seconds, starts, before_seconds, before_starts;
+    int played_games, before_games;
+    play_stats_year_totals(year, &seconds, &starts, &played_games);
+    play_stats_year_totals(year - 1, &before_seconds, &before_starts, &before_games);
+    const char *names[1];
+    int beaten = game_status_beaten_in(year, names, 1);
+    int before_beaten = game_status_beaten_in(year - 1, names, 1);
+    bool compare = before_seconds > 0 || before_starts > 0 || before_beaten > 0;
+
+    char number[24], label[48];
+    time_text(number, sizeof(number), seconds);
+    change_text(label, sizeof(label), "played", seconds, compare ? before_seconds : seconds, true);
+    tile(0, number, label);
+    snprintf(number, sizeof(number), "%d", played_games);
+    change_text(label, sizeof(label), (played_games == 1) ? "game" : "games", played_games, compare ? before_games : played_games, false);
+    tile(1, number, label);
+    snprintf(number, sizeof(number), "%lu", (unsigned long) starts);
+    change_text(label, sizeof(label), "starts", starts, compare ? before_starts : starts, false);
+    tile(2, number, label);
+    snprintf(number, sizeof(number), "%d", beaten);
+    change_text(label, sizeof(label), "beaten", beaten, compare ? before_beaten : beaten, false);
+    tile(3, number, label);
+}
+
+static void all_time_tiles (void) {
     char number[24], size[24], played[24], free_space[24];
     snprintf(number, sizeof(number), "%d", games);
     size_text(size, sizeof(size), bytes);
@@ -490,16 +610,45 @@ void library_stats_draw (void) {
     tile(1, size, "in all");
     tile(2, played, "played");
     tile(3, free_space, "free on SD");
+}
+
+void library_stats_draw (void) {
+    rdpq_text_printf(&(rdpq_textparms_t) { .width = 360, .height = 34, .valign = VALIGN_CENTER },
+        FNT_TITLE, TITLE_X, TITLE_Y, (page == 0) ? "Library Stats" : "Year in Review");
+
+    /* Which page, with arrows where there is another. */
+    if (year_count > 0) {
+        char which[32], when[12];
+        snprintf(when, sizeof(when), "%d", (page > 0) ? years[page - 1] : 0);
+        snprintf(which, sizeof(which), "%s  %s  %s", (page > 0) ? "\u25C0" : " ", (page > 0) ? when : "All time",
+            (page < year_count) ? "\u25B6" : " ");
+        text(PLAYED_X1, TITLE_Y, AREA_X1 - PLAYED_X1, 34, ALIGN_RIGHT, STL_DEFAULT, which);
+    }
+
+    int year = (page > 0) ? years[page - 1] : 0;
+    if (page == 0) {
+        all_time_tiles();
+    } else {
+        year_tiles(year);
+    }
 
     if (counting) {
         text(AREA_X0, COLUMNS_Y0, AREA_X1 - AREA_X0, GENRE_Y1 - COLUMNS_Y0, ALIGN_CENTER, STL_GRAY, "Counting your games...");
-    } else {
-        draw_played();
+    } else if (page == 0) {
+        draw_played(&top, "Most Played", PLAYED_Y1, PLAYED_ROW_H);
         draw_developers();
         draw_genres();
         draw_statuses();
+    } else {
+        char heading[32];
+        snprintf(heading, sizeof(heading), "Most Played in %d", year);
+        draw_played(&year_top[page - 1], heading, YEAR_Y1, YEAR_ROW_H);
+        draw_beaten(year);
     }
 
     games_ui_hints_backdrop_draw();
-    games_ui_hint_draw(GAMES_UI_HINTS_X, 1, "B", "Back");
+    int x = games_ui_hint_draw(GAMES_UI_HINTS_X, 1, "B", "Back");
+    if (year_count > 0) {
+        games_ui_hint_draw(x, 1, "C", "\u25C0\u25B6 Year");
+    }
 }

@@ -64,7 +64,15 @@ static void remove_row (game_status_list_t *list, int i) {
     list->rows[i] = list->rows[--list->count];
 }
 
+static bool beaten (int status) {
+    return status == GAME_STATUS_BEATEN || status == GAME_STATUS_COMPLETE;
+}
+
 bool game_status_list_set (game_status_list_t *list, const char *name, game_status_t status) {
+    return game_status_list_set_on(list, name, status, 0);
+}
+
+bool game_status_list_set_on (game_status_list_t *list, const char *name, game_status_t status, unsigned today) {
     int i = find(list, name);
     if (status <= GAME_STATUS_NONE || status >= GAME_STATUS_COUNT) {
         if (i >= 0) {
@@ -73,7 +81,13 @@ bool game_status_list_set (game_status_list_t *list, const char *name, game_stat
         return true;
     }
     if (i >= 0) {
-        list->rows[i].status = (uint8_t) status;
+        game_status_row_t *row = &list->rows[i];
+        if (!beaten(status)) {
+            row->day = 0;
+        } else if (!beaten(row->status)) {
+            row->day = (uint16_t) today;
+        }
+        row->status = (uint8_t) status;
         return true;
     }
     if (list->count >= GAME_STATUS_MAX) {
@@ -86,8 +100,102 @@ bool game_status_list_set (game_status_list_t *list, const char *name, game_stat
     game_status_row_t *row = &list->rows[list->count++];
     row->hash = name_hash(name);
     row->status = (uint8_t) status;
+    row->day = beaten(status) ? (uint16_t) today : 0;
     row->name = copy;
     return true;
+}
+
+bool game_status_parse_day (const char *line, unsigned *day, char *name, size_t name_size) {
+    if (line[0] != 'D' || line[1] != ' ') {
+        return false;
+    }
+    const char *p = &line[2];
+    unsigned long n = 0;
+    int digits = 0;
+    while (*p >= '0' && *p <= '9' && digits < 6) {
+        n = (n * 10) + (unsigned long) (*p++ - '0');
+        digits++;
+    }
+    if (digits == 0 || *p != ' ' || n == 0 || n > 0xFFFF) {
+        return false;
+    }
+    p++;
+    size_t length = strcspn(p, "\r\n");
+    if (length == 0 || length >= name_size) {
+        return false;
+    }
+    memcpy(name, p, length);
+    name[length] = '\0';
+    *day = (unsigned) n;
+    return true;
+}
+
+int game_status_format_day (const game_status_row_t *row, char *out, size_t size) {
+    if (!beaten(row->status) || row->day == 0) {
+        return snprintf(out, size, "%s", "");
+    }
+    return snprintf(out, size, "D %u %s\n", (unsigned) row->day, row->name);
+}
+
+bool game_status_list_set_day (game_status_list_t *list, const char *name, unsigned day) {
+    int i = find(list, name);
+    if (i < 0 || !beaten(list->rows[i].status) || day == 0 || day > 0xFFFF) {
+        return false;
+    }
+    list->rows[i].day = (uint16_t) day;
+    return true;
+}
+
+static int year_days (int year) {
+    return ((year % 4 == 0 && year % 100 != 0) || year % 400 == 0) ? 366 : 365;
+}
+
+int game_status_day_year (unsigned day) {
+    int year = 2000;
+    while (day >= (unsigned) year_days(year)) {
+        day -= (unsigned) year_days(year);
+        year++;
+    }
+    return year;
+}
+
+int game_status_list_beaten_in (const game_status_list_t *list, int year, const game_status_row_t **out, int max) {
+    int n = 0;
+    for (int i = 0; i < list->count; i++) {
+        const game_status_row_t *row = &list->rows[i];
+        if (beaten(row->status) && row->day && game_status_day_year(row->day) == year) {
+            if (out && n < max) {
+                out[n] = row;
+            }
+            n++;
+        }
+    }
+    return n;
+}
+
+int game_status_list_beaten_years (const game_status_list_t *list, int *years, int max) {
+    int n = 0;
+    for (int i = 0; i < list->count; i++) {
+        const game_status_row_t *row = &list->rows[i];
+        if (!beaten(row->status) || !row->day) {
+            continue;
+        }
+        int y = game_status_day_year(row->day);
+        bool seen = false;
+        for (int j = 0; j < n && !seen; j++) {
+            seen = (years[j] == y);
+        }
+        if (seen || n >= max) {
+            continue;
+        }
+        int at = n++;
+        while (at > 0 && years[at - 1] < y) {
+            years[at] = years[at - 1];
+            at--;
+        }
+        years[at] = y;
+    }
+    return n;
 }
 
 bool game_status_list_rename (game_status_list_t *list, const char *old_name, const char *new_name) {

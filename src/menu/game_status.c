@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "fonts.h"
 #include "game_status.h"
@@ -48,8 +49,11 @@ static void load (void) {
     if (fgets(line, sizeof(line), f) && strncmp(line, GAME_STATUS_HEADER, strlen(GAME_STATUS_HEADER)) == 0) {
         while (fgets(line, sizeof(line), f)) {
             game_status_t status;
+            unsigned day;
             if (game_status_parse(line, &status, name, sizeof(name))) {
                 game_status_list_set(&list, name, status);
+            } else if (game_status_parse_day(line, &day, name, sizeof(name))) {
+                game_status_list_set_day(&list, name, day);     /* after its game's line */
             }
         }
     }
@@ -69,6 +73,8 @@ static void save (void) {
     char line[NAME_LENGTH + 8];
     for (int i = 0; i < list.count; i++) {
         game_status_format((game_status_t) list.rows[i].status, list.rows[i].name, line, sizeof(line));
+        fputs(line, f);
+        game_status_format_day(&list.rows[i], line, sizeof(line));
         fputs(line, f);
     }
     bool ok = (fclose(f) == 0);
@@ -99,6 +105,12 @@ game_status_t game_status_get (const char *path) {
     return game_status_list_get(&list, from_top(path));
 }
 
+/* Today as days since 2000-01-01, 0 if the clock isn't set (before 2020): as game_index.c. */
+static unsigned today (void) {
+    time_t now = time(NULL);
+    return (now < 1577836800) ? 0 : (unsigned) ((now - 946684800) / 86400);
+}
+
 void game_status_set (const char *path, game_status_t status) {
     if (!path) {
         return;
@@ -107,13 +119,34 @@ void game_status_set (const char *path, game_status_t status) {
     if (game_status_list_get(&list, from_top(path)) == status) {
         return;
     }
-    if (!game_status_list_set(&list, from_top(path), status)) {
+    if (!game_status_list_set_on(&list, from_top(path), status, today())) {
         debugf("game status: list full, %s not marked\n", from_top(path));
         return;
     }
     generation++;
     save();
     debugf("game status: %s now %s\n", from_top(path), game_status_name(status));
+}
+
+int game_status_beaten_in (int year, const char **names, int most) {
+    if (!features_enabled(FEATURE_GAME_STATUS)) {
+        return 0;   /* as game_status_get(): the marks are kept but not shown */
+    }
+    load();
+    const game_status_row_t *rows[64];
+    int n = game_status_list_beaten_in(&list, year, rows, (most < 64) ? most : 64);
+    for (int i = 0; i < n && i < most && i < 64; i++) {
+        names[i] = rows[i]->name;
+    }
+    return n;
+}
+
+int game_status_beaten_years (int *years, int most) {
+    if (!features_enabled(FEATURE_GAME_STATUS)) {
+        return 0;
+    }
+    load();
+    return game_status_list_beaten_years(&list, years, most);
 }
 
 int game_status_generation (void) {

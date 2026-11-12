@@ -10,7 +10,8 @@
  * stay on the card. Achievements will read them later.
  *
  * Per player, in profiles_file("status.txt") (game_status_list.h has the
- * format), saved at once through safe_file. Each file has its own (a hack's
+ * format), saved at once through safe_file. The day a game is first marked
+ * Beaten or 100% is kept too, for Year in Review (library_stats.h). Each file has its own (a hack's
  * isn't its original's); a file renamed in the menu keeps it.
  */
 
@@ -34,6 +35,17 @@ game_status_t game_status_get (const char *path);
 
 /** Set a game's status and save. */
 void game_status_set (const char *path, game_status_t status);
+
+/**
+ * The games first marked Beaten or 100% in this year (a mark from before
+ * the day was kept has none, and counts in no year): how many, and the
+ * first `most` names, from the top of the card ("N64(US)/Game.z64"), valid
+ * until a status changes.
+ */
+int game_status_beaten_in (int year, const char **names, int most);
+
+/** The years games were beaten in, newest first. @return how many. */
+int game_status_beaten_years (int *years, int most);
 
 /** Goes up whenever a status changes (or the player does): lists that show them work them out again. */
 int game_status_generation (void);
