@@ -50,7 +50,7 @@ const char *collections_name (int id);
 int collections_mine (int id);
 
 /** Collection numbers run from 0 to COLLECTIONS_IDS - 1 (not all in use). */
-#define COLLECTIONS_IDS     (24 + 4 + 32)
+#define COLLECTIONS_IDS     (24 + 4 + 32 + 2)
 
 /** The number of the player's own collection at place k (my_collections.h). */
 int collections_mine_id (int k);

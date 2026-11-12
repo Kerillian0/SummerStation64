@@ -12,6 +12,7 @@
 #include "game_data.h"
 #include "game_index.h"
 #include "games_filter.h"
+#include "game_status.h"
 #include "my_collections.h"
 #include "path.h"
 
@@ -40,7 +41,12 @@ static const char *const multi_names[MULTI_COUNT] = { "2+ Players", "4 Players",
    lists the ones to show, in order: the player's own (newest first, even
    while empty), then those of the others that have games. */
 #define MINE_FIRST      (SERIES_MAX + MULTI_COUNT)
-#define ALL_COLLECTIONS (MINE_FIRST + MY_COLLECTIONS_MAX)
+/* Then the status marks' ones (game_status.h): numbered after the player's
+   own, so adding them moved no number a pinned tab keeps. 100% counts as beaten. */
+#define STATUS_FIRST    (MINE_FIRST + MY_COLLECTIONS_MAX)
+enum { STATUS_BACKLOG_ID, STATUS_BEATEN_ID, STATUS_COLLECTIONS };
+static const char *const status_names[STATUS_COLLECTIONS] = { "Backlog", "Beaten" };
+#define ALL_COLLECTIONS (STATUS_FIRST + STATUS_COLLECTIONS)
 _Static_assert(ALL_COLLECTIONS == COLLECTIONS_IDS, "COLLECTIONS_IDS in collections.h");
 static int offered[COLLECTIONS_MAX];
 static int offered_count = 0;
@@ -141,6 +147,9 @@ void collections_build (menu_t *menu) {
         }
         path_t *path = path_clone_push(menu->browser.directory, e->name);
         uint64_t in = (uint64_t) my_collections_of(path_get(path)) << MINE_FIRST;   /* any game the player put there */
+        game_status_t status = game_status_get(path_get(path));
+        if (status == GAME_STATUS_BACKLOG) in |= 1ull << (STATUS_FIRST + STATUS_BACKLOG_ID);
+        if (status == GAME_STATUS_BEATEN || status == GAME_STATUS_COMPLETE) in |= 1ull << (STATUS_FIRST + STATUS_BEATEN_ID);
         const game_index_entry_t *known = (e->type == ENTRY_TYPE_ROM) ? game_index_find(path_get(path), e->size) : NULL;
         path_free(path);
         if (known && !game_index_is_homebrew(known->code)) {
@@ -153,6 +162,11 @@ void collections_build (menu_t *menu) {
     /* The player's own first, newest first; then the others with games: the series in the list's order, then the multiplayer ones. */
     for (int k = my_collections_count() - 1; k >= 0 && offered_count < COLLECTIONS_MAX; k--) {
         offered[offered_count++] = MINE_FIRST + k;
+    }
+    for (int c = STATUS_FIRST; c < ALL_COLLECTIONS && offered_count < COLLECTIONS_MAX; c++) {
+        if (used & (1ull << c)) {
+            offered[offered_count++] = c;   /* Backlog, Beaten: with any games marked */
+        }
     }
     for (int c = 0; c < MINE_FIRST && offered_count < COLLECTIONS_MAX; c++) {
         if ((c < series_count || c >= SERIES_MAX) && (used & (1ull << c))) {
@@ -178,8 +192,11 @@ const char *collections_name (int id) {
     if (id >= SERIES_MAX && id < MINE_FIRST) {
         return multi_names[id - SERIES_MAX];
     }
-    if (id >= MINE_FIRST && id < ALL_COLLECTIONS) {
+    if (id >= MINE_FIRST && id < STATUS_FIRST) {
         return my_collections_name(id - MINE_FIRST);
+    }
+    if (id >= STATUS_FIRST && id < ALL_COLLECTIONS) {
+        return status_names[id - STATUS_FIRST];
     }
     return "";
 }

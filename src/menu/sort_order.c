@@ -12,6 +12,8 @@
 #include "games_filter.h"
 #include "game_data.h"
 #include "play_stats.h"
+#include "game_status.h"
+#include "menu_features.h"
 
 #define NAME_LENGTH (256)
 
@@ -30,13 +32,14 @@ const char *sort_order_name (int order) {
         case SORT_RECENTLY_ADDED: return "Recently Added";
         case SORT_REVIEW_SCORE: return game_data_review_scores_shown() ? "Review Score" : "";
         case SORT_TIME_PLAYED: return "Time Played";
+        case SORT_STATUS: return features_enabled(FEATURE_GAME_STATUS) ? "Status" : "";
         default: return "Type";
     }
 }
 
 int sort_order_current (void) {
     int order = options_get(OPTION_SORT_ORDER);
-    if (order == SORT_REVIEW_SCORE && !game_data_review_scores_shown()) {
+    if ((order == SORT_REVIEW_SCORE && !game_data_review_scores_shown()) || (order == SORT_STATUS && !features_enabled(FEATURE_GAME_STATUS))) {
         return SORT_BY_TYPE;
     }
     return order;
@@ -248,6 +251,45 @@ static void find_cover_seconds (menu_t *menu) {
     }
 }
 
+/* Status: each file's own mark (a cover shows its own copy's), ranked
+   Playing, Backlog, Beaten, 100%, none; worked out once before sorting. */
+static uint8_t *entry_status = NULL;
+static int entry_status_count = 0;
+
+static int status_rank (path_t *directory, const entry_t *e) {
+    static const uint8_t rank[GAME_STATUS_COUNT] = { 4, 0, 2, 3, 1 };   /* by game_status_t: None, Playing, Beaten, 100%, Backlog */
+    if (!directory || (e->type != ENTRY_TYPE_ROM && e->type != ENTRY_TYPE_DISK && e->type != ENTRY_TYPE_EMULATOR)) {
+        return 4;
+    }
+    path_t *path = path_clone_push(directory, (char *) e->name);
+    game_status_t status = game_status_get(path_get(path));
+    path_free(path);
+    return rank[status];
+}
+
+static int compare_status (const void *pa, const void *pb) {
+    int order = folders_first(pa, pb);
+    if (order) {
+        return order;
+    }
+    const entry_t *ea = pa, *eb = pb;
+    bool known = entry_status && ea->index >= 0 && ea->index < entry_status_count && eb->index >= 0 && eb->index < entry_status_count;
+    int a = known ? entry_status[ea->index] : status_rank(detail_directory, ea);
+    int b = known ? entry_status[eb->index] : status_rank(detail_directory, eb);
+    return (a != b) ? (a - b) : compare_name_az(pa, pb);
+}
+
+static void find_status (menu_t *menu) {
+    entry_status_count = games_filter_all_entries(menu->browser.entries);
+    entry_status = malloc(entry_status_count > 0 ? entry_status_count : 1);
+    for (int i = 0; entry_status && i < entry_status_count; i++) {
+        entry_t *e = &menu->browser.list[i];
+        if (e->index >= 0 && e->index < entry_status_count) {
+            entry_status[e->index] = (uint8_t) status_rank(menu->browser.directory, e);
+        }
+    }
+}
+
 /* With versions folded under one cover (Game Versions, Region Copies), a
    cover is as new as its newest version: worked out once before sorting,
    by entry->index. */
@@ -407,6 +449,11 @@ void sort_order_apply (menu_t *menu, int (*stock_compare) (const void *, const v
             find_cover_seconds(menu);
             compare = compare_played;
             break;
+        case SORT_STATUS:
+            detail_directory = menu->browser.directory;
+            find_status(menu);
+            compare = compare_status;
+            break;
         default:
             break;
     }
@@ -416,4 +463,6 @@ void sort_order_apply (menu_t *menu, int (*stock_compare) (const void *, const v
     cover_days = NULL;
     free(entry_scores);
     entry_scores = NULL;
+    free(entry_status);
+    entry_status = NULL;
 }

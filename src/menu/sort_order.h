@@ -18,6 +18,7 @@ typedef enum {
     SORT_RECENTLY_ADDED, /**< games newest first, by the day the menu first saw them; older ones last, by name */
     SORT_REVIEW_SCORE,  /**< games by review score, highest first; unscored games and hacks last, by name */
     SORT_TIME_PLAYED,   /**< games by time played, most first (a cover with folded versions: all of theirs); never played last, by name */
+    SORT_STATUS,        /**< games by status mark: Playing, Backlog, Beaten, 100%, then none; each by name (hidden with Game Status off) */
     SORT_COUNT
 } sort_order_t;
 

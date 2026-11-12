@@ -24,6 +24,7 @@
 #include "game_data.h"
 #include "party.h"
 #include "play_stats.h"
+#include "game_status.h"
 #include "menu_features.h"
 #include "retro.h"
 #include "rom_hacks.h"
@@ -38,6 +39,10 @@ typedef enum {
     FILTER_HACKS,
     FILTER_PARTY,               /* games for at least as many players as there are controllers (party.h): not a mark */
     FILTER_NEVER_PLAYED,        /* games never started (play_stats.h), each version on its own; marked when the list loads */
+    FILTER_PLAYING,             /* the status marks (game_status.h), each version on its own */
+    FILTER_BEATEN,
+    FILTER_COMPLETE,
+    FILTER_BACKLOG,
     FILTER_STEPS,               /* C-up / C-down step through the ones above */
     FILTER_HOMEBREW = FILTER_STEPS,     /* the Homebrew tab's shelf */
     FILTER_COLLECTION,                  /* the Collections tab's shelf: one collection (collections.h), not a mark */
@@ -45,12 +50,15 @@ typedef enum {
     FILTER_COUNT
 } filter_t;
 
-static const char *names[FILTER_COUNT] = { "All", "USA", "Japan", "Europe", "64DD", "Hacks", "Party", "Never Played", "Homebrew", "Collection", "Retro" };
+static const char *names[FILTER_COUNT] = { "All", "USA", "Japan", "Europe", "64DD", "Hacks", "Party", "Never Played",
+    "Playing", "Beaten", "100%", "Backlog", "Homebrew", "Collection", "Retro" };
+#define STATUS_BITS     ((1u << FILTER_PLAYING) | (1u << FILTER_BEATEN) | (1u << FILTER_COMPLETE) | (1u << FILTER_BACKLOG))
+static int status_generation = -1;  /* game_status_generation() the marks were worked out for */
 static int collection = -1;     /* the collection the Collections tab shows, by its number (collections_id()) */
 static retro_system_t retro_step = RETRO_OTHER;     /* on the Retro shelf: RETRO_OTHER for all, else one system */
 
 /* Which filters a game belongs to, one bit each (bit FILTER_ALL always set). */
-static uint16_t *marks = NULL;   /* indexed by entry->index, the order the folder was read in */
+static uint32_t *marks = NULL;   /* indexed by entry->index, the order the folder was read in */
 static int marks_count = 0;
 static uint8_t *players = NULL;     /* by entry->index: how many can play it at once (0 not known) */
 static int party = 0;               /* the controllers the Party step was worked out for */
@@ -58,13 +66,13 @@ static int total = 0;           /* entries in the list, shown and hidden */
 
 /* Game Versions: Grouped. Files sharing a game code (an original, its hacks
    and copies of it) show as one cover; the others are folded under it. */
-#define MARK_FOLDED     (1 << 11)    /* in marks: folded under another file's cover (after the filters' own bits) */
+#define MARK_FOLDED     (1u << 15)   /* in marks: folded under another file's cover (after the filters' own bits) */
 static int16_t *group = NULL;       /* by entry->index: the index of its cover's file, or -1 */
 
 /* Region Copies: One Cover. A game's copies from other regions (the same
    first three letters of the code) show under All as one cover, chosen by
    region_pick. Hacks are never folded this way. */
-#define MARK_REGION_FOLDED  (1 << 12)    /* in marks: folded under another region's cover */
+#define MARK_REGION_FOLDED  (1u << 16)   /* in marks: folded under another region's cover */
 static int16_t *rgroup = NULL;      /* by entry->index: the index of its cover's file, or -1 */
 
 const char *games_filter_versions_name (int choice) {
@@ -80,7 +88,8 @@ const char *games_filter_homebrew_name (int choice) {
 /* Whether folded files are left out for this filter: with Grouped on, except
    on the Hacks step, which shows every hack. */
 static bool folding (filter_t f) {
-    return f != FILTER_HACKS && f != FILTER_NEVER_PLAYED && options_get(OPTION_GAME_VERSIONS) == GAME_VERSIONS_GROUPED;   /* those steps show each version on its own */
+    return f != FILTER_HACKS && f != FILTER_NEVER_PLAYED && !(STATUS_BITS & (1u << f))
+        && options_get(OPTION_GAME_VERSIONS) == GAME_VERSIONS_GROUPED;   /* those steps show each version on its own */
 }
 static filter_t current = FILTER_ALL;
 
@@ -140,8 +149,8 @@ static uint8_t from_file_name (const char *name) {
     return found;
 }
 
-static uint16_t classify (menu_t *menu, entry_t *e) {
-    uint16_t m = 1 << FILTER_ALL;
+static uint32_t classify (menu_t *menu, entry_t *e) {
+    uint32_t m = 1 << FILTER_ALL;
     if (e->type == ENTRY_TYPE_DISK) {
         return m | (1 << FILTER_64DD);
     }
@@ -177,6 +186,31 @@ static void note_never_played (menu_t *menu) {
         path_t *path = path_clone_push(menu->browser.directory, e->name);
         if (play_stats_get(path_get(path), NULL) == 0) {
             marks[e->index] |= 1 << FILTER_NEVER_PLAYED;
+        }
+        path_free(path);
+    }
+}
+
+/* The status marks (game_status.h), each file its own. Worked out when the
+   list loads, and again when a status changes (games_filter_status_check()). */
+static void note_status (menu_t *menu) {
+    status_generation = game_status_generation();
+    for (int i = 0; i < total; i++) {
+        entry_t *e = &menu->browser.list[i];
+        if (e->index < 0 || e->index >= marks_count) {
+            continue;
+        }
+        marks[e->index] &= ~STATUS_BITS;
+        if (e->type != ENTRY_TYPE_ROM && e->type != ENTRY_TYPE_DISK && e->type != ENTRY_TYPE_EMULATOR) {
+            continue;
+        }
+        path_t *path = path_clone_push(menu->browser.directory, e->name);
+        switch (game_status_get(path_get(path))) {
+            case GAME_STATUS_PLAYING: marks[e->index] |= 1u << FILTER_PLAYING; break;
+            case GAME_STATUS_BEATEN: marks[e->index] |= 1u << FILTER_BEATEN; break;
+            case GAME_STATUS_COMPLETE: marks[e->index] |= 1u << FILTER_COMPLETE; break;
+            case GAME_STATUS_BACKLOG: marks[e->index] |= 1u << FILTER_BACKLOG; break;
+            default: break;
         }
         path_free(path);
     }
@@ -534,7 +568,7 @@ void games_filter_after_load (menu_t *menu, int (*compare) (const void *, const 
     if (total <= 0) {
         return;
     }
-    marks = malloc(total * sizeof(uint16_t));
+    marks = malloc(total * sizeof(uint32_t));
     if (!marks) {
         total = 0;
         return;
@@ -552,6 +586,7 @@ void games_filter_after_load (menu_t *menu, int (*compare) (const void *, const 
     collections_build(menu);
     note_players(menu);
     note_never_played(menu);
+    note_status(menu);
     party = party_players();
     debugf("games filter: %d homebrew games known\n", count_for(menu, FILTER_HOMEBREW));
     if (!shelf && current != FILTER_ALL && count_for(menu, current) == 0) {
@@ -593,6 +628,9 @@ bool games_filter_step (menu_t *menu, int direction) {
         if (next == FILTER_NEVER_PLAYED && !features_enabled(FEATURE_NEVER_PLAYED_STEP)) {
             continue;   /* switched off in Settings */
         }
+        if ((STATUS_BITS & (1u << next)) && !features_enabled(FEATURE_GAME_STATUS)) {
+            continue;
+        }
         if (next == FILTER_ALL || count_for(menu, next) > 0) {
             break;
         }
@@ -619,6 +657,21 @@ void games_filter_note_code (const entry_t *e, const char *code) {
     uint8_t region_bits = (1 << FILTER_USA) | (1 << FILTER_JAPAN) | (1 << FILTER_EUROPE);
     if (!(marks[e->index] & region_bits)) {
         marks[e->index] |= from_code_letter(code[3]);
+    }
+}
+
+void games_filter_status_check (menu_t *menu) {
+    if (total <= 0 || !marks || game_status_generation() == status_generation) {
+        return;
+    }
+    note_status(menu);
+    games_filter_collections_changed(menu);     /* the Backlog and Beaten collections */
+    bool step = !shelf && (STATUS_BITS & (1u << current));
+    if (step && count_for(menu, current) == 0) {
+        current = FILTER_ALL;   /* the last game of that status was changed */
+    }
+    if (step || (current != FILTER_COLLECTION && sort_order_current() == SORT_STATUS)) {
+        reapply(menu);      /* shown again, and sorted again by status */
     }
 }
 

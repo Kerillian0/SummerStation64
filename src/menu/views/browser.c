@@ -55,6 +55,7 @@
 #include "../folders_ui.h"
 #include "../intro.h"
 #include "../versions_screen.h"
+#include "../game_status.h"
 #include "../ui_components/constants.h"
 
 static const char *archive_extensions[] = { "zip", NULL };
@@ -1157,6 +1158,12 @@ static void card_menu_show (void) {
     ui_components_context_menu_show(&card_menu);
 }
 
+// Z > "Status: ...": the row opens game_status_menu() (filled in entry_menu_fill()); this only marks the row.
+static void status_row (menu_t *menu, void *arg) {
+    (void) menu;
+    (void) arg;
+}
+
 // Every row the Options menu can have. entry_menu_fill() copies the ones
 // that suit the tab into entry_context_menu each time it is opened: on the
 // cover tabs the first five (a game's own), on the Folders tab the rest.
@@ -1165,6 +1172,7 @@ static void card_menu_show (void) {
         { .text = "Add to Favorites", .action = toggle_favorite }, \
         { .text = "Game info", .action = show_game_info }, \
         { .text = "Add to collection...", .action = add_to_collection }, \
+        { .text = "Status", .action = status_row }, \
         { .text = "Hide this game", .action = hide_game }, \
         { .text = "Mark as homebrew", .action = toggle_homebrew }, \
         { .text = "Mark as ROM hack", .action = toggle_hack }, \
@@ -1193,8 +1201,11 @@ static void entry_menu_fill (menu_t *menu) {
     for (int i = 0; entry_menu_rows.list[i].text != NULL; i++) {
         __typeof__(entry_menu_rows.list[0]) row = entry_menu_rows.list[i];
         bool cover_row = (row.action == random_game || row.action == toggle_favorite || row.action == show_game_info
-                          || row.action == add_to_collection || row.action == hide_game || row.action == toggle_homebrew || row.action == toggle_hack
+                          || row.action == add_to_collection || row.action == status_row || row.action == hide_game || row.action == toggle_homebrew || row.action == toggle_hack
                           || row.action == ask_assistant);
+        if (row.action == status_row && !features_enabled(FEATURE_GAME_STATUS)) {
+            continue;   // Game Status switched off
+        }
         if (!folders_tab) {
             // A cover tab: the game's own rows only.
             if (!cover_row || (row.action != random_game && row.action != ask_assistant && !game)
@@ -1248,6 +1259,11 @@ static void entry_menu_fill (menu_t *menu) {
         if (row.action == ask_assistant) {
             snprintf(ask_text, sizeof(ask_text), "Ask %s...", assistant_name());
             row.text = ask_text;
+        }
+        if (row.action == status_row && path) {
+            row.text = game_status_row_text(path_get(path));    // "Status: Beaten", opening the list of statuses
+            row.submenu = game_status_menu(path_get(path));
+            row.action = NULL;
         }
         if (row.action == folders_hide && hidden_games_is(path_get(path))) {
             row.text = "Unhide this game";
@@ -1499,6 +1515,7 @@ static void process (menu_t *menu) {
     int filter_step = controls_consume_filter_step();
     if (!folders_tab && filter_step && games_filter_step(menu, filter_step)) sound_play_effect(SFX_CURSOR); // C-up/C-down: All, USA, Japan, Europe, 64DD, Hacks, Party
     if (!folders_tab) games_filter_party_check(menu); // a controller plugged in or out
+    if (!folders_tab) games_filter_status_check(menu); // a game's status changed (here, or on Game info)
 
     int scroll_speed = menu->actions.go_fast ? 10 : 1;
 
@@ -2308,7 +2325,19 @@ void carousel_draw (menu_t *menu) {
         }
         review = (looked_up.score >= 0) ? looked_up.score : (facts ? facts->review_score : 0);
     }
-    games_ui_title_panel_draw(title, kind, lead, hack, is_new, with, facts, review);
+    // The player's status mark (game_status.h): looked up again when the selection, a mark or the switch changes.
+    static const char *status_for = NULL;
+    static int status_generation = -1, status = 0;
+    static bool status_on = false;
+    if (status_for != selected_entry->name || status_generation != game_status_generation() || status_on != features_enabled(FEATURE_GAME_STATUS)) {
+        status_for = selected_entry->name;
+        status_generation = game_status_generation();
+        status_on = features_enabled(FEATURE_GAME_STATUS);
+        path_t *selected_path = covers->path(menu, covers->selected);
+        status = game_status_get(path_get(selected_path));
+        path_free(selected_path);
+    }
+    games_ui_title_panel_draw(title, kind, lead, hack, is_new, with, facts, review, status);
     const char *letter_from = (sort_order_current() == SORT_REVIEW_SCORE) ? " " : !detail ? entry_file_name(selected_entry->name) : (sort_order_current() == SORT_DEVELOPER) ? detail : " "; // the letter of what the list is sorted by; none for dates or scores
     games_ui_position_draw(letter_from, covers->selected, covers->entries, (covers->list == menu->browser.list) ? games_filter_label() : NULL); // the file name: that is what the list is sorted by
 }

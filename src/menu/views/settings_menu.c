@@ -545,6 +545,7 @@ static const item_t library_items[] = {
         "Whose copy gives a game's cover with Region Copies on One Cover. Changing it also forgets each game's own choice."),
     CHOICES("Homebrew on Games", OPTION_HOMEBREW_ON_GAMES, HOMEBREW_ON_GAMES_COUNT, games_filter_homebrew_name, resort_browser,
         "Hide keeps homebrew off the Games tab and its filters, on the Homebrew tab only (add it in Settings > Games > Tabs). Folders, Recent, Favorites and your own collections still show it."),
+    FEATURE("Game Status", FEATURE_GAME_STATUS, "Mark games Playing, Beaten, 100% or Backlog with Z on a cover or in Game info's Options. The mark shows on the cover's title panel, C-up and C-down can step to each, Sort By can go by them, and Backlog and Beaten become collections. Off hides all of it; the marks are kept."),
     FEATURE("Never Played Step", FEATURE_NEVER_PLAYED_STEP, "C-up and C-down on the Games tab also step to Never Played: the games (and 64DD disks) you haven't started yet, each version on its own."),
     CHOICES("Hacks on Games", OPTION_HACKS_ON_GAMES, HACKS_ON_GAMES_COUNT, games_filter_homebrew_name, resort_browser,
         "Hide keeps ROM hacks off the Games tab, on the Hacks tab (add it in Settings > Games > Tabs) and the Hacks step only. Folders, Recent, Favorites and your own collections still show them."),

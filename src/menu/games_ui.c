@@ -15,6 +15,7 @@
 #include "tabs.h"
 #include "game_index.h"
 #include "game_data.h"
+#include "game_status.h"
 #include "menu_features.h"
 #include "menu_options.h"
 #include "theme.h"
@@ -429,7 +430,7 @@ static void panel_clip_end (void) {
     }
 }
 
-void games_ui_title_panel_draw (const char *title, const char *detail, const char *lead, bool hack, bool is_new, const char *with, const game_facts_t *facts, int review) {
+void games_ui_title_panel_draw (const char *title, const char *detail, const char *lead, bool hack, bool is_new, const char *with, const game_facts_t *facts, int review, int status) {
     const theme_t *t = theme_get();
     int x0 = GAMES_UI_CONTENT_X0;
     int x1 = GAMES_UI_CONTENT_X1;
@@ -543,12 +544,15 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const cha
 
     if (!facts) {
         /* Not looked up yet: what is known at once. A hack and a new game say so from the start. */
-        if (hack || is_new || with) {
+        if (hack || is_new || with || status > 0) {
             if (lead || with) {
                 x = games_ui_badge(x, y, lead ? lead : detail, STL_DEFAULT, false);
             }
             if (with) {
                 x = games_ui_badge(x, y, with, STL_BLUE, true);    /* a 64DD disk's cartridge (dd_pair.h) */
+            }
+            if (status > 0) {
+                x = games_ui_badge(x, y, game_status_name(status), game_status_style(status), true);     /* the player's status mark */
             }
             if (hack) {
                 x = games_ui_badge(x, y, "Hack", STL_ORANGE, true);
@@ -585,6 +589,9 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const cha
 
     if (lead) {
         x = games_ui_badge(x, y, lead, STL_DEFAULT, false);
+    }
+    if (status > 0) {
+        x = games_ui_badge(x, y, game_status_name(status), game_status_style(status), true);  /* the player's own mark: always shows */
     }
     if (hack) {
         PANEL_BADGE("Hack", STL_ORANGE, true);

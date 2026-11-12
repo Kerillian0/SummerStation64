@@ -19,6 +19,7 @@
 #include "../region_pick.h"
 #include "../play_stats.h"
 #include "../save_backup.h"
+#include "../game_status.h"
 #include "../baked_art.h" // the cover comes from art baked into the menu when there is some
 #include "../baked_meta.h" // the full description, baked into the menu or from the card
 #include "../game_index.h"
@@ -509,6 +510,12 @@ static component_context_menu_t restore_save_context_menu = { .list = { // fille
     COMPONENT_CONTEXT_MENU_LIST_END,
 }};
 
+// "Status: ...": options_menu_fill() gives the row game_status_menu(); this only marks it.
+static void status_row (menu_t *menu, void *arg) {
+    (void) menu;
+    (void) arg;
+}
+
 // Every row Game info's Options can have; options_menu_fill() copies them
 // into options_context_menu when it opens, leaving out the advanced ones
 // unless Settings asks for them (FEATURE_ADVANCED_OPTIONS).
@@ -526,6 +533,7 @@ static component_context_menu_t options_menu_rows = { .list = {
 #endif
     { .text = "Clear RDRAM on boot", .submenu = &set_clear_rdram_options_menu },
     { .text = "Restore save", .submenu = &restore_save_context_menu },
+    { .text = "Status", .action = status_row },
     { .text = "Add to favorites", .action = add_favorite },
     { .text = "Show/hide real file name", .action = display_name_toggle_real },
     COMPONENT_CONTEXT_MENU_LIST_END,
@@ -545,12 +553,13 @@ static component_context_menu_t options_context_menu = { .list = {
 #endif
     { .text = "Clear RDRAM on boot", .submenu = &set_clear_rdram_options_menu },
     { .text = "Restore save", .submenu = &restore_save_context_menu },
+    { .text = "Status", .action = status_row },
     { .text = "Add to favorites", .action = add_favorite },
     { .text = "Show/hide real file name", .action = display_name_toggle_real },
     COMPONENT_CONTEXT_MENU_LIST_END,
 }};
 
-static void options_menu_fill (void) {
+static void options_menu_fill (menu_t *menu) {
     bool advanced = features_enabled(FEATURE_ADVANCED_OPTIONS);
     int rows = 0;
     for (int i = 0; options_menu_rows.list[i].text != NULL; i++) {
@@ -560,6 +569,14 @@ static void options_menu_fill (void) {
             || row.submenu == &set_clear_rdram_options_menu;
         if (is_advanced && !advanced) {
             continue;
+        }
+        if (row.action == status_row) {
+            if (!features_enabled(FEATURE_GAME_STATUS)) {
+                continue;
+            }
+            row.text = game_status_row_text(path_get(menu->load.rom_path));     // "Status: Beaten", opening the list
+            row.submenu = game_status_menu(path_get(menu->load.rom_path));
+            row.action = NULL;
         }
         options_context_menu.list[rows++] = row;
     }
@@ -765,7 +782,7 @@ static void process (menu_t *menu) {
         sound_play_effect(SFX_ENTER);
     } else if (menu->actions.options) {
         save_backup_menu_fill(menu, &restore_save_context_menu); // the dates under "Restore save"
-        options_menu_fill(); // the advanced rows only when Settings asks for them
+        options_menu_fill(menu); // the advanced rows only when Settings asks for them; the game's status
         ui_components_context_menu_show(&options_context_menu);
         sound_play_effect(SFX_SETTING);
     } else if (menu->actions.settings) { // START: details. One pop-up now; it was two, on L and on START.

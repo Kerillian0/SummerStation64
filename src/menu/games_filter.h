@@ -164,4 +164,7 @@ int games_filter_cover_index (const entry_t *e);
 /** Forget the hidden entries (the list was freed or is another folder's). */
 void games_filter_forget (void);
 
+/** Once a frame on the cover tabs: a game's status changed (game_status.h), so its filter steps and collections are worked out again. */
+void games_filter_status_check (menu_t *menu);
+
 #endif /* GAMES_FILTER_H__ */
