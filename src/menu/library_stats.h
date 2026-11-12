@@ -4,8 +4,9 @@
  * games on the card.
  *
  * Tiles along the top (games, their total size, time played, SD card free
- * space), then the games by region and by genre as bars, the five most
- * played, and how many carry each status mark (game_status.h).
+ * space), the five most played in a big frame, the most common developers
+ * and genres as bars beside it, and how many carry each status mark
+ * (game_status.h) under it.
  *
  * The Games tab's folders are read here, a few milliseconds a frame (the
  * list in memory belongs to whichever tab was open last): the start folder,

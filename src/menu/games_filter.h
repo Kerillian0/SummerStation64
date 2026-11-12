@@ -123,17 +123,6 @@ int games_filter_collection_covers (menu_t *menu, int which, entry_t **out, int 
  */
 int games_filter_collection_beaten (menu_t *menu, int which, int *covers);
 
-typedef enum {
-    GAMES_REGION_NONE,      /**< not known */
-    GAMES_REGION_USA,
-    GAMES_REGION_JAPAN,
-    GAMES_REGION_EUROPE,
-    GAMES_REGION_SEVERAL,   /**< "A" codes, "(JU)" names */
-} games_region_t;
-
-/** A cartridge's region as the filter steps tell it: its code's last letter ("" if not known), else its name's tags. */
-games_region_t games_filter_region_of (const char *code, const char *file_name);
-
 /** Game Versions (option `game_versions`, Settings > Library). */
 typedef enum {
     GAME_VERSIONS_SEPARATE,     /**< every file its own cover (the default) */

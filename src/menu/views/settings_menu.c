@@ -575,7 +575,7 @@ static const item_t folder_items[] = {
 };
 
 static const item_t play_items[] = {
-    ACTION("Library Stats", open_library_stats, "A page about the games in your Games folders: how many, their size, your time played, the SD card's free space, the games by region and genre, your five most played and your status marks."),
+    ACTION("Library Stats", open_library_stats, "A page about the games in your Games folders: how many, their size, your time played, the SD card's free space, your five most played, the developers and genres you have most of, and your status marks."),
     FEATURE("Back Up Saves", FEATURE_SAVE_BACKUPS, "When you start a game, keep its save from before, by date. Up to five per game, never the same one twice. A game's Options has \"Restore save\" to go back to one."),
     FEATURE("Count Plays", FEATURE_PLAY_STATS, "Keep count of how often each game is started and when it was last played, shown on its info screen."),
     FEATURE("Remember Position", FEATURE_REMEMBER_SELECTION, "Going back into a folder returns to the game you had selected there, also after playing."),

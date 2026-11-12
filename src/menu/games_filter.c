@@ -150,19 +150,6 @@ static uint8_t from_file_name (const char *name) {
     return found;
 }
 
-games_region_t games_filter_region_of (const char *code, const char *file_name) {
-    uint8_t region = (code && code[0] && !game_index_is_homebrew(code)) ? from_code_letter(code[3]) : 0;
-    if (!region) {
-        region = from_file_name(file_name);
-    }
-    switch (region) {
-        case 1 << FILTER_USA: return GAMES_REGION_USA;
-        case 1 << FILTER_JAPAN: return GAMES_REGION_JAPAN;
-        case 1 << FILTER_EUROPE: return GAMES_REGION_EUROPE;
-        default: return region ? GAMES_REGION_SEVERAL : GAMES_REGION_NONE;
-    }
-}
-
 static uint32_t classify (menu_t *menu, entry_t *e) {
     uint32_t m = 1 << FILTER_ALL;
     if (e->type == ENTRY_TYPE_DISK) {

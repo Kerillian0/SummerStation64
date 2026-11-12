@@ -10,7 +10,6 @@
 #include "game_data.h"
 #include "game_index.h"
 #include "game_status.h"
-#include "games_filter.h"
 #include "games_folders.h"
 #include "games_ui.h"
 #include "hidden_games.h"
@@ -48,9 +47,9 @@
 #define PLAYED_BAR_H    (4)
 #define STATUS_Y0       (336)
 #define STATUS_Y1       (382)
-/* Region and Genre: two small frames on the right, one above the other. */
+/* Developers and Genre: two small frames on the right, one above the other. */
 #define SMALL_X0        (402)
-#define REGION_Y1       (254)
+#define DEVELOPER_Y1    (254)
 #define GENRE_Y0        (262)
 #define GENRE_Y1        (380)
 #define SMALL_ROW_H     (20)
@@ -73,9 +72,13 @@ static uint64_t count_began = 0;
 static int count_slowest = 0;
 
 /* What was found. */
-enum { REGION_USA, REGION_JAPAN, REGION_EUROPE, REGION_64DD, REGION_OTHER, REGIONS };
-static const char *const region_names[REGIONS] = { "USA", "Japan", "Europe", "64DD", "Other" };
-static int regions[REGIONS];
+#define DEVELOPERS_MAX  (64)
+#define DEVELOPER_ROWS  (5)
+static struct {
+    const char *name;   /* the game list's own text, kept while the menu runs */
+    int count;
+} developers[DEVELOPERS_MAX];
+static int developer_count = 0;
 static struct {
     const char *name;   /* game_data's own text, kept for good */
     int count;
@@ -117,7 +120,7 @@ static void forget (void) {
 void library_stats_open (menu_t *menu) {
     forget();
     active = true;
-    memset(regions, 0, sizeof(regions));
+    developer_count = 0;
     memset(statuses, 0, sizeof(statuses));
     genre_count = genre_unknown = games = top_count = 0;
     bytes = 0;
@@ -151,6 +154,22 @@ static void note_genre (const char *genre) {
         genres[genre_count++].count = 1;
     } else {
         genre_unknown++;
+    }
+}
+
+static void note_developer (const char *name) {
+    if (!name || !name[0]) {
+        return;
+    }
+    for (int i = 0; i < developer_count; i++) {
+        if (developers[i].name == name || strcmp(developers[i].name, name) == 0) {
+            developers[i].count++;
+            return;
+        }
+    }
+    if (developer_count < DEVELOPERS_MAX) {
+        developers[developer_count].name = name;
+        developers[developer_count++].count = 1;
     }
 }
 
@@ -215,18 +234,7 @@ static void note_entry (menu_t *menu) {
         if (known) {
             memcpy(code, known->code, 4);
         }
-        int region = REGION_OTHER;
-        if (disk) {
-            region = REGION_64DD;
-        } else {
-            switch (games_filter_region_of(code, entry.d_name)) {
-                case GAMES_REGION_USA: region = REGION_USA; break;
-                case GAMES_REGION_JAPAN: region = REGION_JAPAN; break;
-                case GAMES_REGION_EUROPE: region = REGION_EUROPE; break;
-                default: break;
-            }
-        }
-        regions[region]++;
+        note_developer(known ? known->developer : NULL);
         const game_data_t *data = (known && !game_index_is_homebrew(code)) ? game_data_find(code) : NULL;
         note_genre(data ? data->genre : NULL);
         game_status_t status = game_status_get(path);
@@ -356,34 +364,42 @@ static void bar_row (int x0, int x1, int y, const char *name, int label_width, i
     text(x1 - 10 - number_width, y, number_width, SMALL_ROW_H, ALIGN_RIGHT, STL_DEFAULT, number);
 }
 
-static void draw_regions (void) {
-    int x0 = SMALL_X0, x1 = AREA_X1, y0 = COLUMNS_Y0;
-    frame(x0, y0, x1, REGION_Y1);
-    text(x0 + 10, y0 + 2, x1 - x0 - 20, 22, ALIGN_LEFT, STL_DEFAULT, "Region");
-    int most = 0;
-    for (int r = 0; r < REGIONS; r++) {
-        most = (regions[r] > most) ? regions[r] : most;
-    }
-    int row = 0;
-    for (int r = 0; r < REGIONS; r++) {
-        if (regions[r] > 0) {
-            bar_row(x0, x1, y0 + 22 + row++ * SMALL_ROW_H, region_names[r], 54, regions[r], most);
+/* Biggest first (a few dozen at most: a plain sort). */
+static int biggest_first (int *order, int n, int (*count_of) (int)) {
+    for (int i = 0; i < n; i++) {
+        order[i] = i;
+        for (int j = i; j > 0 && count_of(order[j]) > count_of(order[j - 1]); j--) {
+            int k = order[j]; order[j] = order[j - 1]; order[j - 1] = k;
         }
     }
+    return n;
+}
+
+static int developer_games (int i) {
+    return developers[i].count;
+}
+
+static void draw_developers (void) {
+    int x0 = SMALL_X0, x1 = AREA_X1, y0 = COLUMNS_Y0;
+    frame(x0, y0, x1, DEVELOPER_Y1);
+    text(x0 + 10, y0 + 2, x1 - x0 - 20, 22, ALIGN_LEFT, STL_DEFAULT, "Developers");
+    int order[DEVELOPERS_MAX];
+    biggest_first(order, developer_count, developer_games);
+    for (int i = 0; i < developer_count && i < DEVELOPER_ROWS; i++) {
+        bar_row(x0, x1, y0 + 22 + i * SMALL_ROW_H, developers[order[i]].name, 90, developers[order[i]].count, developers[order[0]].count);
+    }
+}
+
+static int genre_games (int i) {
+    return genres[i].count;
 }
 
 static void draw_genres (void) {
     int x0 = SMALL_X0, x1 = AREA_X1, y0 = GENRE_Y0;
     frame(x0, y0, x1, GENRE_Y1);
     text(x0 + 10, y0 + 2, x1 - x0 - 20, 22, ALIGN_LEFT, STL_DEFAULT, "Genre");
-    /* Biggest first (a few dozen at most: a plain sort). */
     int order[GENRES_MAX];
-    for (int i = 0; i < genre_count; i++) {
-        order[i] = i;
-        for (int j = i; j > 0 && genres[order[j]].count > genres[order[j - 1]].count; j--) {
-            int k = order[j]; order[j] = order[j - 1]; order[j - 1] = k;
-        }
-    }
+    biggest_first(order, genre_count, genre_games);
     bool other = (genre_count > GENRE_ROWS) || (genre_unknown > 0);
     int shown = other ? ((genre_count < GENRE_ROWS - 1) ? genre_count : GENRE_ROWS - 1) : genre_count;
     int rest = genre_unknown;
@@ -479,7 +495,7 @@ void library_stats_draw (void) {
         text(AREA_X0, COLUMNS_Y0, AREA_X1 - AREA_X0, GENRE_Y1 - COLUMNS_Y0, ALIGN_CENTER, STL_GRAY, "Counting your games...");
     } else {
         draw_played();
-        draw_regions();
+        draw_developers();
         draw_genres();
         draw_statuses();
     }
