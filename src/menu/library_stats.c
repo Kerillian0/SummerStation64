@@ -20,13 +20,14 @@
 #include "play_stats.h"
 #include "sound.h"
 #include "theme.h"
+#include "title_font.h"
 #include "ui_components/constants.h"
 #include "utils/fs.h"
 
 #define STEP_MS         (6)     /* reading folders stops for the frame after this long */
 #define QUEUE_MAX       (64)
 #define GENRES_MAX      (32)
-#define GENRE_ROWS      (6)     /* the five biggest, then Other */
+#define GENRE_ROWS      (4)     /* the three biggest, then Other */
 #define TOP_PLAYED      (5)
 #define NAME_LENGTH     (64)
 
@@ -35,19 +36,25 @@
 #define TITLE_Y         (28)
 #define AREA_X0         (40)
 #define AREA_X1         (600)
-#define TILES_Y0        (70)
-#define TILES_Y1        (130)
+#define TILES_Y0        (66)
+#define TILES_Y1        (122)
 #define TILE_GAP        (10)
-#define COLUMNS_Y0      (142)
-#define COLUMNS_Y1      (334)
-#define COLUMN_GAP      (10)
-#define REGION_X1       (196)
-#define GENRE_X1        (398)
-#define ROW_Y0          (COLUMNS_Y0 + 32)
-#define ROW_H           (24)
-#define BAR_H           (10)
-#define STATUS_Y0       (344)
-#define STATUS_Y1       (376)
+#define COLUMNS_Y0      (132)
+/* Most played: the big frame on the left, the status counts under it. */
+#define PLAYED_X1       (392)
+#define PLAYED_Y1       (330)
+#define PLAYED_ROW_Y0   (COLUMNS_Y0 + 34)
+#define PLAYED_ROW_H    (32)    /* a 28 px line for the 20 px font (smaller boxes drop its text), then the bar */
+#define PLAYED_BAR_H    (4)
+#define STATUS_Y0       (336)
+#define STATUS_Y1       (382)
+/* Region and Genre: two small frames on the right, one above the other. */
+#define SMALL_X0        (402)
+#define REGION_Y1       (254)
+#define GENRE_Y0        (262)
+#define GENRE_Y1        (380)
+#define SMALL_ROW_H     (20)
+#define BAR_H           (8)
 
 static bool active = false;
 
@@ -81,6 +88,7 @@ static int statuses[GAME_STATUS_COUNT];
 static struct {
     uint32_t seconds;
     char name[NAME_LENGTH];
+    uint8_t font;       /* the 20 px title font if the name fits it, else the body font; picked once */
 } top[TOP_PLAYED];
 static int top_count = 0;
 
@@ -164,6 +172,7 @@ static void note_played (const char *file_name, uint32_t seconds) {
     }
     top[at].seconds = seconds;
     snprintf(top[at].name, NAME_LENGTH, "%s", display_name_file(file_name));
+    top[at].font = 0;
 }
 
 static bool is_skipped_folder (const char *name) {
@@ -322,18 +331,16 @@ static void tile (int i, const char *number, const char *label) {
     text(x0, TILES_Y0 + 34, width, 22, ALIGN_CENTER, STL_GRAY, label);
 }
 
-static void column (int x0, int x1, const char *heading) {
+static void frame (int x0, int y0, int x1, int y1) {
     const theme_t *t = theme_get();
-    games_ui_round_fill(x0, COLUMNS_Y0, x1, COLUMNS_Y1, RGBA32(t->panel.r, t->panel.g, t->panel.b, 0xD8));
-    text(x0 + 10, COLUMNS_Y0 + 6, x1 - x0 - 20, 22, ALIGN_LEFT, STL_DEFAULT, heading);
+    games_ui_round_fill(x0, y0, x1, y1, RGBA32(t->panel.r, t->panel.g, t->panel.b, 0xD8));
 }
 
-/* A row of a bar list: name, a bar as long as its share of the biggest, the number. */
-static void bar_row (int x0, int x1, int row, const char *name, int label_width, int count, int most) {
+/* A row of a small frame: name, a bar as long as its share of the biggest, the number. */
+static void bar_row (int x0, int x1, int y, const char *name, int label_width, int count, int most) {
     const theme_t *t = theme_get();
-    int y = ROW_Y0 + row * ROW_H;
-    int number_width = 32;
-    text(x0 + 10, y, label_width, ROW_H, ALIGN_LEFT, STL_GRAY, name);
+    int number_width = 30;
+    text(x0 + 10, y, label_width, SMALL_ROW_H, ALIGN_LEFT, STL_GRAY, name);
     int bar_x0 = x0 + 10 + label_width + 4;
     int bar_x1 = x1 - 10 - number_width - 4;
     int length = (most > 0) ? ((bar_x1 - bar_x0) * count / most) & ~1 : 0;
@@ -342,16 +349,17 @@ static void bar_row (int x0, int x1, int row, const char *name, int label_width,
     }
     rdpq_set_mode_fill(RGBA32(t->accent.r, t->accent.g, t->accent.b, 0xFF));
     if (length > 0) {
-        rdpq_fill_rectangle(bar_x0, y + (ROW_H - BAR_H) / 2, bar_x0 + length, y + (ROW_H + BAR_H) / 2);
+        rdpq_fill_rectangle(bar_x0, y + (SMALL_ROW_H - BAR_H) / 2, bar_x0 + length, y + (SMALL_ROW_H + BAR_H) / 2);
     }
     char number[12];
     snprintf(number, sizeof(number), "%d", count);
-    text(x1 - 10 - number_width, y, number_width, ROW_H, ALIGN_RIGHT, STL_DEFAULT, number);
+    text(x1 - 10 - number_width, y, number_width, SMALL_ROW_H, ALIGN_RIGHT, STL_DEFAULT, number);
 }
 
 static void draw_regions (void) {
-    int x0 = AREA_X0, x1 = REGION_X1;
-    column(x0, x1, "Region");
+    int x0 = SMALL_X0, x1 = AREA_X1, y0 = COLUMNS_Y0;
+    frame(x0, y0, x1, REGION_Y1);
+    text(x0 + 10, y0 + 2, x1 - x0 - 20, 22, ALIGN_LEFT, STL_DEFAULT, "Region");
     int most = 0;
     for (int r = 0; r < REGIONS; r++) {
         most = (regions[r] > most) ? regions[r] : most;
@@ -359,14 +367,15 @@ static void draw_regions (void) {
     int row = 0;
     for (int r = 0; r < REGIONS; r++) {
         if (regions[r] > 0) {
-            bar_row(x0, x1, row++, region_names[r], 54, regions[r], most);
+            bar_row(x0, x1, y0 + 22 + row++ * SMALL_ROW_H, region_names[r], 54, regions[r], most);
         }
     }
 }
 
 static void draw_genres (void) {
-    int x0 = REGION_X1 + COLUMN_GAP, x1 = GENRE_X1;
-    column(x0, x1, "Genre");
+    int x0 = SMALL_X0, x1 = AREA_X1, y0 = GENRE_Y0;
+    frame(x0, y0, x1, GENRE_Y1);
+    text(x0 + 10, y0 + 2, x1 - x0 - 20, 22, ALIGN_LEFT, STL_DEFAULT, "Genre");
     /* Biggest first (a few dozen at most: a plain sort). */
     int order[GENRES_MAX];
     for (int i = 0; i < genre_count; i++) {
@@ -381,31 +390,51 @@ static void draw_genres (void) {
     for (int i = shown; i < genre_count; i++) {
         rest += genres[order[i]].count;
     }
-    int most = (rest > 0) ? rest : 0;
+    int most = rest;
     for (int i = 0; i < shown; i++) {
         most = (genres[order[i]].count > most) ? genres[order[i]].count : most;
     }
     for (int i = 0; i < shown; i++) {
-        bar_row(x0, x1, i, genres[order[i]].name, 86, genres[order[i]].count, most);
+        bar_row(x0, x1, y0 + 22 + i * SMALL_ROW_H, genres[order[i]].name, 80, genres[order[i]].count, most);
     }
     if (rest > 0) {
-        bar_row(x0, x1, shown, "Other", 86, rest, most);
+        bar_row(x0, x1, y0 + 22 + shown * SMALL_ROW_H, "Other", 80, rest, most);
     }
 }
 
+/* The big frame: rank, name in the 20 px title font when it fits, time, and a bar of its share of the first. */
 static void draw_played (void) {
-    int x0 = GENRE_X1 + COLUMN_GAP, x1 = AREA_X1;
-    column(x0, x1, "Most played");
+    const theme_t *t = theme_get();
+    int x0 = AREA_X0, x1 = PLAYED_X1;
+    frame(x0, COLUMNS_Y0, x1, PLAYED_Y1);
+    rdpq_text_printf(&(rdpq_textparms_t) { .width = x1 - x0 - 24, .height = 30, .valign = VALIGN_CENTER, .style_id = STL_DEFAULT },
+        FNT_TITLE_MEDIUM, x0 + 12, COLUMNS_Y0 + 4, "Most Played");
     if (top_count == 0) {
-        text(x0 + 10, ROW_Y0, x1 - x0 - 20, ROW_H, ALIGN_LEFT, STL_GRAY, counting ? "" : "Nothing played yet.");
+        text(x0 + 12, PLAYED_ROW_Y0, x1 - x0 - 24, PLAYED_ROW_H, ALIGN_LEFT, STL_GRAY, "Nothing played yet.");
         return;
     }
+    int rank_w = 22, time_w = 72;
+    int name_x = x0 + 12 + rank_w;
+    int name_w = x1 - 12 - time_w - 8 - name_x;
     for (int i = 0; i < top_count; i++) {
-        int y = ROW_Y0 + i * ROW_H;
-        char hours[16];
+        int y = PLAYED_ROW_Y0 + i * PLAYED_ROW_H;
+        if (!top[i].font) {
+            uint8_t pick = title_font_pick(top[i].name, name_w);
+            top[i].font = (pick == FNT_TITLE) ? FNT_TITLE_MEDIUM : pick;     /* at most 20 px: five long names */
+        }
+        char rank[4], hours[16];
+        snprintf(rank, sizeof(rank), "%d", i + 1);
         time_text(hours, sizeof(hours), top[i].seconds);
-        text(x0 + 10, y, x1 - x0 - 20 - 64, ROW_H, ALIGN_LEFT, STL_GRAY, top[i].name);
-        text(x1 - 10 - 60, y, 60, ROW_H, ALIGN_RIGHT, STL_DEFAULT, hours);
+        int line_h = PLAYED_ROW_H - PLAYED_BAR_H;
+        text(x0 + 12, y, rank_w, line_h, ALIGN_LEFT, STL_GRAY, rank);
+        rdpq_text_printf(&(rdpq_textparms_t) { .width = name_w, .height = line_h, .valign = VALIGN_CENTER,
+            .wrap = WRAP_ELLIPSES, .style_id = STL_DEFAULT }, top[i].font, name_x, y, "%s", top[i].name);
+        text(x1 - 12 - time_w, y, time_w, line_h, ALIGN_RIGHT, STL_DEFAULT, hours);
+        int bar_x1 = x1 - 12;
+        int length = ((bar_x1 - name_x) * (int) (top[i].seconds / 60) / (int) ((top[0].seconds / 60) ? (top[0].seconds / 60) : 1)) & ~1;
+        length = (length < 2) ? 2 : (length > bar_x1 - name_x) ? (bar_x1 - name_x) : length;
+        rdpq_set_mode_fill(RGBA32(t->accent.r, t->accent.g, t->accent.b, 0xFF));
+        rdpq_fill_rectangle(name_x, y + line_h, name_x + length, y + line_h + PLAYED_BAR_H);
     }
 }
 
@@ -413,14 +442,15 @@ static void draw_statuses (void) {
     if (!features_enabled(FEATURE_GAME_STATUS)) {
         return;
     }
-    const theme_t *t = theme_get();
-    games_ui_round_fill(AREA_X0, STATUS_Y0, AREA_X1, STATUS_Y1, RGBA32(t->panel.r, t->panel.g, t->panel.b, 0xD8));
+    frame(AREA_X0, STATUS_Y0, PLAYED_X1, STATUS_Y1);
     static const game_status_t order[] = { GAME_STATUS_PLAYING, GAME_STATUS_BACKLOG, GAME_STATUS_BEATEN, GAME_STATUS_COMPLETE };
-    int width = (AREA_X1 - AREA_X0) / 4;
+    /* Two by two: four side by side didn't fit their numbers. */
+    int width = (PLAYED_X1 - AREA_X0 - 8) / 2;
     for (int i = 0; i < 4; i++) {
         char line[32];
-        snprintf(line, sizeof(line), "%s  %d", game_status_name(order[i]), statuses[order[i]]);
-        text(AREA_X0 + i * width, STATUS_Y0 + 4, width, STATUS_Y1 - STATUS_Y0 - 8, ALIGN_CENTER, game_status_style(order[i]), line);
+        snprintf(line, sizeof(line), "%s %d", game_status_name(order[i]), statuses[order[i]]);
+        text(AREA_X0 + 4 + (i % 2) * width, STATUS_Y0 + 3 + (i / 2) * SMALL_ROW_H, width, SMALL_ROW_H, ALIGN_CENTER,
+            game_status_style(order[i]), line);
     }
 }
 
@@ -446,11 +476,11 @@ void library_stats_draw (void) {
     tile(3, free_space, "free on SD");
 
     if (counting) {
-        text(AREA_X0, COLUMNS_Y0, AREA_X1 - AREA_X0, COLUMNS_Y1 - COLUMNS_Y0, ALIGN_CENTER, STL_GRAY, "Counting your games...");
+        text(AREA_X0, COLUMNS_Y0, AREA_X1 - AREA_X0, GENRE_Y1 - COLUMNS_Y0, ALIGN_CENTER, STL_GRAY, "Counting your games...");
     } else {
+        draw_played();
         draw_regions();
         draw_genres();
-        draw_played();
         draw_statuses();
     }
 
