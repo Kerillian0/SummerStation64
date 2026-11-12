@@ -3,9 +3,10 @@
  * @brief How many times each game has been started, when it last was, and
  *        for how long it has been played.
  *
- * Kept in a small text file on the SD card, one line per game. Games are
- * told apart by a hash of their full path, so a renamed or moved file starts
- * again from zero. Nothing is recorded while the "play_stats" feature is off.
+ * Kept in a small text file on the SD card, one line per game, then a line
+ * per game and year (play_years.h). Games are told apart by a hash of their
+ * full path; renaming in the menu carries the counts over
+ * (play_stats_rename()), a file moved on a PC starts again from zero. Nothing is recorded while the "play_stats" feature is off.
  *
  * Time played: nothing of the menu runs during a game, so a session is
  * noted when the game starts and settled when the menu next starts. After
@@ -58,7 +59,23 @@ bool play_stats_settled (const char **rom_path, uint32_t *length, uint32_t *coun
 /** All time played, in seconds, and how many different games have been started. */
 void play_stats_totals (uint32_t *seconds, int *games);
 
-/** A game's file was renamed (file_rename.h): its counts go with it. */
+/** A game's file was renamed (file_rename.h): its counts go with it (its years too). */
 void play_stats_rename (const char *old_path, const char *new_path);
+
+/*
+ * Per year (play_years.h): starts are counted in the year of the start, a
+ * session's time in the year it was started in. Kept since 2026-11-12;
+ * earlier play shows in the totals only. Nothing is counted without a
+ * working clock.
+ */
+
+/** The years with anything played, newest first. @return how many (at most `max`). */
+int play_stats_years (int *list, int max);
+
+/** A game's starts and time played in one year. @return false if it wasn't played then. */
+bool play_stats_year_get (const char *rom_path, int year, uint32_t *starts, uint32_t *seconds);
+
+/** One year's time played, starts, and how many different games were started. */
+void play_stats_year_totals (int year, uint32_t *seconds, uint32_t *starts, int *games);
 
 #endif /* PLAY_STATS_H__ */

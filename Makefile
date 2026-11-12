@@ -51,6 +51,7 @@ SRCS = \
 	menu/actions.c \
 	menu/controls.c \
 	menu/play_stats.c \
+	menu/play_years.c \
 	menu/save_backup.c \
 	menu/frame_rate.c \
 	menu/title_font.c \

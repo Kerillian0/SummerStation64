@@ -6,6 +6,7 @@
 
 #include "menu_features.h"
 #include "play_stats.h"
+#include "play_years.h"
 #include "profiles.h"
 #include "safe_file.h"
 
@@ -33,6 +34,12 @@ typedef struct {
 
 static stat_t stats[MAX_GAMES];
 static int stat_count = 0;
+
+/* Each game's starts and time played per year (play_years.h): 12 bytes a
+   game and year. When full, the earliest year's least-played game makes way. */
+#define MAX_YEAR_ROWS   (1024)
+static play_year_t year_rows[MAX_YEAR_ROWS];
+static play_years_t years = { .rows = year_rows, .count = 0, .max = MAX_YEAR_ROWS };
 static bool loaded = false;
 static int loaded_for = 0;     /* profiles_generation() when loaded */
 
@@ -61,9 +68,11 @@ static uint32_t path_hash (const char *path) {
 }
 
 /* One game per line: hash in hex, times started, time of the last start,
-   seconds played (missing in files from before). The open session, if any,
-   on a line of its own: "session <start> <game path>" (a first build also
-   wrote the save's path and a tab before the game's). */
+   seconds played (missing in files from before). Then each game's years,
+   "y <hash> <year> <starts> <seconds>" (play_years.h; none in files from
+   before, so years count from then). The open session, if any, on a line of
+   its own: "session <start> <game path>" (a first build also wrote the
+   save's path and a tab before the game's). */
 static void load (void) {
     if (loaded && loaded_for == profiles_generation()) {
         return;
@@ -71,6 +80,7 @@ static void load (void) {
     loaded = true;
     loaded_for = profiles_generation();   /* another player: forget the last one's */
     stat_count = 0;
+    years.count = 0;
     session.open = false;
 
     /* If power was cut between remove and rename, the temp file is the good copy. */
@@ -86,7 +96,10 @@ static void load (void) {
     while (fgets(line, sizeof(line), f)) {
         unsigned long key, count, last, seconds = 0, start;
         int used = 0;
-        if (sscanf(line, "session %lu %n", &start, &used) == 1 && used > 0) {
+        play_year_t year_row;
+        if (play_years_parse(line, &year_row)) {
+            play_years_load_row(&years, &year_row);
+        } else if (sscanf(line, "session %lu %n", &start, &used) == 1 && used > 0) {
             line[strcspn(line, "\r\n")] = '\0';
             char *tab = strchr(&line[used], '\t');
             session.open = true;
@@ -101,6 +114,11 @@ static void load (void) {
         }
     }
     fclose(f);
+    if (years.count > 0) {
+        int list[8];
+        int n = play_years_list(&years, list, 8);
+        debugf("play stats: %d games, %d game years (%d to %d)\n", stat_count, years.count, list[n - 1], list[0]);
+    }
 }
 
 /* Written to a temporary file first, so a power cut can't leave half a file. */
@@ -113,6 +131,11 @@ static void save (void) {
     for (int i = 0; i < stat_count; i++) {
         fprintf(f, "%08lx %lu %lu %lu\n", (unsigned long) stats[i].key, (unsigned long) stats[i].count,
             (unsigned long) stats[i].last, (unsigned long) stats[i].seconds);
+    }
+    char line[48];
+    for (int i = 0; i < years.count; i++) {
+        play_years_format(&year_rows[i], line, sizeof(line));
+        fputs(line, f);
     }
     if (session.open) {
         fprintf(f, "session %lu %s\n", (unsigned long) session.start, session.rom);
@@ -154,6 +177,7 @@ void play_stats_record (const char *rom_path, time_t now) {
                 }
             }
         }
+        play_years_forget(&years, s->key);     /* an entry made over: its years were another game's */
         s->key = key;
         s->count = 0;
         s->last = 0;
@@ -163,6 +187,11 @@ void play_stats_record (const char *rom_path, time_t now) {
     s->count++;
     if (now > 0) {
         s->last = (uint32_t) now;
+    }
+    int year = play_years_of((long) now);
+    play_year_t *y = year ? play_years_add(&years, key, year) : NULL;     /* no clock: the year isn't known */
+    if (y && y->starts < 0xFFFF) {
+        y->starts++;
     }
 
     /* A session left open (the menu never got to settle it) is dropped. */
@@ -188,6 +217,11 @@ void play_stats_settle (bool power_on) {
     stat_t *s = find(path_hash(session.rom));
     if (s && length > 0 && length <= most && features_enabled(FEATURE_PLAY_STATS)) {
         s->seconds += (uint32_t) length;
+        int year = play_years_of((long) session.start);    /* the year it was started in */
+        play_year_t *y = year ? play_years_add(&years, s->key, year) : NULL;
+        if (y) {
+            y->seconds += (uint32_t) length;
+        }
         settled.known = true;
         snprintf(settled.rom, sizeof(settled.rom), "%s", session.rom);
         settled.length = (uint32_t) length;
@@ -257,7 +291,34 @@ void play_stats_rename (const char *old_path, const char *new_path) {
     load();
     stat_t *s = find(path_hash(old_path));
     if (s && !find(path_hash(new_path))) {
+        play_years_rekey(&years, s->key, path_hash(new_path));
         s->key = path_hash(new_path);
         save();
     }
+}
+
+int play_stats_years (int *list, int max) {
+    load();
+    return play_years_list(&years, list, max);
+}
+
+bool play_stats_year_get (const char *rom_path, int year, uint32_t *starts, uint32_t *seconds) {
+    *starts = 0;
+    *seconds = 0;
+    if (!rom_path) {
+        return false;
+    }
+    load();
+    play_year_t *y = play_years_find(&years, path_hash(rom_path), year);
+    if (!y) {
+        return false;
+    }
+    *starts = y->starts;
+    *seconds = y->seconds;
+    return true;
+}
+
+void play_stats_year_totals (int year, uint32_t *seconds, uint32_t *starts, int *games) {
+    load();
+    play_years_totals(&years, year, seconds, starts, games);
 }

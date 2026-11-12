@@ -1,5 +1,5 @@
 #!/bin/sh
-# PC-side tests: the theme.ini reader, the hack finder and the review scores reader (C, built with the
+# PC-side tests: the theme.ini reader, the hack finder, the review scores reader, play stats per year (C, built with the
 # PC's own compiler), the Theme Maker's share codes, the Card Prep page and the Hacks, Missing Art and Collections tabs
 # (JavaScript, run with Node.js).
 # Run from anywhere:  sh tests/run.sh
@@ -32,6 +32,12 @@ echo "== review scores file =="
 gcc -std=gnu11 -Wall -Werror -I"$here/../src/menu" \
     -o "$out/review_scores_test" "$here/review_scores_test.c" "$here/../src/menu/review_scores.c"
 "$out/review_scores_test" || status=1
+
+echo
+echo "== play stats per year =="
+gcc -std=gnu11 -Wall -Werror -I"$here/../src/menu" \
+    -o "$out/play_years_test" "$here/play_years_test.c" "$here/../src/menu/play_years.c"
+"$out/play_years_test" || status=1
 
 echo
 echo "== screenshot pictures =="
