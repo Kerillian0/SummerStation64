@@ -115,6 +115,14 @@ void games_filter_collections_changed (menu_t *menu);
  */
 int games_filter_collection_covers (menu_t *menu, int which, entry_t **out, int most);
 
+/**
+ * How many of a collection's covers are beaten (a file of it marked Beaten
+ * or 100%, game_status.h; a folded cover counts once, beaten if any of its
+ * versions is), with how many covers it has in `covers`. Worked out again
+ * only when the collection, a status or the list changes.
+ */
+int games_filter_collection_beaten (menu_t *menu, int which, int *covers);
+
 /** Game Versions (option `game_versions`, Settings > Library). */
 typedef enum {
     GAME_VERSIONS_SEPARATE,     /**< every file its own cover (the default) */

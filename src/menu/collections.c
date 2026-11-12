@@ -221,6 +221,10 @@ int collections_mine (int id) {
     return (id >= MINE_FIRST && id < MINE_FIRST + my_collections_count()) ? (id - MINE_FIRST) : -1;
 }
 
+bool collections_is_status (int id) {
+    return id >= STATUS_FIRST && id < ALL_COLLECTIONS;
+}
+
 bool collections_has (int id, const entry_t *e) {
     return member && e && id >= 0 && id < ALL_COLLECTIONS && e->index >= 0 && e->index < member_count
         && (member[e->index] & (1ull << id));

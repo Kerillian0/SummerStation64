@@ -53,6 +53,7 @@ typedef enum {
     FEATURE_REVIEW_SCORES,      /**< review scores from the player's file: on the title panel and Game info, and Sort By's Review Score */
     FEATURE_NEVER_PLAYED_STEP,  /**< C-up / C-down on the Games tab also offer Never Played */
     FEATURE_GAME_STATUS,        /**< status marks (game_status.h): badge, Options rows, filter steps, collections, Sort By Status */
+    FEATURE_COLLECTION_PROGRESS,/**< a collection card says how many of its games are beaten, with a bar, and Complete when all are */
     FEATURE_COUNT
 } feature_t;
 

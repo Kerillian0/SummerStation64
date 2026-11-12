@@ -55,6 +55,7 @@ static const feature_info_t feature_info[FEATURE_COUNT] = {
     [FEATURE_REVIEW_SCORES]       = { "review_scores",       false, false },
     [FEATURE_NEVER_PLAYED_STEP]   = { "never_played_step",   true,  false },
     [FEATURE_GAME_STATUS]         = { "game_status",         true,  false },
+    [FEATURE_COLLECTION_PROGRESS] = { "collection_progress", true,  false },
 };
 
 #define FEATURES_USER_PATH      profiles_file("features.ini")  /* the playing profile's */

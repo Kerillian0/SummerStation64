@@ -84,6 +84,9 @@ menu_font_style_t games_ui_review_style (int review);
  * has none (its room is still kept, so the name never changes width), -1 for
  * no room at all (a collection's card).
  */
+/** The next games_ui_title_panel_draw() also shows this boxed badge, after the status badge (a collection's Complete). */
+void games_ui_title_panel_badge (const char *label, menu_font_style_t style);
+
 void games_ui_title_panel_draw (const char *title, const char *detail, const char *lead, bool hack, bool is_new, const char *with, const game_facts_t *facts, int review, int status);
 
 /**

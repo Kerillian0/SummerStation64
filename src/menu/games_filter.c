@@ -60,6 +60,7 @@ static retro_system_t retro_step = RETRO_OTHER;     /* on the Retro shelf: RETRO
 /* Which filters a game belongs to, one bit each (bit FILTER_ALL always set). */
 static uint32_t *marks = NULL;   /* indexed by entry->index, the order the folder was read in */
 static int marks_count = 0;
+static int list_loads = 0;      /* goes up each time the marks are made for a newly read list */
 static uint8_t *players = NULL;     /* by entry->index: how many can play it at once (0 not known) */
 static int party = 0;               /* the controllers the Party step was worked out for */
 static int total = 0;           /* entries in the list, shown and hidden */
@@ -577,6 +578,7 @@ void games_filter_after_load (menu_t *menu, int (*compare) (const void *, const 
     rgroup = malloc(total * sizeof(int16_t));  /* nor region copies */
     players = malloc(total);                    /* nor the Party step offered */
     marks_count = total;
+    list_loads++;
     for (int i = 0; i < total; i++) {
         entry_t *e = &menu->browser.list[i];
         e->index = i;
@@ -754,6 +756,63 @@ int games_filter_collection_covers (menu_t *menu, int which, entry_t **out, int 
     }
     collection = saved;
     return n;
+}
+
+/* The cover a file shows under in a collection (as cover_of(), for FILTER_COLLECTION's folding). */
+static int collection_cover_of (int k) {
+    if (group && folding(FILTER_COLLECTION) && group[k] >= 0) {
+        k = group[k];
+    }
+    if (rgroup && region_folding(FILTER_COLLECTION) && rgroup[k] >= 0) {
+        k = rgroup[k];
+    }
+    return k;
+}
+
+int games_filter_collection_beaten (menu_t *menu, int which, int *covers) {
+    /* Kept until another collection is asked about, a status changes or the list is read again. */
+    static int kept_which = -1, kept_generation = -1, kept_loads = -1;
+    static int kept_covers = 0, kept_beaten = 0;
+    if (which == kept_which && status_generation == kept_generation && list_loads == kept_loads) {
+        *covers = kept_covers;
+        return kept_beaten;
+    }
+    *covers = 0;
+    if (!marks || total <= 0) {
+        return 0;
+    }
+    uint8_t *beaten_cover = calloc((marks_count + 7) / 8, 1);
+    if (!beaten_cover) {
+        return 0;
+    }
+    /* Every file marked Beaten or 100% makes its cover beaten (a folded hack counts for its original's cover). */
+    for (int i = 0; i < total; i++) {
+        int k = menu->browser.list[i].index;
+        if (k >= 0 && k < marks_count && (marks[k] & ((1u << FILTER_BEATEN) | (1u << FILTER_COMPLETE)))) {
+            int c = collection_cover_of(k);
+            if (c >= 0 && c < marks_count) {
+                beaten_cover[c / 8] |= (uint8_t) (1 << (c % 8));
+            }
+        }
+    }
+    int saved = collection;
+    collection = which;
+    int n = 0, beaten = 0;
+    for (int i = 0; i < total; i++) {
+        entry_t *e = &menu->browser.list[i];
+        if (matches(e, FILTER_COLLECTION)) {
+            n++;
+            beaten += (beaten_cover[e->index / 8] & (1 << (e->index % 8))) ? 1 : 0;
+        }
+    }
+    collection = saved;
+    free(beaten_cover);
+    kept_which = which;
+    kept_generation = status_generation;
+    kept_loads = list_loads;
+    kept_covers = *covers = n;
+    kept_beaten = beaten;
+    return beaten;
 }
 
 void games_filter_shelf (menu_t *menu, games_shelf_t which, bool list_loaded) {

@@ -58,6 +58,9 @@ int collections_mine_id (int k);
 /** True if a collection with this number exists now (offered, or the player's own). */
 bool collections_exists (int id);
 
+/** True for the status marks' own collections (Backlog, Beaten). */
+bool collections_is_status (int id);
+
 /** True if this entry of the Games list is in the collection with this number. */
 bool collections_has (int id, const entry_t *e);
 

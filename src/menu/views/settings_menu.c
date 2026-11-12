@@ -468,6 +468,7 @@ static const item_t badge_items[] = {
         "Show which accessories a game uses (Controller Pak, Rumble Pak, Transfer Pak) under its name. Colored puts each in its own colored box, like Save found; Plain shows them in grey. Known for most games from the menu's built-in list."),
     FEATURE("Dump Check Marks", FEATURE_DUMP_MARKS, "A green check for a known good dump, an amber ? for a copy that differs from it, a red X for a bad dump. Needs menu/verified.txt from the Card Prep page."),
     FEATURE("Review Scores", FEATURE_REVIEW_SCORES, "Show a game's review score out of 10 at the right of its name under the covers, and in a box on its info screen: green from 7.5, yellow from 5.0, red below. Also adds Review Score to Sort By. Hacks show none. The scores come from menu/reviewscores.txt on the SD card: none come with the menu. A game the menu hasn't looked at yet shows its score after a moment, and sorts with the unscored ones until the list is sorted again."),
+    FEATURE("Collection Progress", FEATURE_COLLECTION_PROGRESS, "On the Collections tab, a card says how many of its games are beaten (Beaten or 100%, from Game Status), with a green bar under its covers, and Complete once all of them are. Needs Game Status on (Games > Library)."),
     FEATURE("Scroll Long Names", FEATURE_NAME_SCROLL, "On the rows of covers, a name too long for the panel under them slides to its end and back after 2 seconds. Off cuts it short with ..."),
 };
 

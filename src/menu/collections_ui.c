@@ -17,6 +17,7 @@
 #include "game_index.h"
 #include "games_filter.h"
 #include "games_ui.h"
+#include "menu_features.h"
 #include "path.h"
 #include "sound.h"
 #include "theme.h"
@@ -36,6 +37,9 @@
 #define SIDE_X          (226)       /* the cards either side: their middles' distance from the screen's */
 #define SIDE_W          (112)
 #define SIDE_H          (96)
+#define BAR_W           (240)       /* the progress bar under the fan */
+#define BAR_Y           (258)
+#define BAR_H           (6)
 
 static int selected = 0;
 static uint64_t moved_at = 0;
@@ -270,9 +274,26 @@ void collections_ui_draw (menu_t *menu) {
             RGBA32(t->tab_inactive.r, t->tab_inactive.g, t->tab_inactive.b, 0xFF));
     }
 
-    char games[24];
-    int n = (fan_card == selected) ? fan_count : games_filter_collection_covers(menu, collections_id(selected), NULL, 0);
+    char games[32];
+    int id = collections_id(selected);
+    int n = (fan_card == selected) ? fan_count : games_filter_collection_covers(menu, id, NULL, 0);
     snprintf(games, sizeof(games), (n == 1) ? "1 game" : "%d games", n);
+
+    /* How many are beaten (game_status.h): not on Backlog and Beaten's own cards, nor before one is. */
+    if (features_enabled(FEATURE_COLLECTION_PROGRESS) && features_enabled(FEATURE_GAME_STATUS) && !collections_is_status(id)) {
+        int covers = 0;
+        int beaten = games_filter_collection_beaten(menu, id, &covers);
+        if (beaten > 0 && covers > 0) {
+            snprintf(games, sizeof(games), "%d of %d beaten", beaten, covers);
+            int x0 = DISPLAY_CENTER_X - BAR_W / 2;
+            int filled = (beaten >= covers) ? BAR_W : (BAR_W * beaten / covers) & ~1;
+            box(x0, BAR_Y, x0 + BAR_W, BAR_Y + BAR_H, RGBA32(t->tab_inactive.r, t->tab_inactive.g, t->tab_inactive.b, 0xFF));
+            box(x0, BAR_Y, x0 + filled, BAR_Y + BAR_H, RGBA32(0x40, 0xC8, 0x40, 0xFF));
+            if (beaten >= covers) {
+                games_ui_title_panel_badge("Complete", STL_GREEN);
+            }
+        }
+    }
     const char *name = collections_name(collections_id(selected));
     games_ui_title_panel_draw(name, NULL, games, false, false, NULL, NULL, -1, 0);
     games_ui_position_draw(name, selected, count, NULL);

@@ -430,6 +430,15 @@ static void panel_clip_end (void) {
     }
 }
 
+/* A boxed badge the next title panel adds after its status badge (games_ui_title_panel_badge()). */
+static const char *extra_label = NULL;
+static menu_font_style_t extra_style = STL_DEFAULT;
+
+void games_ui_title_panel_badge (const char *label, menu_font_style_t style) {
+    extra_label = label;
+    extra_style = style;
+}
+
 void games_ui_title_panel_draw (const char *title, const char *detail, const char *lead, bool hack, bool is_new, const char *with, const game_facts_t *facts, int review, int status) {
     const theme_t *t = theme_get();
     int x0 = GAMES_UI_CONTENT_X0;
@@ -544,7 +553,9 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const cha
 
     if (!facts) {
         /* Not looked up yet: what is known at once. A hack and a new game say so from the start. */
-        if (hack || is_new || with || status > 0) {
+        const char *extra = extra_label;
+        extra_label = NULL;
+        if (hack || is_new || with || status > 0 || extra) {
             if (lead || with) {
                 x = games_ui_badge(x, y, lead ? lead : detail, STL_DEFAULT, false);
             }
@@ -553,6 +564,9 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const cha
             }
             if (status > 0) {
                 x = games_ui_badge(x, y, game_status_name(status), game_status_style(status), true);     /* the player's status mark */
+            }
+            if (extra) {
+                x = games_ui_badge(x, y, extra, extra_style, true);
             }
             if (hack) {
                 x = games_ui_badge(x, y, "Hack", STL_ORANGE, true);
@@ -592,6 +606,10 @@ void games_ui_title_panel_draw (const char *title, const char *detail, const cha
     }
     if (status > 0) {
         x = games_ui_badge(x, y, game_status_name(status), game_status_style(status), true);  /* the player's own mark: always shows */
+    }
+    if (extra_label) {
+        x = games_ui_badge(x, y, extra_label, extra_style, true);
+        extra_label = NULL;
     }
     if (hack) {
         PANEL_BADGE("Hack", STL_ORANGE, true);
