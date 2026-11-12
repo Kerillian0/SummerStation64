@@ -5,7 +5,8 @@
  * Laid out like a keyboard (number row, QWERTY letters, the symbols a file
  * name may hold in the spare keys) with Erase, Shift and OK down the right,
  * after the Switch's. The D-Pad or stick moves, A types the key, B erases
- * (at the start of the name it gives up), R is Shift (once: one capital,
+ * (held, it keeps erasing quickly; at the start it does nothing), Z gives
+ * up, R is Shift (once: one capital,
  * twice: caps lock), C-down types a space, C-left / C-right move the text
  * cursor, START or OK keeps the name.
  *
@@ -32,7 +33,7 @@ const char *name_keyboard_entry_name (int choice);
 typedef enum {
     NAME_KEYBOARD_TYPING,
     NAME_KEYBOARD_DONE,     /**< START or OK with something typed */
-    NAME_KEYBOARD_CANCEL,   /**< B at the start of the name */
+    NAME_KEYBOARD_CANCEL,   /**< Z: closed, nothing kept */
 } name_keyboard_result_t;
 
 /** Get ready for a new name (`text` is what it starts with). */

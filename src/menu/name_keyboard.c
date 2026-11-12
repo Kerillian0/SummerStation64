@@ -34,6 +34,12 @@ typedef enum { SHIFT_OFF, SHIFT_ONCE, SHIFT_CAPS } shift_t;
 static int row = 1, col = 0;
 static shift_t shift = SHIFT_OFF;
 
+/* B held: after a moment it keeps erasing, quickly. */
+#define ERASE_HOLD_MS   (350)
+#define ERASE_EVERY_MS  (50)
+static uint64_t erase_next = 0;     /* when a held B erases again; 0 while B is up */
+
+
 static bool on_space (void) {
     return row == ROWS - 1 && col >= SPACE_COL && col < RIGHT_COL;
 }
@@ -140,6 +146,7 @@ static void labels_make (void) {
 static sprite_t *corner = NULL;     /* rom:/corner.sprite: a 16x16 disc, for the keys' round corners */
 
 void name_keyboard_begin (const char *text) {
+    erase_next = 0;
     row = 1;
     col = 0;
     shift = (text && text[0]) ? SHIFT_OFF : SHIFT_ONCE;     /* a new name starts with a capital, as on the Switch */
@@ -179,17 +186,28 @@ static void type_char (char *text, int *cursor, int limit, char ch) {
     sound_play_effect(SFX_SETTING);
 }
 
-/* Erase the character before the cursor; at the start, give up. */
-static name_keyboard_result_t erase (char *text, int *cursor) {
+/* Erase the character before the cursor (nothing at the start: Z gives up, not B). */
+static name_keyboard_result_t erase (char *text, int *cursor, bool quiet_at_start) {
     if (*cursor == 0) {
-        sound_play_effect(SFX_EXIT);
-        return NAME_KEYBOARD_CANCEL;
+        if (!quiet_at_start) {
+            sound_play_effect(SFX_ERROR);
+        }
+        return NAME_KEYBOARD_TYPING;
     }
     int n = (int) strlen(text);
     memmove(text + *cursor - 1, text + *cursor, (size_t) (n - *cursor + 1));
     (*cursor)--;
     sound_play_effect(SFX_EXIT);
     return NAME_KEYBOARD_TYPING;
+}
+
+static bool b_down (void) {
+    JOYPAD_PORT_FOREACH (port) {
+        if (joypad_get_buttons(port).b) {   /* the state now: "held" is false on the frame it goes down */
+            return true;
+        }
+    }
+    return false;
 }
 
 static void next_shift (void) {
@@ -254,8 +272,21 @@ name_keyboard_result_t name_keyboard_process (menu_t *menu, char *text, int *cur
     if (menu->actions.settings) {   /* START as the menu sees it: one press, also when a tap acts on release (screenshot.h) */
         return finish(text);
     }
+    if (pressed.z) {
+        sound_play_effect(SFX_EXIT);
+        return NAME_KEYBOARD_CANCEL;    /* Z closes it, keeping nothing */
+    }
     if (pressed.b) {
-        return erase(text, cursor);
+        erase_next = get_ticks_ms() + ERASE_HOLD_MS;
+        return erase(text, cursor, false);
+    }
+    if (erase_next) {
+        if (!b_down()) {
+            erase_next = 0;
+        } else if (get_ticks_ms() >= erase_next) {
+            erase_next = get_ticks_ms() + ERASE_EVERY_MS;
+            return erase(text, cursor, true);
+        }
     }
     if (pressed.r) {
         next_shift();
@@ -276,7 +307,7 @@ name_keyboard_result_t name_keyboard_process (menu_t *menu, char *text, int *cur
     if (pressed.a) {
         if (col == RIGHT_COL) {
             switch (right_key(row)) {
-                case 0: return erase(text, cursor);
+                case 0: return erase(text, cursor, false);
                 case 1: next_shift(); return NAME_KEYBOARD_TYPING;
                 default: return finish(text);
             }
@@ -447,5 +478,5 @@ void name_keyboard_draw (const char *prompt, const char *text, int cursor, int l
     }
 
     text_at(PANEL_X0, HINTS_Y, PANEL_X1 - PANEL_X0, 26, ALIGN_CENTER, STL_GRAY,
-        "A type   B erase   R shift   C\u25C0\u25B6 move   START OK");
+        "A type  B erase  R shift  C\u25C0\u25B6 move  Z close  START OK");
 }
