@@ -209,6 +209,7 @@ static void new_theme (menu_t *menu) {
 
 static void open_test_patterns (menu_t *menu) {
     (void) menu;
+    assistant_note_used(ASSISTANT_USED_TEST_PATTERNS);
     tv_patterns_open();
 }
 
@@ -218,6 +219,7 @@ static void open_library_stats (menu_t *menu) {
 
 static void open_pad_test (menu_t *menu) {
     (void) menu;
+    assistant_note_used(ASSISTANT_USED_PAD_TEST);
     pad_test_open();
 }
 
@@ -819,6 +821,7 @@ static void search_done (menu_t *menu, const char *typed) {
     }
     search_view = true;
     from_search = false;
+    assistant_note_used(ASSISTANT_USED_SETTINGS_SEARCH);
     sound_play_effect(SFX_ENTER);
 }
 

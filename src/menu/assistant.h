@@ -37,6 +37,12 @@ typedef enum {
     ASSISTANT_USED_DETAILS,
     ASSISTANT_USED_THEME_EDITOR,
     ASSISTANT_USED_INSPECT,
+    ASSISTANT_USED_STATUS,          /* a status mark set (game_status.h) */
+    ASSISTANT_USED_LIBRARY_STATS,   /* Library Stats opened */
+    ASSISTANT_USED_SETTINGS_SEARCH, /* a setting searched for */
+    ASSISTANT_USED_NEVER_PLAYED,    /* the Never Played step reached */
+    ASSISTANT_USED_TEST_PATTERNS,
+    ASSISTANT_USED_PAD_TEST,
     ASSISTANT_USED_COUNT
 } assistant_used_t;
 

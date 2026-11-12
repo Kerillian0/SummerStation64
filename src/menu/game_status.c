@@ -6,6 +6,7 @@
 
 #include "fonts.h"
 #include "game_status.h"
+#include "assistant.h"
 #include "menu_features.h"
 #include "profiles.h"
 #include "safe_file.h"
@@ -125,6 +126,7 @@ void game_status_set (const char *path, game_status_t status) {
     }
     generation++;
     save();
+    assistant_note_used(ASSISTANT_USED_STATUS);
     debugf("game status: %s now %s\n", from_top(path), game_status_name(status));
 }
 

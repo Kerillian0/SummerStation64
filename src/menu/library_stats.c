@@ -5,6 +5,7 @@
 #include <fatfs/ff.h>
 #include <libdragon.h>
 
+#include "assistant.h"
 #include "display_name.h"
 #include "fonts.h"
 #include "game_data.h"
@@ -168,6 +169,7 @@ void library_stats_open (menu_t *menu) {
     counting = true;
     count_began = get_ticks_ms();
     count_slowest = 0;
+    assistant_note_used(ASSISTANT_USED_LIBRARY_STATS);
     sound_play_effect(SFX_ENTER);
 }
 

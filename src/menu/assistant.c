@@ -85,6 +85,12 @@ static bool done_showy (menu_t *menu) { (void) menu; return options_get(OPTION_A
 static bool done_collections (menu_t *menu) { (void) menu; return my_collections_count() > 0; }
 static bool done_profiles (menu_t *menu) { (void) menu; return profiles_count() > 1; }
 static bool done_never (menu_t *menu) { (void) menu; return false; }
+static bool done_status (menu_t *menu) { (void) menu; return used(ASSISTANT_USED_STATUS) || !features_enabled(FEATURE_GAME_STATUS); }
+static bool done_library_stats (menu_t *menu) { (void) menu; return used(ASSISTANT_USED_LIBRARY_STATS); }
+static bool done_search (menu_t *menu) { (void) menu; return used(ASSISTANT_USED_SETTINGS_SEARCH); }
+static bool done_never_played (menu_t *menu) { (void) menu; return used(ASSISTANT_USED_NEVER_PLAYED) || !features_enabled(FEATURE_NEVER_PLAYED_STEP); }
+static bool done_test_patterns (menu_t *menu) { (void) menu; return used(ASSISTANT_USED_TEST_PATTERNS); }
+static bool done_pad_test (menu_t *menu) { (void) menu; return used(ASSISTANT_USED_PAD_TEST); }
 
 static bool done_favorites (menu_t *menu) {
     for (int i = 0; i < FAVORITES_COUNT; i++) {
@@ -122,6 +128,18 @@ static const tip_t tips[] = {
                     "Someone else playing on your saves? Settings > Games > Profiles. Fix that.", done_profiles },
     { WHERE_COVERS, "Missing some box art? The Companion web page can fill it in for you!",
                     "No box art? The Companion web page does it for you. Lazy, but smart.", done_never },
+    { WHERE_COVERS, "Finished a game? Press Z on it, then Status, and mark it Beaten!",
+                    "Beat something? Z, Status, Beaten. Bragging rights, officially recorded.", done_status },
+    { WHERE_COVERS, "Curious how much you've played? Settings > Games > Saves & Play > Library Stats!",
+                    "Want to know how many hours you've sunk in? Library Stats, in Saves & Play. Brace yourself.", done_library_stats },
+    { WHERE_COVERS, "Can't find a setting? Press Z in Settings and type what you're looking for!",
+                    "Lost in Settings again? Press Z there and type. Searching: it's a thing now.", done_search },
+    { WHERE_COVERS, "Press C-Down until Never Played: the games on your card you haven't tried yet!",
+                    "You own games you've never even started. C-Down to Never Played. I'm not judging. Much.", done_never_played },
+    { WHERE_COVERS, "Does your TV cut off the edges? Settings > Console > Tools > Test Patterns shows you where!",
+                    "Edges of the picture missing? Test Patterns, in Console > Tools. Blame the TV, not me.", done_test_patterns },
+    { WHERE_COVERS, "Stick feeling loose? Settings > Console > Tools > Controller Test measures how worn it is!",
+                    "Missing jumps? Maybe it's the stick. Controller Test, in Console > Tools. Maybe it's you.", done_pad_test },
 };
 #define TIPS_COUNT  ((int) (sizeof(tips) / sizeof(tips[0])))
 
@@ -458,7 +476,7 @@ const char *assistant_mood_name (int choice) {
     return (choice >= 0 && choice < ASSISTANT_MOOD_COUNT) ? names[choice] : "";
 }
 
-/* The fairy's colour (Settings > Look > Fairy Look > Fairy Color): its own,
+/* The fairy's colour (Settings > Look > Assistant > Fairy Look > Fairy Color): its own,
    the theme's accent, or one of these. */
 static const struct { const char *name; uint32_t rgb; } fairy_colors[] = {
     { "Coral", 0xFF7A6A }, { "Gold", 0xFFC83C }, { "Lime", 0x9BE04A }, { "Mint", 0x4CE0B0 },

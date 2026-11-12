@@ -31,7 +31,7 @@ a To add more folders, open each one on the Folders tab and choose Z, "Add this 
 q What do the buttons do?
 a Left and right move along the covers, L and R change tab, and C-up / C-down filter the row.
 a A opens a game's info page, and A there plays it. Z opens Options; hold Z to search by letter. Up and down turn the box over, and holding B lets the stick spin it.
-a START opens Settings. Hold START for a second to save a screenshot.
+a START opens Settings, and Z there searches every setting. Hold START for a second to save a screenshot.
 q How do I play a game faster?
 a Settings > Console > Controls has Quick Launch (tap A to play, hold A for the info page) and Hold A To Launch (the other way round).
 q Which edition do I have?
@@ -39,6 +39,12 @@ a The Art Edition has box art built into the menu file. The Standard edition is 
 a Settings > Console > About > Menu Information shows the version.
 q How do I update the menu?
 a Download the new sc64menu.n64 and copy it over the old one at the top of the card. Your settings, saves and lists stay where they are, in the menu folder and beside your games.
+q How do I find a setting?
+a Press Z on any page of Settings and type a word or two: "beaten", "music", "cover". Every setting with those words in its name or help is listed, with where it lives.
+a A goes straight to it, B comes back to the list, and B again returns to where you were.
+q How do I type a name?
+a On the keyboard the stick or D-Pad moves, A types, R is Shift and C-down a space. B erases, and holding it erases quickly. START keeps the name; Z closes the keyboard without keeping it.
+a Prefer spelling with a dial? Settings > Console > Controls > Name Entry.
 
 topic Finding games
 q How do the tabs work?
@@ -48,16 +54,21 @@ q How do I find one game quickly?
 a Hold Z on the covers for the letter dial. Point the stick at a letter and the covers jump there; A adds the letter, so you can spell more, and B takes one away. Let go of Z to stay.
 a Or press Z, "Random game" to let the menu pick for you.
 q What are the filters?
-a C-up and C-down step the Games row through All, USA, Japan, Europe, 64DD and Hacks. With two or more controllers plugged in there's Party too: games for that many players.
+a C-up and C-down step the Games row through All, USA, Japan, Europe, 64DD and Hacks, then Never Played and each status you've marked games with (Playing, Beaten, 100%, Backlog). With two or more controllers plugged in there's Party too: games for that many players.
 a A step with no games is skipped.
 q How do I sort the games?
-a Settings > Games > Library > Sort By: by name either way, recently played, release date, developer, or recently added (with a New badge for 30 days).
+a Settings > Games > Library > Sort By: by name either way, recently played, time played (most first), release date, developer, status, or recently added (with a New badge for 30 days).
 q What are collections?
-a The Collections tab holds series (all the Zelda games, say) and multiplayer sets, made for you. Your own come first.
+a The Collections tab holds series (all the Zelda games, say) and multiplayer sets, made for you, plus Backlog and Beaten once you mark games so. Your own come first. Each card says how many of its games you've beaten.
 a Press Z on any game and choose "Add to collection..." to make one or add to it. Add the tab in Settings > Games > Tabs.
 q How do I hide a game?
 a Press Z on its cover and choose "Hide this game". It stays on the card and in the Folders tab.
 a To bring it back, press Z on it in the Folders tab, or use Settings > Games > Game Folders > Unhide All Games.
+q How do I mark a game as beaten?
+a Press Z on its cover, or Options on its info page, and choose Status: Playing, Beaten, 100% or Backlog. Its name gets a colored word.
+a C-up / C-down then step to each status, and Library Stats counts the games you beat each year.
+q Why did a column of covers open?
+a That cover stands for several files: hacks, copies or other regions, grouped by Game Versions or Region Copies (Settings > Games > Library). Pick one with up and down and A; B folds the column away.
 
 topic Box art and clips
 q Why does a game have no cover?
@@ -102,6 +113,10 @@ a Maybe! Before a game starts, the menu keeps a dated copy of its save in saves/
 a On the game's info page, press R for Options and choose "Restore save". The save you have now is kept too.
 q How is time played counted?
 a From starting a game until the menu comes back: by RESET, or by the power switch if the console is back on within 4 hours. It shows in the Played box on the info page.
+a Sort By > Time Played puts your most played games first.
+q Where can I see my stats?
+a Settings > Games > Saves & Play > Library Stats: how many games, their size, your time played, your five most played, your top developers and genres, and your status marks.
+a C-left / C-right there step to Year in Review: each year's time played, games, most played and the games you beat, against the year before.
 q How do I take screenshots and clips?
 a Hold START for a second: the screen is saved in menu/screenshots/. If START switches your controller off, Settings > Console > Screenshots > Screenshot Button can use L + R.
 a For a clip, Settings > Console > Clips > Record Clip. The Companion's Clips tab turns it into a GIF.
@@ -144,5 +159,10 @@ a Without the Expansion Pak, the menu leaves extras out rather than run out of m
 a Settings > Console > TV & Video > Character Set: Latin Only frees the most.
 q The picture flickers or looks soft.
 a Settings > Console > TV & Video > Video Output: 240p is steadier on CRTs and upscalers, 480i sharper. It applies after a restart.
+q My TV cuts off the picture's edges.
+a Settings > Console > Tools > Test Patterns shows lines 2.5, 5 and 10% in from the edge, a grid and a circle. The menu keeps inside the yellow 5% line. A second pattern, color bars and grey steps, helps set the TV's brightness and color.
+q Is my controller's stick worn?
+a Settings > Console > Tools > Controller Test: press every button and turn the stick round its edge. It says how far the stick reaches against a new one: Like new, Worn or Very worn.
+a Z + A tests a Rumble Pak. Hold B for two seconds to leave.
 q How do I report a problem?
 a Open an issue on the project's GitHub page: the form asks for your setup. A photo of the screen and the debug log (from the cart's sc64deployer) help the most.

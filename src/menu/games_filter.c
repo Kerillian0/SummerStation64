@@ -644,6 +644,9 @@ bool games_filter_step (menu_t *menu, int direction) {
     current = next;
     reapply(menu);
     assistant_note_used(ASSISTANT_USED_FILTER);
+    if (current == FILTER_NEVER_PLAYED) {
+        assistant_note_used(ASSISTANT_USED_NEVER_PLAYED);
+    }
     debugf("games filter: %s, %d games\n", names[current], (int) menu->browser.entries);
     return true;
 }
