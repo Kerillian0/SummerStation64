@@ -689,6 +689,11 @@ void carousel_art_turn (float degrees) {
     extra_turn = degrees;
 }
 
+void carousel_art_open_out (void) {
+    box_since = 0;          /* starts again from flat on its next drawing */
+    box_from_flat = true;   /* even with 3D Side Covers */
+}
+
 float carousel_art_flip_width (void) {
     if (extra_turn != 0.0f && flip == FLIP_NONE) {
         float c = cosf(extra_turn * (float) M_PI / 180.0f);

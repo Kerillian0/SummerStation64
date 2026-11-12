@@ -124,6 +124,9 @@ float carousel_art_flip_width (void);
 /** Turn the selected cover `degrees` round its upright (0 at rest; -90 edge-on), until set back to 0: the welcome back. */
 void carousel_art_turn (float degrees);
 
+/** The selected cover opens out from flat into its 3D box again, as when it first arrives (a flat cover has just landed on it: the versions column folding back). */
+void carousel_art_open_out (void);
+
 /** Every cover on show has its art loaded and unpacked, or is known to have none (the deal waits for it). */
 bool carousel_art_quiet (void);
 

@@ -32,8 +32,11 @@ typedef struct {
  */
 const game_facts_t *game_facts_update (menu_t *menu);
 
-/** Forget what is known, e.g. when leaving the Games screen. */
+/** Forget what is known about the selected game, e.g. when leaving the Games screen (the saves folders' notes stay). */
 void game_facts_reset (void);
+
+/** A save file may have come or gone (put back, deleted, renamed): read the saves folders again. */
+void game_facts_saves_changed (void);
 
 /** Look the selected game up again (its favorite heart changed); the save notes are kept. */
 void game_facts_recheck (void);

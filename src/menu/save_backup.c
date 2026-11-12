@@ -11,6 +11,7 @@
 #include <time.h>
 
 #include "cart_load.h"
+#include "game_facts.h"
 #include "menu_features.h"
 #include "path.h"
 #include "play_stats.h"
@@ -337,6 +338,7 @@ static void restore (menu_t *menu) {
         tell("The save could not be put back.\n\nNothing is lost: every kept save\nis still in the list.");
         return;
     }
+    game_facts_saves_changed();     /* there may not have been a save before */
     debugf("save backup: %s put back as %s in %d ms\n", chosen.file, save, (int) (get_ticks_ms() - began));
     tell("You are back on the save from\n%s.\n\nThe save you had is in the list.", chosen.label);
 }

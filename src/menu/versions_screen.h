@@ -48,6 +48,11 @@ void versions_screen_open (menu_t *menu, entry_t **entries, const char **names, 
 /** It is showing (opening, open or folding away). */
 bool versions_screen_active (void);
 
+/** It hides the Games screen: the browser draws only it. Not at the very end
+ *  of folding back: the browser then draws the Games screen without its
+ *  middle cover, and versions_screen_draw() over it. */
+bool versions_screen_covers_games (void);
+
 /** Read the buttons. @return true while it is showing (the browser does nothing else). */
 bool versions_screen_process (menu_t *menu);
 

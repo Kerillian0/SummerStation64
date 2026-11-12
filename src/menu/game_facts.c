@@ -47,7 +47,14 @@ void game_facts_reset (void) {
     watched_hash = 0;
     pending = false;
     known = false;
-    saves_forget();     /* saves may be made or deleted while away: read the folders again */
+    /* The saves folders' notes stay: a save file only comes or goes when a
+       game is played (the menu starts afresh after it), or through
+       game_facts_saves_changed(). Reading them again after every visit to
+       Game info cost 22-29 ms. */
+}
+
+void game_facts_saves_changed (void) {
+    saves_forget();
 }
 
 void game_facts_recheck (void) {
@@ -113,8 +120,8 @@ static bool is_favorite (menu_t *menu, path_t *rom_path) {
 
 /* "Is there a save file?" used to ask the card for every game, about 15 ms
    each time. The saves folder is now read once, noting every name in it,
-   and the question is answered from those notes. Read again after the
-   covers have been left, since saves can be made or deleted meanwhile. */
+   and the question is answered from those notes. Read again when the menu
+   itself puts back, deletes or renames a file (game_facts_saves_changed()). */
 #define SAVES_NOTED     (512)
 #define SAVES_FOLDERS   (10)    /* the Games tab can show games from several folders, each with its own saves */
 static uint32_t saves_names[SAVES_NOTED];   /* every save file noted, as its folder and name hashed together */

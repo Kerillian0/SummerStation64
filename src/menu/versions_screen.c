@@ -5,6 +5,7 @@
 
 #include "animations.h"
 #include "baked_art.h"
+#include "carousel_art.h"
 #include "controls.h"
 #include "fonts.h"
 #include "game_index.h"
@@ -21,7 +22,8 @@
 
 #define MAX_ROWS        (12)
 #define OPEN_MS         (300)
-#define CLOSE_MS        (200)
+#define CLOSE_MS        (250)   /* the column folds back while the Games screen comes back into focus */
+#define LAND            (0.25f) /* folding back, the last part of the fold is over the real Games screen (see versions_screen_covers_games()) */
 #define MOVE_MS         (160)
 #define CARD_MIN_FREE   (384 * 1024)    /* a picture from the card is unpacked only with this much memory free */
 
@@ -45,8 +47,11 @@
 #define DIM_SIDE        (0xB0)  /* covers not selected are a little darker */
 
 /* The blurred Games screen behind. */
-#define BLUR_W          (80)
-#define BLUR_H          (60)
+#define BLUR_STEPS      (4)             /* halvings: 640x480 to 40x30 */
+#define BLUR_W          (DISPLAY_WIDTH >> BLUR_STEPS)
+#define BLUR_H          (DISPLAY_HEIGHT >> BLUR_STEPS)
+#define BLUR_MIN_FREE   (320 * 1024)    /* the four steps take about 200 KB while the column is open */
+#define BLUR_SHIFT_PX   (12.0f)         /* how far four halvings move the picture up and left (measured on a photo) */
 #define BLUR_DARK       (0x68)
 
 typedef enum { CLOSED, OPENING, OPEN, CLOSING, PICKED } state_t;    /* PICKED: drawn one last frame, until the next screen takes over */
@@ -73,8 +78,8 @@ static struct {
 } arts[MAX_ROWS];
 static int art_count = 0;
 
-static uint16_t blur_pixels[BLUR_W * BLUR_H] __attribute__((aligned(16)));
-static surface_t blur;
+static surface_t steps[BLUR_STEPS];    /* the Games screen halved, again and again: stretched smoothly back, each is blurrier than the one before */
+static void free_steps (void);
 static bool blur_wanted = false;
 static bool blur_ready = false;
 static bool blurred_now = false;    /* the blur was made this frame: the covers wait a frame */
@@ -107,6 +112,10 @@ void versions_screen_close (void) {
     state = CLOSED;
     blur_ready = blur_wanted = false;
     free_arts();
+    if (steps[0].buffer) {
+        rspq_wait();    /* the graphics chip may still be using them */
+        free_steps();
+    }
 }
 
 /* "Played 12 times · Oct 26", "Played once · Oct 26, 2025", "Never played". */
@@ -179,6 +188,12 @@ bool versions_screen_active (void) {
     return state != CLOSED;
 }
 
+static float opened (void);
+
+bool versions_screen_covers_games (void) {
+    return state != CLOSED && !(state == CLOSING && opened() < LAND);
+}
+
 /* How far it has opened, 0 to 1. */
 static float opened (void) {
     int since = (int) (get_ticks_ms() - state_since);
@@ -225,6 +240,7 @@ bool versions_screen_process (menu_t *menu) {
     if (state == CLOSING) {
         if (get_ticks_ms() - state_since >= CLOSE_MS) {
             versions_screen_close();
+            carousel_art_open_out();    /* the flat cover has landed on the row's: that one opens out into its box */
         }
         return true;
     }
@@ -260,75 +276,110 @@ bool versions_screen_process (menu_t *menu) {
 
 /* ---------- the blurred Games screen ---------- */
 
+/* Halve `from` into `to` (half its size each way). The picture is drawn a
+   quarter of a pixel up and left, so the chip samples exactly between four
+   pixels, and its mid-texel mode then averages those four: a true halving.
+   Sampled on the pixels themselves (no shift), it picked one pixel in four,
+   and four steps of that made a jumble, not a blur. */
+static void halve (surface_t *from, surface_t *to) {
+    rdpq_attach(to, NULL);
+    rdpq_set_mode_standard();
+    rdpq_mode_filter(FILTER_MEDIAN);
+    rdpq_mode_dithering(DITHER_NONE_NONE);
+    rdpq_mode_combiner(RDPQ_COMBINER_TEX);
+    rdpq_tex_blit(from, -0.25f, -0.25f, &(rdpq_blitparms_t) { .scale_x = 0.5f, .scale_y = 0.5f });
+    rdpq_detach();
+}
+
+static void free_steps (void) {
+    for (int i = 0; i < BLUR_STEPS; i++) {
+        if (steps[i].buffer) {
+            surface_free(&steps[i]);
+            steps[i].buffer = NULL;
+        }
+    }
+}
+
 void versions_screen_capture (surface_t *d) {
     if (!blur_wanted) {
         return;
     }
     blur_wanted = false;
-    if (surface_get_format(d) != FMT_RGBA16 || d->width < BLUR_W * 8 || d->height < BLUR_H * 8) {
+    if (surface_get_format(d) != FMT_RGBA16 || d->width != DISPLAY_WIDTH || d->height != DISPLAY_HEIGHT) {
         return;     /* the plain background is drawn instead */
     }
-    uint64_t began = get_ticks_ms();
-    /* Each small pixel: the average of 8 of the 64 under it, read straight
-       from memory (the graphics chip wrote them; the cache is left alone:
-       letting go of cache lines here crashed in the controller code). Eight
-       bytes are read at once, four pixels from one memory fetch: reading
-       pixels one by one, a fetch each, took 59 ms. */
-    const uint8_t *base = (const uint8_t *) UncachedAddr(d->buffer);
-    static uint16_t small[BLUR_W * BLUR_H];
-    for (int by = 0; by < BLUR_H; by++) {
-        const uint64_t *top = (const uint64_t *) (base + ((by * 8) + 2) * d->stride);
-        const uint64_t *low = (const uint64_t *) (base + ((by * 8) + 5) * d->stride);
-        for (int bx = 0; bx < BLUR_W; bx++) {
-            uint64_t q[2] = { top[bx * 2], low[(bx * 2) + 1] };     /* pixels 0-3 of one line, 4-7 of the other */
-            int r = 0, g = 0, b = 0;
-            for (int k = 0; k < 2; k++) {
-                for (int shift = 0; shift < 64; shift += 16) {
-                    uint16_t p = (uint16_t) (q[k] >> shift);
-                    r += (p >> 11) & 31; g += (p >> 6) & 31; b += (p >> 1) & 31;
-                }
-            }
-            small[(by * BLUR_W) + bx] = (uint16_t) (((r / 8) << 11) | ((g / 8) << 6) | ((b / 8) << 1) | 1);
-        }
+    heap_stats_t heap;
+    sys_get_heap_stats(&heap);
+    if (heap.total - heap.used < BLUR_MIN_FREE) {
+        return;
     }
-    /* Then softened once more with each pixel's neighbours. */
-    for (int y = 0; y < BLUR_H; y++) {
-        for (int x = 0; x < BLUR_W; x++) {
-            int r = 0, g = 0, b = 0, n = 0;
-            for (int dy = -1; dy <= 1; dy++) {
-                for (int dx = -1; dx <= 1; dx++) {
-                    int xx = x + dx, yy = y + dy;
-                    if (xx < 0 || yy < 0 || xx >= BLUR_W || yy >= BLUR_H) {
-                        continue;
-                    }
-                    uint16_t p = small[(yy * BLUR_W) + xx];
-                    r += (p >> 11) & 31; g += (p >> 6) & 31; b += (p >> 1) & 31; n++;
-                }
-            }
-            blur_pixels[(y * BLUR_W) + x] = (uint16_t) (((r / n) << 11) | ((g / n) << 6) | ((b / n) << 1) | 1);
+    /* The graphics chip halves the Games screen still in this buffer four
+       times (320x240, 160x120, 80x60, 40x30); stretched smoothly back, the
+       last is the blur, and the others the steps in between as the screen
+       goes out of focus and back into it (draw_blur()). It reads the old picture before anything new is
+       drawn into the buffer, since it does everything in order. The
+       processor reading the pixels itself cost 29-59 ms. */
+    int w = DISPLAY_WIDTH, h = DISPLAY_HEIGHT;
+    surface_t *from = d;
+    for (int i = 0; i < BLUR_STEPS; i++) {
+        w /= 2;
+        h /= 2;
+        steps[i] = surface_alloc(FMT_RGBA16, w, h);
+        if (!steps[i].buffer) {
+            rspq_wait();
+            free_steps();
+            return;
         }
+        halve(from, &steps[i]);
+        from = &steps[i];
     }
-    data_cache_hit_writeback(blur_pixels, sizeof(blur_pixels));
-    blur = surface_make(blur_pixels, FMT_RGBA16, BLUR_W, BLUR_H, BLUR_W * 2);
     blur_ready = true;
     blurred_now = true;
-    debugf("versions screen: Games screen blurred in %d ms\n", (int) (get_ticks_ms() - began));
 }
-
-static void draw_blur (int dark) {
+/* The Games screen as it was, `sharp` 1 nearly in focus (the 320x240 step),
+   down to 0 the full blur (40x30), at brightness `dark`. Each step is one
+   solid picture over the whole screen: going out of focus and back costs
+   the chip less than the Games screen itself. (A see-through fade over the
+   live screen cost 13 ms more a frame and doubled every frame; a dissolve
+   was cheap but grainy.) */
+static void draw_blur (float sharp, int dark) {
     if (!blur_ready) {
         ui_components_background_draw();
         return;
     }
+    int level = BLUR_STEPS - 1 - (int) (sharp * BLUR_STEPS);
+    level = (level < 0) ? 0 : (level >= BLUR_STEPS) ? BLUR_STEPS - 1 : level;
+    surface_t *step = &steps[level];
+    float per_texel = (float) DISPLAY_WIDTH / step->width;
+    /* The chip's smoothing places each halving's pixels a little up and to
+       the left: about 12 px after four (the owner's photos), growing with
+       each, 0.4 px x (2^(n+1) - 2) after n. The picture is moved back down
+       and right by that much. */
+    int halvings = level + 1;
+    float shift = BLUR_SHIFT_PX * (float) ((2 << halvings) - 2) / (float) ((2 << BLUR_STEPS) - 2);
     rdpq_mode_push();
+        if (level < BLUR_STEPS - 1) {
+            /* Too big for the chip's texture memory at once: drawn in pieces,
+               moved by `shift`, with the thin strip it leaves at the top and
+               left edges filled. */
+            int edge = (int) shift + 1;
+            rdpq_set_mode_fill(RGBA32(0, 0, 0, 0xFF));
+            rdpq_fill_rectangle(0, 0, DISPLAY_WIDTH, edge);
+            rdpq_fill_rectangle(0, 0, edge, DISPLAY_HEIGHT);
+        }
         rdpq_set_mode_standard();
         rdpq_mode_filter(FILTER_BILINEAR);
         rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);
         rdpq_set_prim_color(RGBA32(dark, dark, dark, 0xFF));
-        rdpq_tex_blit(&blur, 0, 0, &(rdpq_blitparms_t) {
-            .scale_x = (float) DISPLAY_WIDTH / BLUR_W,
-            .scale_y = (float) DISPLAY_HEIGHT / BLUR_H,
-        });
+        if (level == BLUR_STEPS - 1) {
+            /* The smallest fits whole; its edge pixels carry on past its edges, so the screen's edges stay covered. */
+            float back = shift / per_texel;
+            rdpq_tex_upload(TILE0, step, NULL);
+            rdpq_texture_rectangle_scaled(TILE0, 0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT,
+                -back, -back, step->width - back, step->height - back);
+        } else {
+            rdpq_tex_blit(step, shift, shift, &(rdpq_blitparms_t) { .scale_x = per_texel, .scale_y = per_texel });
+        }
     rdpq_mode_pop();
 }
 
@@ -390,7 +441,18 @@ static void text_at (int x, int y, int w, int h, int font_id, menu_font_style_t 
 void versions_screen_draw (menu_t *menu) {
     (void) menu;
     float e = opened();
-    draw_blur(0xFF - (int) ((0xFF - BLUR_DARK) * e));
+    /* Opening, the Games screen goes out of focus and darkens as the column
+       grows; folding back, it comes into focus again and is fully bright and
+       nearly sharp by the time the fold is three quarters done. For the last
+       quarter the browser draws the real Games screen under the column
+       instead (its middle cover left out), so the flat cover lands on the
+       real screen and the box opens out from it. */
+    bool landing = (state == CLOSING && e < LAND);
+    if (!landing) {
+        float b = (e - LAND) / (1.0f - LAND);
+        b = (b < 0.0f) ? 0.0f : (b > 1.0f) ? 1.0f : b;
+        draw_blur(1.0f - b, 0xFF - (int) ((0xFF - BLUR_DARK) * b));
+    }
 
     float pos = shown();
     float cx = FROM_X + (column_x() - FROM_X) * e;

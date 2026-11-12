@@ -15,6 +15,7 @@
 #include "dd_pair.h"
 #include "dump_check.h"
 #include "file_rename.h"
+#include "game_facts.h"
 #include "game_index.h"
 #include "hidden_games.h"
 #include "game_marks.h"
@@ -69,6 +70,7 @@ static void backup_name (const char *base, char *out, size_t size) {
 }
 
 static void update_lists (menu_t *menu, const char *new_path) {
+    game_facts_saves_changed();     /* the game's saves were renamed with it */
     play_stats_rename(old_path, new_path);
     game_index_rename(old_path, new_path, file_size);
     hidden_games_rename(old_path, new_path);

@@ -691,6 +691,7 @@ static void show_game_info (menu_t *menu, void *arg) {
 static void delete_entry (menu_t *menu, void *arg) {
     path_t *path = path_clone_push(menu->browser.directory, menu->browser.entry->name);
 
+    game_facts_saves_changed();     // it may be a save
     if (remove(path_get(path))) {
         menu->browser.valid = false;
         if (menu->browser.entry->type == ENTRY_TYPE_DIR) {
@@ -2009,6 +2010,9 @@ void carousel_draw (menu_t *menu) {
             if (dealing && !cover_deal_place(offset, &deal_dx, &deal_dy, &deal_scale, &deal_alpha)) {
                 continue; // not dealt in yet
             }
+            if (offset == 0 && versions_screen_active()) {
+                continue; // the versions column's flat cover is landing here; the box opens out from it once it has
+            }
             alpha *= deal_alpha;
 
             // Size shrinks from the center size to the side size over the first position.
@@ -2355,7 +2359,7 @@ static void carousel_hints_draw (menu_t *menu) {
 
 static void draw (menu_t *menu, surface_t *d) {
     versions_screen_capture(d);     // as it opens, a blurred copy of the Games screen still in this buffer
-    if (versions_screen_active()) {
+    if (versions_screen_covers_games()) {
         rdpq_attach(d, NULL);
         versions_screen_draw(menu);
         debug_stats_overlay_draw();
@@ -2539,6 +2543,9 @@ static void draw (menu_t *menu, surface_t *d) {
     }
     animations_draw_late(menu->mode);  // Showy: a pop-up just closed shrinks away
     assistant_draw(menu);   // the assistant's fairy and bubble, when it is talking
+    if (versions_screen_active()) {
+        versions_screen_draw(menu);     // the end of folding back: the flat cover lands on the real Games screen
+    }
     debug_stats_overlay_draw(); // Performance Overlay, if it is on
 
     rdpq_detach_show();
