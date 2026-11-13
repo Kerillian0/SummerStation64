@@ -17,8 +17,8 @@
 #define FADE_MS             (400)
 #define LOAD_STEP           (64 * 1024) /* the clip's header is checked once this much is in */
 #define LOAD_PIECE          (4 * 1024)  /* read in the idle time between frames: at least this much at a time (about 4 ms) */
-#define LOAD_PIECE_MAX      (32 * 1024) /* ... and at most this, sized to the time there is */
-#define LOAD_MARGIN_US      (3000)      /* a piece is only started if it should end this long before the next frame is due */
+#define LOAD_PIECE_MAX      (16 * 1024) /* ... and at most this, sized to the time there is (32 KB pieces ran past the refresh) */
+#define LOAD_MARGIN_US      (6000)      /* a piece is only started if it should end this long before the next frame is due */
 #define LOAD_STALL_MS       (300)       /* ... or if none has been read for this long, so loading never stops */
 #define MAX_CLIP_BYTES      (3 * 1024 * 1024)
 #define BUFFERED_PICS       (4)         /* pictures decoded ahead: about 42 KB each at 192x144 */
@@ -41,6 +41,8 @@ typedef enum {
     VP_OFF,         /* nothing wanted */
     VP_LOADING,     /* reading the clip from the card */
     VP_WAITING,     /* in memory, waiting out START_DELAY_MS */
+    VP_OPENED,      /* the player is open; its first picture is decoded in the next idle time */
+    VP_FILLING,     /* the first picture is in; the 3D box's fill is set up in the next idle time */
     VP_PLAYING,
     VP_FAILED,      /* not a clip the player can take: show the cover, try nothing until another game */
 } vp_state_t;
@@ -229,6 +231,10 @@ static bool previews_on (void) {
 /* ---------- finding a clip ---------- */
 
 bool video_preview_find (const char *storage_prefix, const char game_code[4], char *out, size_t size) {
+    return video_preview_find_in(storage_prefix, game_code, 4, out, size) || video_preview_find_in(storage_prefix, game_code, 3, out, size);
+}
+
+bool video_preview_find_in (const char *storage_prefix, const char game_code[4], int letters, char *out, size_t size) {
     if (!previews_on()) {
         return false;
     }
@@ -240,9 +246,9 @@ bool video_preview_find (const char *storage_prefix, const char game_code[4], ch
         }
     }
 
-    /* The region's own folder first, then the one for every region. */
+    /* letters 4: the region's own folder; 3: the one for every region. */
     const char *slash = (storage_prefix[0] && storage_prefix[strlen(storage_prefix) - 1] == '/') ? "" : "/";
-    for (int letters = 4; letters >= 3; letters--) {
+    {
         char path[96];
         if (letters == 4) {
             snprintf(path, sizeof(path), "%s%smenu/metadata/%c/%c/%c/%c/" VIDEO_PREVIEW_FILE, storage_prefix, slash,
@@ -375,10 +381,36 @@ static void load_seek_table (void) {
 static uint64_t frame_began_us = 0;
 static uint32_t us_per_kb = 1000;   /* measured: 64 KB in 57 ms on the owner's card */
 static uint64_t last_piece_ms = 0;
+static uint32_t start_open_us = 0;
+static uint64_t start_step_ms = 0;      /* when the last starting step ran (so a step never waits for ever) */
 static bool header_checked = false;
+/* One line per clip in the log: how its loading went. */
+static struct { int pieces; uint32_t open_us, worst_us, worst_planned_us, finish_us; uint64_t began_ms; } load_log;
+/* The pictures are counted as the pieces come in (all at the end took 30-80 ms in one go):
+   the same scan as video_clip_count_frames(), resumed where it stopped. */
+static size_t counted_upto = 0;
+static int counted_frames = 0;
+
+static void count_more (size_t loaded) {
+    size_t i = counted_upto;
+    for (; i + 4 < loaded; i++) {
+        if (clip_data[i] == 0 && clip_data[i + 1] == 0 && clip_data[i + 2] == 1) {
+            uint8_t type = clip_data[i + 3] & 0x1F;
+            if ((type == 1 || type == 5) && (clip_data[i + 4] & 0x80)) {
+                counted_frames++;
+            }
+            i += 2;
+        }
+    }
+    counted_upto = i;
+}
 
 static void load_step (int piece) {
     if (!load_file) {
+        /* Opening is a step of its own: it reads the card's folders, so no piece goes with it. */
+        uint64_t open_began = get_ticks_us();
+        memset(&load_log, 0, sizeof(load_log));
+        load_log.began_ms = get_ticks_ms();
         load_file = fopen(want_path, "rb");
         if (!load_file) {
             fail("can't open");
@@ -401,7 +433,28 @@ static void load_step (int piece) {
         }
         clip_size = (int) size;
         clip_loaded = 0;
+        counted_upto = 0;
+        counted_frames = 0;
         header_checked = false;
+        last_piece_ms = get_ticks_ms();
+        load_log.open_us = (uint32_t) (get_ticks_us() - open_began);
+        return;
+    }
+    if (clip_loaded == clip_size) {
+        /* Everything is in: counting the pictures and reading the seek table, a step of their own too. */
+        uint64_t finish_began = get_ticks_us();
+        fclose(load_file);
+        load_file = NULL;
+        count_more((size_t) clip_size);     /* the last few bytes */
+        frame_count = counted_frames;
+        load_seek_table();
+        state = VP_WAITING;
+        start_step_ms = 0;      /* the wait for the first starting step counts from when it is due */
+        load_log.finish_us = (uint32_t) (get_ticks_us() - finish_began);
+        debugf("video preview: loaded %d KB in %d pieces over %d ms; opening %d ms, slowest piece %d ms (planned %d), finishing %d ms\n",
+               clip_size / 1024, load_log.pieces, (int) (get_ticks_ms() - load_log.began_ms), (int) (load_log.open_us / 1000),
+               (int) (load_log.worst_us / 1000), (int) (load_log.worst_planned_us / 1000), (int) (load_log.finish_us / 1000));
+        return;
     }
 
     /* Read 64 KB at a time inside the frame, this took 57 ms a piece
@@ -413,8 +466,17 @@ static void load_step (int piece) {
     }
     uint64_t read_began = get_ticks_us();
     size_t got = fread(clip_data + clip_loaded, 1, want, load_file);
+    if (got == (size_t) want) {
+        count_more((size_t) (clip_loaded + want));  /* counted with the piece, so its time is planned for too */
+    }
+    uint32_t piece_us = (uint32_t) (get_ticks_us() - read_began);
+    load_log.pieces++;
+    if (piece_us > load_log.worst_us) {
+        load_log.worst_us = piece_us;
+        load_log.worst_planned_us = (us_per_kb * 3 / 2) * (uint32_t) (want / 1024);
+    }
     if (want >= 1024) {
-        uint32_t took = (uint32_t) (get_ticks_us() - read_began) / (uint32_t) (want / 1024);
+        uint32_t took = piece_us / (uint32_t) (want / 1024);
         us_per_kb = (us_per_kb * 3 + took) / 4;
     }
     last_piece_ms = get_ticks_ms();
@@ -422,7 +484,7 @@ static void load_step (int piece) {
         fail("read error");
         return;
     }
-    clip_loaded += want;
+    clip_loaded += want;     /* the last piece in: finishing waits for the next step */
 
     if (!header_checked && (clip_loaded >= LOAD_STEP || clip_loaded == clip_size)) {
         header_checked = true;
@@ -437,19 +499,64 @@ static void load_step (int piece) {
         clip_w = check.width;
         clip_h = check.height;
     }
-    if (clip_loaded == clip_size) {
-        fclose(load_file);
-        load_file = NULL;
-        frame_count = video_clip_count_frames(clip_data, clip_size);
-        load_seek_table();
-        state = VP_WAITING;
-    }
 }
 
-static void start_playing (uint64_t now) {
+/* The part of the clip with the target's shape, from its middle, stretched
+   to fill it: recorded once for a size, then replayed. Recording costs the
+   processor a good part of a frame, so it is done between frames when the
+   size is known ahead (video_preview_fill_size()). */
+static void build_fill (int tw, int th) {
+    uint64_t began = get_ticks_us();
+    if (fill_blitter.block) {
+        rspq_wait();
+        yuv_blitter_free(&fill_blitter);
+    }
+    float aspect = (info.aspect_ratio > 0.1f) ? info.aspect_ratio : ((float) info.width / info.height);
+    float target_aspect = (float) tw / th;
+    int src_w = info.width, src_h = info.height;
+    if (aspect > target_aspect) {
+        src_w = ((int) (info.width * (target_aspect / aspect))) & ~1;
+    } else {
+        src_h = ((int) (info.height * (aspect / target_aspect))) & ~1;
+    }
+    fill_blitter = yuv_blitter_new(info.width, info.height, 0, 0, &(rdpq_blitparms_t) {
+        .s0 = ((info.width - src_w) / 2) & ~1,
+        .t0 = ((info.height - src_h) / 2) & ~1,
+        .width = src_w,
+        .height = src_h,
+        .scale_x = tw / (float) src_w,
+        .scale_y = th / (float) src_h,
+        .filtering = true,
+    }, &info.colorspace);
+    fill_w = tw;
+    fill_h = th;
+    debugf("video preview: fill for %dx%d set up in %d ms\n", tw, th, (int) ((get_ticks_us() - began) / 1000));
+}
+
+static int fill_hint_w = 0, fill_hint_h = 0;
+
+void video_preview_fill_size (int w, int h) {
+    fill_hint_w = w;
+    fill_hint_h = h;
+}
+
+/* Starting, step 3 (with a size known ahead): the box's fill, then playing. */
+static void start_playing_now (void);
+static void start_filling (void) {
+    if (fill_hint_w >= 4 && fill_hint_h >= 4 && (!fill_blitter.block || fill_w != fill_hint_w || fill_h != fill_hint_h)) {
+        build_fill(fill_hint_w, fill_hint_h);
+    }
+    start_playing_now();
+}
+
+/* Starting is done in the idle time between frames, in two steps (together
+   they made one frame of about 75 ms): opening the player (about 10 ms),
+   then decoding the first picture (about 25 ms). */
+static void start_opening (void) {
     if (!room_for(DECODER_BYTES(clip_w, clip_h))) {
         return;
     }
+    uint64_t t0 = get_ticks_us();
     codec_init();
     yuv_init();
     video = video_open(MEM_PREFIX MEM_NAME, &(video_parms_t) { .buffered_pics = BUFFERED_PICS });
@@ -463,11 +570,26 @@ static void start_playing (uint64_t now) {
         fail("unexpected size or speed");
         return;
     }
+    start_open_us = (uint32_t) (get_ticks_us() - t0);
+    state = VP_OPENED;
+}
+
+static void start_first_picture (void) {
+    uint64_t t0 = get_ticks_us();
     if (!video_next_frame(video)) {
         fail("no pictures");
         return;
     }
-    debugf("Video preview: %dx%d at %.2f fps, %d KB\n", info.width, info.height, info.framerate, clip_size / 1024);
+    debugf("Video preview: %dx%d at %.2f fps, %d KB; starting took %d ms opening, %d ms the first picture\n", info.width, info.height,
+           info.framerate, clip_size / 1024, (int) (start_open_us / 1000), (int) ((get_ticks_us() - t0) / 1000));
+    if (fill_hint_w >= 4 && fill_hint_h >= 4) {
+        state = VP_FILLING;     /* the box's fill next, between frames */
+        return;
+    }
+    start_playing_now();
+}
+
+static void start_playing_now (void) {
     have_frame = true;
     memset(&stats, 0, sizeof(stats));
     stats.width = info.width;
@@ -476,7 +598,7 @@ static void start_playing (uint64_t now) {
     stats.frames_shown = 1;
     frames_shown = 0;
     clip_seconds = 0.0;
-    fade_since_ms = now;
+    fade_since_ms = get_ticks_ms();
     state = VP_PLAYING;
 }
 
@@ -646,10 +768,9 @@ void video_preview_update (const char *path) {
         case VP_LOADING:
             break;      /* read in the idle time between frames (video_preview_poll()) */
         case VP_WAITING:
-            if (now - wanted_ms >= START_DELAY_MS) {
-                start_playing(now);
-            }
-            break;
+        case VP_OPENED:
+        case VP_FILLING:
+            break;      /* started in the idle time between frames (video_preview_poll()) */
         case VP_PLAYING:
             advance(step);
             stats.update_us = (uint32_t) (get_ticks_us() - began);
@@ -667,7 +788,7 @@ const video_preview_stats_t *video_preview_stats (void) {
 bool video_preview_showing (void) {
     /* Loading too: at the clip's pace each frame has far more spare time
        to read it in (about 25 ms against 6), and it starts as soon as before. */
-    bool busy = (state == VP_LOADING || state == VP_WAITING || (state == VP_PLAYING && video));
+    bool busy = (state == VP_LOADING || state == VP_WAITING || state == VP_OPENED || state == VP_FILLING || (state == VP_PLAYING && video));
     return busy && (get_ticks_ms() - last_update_ms) <= AWAY_MS;
 }
 
@@ -719,12 +840,38 @@ void video_preview_poll (void) {
            the last piece run past the refresh: every frame 60 ms. */
         uint64_t due_us = frame_began_us + frame_rate_frame_us() - LOAD_MARGIN_US;
         uint64_t now_us = get_ticks_us();
-        int piece = (now_us < due_us) ? (int) (((due_us - now_us) / us_per_kb) * 1024) : 0;
+        /* Planned at half as slow again as the average: a read now and then takes longer (the card's own lookups). */
+        int piece = (now_us < due_us) ? (int) (((due_us - now_us) / (us_per_kb * 3 / 2)) * 1024) : 0;
         piece = (piece > LOAD_PIECE_MAX) ? LOAD_PIECE_MAX : (piece & ~(LOAD_PIECE - 1));
-        if (piece >= LOAD_PIECE) {
+        if (!load_file || clip_loaded == clip_size) {
+            if (now_us + 15000 < due_us || (get_ticks_ms() - last_piece_ms) > LOAD_STALL_MS) {
+                load_step(0);       /* opening, or finishing: only with a good part of the frame's idle time left */
+            }
+        } else if (piece >= LOAD_PIECE) {
             load_step(piece);       /* as much as fits before the next frame */
         } else if ((get_ticks_ms() - last_piece_ms) > LOAD_STALL_MS) {
             load_step(LOAD_PIECE);
+        }
+        return;
+    }
+    if ((state == VP_WAITING || state == VP_OPENED || state == VP_FILLING) && (get_ticks_ms() - last_update_ms) <= AWAY_MS) {
+        /* Starting: each step only with most of the idle time still ahead (or after a wait, so it never sticks). */
+        uint64_t due_us = frame_began_us + frame_rate_frame_us() - LOAD_MARGIN_US;
+        uint64_t now_us = get_ticks_us();
+        bool due = (state != VP_WAITING) || get_ticks_ms() - wanted_ms >= START_DELAY_MS;
+        if (due && start_step_ms == 0) {
+            start_step_ms = get_ticks_ms();
+        }
+        bool waited = due && (get_ticks_ms() - start_step_ms) > LOAD_STALL_MS;
+        if (state == VP_WAITING && due && (now_us + 12000 < due_us || waited)) {
+            start_step_ms = get_ticks_ms();
+            start_opening();
+        } else if (state == VP_OPENED && (now_us + 20000 < due_us || waited)) {
+            start_step_ms = get_ticks_ms();
+            start_first_picture();
+        } else if (state == VP_FILLING && (now_us + 20000 < due_us || waited)) {
+            start_step_ms = get_ticks_ms();
+            start_filling();
         }
         return;
     }
@@ -816,32 +963,8 @@ bool video_preview_render (surface_t *target, const surface_t *over, float over_
     if (state != VP_PLAYING || !have_frame || tw < 4 || th < 4) {
         return false;
     }
-    /* The part of the clip with the target's shape, from its middle,
-       stretched to fill it (recorded once for a size, then replayed). */
     if (!fill_blitter.block || tw != fill_w || th != fill_h) {
-        if (fill_blitter.block) {
-            rspq_wait();
-            yuv_blitter_free(&fill_blitter);
-        }
-        float aspect = (info.aspect_ratio > 0.1f) ? info.aspect_ratio : ((float) info.width / info.height);
-        float target_aspect = (float) tw / th;
-        int src_w = info.width, src_h = info.height;
-        if (aspect > target_aspect) {
-            src_w = ((int) (info.width * (target_aspect / aspect))) & ~1;
-        } else {
-            src_h = ((int) (info.height * (aspect / target_aspect))) & ~1;
-        }
-        fill_blitter = yuv_blitter_new(info.width, info.height, 0, 0, &(rdpq_blitparms_t) {
-            .s0 = ((info.width - src_w) / 2) & ~1,
-            .t0 = ((info.height - src_h) / 2) & ~1,
-            .width = src_w,
-            .height = src_h,
-            .scale_x = tw / (float) src_w,
-            .scale_y = th / (float) src_h,
-            .filtering = true,
-        }, &info.colorspace);
-        fill_w = tw;
-        fill_h = th;
+        build_fill(tw, th);     /* not set up ahead (video_preview_fill_size()): here, in the frame */
     }
     yuv_frame_t frame = current_frame();
     rdpq_attach(target, NULL);

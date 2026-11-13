@@ -1037,6 +1037,7 @@ bool carousel_art_draw_side_box (menu_t *menu, int index, int x0, int y0, int w,
 /* ---------- the cache ---------- */
 
 void carousel_art_reset (void) {
+    video_preview_fill_size(0, 0);  /* no box to fill now */
     edges_clear();
     cart_back_free();
     for (int i = 0; i < SLOT_COUNT; i++) {
@@ -1122,6 +1123,7 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
        need it: while a picture from the card is still decoding, covers with
        baked art load all the same, and the others take their turn after. */
     bool decoder_free = !any_loading();
+    bool started_one = false;   /* a cover was started this frame: the top labels wait for the next one */
     if (flip == FLIP_NONE && (now - changed_at) >= settle) {
         for (int j = 0; j < wanted_count; j++) {
             int index = wanted[j];
@@ -1163,6 +1165,7 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
                 file_image_type_t which = front_kind();
                 uint64_t began = get_ticks_ms();
                 slot->art = art_load(menu, index, &which, card, &slot->card_pending);
+                started_one = true;
                 slot->cart = (which == IMAGE_GAMEPAK_FRONT);
                 debugf("cover: starting one took %d ms\n", (int) (get_ticks_ms() - began));
             }
@@ -1190,9 +1193,20 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
         }
     }
 
+    /* A clip on the 3D box's front is drawn at the cover's size: say so ahead,
+       so the player sets that up between frames as the clip starts. */
+    {
+        slot_t *center = slot_find(menu, center_index);
+        surface_t *image = (center && art_ready(center->art) && !center->cart) ? slot_image(center) : NULL;
+        bool wide_box = image && features_enabled(FEATURE_BOX_3D) && image->width >= image->height;
+        video_preview_fill_size(wide_box ? image->width : 0, wide_box ? image->height : 0);
+    }
+
     flip_update(menu);
     edges_update(menu, now);
-    slot_tops_update(menu);
+    if (!started_one) {
+        slot_tops_update(menu);     /* not with a cover's start: the two together ran the frame late */
+    }
 
     /* Also saved once the selection has rested a while, in case the console
        is switched off without leaving this screen. */

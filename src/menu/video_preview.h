@@ -60,6 +60,12 @@ void video_preview_enable (bool on);
  */
 bool video_preview_find (const char *storage_prefix, const char game_code[4], char *out, size_t size);
 
+/** One of video_preview_find()'s two looks (about 7 ms each): `letters` 4 the region's folder, 3 the folder for every region. */
+bool video_preview_find_in (const char *storage_prefix, const char game_code[4], int letters, char *out, size_t size);
+
+/** The size the next video_preview_render() will fill (the 3D box's front), so that setup is done between frames as a clip starts; 0, 0 for none. */
+void video_preview_fill_size (int w, int h);
+
 /**
  * Call every frame the clip could be shown, with the clip's full path. A
  * different path from last time starts over with the new clip. The clip

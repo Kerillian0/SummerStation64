@@ -21,6 +21,7 @@ static int index_seen = -2;
 static uint32_t name_seen = 0;      /* the selected game's name: a filter step can put another game in the same place */
 static uint64_t rest_since = 0;
 static bool looked = false;
+static int look_step = 0;      /* 0: the region's folder next, 1: the folder for every region (one card look a frame) */
 static bool found = false;
 static bool playing = false;     /* its clip is in use (loading, playing, or paused while hidden) */
 static bool hidden = false;      /* a press paused it and the cover shows, until it has rested again */
@@ -136,6 +137,7 @@ void cover_clip_after_draw (menu_t *menu) {
         list_seen = covers->list;
         name_seen = name;
         looked = false;
+        look_step = 0;
         found = false;
     } else if (!menu_open && (buttons_held() || new_press)) {
         rest_since = now;
@@ -146,10 +148,15 @@ void cover_clip_after_draw (menu_t *menu) {
     }
 
     if (!looked && wanted() && selected >= 0 && selected < covers->entries && now - rest_since >= LOOK_AFTER_MS) {
-        looked = true;
+        /* Each look at the card takes about 7 ms: one folder a frame, so neither frame runs late. */
         char code[5];
-        found = clip_code(menu, selected, code)
-            && video_preview_find(menu->storage_prefix, code, clip_path, sizeof(clip_path));
+        if (!clip_code(menu, selected, code)) {
+            looked = true;
+        } else {
+            found = video_preview_find_in(menu->storage_prefix, code, look_step == 0 ? 4 : 3, clip_path, sizeof(clip_path));
+            look_step++;
+            looked = found || look_step >= 2;
+        }
     }
 }
 
