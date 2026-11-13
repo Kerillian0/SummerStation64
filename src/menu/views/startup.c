@@ -2,6 +2,7 @@
 #include "utils/fs.h"
 #include "../intro.h"
 #include "../profile_pick.h"
+#include "../setup_wizard.h"
 #include "../tabs.h"
 #include "../flashcart/flashcart.h"
 #include "views.h"
@@ -58,19 +59,15 @@ void view_startup_init (menu_t *menu) {
     }
 #endif
     
-    if (menu->settings.first_run) {
-        menu->settings.first_run = false;
-        settings_save(&menu->settings);
-        menu->next_mode = MENU_MODE_CREDITS;
-    }
-    else {
-        menu->next_mode = MENU_MODE_BROWSER;
-    }
+    // The first start on a card asks the setup wizard's questions after the intro
+    // (setup_wizard.h), in place of the stock credits screen; it clears first_run.
+    menu->next_mode = MENU_MODE_BROWSER;
 
     if (menu->next_mode == MENU_MODE_BROWSER) tabs_open(menu, tabs_first()); // the menu opens on the player's first tab
     intro_begin(menu); // plays the intro first, if it is wanted
     play_stats_settle(intro_power_on()); // time played: the session of the game played last
     profile_pick_begin(menu); // "Who's playing?" after the intro, at power-on with 2+ profiles
+    setup_wizard_begin_first_run(menu); // Vee's setup questions, the first time on a card
 }
 
 void view_startup_display (menu_t *menu, surface_t *display) {
@@ -78,6 +75,9 @@ void view_startup_display (menu_t *menu, surface_t *display) {
         return;
     }
     if (profile_pick_display(menu, display)) {
+        return;
+    }
+    if (setup_wizard_display(menu, display)) {
         return;
     }
     draw(menu, display);

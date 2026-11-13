@@ -37,6 +37,7 @@
 #include "../tv_patterns.h"
 #include "../pad_test.h"
 #include "../library_stats.h"
+#include "../setup_wizard.h"
 #include "../versions_screen.h"
 #include "../animations.h"
 #include "../avatar_pick.h"
@@ -211,6 +212,10 @@ static void open_test_patterns (menu_t *menu) {
     (void) menu;
     assistant_note_used(ASSISTANT_USED_TEST_PATTERNS);
     tv_patterns_open();
+}
+
+static void open_setup_wizard (menu_t *menu) {
+    setup_wizard_open(menu);
 }
 
 static void open_library_stats (menu_t *menu) {
@@ -677,6 +682,7 @@ static const item_t file_items[] = {
 };
 
 static const item_t information_items[] = {
+    ACTION("Setup Wizard", open_setup_wizard, "Vee asks her setup questions again: your console and TV, the picture, regions and names, the look, the start-up, and how she talks. Each starts on what you have now."),
     ACTION("Menu Information", open_credits, "The menu's version, the people and projects it is built on, and the music and sound credits."),
     ACTION("Flashcart Information", open_flashcart_info, "The SummerCart64's firmware version and what it supports."),
     ACTION("N64 Information", open_system_info, "The console: Expansion Pak or not, region, the controllers plugged in and whether a 64DD drive is attached."),
@@ -1057,6 +1063,10 @@ static void process (menu_t *menu) {
     }
     if (tv_patterns_active()) {
         tv_patterns_process(menu);     /* Console > Tools > Test Patterns */
+        return;
+    }
+    if (setup_wizard_active()) {
+        setup_wizard_process(menu);    /* Console > About > Setup Wizard */
         return;
     }
     if (library_stats_active()) {
@@ -1646,6 +1656,13 @@ static void draw (menu_t *menu, surface_t *d) {
 
     if (letter_wheel_keyboard_showing()) {
         letter_wheel_draw();    // naming a profile or a theme: the keyboard hides the page, so it isn't drawn
+        debug_stats_overlay_draw();
+        rdpq_detach_show();
+        return;
+    }
+
+    if (setup_wizard_active()) {
+        setup_wizard_draw();
         debug_stats_overlay_draw();
         rdpq_detach_show();
         return;
