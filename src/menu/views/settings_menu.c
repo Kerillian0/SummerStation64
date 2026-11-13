@@ -593,7 +593,15 @@ static const item_t play_items[] = {
     FEATURE("Remember Position", FEATURE_REMEMBER_SELECTION, "Going back into a folder returns to the game you had selected there, also after playing."),
 };
 
+/* Option console_type (setup_wizard.h): what the menu is played on. */
+static const char *console_type_name (int value) {
+    static const char *names[CONSOLE_TYPE_COUNT] = { "CRT TV", "HDMI Mod", "Analogue 3D", "ModRetro M64" };
+    return (value >= 0 && value < CONSOLE_TYPE_COUNT) ? names[value] : names[0];
+}
+
 static const item_t video_items[] = {
+    CHOICES("Played On", OPTION_CONSOLE_TYPE, CONSOLE_TYPE_COUNT, console_type_name, NULL,
+        "What the menu is played on: an N64 on a CRT TV, an N64 with an HDMI mod or upscaler, the Analogue 3D or the ModRetro M64. Nothing changes with it yet; it's kept for picture settings made for HDMI screens later."),
     CHOICE("Video Output", force_progressive_scan, false, "480i", "240p", NULL,
         "480i is sharper but can flicker. 240p is steady with softer text, and suits TVs that struggle with interlaced video. Restart the console to apply."),
     SWITCH("PAL60 Mode", pal60_enabled, false, apply_pal60,
@@ -1649,7 +1657,7 @@ static void draw_help (menu_t *menu, const item_t *it) {
     const char *note = "";
     const char *badge = NULL;
     char stock[64];
-    bool console = (it->type == ITEM_SWITCH) || (it->type == ITEM_CHOICE && (it->option == OPTION_FONT || it->option == OPTION_AVATAR_SHAPE))
+    bool console = (it->type == ITEM_SWITCH) || (it->type == ITEM_CHOICE && (it->option == OPTION_FONT || it->option == OPTION_AVATAR_SHAPE || it->option == OPTION_CONSOLE_TYPE))
         || (it->type == ITEM_INFO && it->info == default_folder);     /* config.ini and Character Set: not per profile */
 
     if (it->type == ITEM_SWITCH) {
