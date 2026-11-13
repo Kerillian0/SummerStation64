@@ -4,10 +4,12 @@
 Reads   assets/boxart/source/<N>/<Z>/<S>/<E>/boxart_front.png  (and
         boxart_back, _top, _left and _right.png where there are any), the
         layout of the SD card's menu/metadata folder.
-Writes  filesystem/art/Z/S/NZSE_f.sprite, NZSE_b, _t, _l and _r. The two
-        folders are the code's middle letters: the console finds a file by
-        walking through a folder's list, and a thousand files in one folder
-        would make that walk slow.
+Writes  build/art/Z/S/NZSE_f.sprite, NZSE_b, _t, _l, _r and _p, then packs
+        them into one file for the SD card, output/menu/art.pak
+        (make_art_pack.py), which the player copies to sd:/menu/art.pak.
+        The art is no longer inside the menu file: the SummerCart64 must
+        load that within 5 seconds, and 32 MB of art made slow cards miss
+        it ("Watchdog timeout").
 
 A folder without the region letter that sits beside folders with one is
 baked as the European (P) version: that is whose cover it is.
@@ -25,7 +27,7 @@ import tempfile
 from PIL import Image
 
 SOURCE = "assets/boxart/source"
-OUT = "filesystem/art"
+OUT = "build/art"
 MAX_SIDE = 158          # BOXART_WIDTH_MAX / BOXART_HEIGHT_MAX in the menu
 SIDES = {"boxart_front.png": "f", "boxart_back.png": "b",
          # the edges of the 3D Box (the top strip is 158 x 22 in the pack)
@@ -79,10 +81,6 @@ if not os.path.isdir(SOURCE):
 import shutil
 shutil.rmtree(OUT, ignore_errors=True)
 os.makedirs(OUT, exist_ok=True)
-# The build only repacks the menu's files when it sees one change, and it
-# does not look inside these folders, so make it repack.
-if os.path.exists("build/N64FlashcartMenu.dfs"):
-    os.remove("build/N64FlashcartMenu.dfs")
 
 made = 0
 skipped = []
@@ -129,6 +127,10 @@ with tempfile.TemporaryDirectory() as work:
             made += 1
 
 total = sum(os.path.getsize(os.path.join(folder, f)) for folder, _, files in os.walk(OUT) for f in files)
-print(f"{made} pictures baked into {OUT}, {total / 1024 / 1024:.2f} MB added to the menu file.")
+print(f"{made} pictures baked into {OUT}, {total / 1024 / 1024:.2f} MB.")
 for line in skipped:
     print("skipped:", line)
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from make_art_pack import make_pack
+make_pack(OUT, os.path.join("output", "menu", "art.pak"))

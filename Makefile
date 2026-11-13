@@ -290,8 +290,8 @@ $(FILESYSTEM_DIR)/%.sprite: $(ASSETS_DIR)/images/%.png
 
 $(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM)
 
-# Box art baked into the menu, if any has been made (see assets/boxart/README.md).
-$(BUILD_DIR)/$(PROJECT_NAME).dfs: $(wildcard $(FILESYSTEM_DIR)/art)
+# Box art is no longer baked into the menu file: it goes in an art pack on
+# the SD card (assets/boxart/make_art_pack.py, read by baked_art.c).
 # Profile pictures baked in the same way (assets/profiles/make_avatars.py).
 $(BUILD_DIR)/$(PROJECT_NAME).dfs: $(wildcard $(FILESYSTEM_DIR)/avatars)
 # Game details baked in the same way (make_baked_meta.py).
