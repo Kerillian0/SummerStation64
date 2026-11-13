@@ -130,6 +130,9 @@ void carousel_art_open_out (void);
 /** Every cover on show has its art loaded and unpacked, or is known to have none (the deal waits for it). */
 bool carousel_art_quiet (void);
 
+/** The log: which wanted cover keeps carousel_art_quiet() false, and why (for the cover deal's wait). */
+void carousel_art_log_waiting (void);
+
 /** The code a cover's pictures (and clip) go by, if the game list knows it already: no card read. */
 bool carousel_art_code (menu_t *menu, int index, char code[5]);
 

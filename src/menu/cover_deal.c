@@ -132,7 +132,11 @@ void cover_deal_frame (bool middle_art, int with_art, bool faded_in) {
         }
         bool art_in = (middle_art && carousel_art_quiet() && now - art_changed >= DEAL_SETTLED_MS) || now - since >= DEAL_WAIT_MS;
         if (art_in && faded_in) {
-            debugf("cover deal: starts after %d ms waiting for art\n", (int) (now - since));
+            debugf("cover deal: starts after %d ms waiting for art (middle art %s, quiet %s, %d with art)\n", (int) (now - since),
+                   middle_art ? "yes" : "no", carousel_art_quiet() ? "yes" : "no", with_art);
+            if (!carousel_art_quiet()) {
+                carousel_art_log_waiting();
+            }
             waiting = false;
             since = last_frame = now;
             frames = worst = 0;

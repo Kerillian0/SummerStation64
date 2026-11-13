@@ -682,6 +682,11 @@ bool carousel_art_quiet (void) {
     return art_quiet;
 }
 
+/* The covers last wanted, for carousel_art_log_waiting(). */
+static int quiet_wanted[SLOT_COUNT];
+static int quiet_wanted_count = 0;
+static menu_t *quiet_menu = NULL;
+
 /* The welcome back (cover_deal.c): the selected cover comes round from edge-on, as in a turn-over. */
 static float extra_turn = 0.0f;
 
@@ -1174,6 +1179,9 @@ void carousel_art_update (menu_t *menu, bool side_covers) {
     }
 
     /* Every cover wanted has been tried and has finished unpacking. */
+    quiet_menu = menu;
+    quiet_wanted_count = wanted_count;
+    memcpy(quiet_wanted, wanted, sizeof(int) * wanted_count);
     art_quiet = true;
     for (int j = 0; j < wanted_count; j++) {
         slot_t *slot = slot_find(menu, wanted[j]);
@@ -1367,4 +1375,24 @@ bool carousel_art_draw_angled (menu_t *menu, int index, int x0, int y0, int w, i
 bool carousel_art_cutout (menu_t *menu, int index) {
     slot_t *slot = slot_find(menu, index);
     return slot && slot->cart && art_ready(slot->art);
+}
+
+void carousel_art_log_waiting (void) {
+    if (!quiet_menu) {
+        debugf("cover art: nothing wanted yet\n");
+        return;
+    }
+    debugf("cover art: %s, decoder %s, %d wanted\n", art_quiet ? "quiet" : "not quiet", any_loading() ? "busy" : "free", quiet_wanted_count);
+    for (int j = 0; j < quiet_wanted_count; j++) {
+        slot_t *slot = slot_find(quiet_menu, quiet_wanted[j]);
+        const char *name = cover_list_current(quiet_menu)->list[quiet_wanted[j]].name;
+        if (!slot) {
+            debugf("cover art:   %d %s: no slot (not tried yet)\n", quiet_wanted[j], name);
+        } else {
+            debugf("cover art:   %d %s: %s%s%s\n", quiet_wanted[j], name,
+                   slot->art ? (art_ready(slot->art) ? "loaded" : "art not ready") : "no art",
+                   slot->card_pending ? ", waits for the card" : "",
+                   (slot->art && slot->art->loading) ? ", still unpacking" : "");
+        }
+    }
 }
