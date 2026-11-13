@@ -14,8 +14,10 @@ static sys_version_t sdk_version = {0};
 static bool show_oss_lib_info_message = false;
 
 static void process (menu_t *menu) {
-    if (menu->actions.back) {
-        show_oss_lib_info_message = false;
+    if (menu->actions.back && show_oss_lib_info_message) {
+        show_oss_lib_info_message = false;      // B closes the pop-up first
+        sound_play_effect(SFX_SETTING);
+    } else if (menu->actions.back) {
         sound_play_effect(SFX_EXIT);
         menu->next_mode = settings_menu_back_mode(); // Settings, if opened from there 
     } else if (menu->actions.lz_context) {
@@ -50,15 +52,15 @@ static void draw (menu_t *menu, surface_t *d) {
         "Build timestamp:  %s\n"
         "libdragon SDK: \t%s%s (%s, %.7s)\n"
         "\n"
-        "Get the latest menu version:\n"
-        "\thttps://github.com/Polprzewodnikowy/N64FlashcartMenu\n"
+        "SummerStation64, a fork of N64FlashcartMenu\n"
+        "Latest version: github.com/Kerillian0/SummerStation64\n"
         "\n"
-        "Authors:\n"
+        "N64FlashcartMenu by:\n"
         "\tRobin Jones / NetworkFusion\n"
         "\tMateusz Faderewski / Polprzewodnikowy\n"
-        "\tand contributors:\n"
-        "\tThank you to ALL project contributors,\n"
-        "\tno matter how small the commit.\n"
+        "\tand all its contributors: thank you.\n"
+        "Ideas from the N64ever fork (Bjerreman).\n"
+        "Made with Claude, an AI model by Anthropic.\n"
         "\nMusic by Eric Matyas www.soundimage.org\n" // this wording, shown here, is a condition of the music's licence (assets/sounds/CREDITS.md)
         "This menu is licensed under the AGPL-3.0 License.\n",
         MENU_VERSION,
@@ -70,25 +72,24 @@ static void draw (menu_t *menu, surface_t *d) {
 
     if (show_oss_lib_info_message) {
         ui_components_messagebox_draw(
-            "OSS library software used:\n\n"
-            "\tlibdragon (UNLICENSE License)\n"
-            "\tlibspng (BSD 2-Clause License)\n"
-            "\tminimp3 (CC0 1.0 Universal)\n"
-            "\tminiz (MIT License)\n"
-            "\tdr_flac (MIT License)\n"
-            "\nSounds:\n\n"
-            "\tGUI Sound Effects by Lokif (CC0)\n"
-            "\nGame data:\n\n"
-            "\tGenres and player counts from\n"
-            "\tlibretro-database (CC-BY-SA 4.0)\n"
-            "\nSummerStation64 contributors:\n\n"
-            "\tstewx: title logos, video previews,\n"
-            "\t\treview scores\n"
-            "\nSummerStation64 is free, always.\n"
-            "To donate: ko-fi.com/polprzewodnikowy\n"
-            "\tand ko-fi.com/networkfusion\n"
-            "To help with time: the metadata pack,\n"
-            "\tgithub.com/n64-tools\n"
+            "Libraries used:\n"
+            "libdragon (Unlicense)\n"
+            "libspng (BSD 2-Clause)\n"
+            "minimp3 (CC0 1.0)\n"
+            "miniz (MIT), dr_flac (MIT)\n"
+            "\n"
+            "Sound effects: Lokif (CC0)\n"
+            "Genres and players: libretro-database\n"
+            "(CC-BY-SA 4.0)\n"
+            "\n"
+            "Contributors: stewx (title logos,\n"
+            "video previews, review scores)\n"
+            "\n"
+            "SummerStation64 is free, always.\n"
+            "Donate: ko-fi.com/polprzewodnikowy\n"
+            "and ko-fi.com/networkfusion\n"
+            "Help with time: the metadata pack,\n"
+            "github.com/n64-tools\n"
         );
     }
 
