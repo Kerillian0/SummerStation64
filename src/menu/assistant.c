@@ -15,6 +15,8 @@
 #include "menu_features.h"
 #include "menu_options.h"
 #include "cover_list.h"
+#include "cover_clip.h"
+#include "cover_deal.h"
 #include "display_name.h"
 #include "game_data.h"
 #include "game_index.h"
@@ -870,9 +872,11 @@ static bool unplayed_check (menu_t *menu) {
    seconds, until a button is pressed: about the game it is resting on, a
    joke, a look at the play stats, or a tip (said before or not). */
 #define LINGER_AFTER_MS (60000)
-#define HOME_QUIET_MS   (2500)      /* resting on the skin's own game this long */
-#define HOME_GAP_MS     (45000)     /* and this long after anything else said (Now and Then; Rarely 3 min) */
-#define CHATTY_REST_MS  (5000)      /* Chatty: resting this long on any game gets a word about it, no gap */
+#define REACT_CLIP_MS   (1000)      /* a game's word comes this long after its clip appears on the cover */
+#define REACT_REST_MS   (1500)      /* ... or after resting this long, for a game with no clip */
+#define REACT_NO_CLIP_MS (5000)     /* ... or this long, if a clip was found but never showed */
+#define REACT_HOLD_MS   (5000)      /* after the Z menu, Settings or Game info, or a word about it: the same game waits this long */
+#define REACT_RARELY_GAP_MS (180000) /* Rarely: this long after anything else said */
 #define LINGER_SAY_MS   (8000)
 
 static bool lingering = false;
@@ -960,8 +964,14 @@ static bool game_here (menu_t *menu, char *name, size_t name_size, char *path_ou
     return true;
 }
 
-/* One of the skin's lines of this kind (and key), in the mood chosen, in turn. */
+/* One of the skin's lines of this kind (and key), in the mood chosen, in turn.
+   Only while the fairy still goes by the skin's own name: a skin's lines are
+   in character (Navi or Tatl speaking as if it was there), and a fairy the
+   player has renamed is someone else (the owner, 2026-11-13). */
 static bool skin_pick (int kind, const char *key, char *out, size_t size) {
+    if (skin.line_count == 0 || strcasecmp(fairy_name(), skin.name) != 0) {
+        return false;
+    }
     char mood = snarky() ? 's' : 'e';
     int found[SKIN_LINES_MAX], n = 0;
     for (int i = 0; i < skin.line_count; i++) {
@@ -993,7 +1003,9 @@ static bool holds (const char *text, const char *word) {
 
 /* Lines every fairy has for well-known games, found by the name shown (so
    every dump and region matches). The first match wins: the more particular
-   names come first. Our own words, about the games, never quoted from them. */
+   names come first. A game's rows sit together and are said in turn. Our
+   own words, about the games, never quoted from them, and always said as an
+   onlooker: never as if the fairy was in the game or it was hers. */
 typedef struct {
     const char *name;
     const char *eager;
@@ -1001,54 +1013,115 @@ typedef struct {
 } game_line_t;
 
 static const game_line_t game_lines[] = {
-    { "Mario Kart", "Mario Kart 64! Watch out for those blue shells!", "Mario Kart 64. Friendships will be tested." },
-    { "Mario Party", "Mario Party! Grab some friends and some dice!", "Mario Party. Say goodbye to your palms. And your friends." },
-    { "Mario Tennis", "Mario Tennis! Game, set, match!", "Mario Tennis. Try not to serve into the net this time." },
-    { "Mario Golf", "Mario Golf! Fore!", "Mario Golf. Mind the sand traps. And the water. And the trees." },
-    { "Paper Mario", "Paper Mario! A flat-out great adventure!", "Paper Mario. Thin hero, thick story." },
+    { "Ocarina of Time", "Ocarina of Time! Hyrule awaits!", "Ocarina of Time. The Water Temple is waiting. Patiently." },
+    { "Ocarina of Time", "Ocarina of Time! Learn a few songs and the whole world opens up!", "Ocarina of Time. Every pot in Hyrule is about to have a very bad day." },
+    { "Ocarina of Time", "Ocarina of Time! Ride across Hyrule Field as the sun goes down!", "Ocarina of Time. Leave the chickens alone. They remember." },
+    { "Ocarina of Time", "Ocarina of Time! Seven years pass in the blink of an eye!", "Ocarina of Time. You'll end up fishing. Everyone ends up fishing." },
+    { "Majora", "Majora's Mask! Three days to save Termina!", "Majora's Mask. The moon is watching you. Again." },
+    { "Majora", "Majora's Mask! So many masks, so many stories!", "Majora's Mask. Three days. No pressure. Well, some pressure." },
+    { "Majora", "Majora's Mask! Everyone in town has a schedule worth following!", "Majora's Mask. Bank your rupees before you play that song." },
+    { "Zelda", "A Zelda adventure! Grab a sword and shield!", "Zelda. Check every wall. One of them is hollow." },
+    { "Zelda", "A Zelda adventure! Dungeons, puzzles and treasure!", "Zelda. Small keys, big keys, and a lot of doors." },
     { "Super Mario 64", "Super Mario 64! Time to jump into some paintings!", "Super Mario 64. 120 stars. No pressure." },
+    { "Super Mario 64", "Super Mario 64! Peach's castle has more secrets than rooms!", "Super Mario 64. Somewhere, a baby penguin is waiting to be carried home." },
+    { "Super Mario 64", "Super Mario 64! Triple jump, long jump, wall kick... go!", "Super Mario 64. The camera has opinions. Lakitu's, mostly." },
+    { "Super Mario 64", "Super Mario 64! Grab a cap and take to the skies!", "Super Mario 64. In Big Boo's Haunt, the piano is not a piano." },
+    { "Mario Kart", "Mario Kart 64! Watch out for those blue shells!", "Mario Kart 64. Friendships will be tested." },
+    { "Mario Kart", "Mario Kart 64! Rainbow Road is long, but what a view!", "Mario Kart 64. Rainbow Road takes forever. On purpose." },
+    { "Mario Kart", "Mario Kart 64! Four players, split screen, all bananas!", "Mario Kart 64. The computer always gets the good items. Funny, that." },
+    { "Mario Party 3", "Mario Party 3! Duel boards and a whole story mode!", "Mario Party 3. Third time's the charm. For someone else." },
+    { "Mario Party 2", "Mario Party 2! Everyone dresses up for each board!", "Mario Party 2. Same friends. New ways to lose them." },
+    { "Mario Party", "Mario Party! Grab some friends and some dice!", "Mario Party. Say goodbye to your palms. And your friends." },
+    { "Mario Party", "Mario Party! A mini-game after every turn!", "Mario Party. Stars are earned. Then they're stolen." },
+    { "Mario Party", "Mario Party! Anyone can win right up to the end!", "Mario Party. The bonus stars at the end decide everything. Plan for it." },
+    { "Mario Tennis", "Mario Tennis! Game, set, match!", "Mario Tennis. Try not to serve into the net this time." },
+    { "Mario Tennis", "Mario Tennis! The game where Waluigi got his start!", "Mario Tennis. Waluigi's first game. He's still not over it." },
+    { "Mario Golf", "Mario Golf! Fore!", "Mario Golf. Mind the sand traps. And the water. And the trees." },
+    { "Mario Golf", "Mario Golf! Check the wind before you swing!", "Mario Golf. The wind is always against you. Always." },
+    { "Paper Mario", "Paper Mario! A flat-out great adventure!", "Paper Mario. Thin hero, thick story." },
+    { "Paper Mario", "Paper Mario! Time your button presses for extra damage!", "Paper Mario. Badges, partners, puns. So many puns." },
+    { "Dr. Mario", "Dr. Mario 64! Match the colors, clear the viruses!", "Dr. Mario 64. The viruses are smiling. That's never good." },
     { "Smash", "Super Smash Bros.! May the best brawler win!", "Smash Bros. Friendships end over items in this one." },
+    { "Smash", "Super Smash Bros.! Four players, one stage, total chaos!", "Smash Bros. Someone will pick Hyrule Castle. Someone always does." },
+    { "Yoshi", "Yoshi's Story! What a happy little world!", "Yoshi's Story. So much fruit. So little time." },
+    { "Yoshi", "Yoshi's Story! Find the melons for a big score!", "Yoshi's Story. Lucky fruit or bust." },
     { "GoldenEye", "GoldenEye 007! Time for some secret agent work!", "GoldenEye. Whoever picks the short character owes everyone an apology." },
+    { "GoldenEye", "GoldenEye 007! Slappers only, anyone?", "GoldenEye. Facility, proximity mines, ruined friendships." },
     { "Perfect Dark", "Perfect Dark! Joanna's ready for action!", "Perfect Dark. Very dark. Fairly perfect." },
+    { "Perfect Dark", "Perfect Dark! So many simulants to set up!", "Perfect Dark. The simulants are better at this than you. For now." },
     { "Banjo-Tooie", "Banjo-Tooie! The bear and the bird are back!", "Banjo-Tooie. More jiggies. More notes. More everything." },
     { "Banjo", "Banjo-Kazooie! Let's collect some jiggies!", "Banjo-Kazooie. Hope you like musical notes. All of them." },
+    { "Banjo", "Banjo-Kazooie! Spiral Mountain is just the start!", "Banjo-Kazooie. Grunty speaks in rhymes. You'll start doing it too." },
     { "Donkey Kong 64", "Donkey Kong 64! So many bananas to find!", "Donkey Kong 64. Bring snacks. You'll be collecting for a while." },
+    { "Donkey Kong 64", "Donkey Kong 64! Five Kongs, each with their own moves!", "Donkey Kong 64. Five Kongs, five colors of bananas. Good luck." },
     { "Diddy Kong", "Diddy Kong Racing! Cars, boats and planes!", "Diddy Kong Racing. Hope you like balloons." },
+    { "Diddy Kong", "Diddy Kong Racing! A whole island of races to explore!", "Diddy Kong Racing. The boss races don't play fair." },
     { "Conker", "Conker's Bad Fur Day! Maybe not one for the kids...", "Conker's Bad Fur Day. Hide this one from your little siblings." },
     { "Star Fox", "Star Fox 64! Time to try a barrel roll!", "Star Fox 64. Someone will tell you to roll. Just do it." },
+    { "Star Fox", "Star Fox 64! Find the hidden routes to Venom!", "Star Fox 64. One wingman will need rescuing. Constantly." },
     { "F-Zero", "F-Zero X! Thirty racers at top speed!", "F-Zero X. Blink and you've crashed." },
+    { "F-Zero", "F-Zero X! Hold on tight through those loops!", "F-Zero X. Thirty racers. Most of them are about to explode." },
     { "Wave Race", "Wave Race 64! Surf's up!", "Wave Race 64. The water's beautiful. Your landings, less so." },
     { "1080", "1080 Snowboarding! Hit the slopes!", "1080 Snowboarding. Try landing one of those spins." },
     { "Pokemon Snap", "Pokemon Snap! Say cheese!", "Pokemon Snap. The only game where throwing apples at wildlife is encouraged." },
+    { "Pokemon Snap", "Pokemon Snap! Every corner hides a better photo!", "Pokemon Snap. Professor Oak wants it bigger. And in the middle." },
+    { "Pokemon Stadium 2", "Pokemon Stadium 2! All 251 are here!", "Pokemon Stadium 2. Bring your Gold and Silver teams. And patience." },
     { "Pokemon Stadium", "Pokemon Stadium! Bring your team over from Game Boy!", "Pokemon Stadium. Hope your Transfer Pak still works." },
     { "Pokemon Puzzle", "Pokemon Puzzle League! Line them up!", "Pokemon Puzzle League. The blocks rise. So does the panic." },
-    { "Yoshi", "Yoshi's Story! What a happy little world!", "Yoshi's Story. So much fruit. So little time." },
+    { "Hey You", "Hey You, Pikachu! Say hello into the microphone!", "Hey You, Pikachu. Speak clearly. Pikachu is listening." },
     { "Kirby", "Kirby 64! Mix up those powers!", "Kirby 64. Small, pink, eats everything. Relatable." },
+    { "Kirby", "Kirby 64! Find every crystal shard!", "Kirby 64. Two powers at once. The fun kind of chaos." },
     { "Turok", "Turok! Watch out for dinosaurs!", "Turok. The fog is there to keep things mysterious. Totally." },
     { "Blast Corps", "Blast Corps! Clear the way!", "Blast Corps. Knocking down buildings for a good cause." },
     { "Jet Force", "Jet Force Gemini! Let's save those Tribals!", "Jet Force Gemini. Count the Tribals. All of them." },
     { "Pilotwings", "Pilotwings 64! Up, up and away!", "Pilotwings 64. Gentle landings are optional, apparently." },
     { "Harvest Moon", "Harvest Moon 64! Time to tend the farm!", "Harvest Moon 64. The turnips won't water themselves." },
+    { "Bomberman Hero", "Bomberman Hero! A bomb-throwing adventure!", "Bomberman Hero. Still a bomb. Now a hero." },
     { "Bomberman", "Bomberman 64! Blast away!", "Bomberman 64. Mind your own bombs." },
     { "Doom", "Doom 64! Lights down, volume up!", "Doom 64. Bring a flashlight. And courage." },
+    { "Quake", "Quake! Fast, loud and dark!", "Quake. Rocket jump at your own risk." },
+    { "Duke Nukem", "Duke Nukem! Big guns, bigger attitude!", "Duke Nukem. Someone has a lot of confidence." },
     { "Glover", "Glover! A magic glove and a bouncy ball!", "Glover. A glove. A ball. Physics." },
     { "Episode I", "Star Wars Racer! Start your engines!", "Star Wars Racer. Lean into the turns. Literally." },
     { "Rogue Squadron", "Rogue Squadron! Into the cockpit!", "Rogue Squadron. Hope you like fog. And lasers." },
+    { "Shadows of the Empire", "Shadows of the Empire! Snowspeeders at the ready!", "Shadows of the Empire. Wrap the tow cable. Then do it again." },
     { "Tetris", "Tetris! Stack them up!", "Tetris. You'll see falling blocks when you close your eyes tonight." },
     { "Excitebike", "Excitebike 64! Pop a wheelie!", "Excitebike 64. Mind the jumps. And the landings." },
     { "Ogre Battle", "Ogre Battle 64! A grand campaign awaits!", "Ogre Battle 64. Clear your schedule." },
     { "Snowboard Kids", "Snowboard Kids! Hit the slopes!", "Snowboard Kids. Cute, and secretly ruthless." },
     { "Rayman", "Rayman 2! No arms, no legs, no problem!", "Rayman 2. The limbs still aren't attached." },
-    { "Ocarina of Time", "Ocarina of Time! Hyrule awaits!", "Ocarina of Time. Fairy not included. Well, one is." },
-    { "Majora", "Majora's Mask! Three days to save Termina!", "Majora's Mask. The moon is watching you. Again." },
+    { "Castlevania", "Castlevania! A haunted castle to explore!", "Castlevania. Lovely castle. Terrible landlord." },
+    { "Resident Evil", "Resident Evil 2! A whole two-disc game on one cartridge!", "Resident Evil 2. Save your ammo. Save your herbs. Save yourself." },
+    { "Mischief Makers", "Mischief Makers! Grab it, shake it, throw it!", "Mischief Makers. Everything can be shaken. Everything." },
+    { "Silicon Valley", "Space Station Silicon Valley! Take over every robot animal!", "Space Station Silicon Valley. Strange. Wonderful. Very strange." },
+    { "Beetle Adventure", "Beetle Adventure Racing! Shortcuts everywhere!", "Beetle Adventure Racing. The shortcuts have shortcuts." },
+    { "Rush 2049", "Rush 2049! Wings out over the city!", "Rush 2049. Gravity is more of a suggestion here." },
+    { "San Francisco Rush", "San Francisco Rush! Hold on over those hills!", "San Francisco Rush. Those hills were not built for this." },
+    { "Cruis'n", "Cruis'n! Pick a car and floor it!", "Cruis'n. The traffic did not sign up for this." },
+    { "Ridge Racer", "Ridge Racer 64! Drift through every corner!", "Ridge Racer 64. Every corner is a drift corner." },
+    { "Wipeout", "Wipeout 64! Anti-gravity racing!", "Wipeout 64. Brake? What brake?" },
+    { "Extreme-G", "Extreme-G! Bikes at blinding speed!", "Extreme-G. Speed first. Seeing where you're going, later." },
+    { "NFL Blitz", "NFL Blitz! No penalties, no problem!", "NFL Blitz. Late hits are a strategy here." },
+    { "No Mercy", "WWF No Mercy! Into the ring!", "No Mercy. The name is a warning." },
+    { "Tony Hawk", "Tony Hawk's Pro Skater! Grind everything!", "Tony Hawk's Pro Skater. Two minutes. Every tape. Go." },
+    { "Body Harvest", "Body Harvest! Hop into any vehicle you find!", "Body Harvest. Big bugs. Bigger trouble." },
+    { "Goemon", "Goemon! A wild trip through old Japan!", "Goemon. Ninjas, giant robots and a pipe. Normal stuff." },
+    { "Sin and Punishment", "Sin and Punishment! Aim fast, dodge faster!", "Sin and Punishment. Your thumbs will need a rest after this." },
+    { "Tsumi to Batsu", "Sin and Punishment! Aim fast, dodge faster!", "Sin and Punishment. Your thumbs will need a rest after this." },
+    { "Chameleon Twist", "Chameleon Twist! Stretch that tongue!", "Chameleon Twist. Tongue-based platforming. As one does." },
+    { "Mega Man", "Mega Man 64! Dig up some treasure!", "Mega Man 64. A big adventure on tank controls." },
+    { "Gauntlet", "Gauntlet Legends! Grab three friends!", "Gauntlet Legends. Someone is shooting the food again." },
+    { "Worms", "Worms Armageddon! Banana bombs away!", "Worms. Check the wind, aim, and... oh no." },
 };
 
 /* Something particular about this game: the skin's own (its home games),
    its words about another game (by code, or "zelda" for the rest of that
-   series), else the line every fairy has for a well-known game. */
+   series), else the line every fairy has for a well-known game. The lines
+   every fairy has are said by an onlooker: Vee was never in any of these
+   games, so none of them may speak as if she was. */
 static bool special_line (const char *code, const char *name, char *out, size_t size) {
-    if (skin_home(code)) {
-        return home_line(out, size);
+    if (skin_home(code) && home_line(out, size)) {
+        return true;
     }
     char key[4] = "";
     if (code && strlen(code) >= 3) {
@@ -1061,9 +1134,17 @@ static bool special_line (const char *code, const char *name, char *out, size_t 
     if (holds(name, "zelda") && skin_pick(LINE_ON, "zelda", out, size)) {
         return true;
     }
-    for (int i = 0; i < (int) (sizeof(game_lines) / sizeof(game_lines[0])); i++) {
+    /* The first name that matches; then that game's lines in turn. */
+    static unsigned turn;
+    int count = (int) (sizeof(game_lines) / sizeof(game_lines[0]));
+    for (int i = 0; i < count; i++) {
         if (holds(name, game_lines[i].name)) {
-            snprintf(out, size, "%s", snarky() ? game_lines[i].snarky : game_lines[i].eager);
+            int n = 0;
+            while (i + n < count && strcmp(game_lines[i + n].name, game_lines[i].name) == 0) {
+                n++;
+            }
+            const game_line_t *line = &game_lines[i + (int) (turn++ % (unsigned) n)];
+            snprintf(out, size, "%s", snarky() ? line->snarky : line->eager);
             return true;
         }
     }
@@ -1240,12 +1321,42 @@ static int pick_tip (menu_t *menu) {
     return -1;
 }
 
+/* A game whose word waits: the same game, until hold_until. */
+static uint64_t hold_until = 0;
+static int hold_selected = -2;
+static const void *hold_list = NULL;
+
+static void hold_game (menu_t *menu, uint64_t now) {
+    const cover_list_t *covers = cover_list_current(menu);
+    hold_until = now + REACT_HOLD_MS;
+    hold_selected = covers->selected;
+    hold_list = covers->list;
+}
+
+static bool game_held (menu_t *menu, uint64_t now) {
+    const cover_list_t *covers = cover_list_current(menu);
+    return now < hold_until && covers->selected == hold_selected && (const void *) covers->list == hold_list;
+}
+
 void assistant_update (menu_t *menu) {
     if (menu->next_mode == MENU_MODE_BOOT || game_start_opening()) {
         return;     /* a game is starting: the cart's copy of the menu file (rom:/, its pictures) is being overwritten */
     }
     int often = options_get(OPTION_ASSISTANT);
     uint64_t now = get_ticks_ms();
+
+    /* Back on the cover rows from the Z menu, a pop-up, Settings or Game
+       info: the same game waits REACT_HOLD_MS for its word (another game
+       doesn't), so closing a menu isn't taken for a fresh rest. */
+    {
+        static uint64_t covers_ms = 0;  /* the last frame the rows were in view, nothing over them */
+        if (screen_is(menu, WHERE_COVERS) && !animations_popup_up() && menu->mode != MENU_MODE_LOAD_ROM) {
+            if (covers_ms && now - covers_ms > 250) {
+                hold_game(menu, now);
+            }
+            covers_ms = now;
+        }
+    }
 
     static int last_mode = -1;
     if ((int) menu->mode != last_mode) {
@@ -1348,6 +1459,54 @@ void assistant_update (menu_t *menu) {
         memmove(&pending[due], &pending[due + 1], sizeof(pending[0]) * (pending_count - due));
         return;
     }
+    /* Resting on a game: something particular about it (the skin's own
+       games, another one it knows, a well-known game); Chatty: every game,
+       particular or not. Every rest gets its word (the owner, 2026-11-13: the
+       gaps made it seem random), once the game's clip has been playing a
+       second (REACT_CLIP_MS), or after REACT_REST_MS when it has no clip. A
+       move or a press starts a new rest; the same game waits REACT_HOLD_MS
+       after its last word and after the Z menu, Settings or Game info
+       (game_held()); Rarely keeps a gap after anything said. Welcomes
+       waiting go first. */
+    skin_load();
+    if (!welcoming && screen_is(menu, WHERE_COVERS) && !animations_popup_up() && menu->mode != MENU_MODE_LOAD_ROM
+            && !cover_deal_running()) {
+        static uint64_t rest_press = 0;
+        static int rest_selected = -2;
+        static const void *rest_list = NULL;
+        static bool rest_said = false;
+        const cover_list_t *covers = cover_list_current(menu);
+        uint64_t pressed = animations_last_press_ms();
+        if (pressed != rest_press || covers->selected != rest_selected || (const void *) covers->list != rest_list) {
+            rest_press = pressed;
+            rest_selected = covers->selected;
+            rest_list = covers->list;
+            rest_said = false;
+        }
+        int clip = cover_clip_shown_ms();
+        bool ready = (clip > 0) ? clip >= REACT_CLIP_MS
+                   : (clip < 0) ? quiet >= REACT_REST_MS
+                   : quiet >= REACT_NO_CLIP_MS;     /* a clip was found but never showed */
+        bool rarely_wait = (often == ASSISTANT_RARELY && last_talk_ms && now - last_talk_ms < REACT_RARELY_GAP_MS);
+        if (!rest_said && ready && !rarely_wait && !game_held(menu, now)) {
+            rest_said = true;
+            bool chatty = (often == ASSISTANT_CHATTY);
+            char name[96], path[256], text[TEXT_LENGTH];
+            const game_data_t *data;
+            if (game_here(menu, name, sizeof(name), path, sizeof(path), &data)
+                    && (special_line(code_here, name, text, sizeof(text)) || (chatty && line_game(menu, text, sizeof(text))))) {
+                saying_tip = -1;
+                saying_bits = 0;
+                last_talk_ms = now;
+                talk_screen = menu->mode;
+                say(text);
+                hold_game(menu, now);     /* a press sending it off doesn't bring the next at once */
+                debugf("assistant: about the game (%s), %s\n", clip > 0 ? "after its clip" : "no clip", text);
+                return;
+            }
+        }
+    }
+
     if (welcoming || now < FIRST_TALK_MS) {
         return;
     }
@@ -1364,45 +1523,6 @@ void assistant_update (menu_t *menu) {
             say(text);
             debugf("assistant: opening, %s\n", text);
             return;
-        }
-    }
-
-    /* Resting on a game: something particular about it (the skin's own
-       games, another one it knows, a well-known game), once per game in a
-       row, not too soon after anything else. Chatty: every game rested on
-       for 5 seconds gets a word, particular or not, with no gap. */
-    skin_load();
-    bool chatty = (often == ASSISTANT_CHATTY);
-    if (quiet >= (chatty ? CHATTY_REST_MS : HOME_QUIET_MS) && !animations_popup_up() && menu->mode != MENU_MODE_LOAD_ROM
-        && (chatty || !last_talk_ms || now - last_talk_ms >= (often == ASSISTANT_RARELY ? 3 * HOME_GAP_MS + 45000 : HOME_GAP_MS))) {
-        static int checked_selected = -2;
-        static const void *checked_list = NULL;
-        static uint32_t said_key = 0;
-        const cover_list_t *covers = cover_list_current(menu);
-        const void *list = (menu->mode == MENU_MODE_LOAD_ROM) ? (const void *) menu->load.rom_path : (const void *) covers->list;
-        int selected = (menu->mode == MENU_MODE_LOAD_ROM) ? -1 : covers->selected;
-        if (selected != checked_selected || list != checked_list) {
-            checked_selected = selected;
-            checked_list = list;
-            char name[96], path[256], text[TEXT_LENGTH];
-            const game_data_t *data;
-            if (game_here(menu, name, sizeof(name), path, sizeof(path), &data)) {
-                uint32_t key = 2166136261u;
-                for (const unsigned char *c = (const unsigned char *) path; *c; c++) {
-                    key = (key ^ *c) * 16777619u;
-                }
-                if (key != said_key && (special_line(code_here, name, text, sizeof(text))
-                                        || (chatty && line_game(menu, text, sizeof(text))))) {
-                    said_key = key;
-                    saying_tip = -1;
-                    saying_bits = 0;
-                    last_talk_ms = now;
-                    talk_screen = menu->mode;
-                    say(text);
-                    debugf("assistant: about the game, %s\n", text);
-                    return;
-                }
-            }
         }
     }
 

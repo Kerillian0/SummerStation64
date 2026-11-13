@@ -42,4 +42,9 @@ float cover_clip_draw (menu_t *menu, int index, int x0, int y0, int w, int h, in
 /** Name of an option `cover_clips` value, for Settings. */
 const char *cover_clip_name (int choice);
 
+/** @brief For the assistant: how the selected cover's clip stands in this
+ * rest. -1: it has none (or clips are off), 0: one may still come (being
+ * looked for or loading), more: it has been in view this many ms. */
+int cover_clip_shown_ms (void);
+
 #endif

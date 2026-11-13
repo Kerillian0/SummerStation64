@@ -27,6 +27,7 @@ static bool playing = false;     /* its clip is in use (loading, playing, or pau
 static bool hidden = false;      /* a press paused it and the cover shows, until it has rested again */
 static uint64_t last_press = 0;  /* the last press seen (animations_last_press_ms()) */
 static char clip_path[256];
+static uint64_t shown_since = 0;    /* when the clip came into view in this rest (0: not yet) */
 
 const char *cover_clip_name (int choice) {
     static const char *names[2] = { "Off", "On" };
@@ -139,9 +140,11 @@ void cover_clip_after_draw (menu_t *menu) {
         looked = false;
         look_step = 0;
         found = false;
+        shown_since = 0;
     } else if (!menu_open && (buttons_held() || new_press)) {
         rest_since = now;
         hidden = playing;
+        shown_since = 0;
     }
     if (cover_deal_running()) {
         rest_since = now;   /* the covers are being dealt in: the rest starts once they have landed */
@@ -175,6 +178,9 @@ float cover_clip_frame (menu_t *menu, int index) {
     if (!video_preview_fit(64, 64, &w, &h)) {
         return 1.0f;    /* still loading, or the cover's moment alone */
     }
+    if (!shown_since) {
+        shown_since = get_ticks_ms();
+    }
     return 1.0f - video_preview_fade();
 }
 
@@ -185,4 +191,15 @@ float cover_clip_draw (menu_t *menu, int index, int x0, int y0, int w, int h, in
     }
     video_preview_draw(x0, y0, w, h);
     return cover_left;
+}
+
+int cover_clip_shown_ms (void) {
+    if (!wanted() || index_seen < 0 || (looked && !found)) {
+        return -1;
+    }
+    if (!shown_since) {
+        return 0;
+    }
+    uint64_t shown = get_ticks_ms() - shown_since;
+    return shown > 0 ? (int) shown : 1;
 }
