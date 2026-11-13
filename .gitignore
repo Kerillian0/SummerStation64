@@ -42,6 +42,7 @@
 /filesystem/gamedata.txt
 /filesystem/series.txt
 /filesystem/ask.txt
+/filesystem/whatsnew.txt
 
 # Project notes for Claude Code: kept on this machine only (the owner, 2026-10-21).
 /CLAUDE.md

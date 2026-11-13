@@ -67,6 +67,7 @@ static const option_info_t option_info[OPTION_COUNT] = {
     [OPTION_PARTY_TEST] = { "party_test", 0 }, /* count the real controllers */
     [OPTION_VERSIONS_LAYOUT] = { "versions_layout", 0 }, /* on the left */
     [OPTION_CONSOLE_TYPE] = { "console_type", 0 }, /* an N64 on a CRT */
+    [OPTION_WHATS_NEW_SEEN] = { "whats_new_seen", 0 }, /* none yet */
 };
 
 static int values[OPTION_COUNT];
@@ -81,7 +82,8 @@ static bool shared_dirty = false;
 static bool shared (int option) {
     return option == OPTION_FONT || option == OPTION_FRAME_RATE || option == OPTION_PARTY_TEST
         || option == OPTION_AVATAR_SHAPE   /* the pictures show side by side on "Who's playing?" */
-        || option == OPTION_CONSOLE_TYPE; /* one console, whoever plays (setup_wizard.h) */
+        || option == OPTION_CONSOLE_TYPE /* one console, whoever plays (setup_wizard.h) */
+        || option == OPTION_WHATS_NEW_SEEN;
 }
 
 static ini_t *shared_load (void) {

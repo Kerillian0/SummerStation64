@@ -3,6 +3,7 @@
 #include "../intro.h"
 #include "../profile_pick.h"
 #include "../setup_wizard.h"
+#include "../whats_new.h"
 #include "../tabs.h"
 #include "../flashcart/flashcart.h"
 #include "views.h"
@@ -66,6 +67,7 @@ void view_startup_init (menu_t *menu) {
     if (menu->next_mode == MENU_MODE_BROWSER) tabs_open(menu, tabs_first()); // the menu opens on the player's first tab
     intro_begin(menu); // plays the intro first, if it is wanted
     play_stats_settle(intro_power_on()); // time played: the session of the game played last
+    whats_new_begin_startup(menu); // what came with a new menu file, once (before "Who's playing?", which then hands on to it)
     profile_pick_begin(menu); // "Who's playing?" after the intro, at power-on with 2+ profiles
     setup_wizard_begin_first_run(menu); // Vee's setup questions, the first time on a card
 }
@@ -78,6 +80,9 @@ void view_startup_display (menu_t *menu, surface_t *display) {
         return;
     }
     if (setup_wizard_display(menu, display)) {
+        return;
+    }
+    if (whats_new_display(menu, display)) {
         return;
     }
     draw(menu, display);

@@ -38,6 +38,7 @@
 #include "../pad_test.h"
 #include "../library_stats.h"
 #include "../setup_wizard.h"
+#include "../whats_new.h"
 #include "../versions_screen.h"
 #include "../animations.h"
 #include "../avatar_pick.h"
@@ -212,6 +213,10 @@ static void open_test_patterns (menu_t *menu) {
     (void) menu;
     assistant_note_used(ASSISTANT_USED_TEST_PATTERNS);
     tv_patterns_open();
+}
+
+static void open_whats_new (menu_t *menu) {
+    whats_new_open(menu);
 }
 
 static void open_setup_wizard (menu_t *menu) {
@@ -682,6 +687,7 @@ static const item_t file_items[] = {
 };
 
 static const item_t information_items[] = {
+    ACTION("What's New", open_whats_new, "What came with this version of the menu, with Vee: A on an item goes straight to its setting, and B comes back."),
     ACTION("Setup Wizard", open_setup_wizard, "Vee asks her setup questions again: your console and TV, the picture, regions and names, the look, the start-up, and how she talks. Each starts on what you have now."),
     ACTION("Menu Information", open_credits, "The menu's version, the people and projects it is built on, and the music and sound credits."),
     ACTION("Flashcart Information", open_flashcart_info, "The SummerCart64's firmware version and what it supports."),
@@ -856,6 +862,78 @@ static void search_leave (void) {
     sub_page = before.sub_page;
     search_view = false;
     from_search = false;
+}
+
+/* What's new's "Show me": the row at "Look > Theme > Animations" (a row's own page adds a part). */
+static bool from_whats_new = false;
+static struct {
+    int group, category, item, first_row, sub_from_item;
+    bool in_items;
+    const category_t *sub_page;
+} wn_before;
+
+static void search_jump (const search_hit_t *h);
+
+static bool show_path (const char *path) {
+    char parts[4][40];
+    int n = 0;
+    const char *p = path;
+    while (*p && n < 4) {
+        const char *end = strstr(p, " > ");
+        size_t length = end ? (size_t) (end - p) : strlen(p);
+        snprintf(parts[n++], sizeof(parts[0]), "%.*s", (int) length, p);
+        p = end ? end + 3 : p + length;
+    }
+    for (int g = 0; n >= 3 && g < COUNT(groups); g++) {
+        if (strcmp(groups[g].label, parts[0]) != 0) {
+            continue;
+        }
+        for (int pg = 0; pg < groups[g].count; pg++) {
+            const category_t *page = &groups[g].pages[pg];
+            if (strcmp(page->label, parts[1]) != 0) {
+                continue;
+            }
+            for (int r = 0; r < page->count; r++) {
+                if (strcmp(page->items[r].label, parts[2]) != 0) {
+                    continue;
+                }
+                search_hit_t h = { .it = &page->items[r], .group = g, .page = pg, .row = r, .sub = NULL, .sub_row = -1 };
+                if (n == 4 && page->items[r].action == open_fairy_look_row) {
+                    for (int k = 0; k < fairy_page.count; k++) {
+                        if (strcmp(fairy_page.items[k].label, parts[3]) == 0) {
+                            h.sub = &fairy_page;
+                            h.sub_row = k;
+                        }
+                    }
+                }
+                wn_before.group = group;
+                wn_before.category = category;
+                wn_before.item = item;
+                wn_before.first_row = first_row;
+                wn_before.sub_from_item = sub_from_item;
+                wn_before.in_items = in_items;
+                wn_before.sub_page = sub_page;
+                search_jump(&h);
+                from_search = false;
+                from_whats_new = true;
+                return true;
+            }
+        }
+    }
+    debugf("settings: no row at \"%s\"\n", path);
+    return false;
+}
+
+static void whats_new_back (void) {
+    group = wn_before.group;
+    category = wn_before.category;
+    item = wn_before.item;
+    first_row = wn_before.first_row;
+    sub_from_item = wn_before.sub_from_item;
+    in_items = wn_before.in_items;
+    sub_page = wn_before.sub_page;
+    from_whats_new = false;
+    whats_new_resume();
 }
 
 static void search_jump (const search_hit_t *h) {
@@ -1065,6 +1143,17 @@ static void process (menu_t *menu) {
         tv_patterns_process(menu);     /* Console > Tools > Test Patterns */
         return;
     }
+    const char *go = whats_new_take_jump();
+    if (go) {
+        if (!show_path(go)) {
+            whats_new_resume();     /* no such row: the list again */
+        }
+        return;
+    }
+    if (whats_new_active()) {
+        whats_new_process(menu);       /* Console > About > What's New */
+        return;
+    }
     if (setup_wizard_active()) {
         setup_wizard_process(menu);    /* Console > About > Setup Wizard */
         return;
@@ -1139,6 +1228,7 @@ static void process (menu_t *menu) {
     /* L and R step through the headings, going round, back to their first page. */
     if (pressed.l || pressed.r) {
         from_search = false;
+        from_whats_new = false;
         group = (group + (pressed.r ? 1 : COUNT(groups) - 1)) % COUNT(groups);
         sub_page = NULL;
         category = 0;
@@ -1204,6 +1294,9 @@ static void process (menu_t *menu) {
     } else if (has_value(&cat->items[item]) && (menu->actions.go_left || menu->actions.go_right)) {
         change_item(menu, &cat->items[item], menu->actions.go_right ? 1 : -1);   /* the arrows beside the value */
         sound_play_effect(SFX_SETTING);
+    } else if (from_whats_new && (menu->actions.back || menu->actions.go_left)) {
+        whats_new_back();           /* back to What's new's list */
+        sound_play_effect(SFX_EXIT);
     } else if (from_search && (menu->actions.back || menu->actions.go_left)) {
         from_search = false;
         sub_page = NULL;
@@ -1656,6 +1749,13 @@ static void draw (menu_t *menu, surface_t *d) {
 
     if (letter_wheel_keyboard_showing()) {
         letter_wheel_draw();    // naming a profile or a theme: the keyboard hides the page, so it isn't drawn
+        debug_stats_overlay_draw();
+        rdpq_detach_show();
+        return;
+    }
+
+    if (whats_new_active()) {
+        whats_new_draw();
         debug_stats_overlay_draw();
         rdpq_detach_show();
         return;

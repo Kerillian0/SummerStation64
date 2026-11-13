@@ -1,0 +1,68 @@
+whatsnew 1
+; What's new, shown once after the menu file is updated (whats_new.c) and
+; from Settings > Console > About > What's New. Our own words.
+;
+;   version <x.y>   starts a version's list (newest first in the file)
+;   item <name>     a row (about 30 characters at most)
+;   go <path>       optional: where A "Show me" goes, as Settings shows it:
+;                   "Look > Theme > Animations" (heading > page > row; a row's
+;                   own page adds one more: "Look > Assistant > Fairy Look... > Fairy Color")
+;   about <text>    what Vee says about it (about 200 characters at most)
+;
+; Paths must match settings_menu.c (tests/whats_new_check.py checks them).
+
+version 0.5
+item Status marks
+go Games > Library > Game Status
+about Mark a game Playing, Beaten, 100% or Backlog: Z on its cover, then Status. C-up / C-down step to each, and Backlog and Beaten turn up on the Collections tab.
+item Library Stats
+go Games > Saves & Play > Library Stats
+about Your games, their size, your time played, your five most played, top developers and genres, and the SD card's free space, all on one page.
+item Year in Review
+go Games > Saves & Play > Library Stats
+about On Library Stats, C-right steps to a page per year: time played, games, most played and the games you beat, against the year before.
+item Settings search
+about Press Z on any page of Settings and type a word or two. Every setting with them is listed with where it lives, and A takes you straight there.
+item Setup wizard
+go Console > About > Setup Wizard
+about I can walk you through the main choices again any time: your TV, the picture, regions and names, the look and how I talk.
+item Meet Vee
+go Look > Assistant > Assistant
+about That's me! I pop up now and then with a tip, welcome you back from your games and have a word about the ones you rest on. Rarely, Chatty or off: you choose.
+item Ask me a question
+go Look > Assistant > Ask a Question
+about Answers about the whole menu, in eight topics. Also last in the Z menu on the covers.
+item Make me your own
+go Look > Assistant > Fairy Look...
+about Give me a new name, another colour, a new way to fly in and move about, and a glow that breathes.
+item Showy animations
+go Look > Theme > Animations
+about Covers glide and pop, pop-ups grow open, Settings slides between pages, and the cover flies into Game info. Snappy keeps it all quick and plain.
+item The box opens
+go Look > Start-up > Game Start
+about Starting a game opens its box: the cartridge pops out, spins while the game loads and snaps into place.
+item Covers deal in
+about At start-up the cover row deals itself in, and back from a game its cartridge rises spinning into its cover. Both follow Cover Slide.
+item Clips on the covers
+go Look > Game Info > Clips on Covers
+about With the Logos-and-Clips pack and the Expansion Pak, the selected game's clip plays in its cover's place, even on the 3D box, and carries on into Game info.
+item The versions column
+go Look > Covers > Versions Column
+about A cover standing for several files opens them as a column of covers over a blurred Games screen, with when each was last played.
+item Time Played, Never Played
+go Games > Library > Sort By
+about Sort By Time Played puts your most played first, and C-down on the Games tab reaches the games you've never started.
+item Collection progress
+go Look > Badges > Collection Progress
+about Each collection's card says how many of its games you've beaten, with a bar, and Complete once you've beaten them all.
+item Test patterns
+go Console > Tools > Test Patterns
+about Borders at 2.5, 5 and 10 percent to see what your TV cuts off, and color bars with grey steps to set its brightness and color.
+item Controller test
+go Console > Tools > Controller Test
+about Every button lights up in its place, the stick's reach is measured with a wear rating, and Z + A tries a Rumble Pak.
+item A new Settings
+about Three headings on L and R (Look, Games, Console) with short pages, icons, and a bar beside every setting you've changed.
+item Quicker typing
+go Console > Controls > Name Entry
+about On the keyboard, holding B keeps erasing and Z closes it without keeping the name.

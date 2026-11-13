@@ -58,6 +58,7 @@ typedef enum {
     OPTION_PARTY_TEST,  /**< hidden, for testing: count this many controllers (see party.h); 0 counts the real ones */
     OPTION_VERSIONS_LAYOUT, /**< a versions_layout_t value: where the column of a game's versions sits (versions_screen.h) */
     OPTION_CONSOLE_TYPE, /**< a console_type_t value: what the menu is played on, asked by the setup wizard (setup_wizard.h); the same for every player */
+    OPTION_WHATS_NEW_SEEN, /**< the newest version What's new has shown (500 = v0.5, see whats_new.h); the same for every player */
     OPTION_COUNT
 } option_t;
 

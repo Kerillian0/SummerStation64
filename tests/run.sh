@@ -46,6 +46,10 @@ gcc -std=gnu11 -Wall -Werror -I"$here/../src/menu" \
 "$out/game_status_test" || status=1
 
 echo
+echo "== what's new list =="
+python3 "$here/whats_new_check.py" || status=1
+
+echo
 echo "== settings search =="
 gcc -std=gnu11 -Wall -Werror -I"$here/../src/menu" \
     -o "$out/settings_search_test" "$here/settings_search_test.c" "$here/../src/menu/settings_search.c"

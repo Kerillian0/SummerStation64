@@ -88,6 +88,7 @@ SRCS = \
 	menu/settings_search.c \
 	menu/library_stats.c \
 	menu/setup_wizard.c \
+	menu/whats_new.c \
 	menu/animations.c \
 	menu/assistant.c \
 	menu/assistant_ask.c \
@@ -305,6 +306,12 @@ $(FILESYSTEM_DIR)/gamedata.txt: $(ASSETS_DIR)/data/gamedata.txt
 # The assistant's questions and answers (Settings > Look > Assistant > Ask a Question).
 $(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM_DIR)/ask.txt
 $(FILESYSTEM_DIR)/ask.txt: $(ASSETS_DIR)/data/ask.txt
+	@echo "    [DATA] $@"
+	@cp "$<" $@
+
+# What came with each version, for What's new (whats_new.c; checked by tests/whats_new_check.py).
+$(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM_DIR)/whatsnew.txt
+$(FILESYSTEM_DIR)/whatsnew.txt: $(ASSETS_DIR)/data/whatsnew.txt
 	@echo "    [DATA] $@"
 	@cp "$<" $@
 

@@ -108,6 +108,7 @@ static int theme_shown = 0;         /* the theme on screen now */
 static uint64_t moved_at = 0;
 static char keep_name[48];
 static char keep_theme[48];
+static bool started = false;        /* its first frame on the start-up screen: a press that skipped the intro isn't for it */
 
 static void apply_theme (int value) {
     if (value == theme_shown) {
@@ -250,6 +251,7 @@ void setup_wizard_begin_first_run (menu_t *menu) {
     }
     after = intro_hold(menu);
     showing = true;
+    started = false;
     begin(menu);
     debugf("setup wizard: first start, asking\n");
 }
@@ -492,7 +494,10 @@ bool setup_wizard_display (menu_t *menu, surface_t *display) {
     if (!showing) {
         return false;
     }
-    setup_wizard_process(menu);
+    if (started) {
+        setup_wizard_process(menu);
+    }
+    started = true;
     intro_fade_wait();      /* the first tab's fade-in (and the music) start once it is done */
     if (!showing) {
         assistant_portrait_free();
