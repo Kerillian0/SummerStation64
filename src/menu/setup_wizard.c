@@ -229,7 +229,7 @@ static void fill (menu_t *menu) {
             add(showing ? "Start playing!" : "Back to Settings",
                 (menu->settings.force_progressive_scan != video_was)
                     ? "Remember: switch the console off and on again for the new picture."
-                    : "Your games are waiting.", 0);
+                    : (options_get(OPTION_ASSISTANT_MOOD) == ASSISTANT_SNARKY) ? "Your games are waiting." : "Your games are waiting!", 0);
             selected = 0;
             break;
         default:
