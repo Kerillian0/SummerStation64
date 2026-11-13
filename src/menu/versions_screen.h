@@ -45,6 +45,17 @@ const char *versions_screen_layout_name (int choice);
  */
 void versions_screen_open (menu_t *menu, entry_t **entries, const char **names, int n, int selected, bool launch);
 
+/** What A does with a version in versions_screen_open_pick(). */
+typedef void (*versions_pick_t) (menu_t *menu, entry_t *version);
+
+/**
+ * Open it to choose a version for something else (hiding one): A hands the
+ * selected version to `pick` and the column folds back; the A hint reads
+ * `a_word` ("Hide").
+ */
+void versions_screen_open_pick (menu_t *menu, entry_t **entries, const char **names, int n, int selected,
+                                const char *a_word, versions_pick_t pick);
+
 /** It is showing (opening, open or folding away). */
 bool versions_screen_active (void);
 

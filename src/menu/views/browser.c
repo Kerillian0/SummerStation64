@@ -893,8 +893,10 @@ static void version_name (char *out, size_t size, const char *name, bool hack) {
 }
 
 // Opens the versions if this cover stands for several files: as the column of
-// covers (versions_screen.c), or with `screen` false as a pop-up list (choosing
-// one to hide). @return true if it did.
+// covers (versions_screen.c); with `screen` false the same column chooses one
+// to hide instead. @return true if it did.
+static void hide_picked_version (menu_t *menu, entry_t *e);
+
 static bool versions_open (menu_t *menu, entry_t *cover, bool screen) {
     if (folders_tab || cover->type != ENTRY_TYPE_ROM || games_filter_versions(menu, cover) < 2) {
         return false;
@@ -949,8 +951,12 @@ static bool versions_open (menu_t *menu, entry_t *cover, bool screen) {
         versions_screen_open(menu, version_entries, names, n, version_default, version_launch);
         return true;
     }
-    ui_components_context_menu_init(&versions_menu);
-    ui_components_context_menu_show(&versions_menu);
+    // Not the column: choosing one to hide (Z > Hide > Hide one version...), in the column too.
+    const char *names[VERSIONS_MAX];
+    for (int i = 0; i < n; i++) {
+        names[i] = version_names[i];
+    }
+    versions_screen_open_pick(menu, version_entries, names, n, version_default, "Hide", hide_picked_version);
     return true;
 }
 
@@ -992,9 +998,9 @@ static void hide_ask (entry_t **entries, int n) {
     }
 }
 
-static void hide_pick_version (menu_t *menu, void *arg) {
-    entry_t *e = (entry_t *) arg;
-    hide_ask(&e, 1);
+static void hide_picked_version (menu_t *menu, entry_t *e) {
+    (void) menu;
+    hide_ask(&e, 1);    // asked once the column has folded back
 }
 
 static void hide_all_versions (menu_t *menu, void *arg) {
@@ -1002,11 +1008,7 @@ static void hide_all_versions (menu_t *menu, void *arg) {
 }
 
 static void hide_one_version (menu_t *menu, void *arg) {
-    if (versions_open(menu, menu->browser.entry, false)) {
-        for (int i = 0; versions_menu.list[i].text; i++) {
-            versions_menu.list[i].action = hide_pick_version;   // this time choosing a row hides it
-        }
-    }
+    versions_open(menu, menu->browser.entry, false);   // the column, with A to hide
 }
 
 static char hide_all_text[32];
@@ -2557,7 +2559,7 @@ static void draw (menu_t *menu, surface_t *d) {
     collection_edit_draw(); // the list of the player's collections, or "Delete this collection?"
     dd_pair_draw(); // a disk's cartridge being chosen
     ui_components_context_menu_draw(&hide_menu);
-    if (hide_count == 1) {
+    if (hide_count == 1 && !versions_screen_active()) {   // after the column (hiding one version) has folded away
         ui_components_messagebox_draw("Hide from the cover tabs?\n\n%s\n\n^%02XA: Hide^00    ^%02XB: Keep^00\nZ in the Folders tab unhides it.",
                                       display_name_version(hide_names[0]), STL_RED, STL_GREEN);
     } else if (hide_count > 1) {

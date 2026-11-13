@@ -59,6 +59,8 @@ typedef enum { CLOSED, OPENING, OPEN, CLOSING, PICKED } state_t;    /* PICKED: d
 static state_t state = CLOSED;
 static uint64_t state_since = 0;
 static bool launch = false;
+static versions_pick_t pick_fn = NULL;     /* versions_screen_open_pick(): A hands the version to this instead of opening it */
+static const char *pick_word = NULL;
 
 static struct {
     entry_t *entry;
@@ -147,6 +149,8 @@ static void detail_of (char *out, size_t size, const char *path) {
 
 void versions_screen_open (menu_t *menu, entry_t **entries, const char **names, int n, int first, bool start) {
     versions_screen_close();
+    pick_fn = NULL;
+    pick_word = NULL;
     count = (n > MAX_ROWS) ? MAX_ROWS : n;
     selected = (first >= 0 && first < count) ? first : 0;
     shown_from = (float) selected;
@@ -182,6 +186,13 @@ void versions_screen_open (menu_t *menu, entry_t **entries, const char **names, 
     state = features_enabled(FEATURE_CAROUSEL_ANIMATION) ? OPENING : OPEN;
     state_since = get_ticks_ms();
     debugf("versions screen: %d versions, %d pictures\n", count, art_count);
+}
+
+void versions_screen_open_pick (menu_t *menu, entry_t **entries, const char **names, int n, int selected_first,
+                                const char *a_word, versions_pick_t pick) {
+    versions_screen_open(menu, entries, names, n, selected_first, false);
+    pick_fn = pick;
+    pick_word = a_word;
 }
 
 bool versions_screen_active (void) {
@@ -250,6 +261,17 @@ bool versions_screen_process (menu_t *menu) {
     }
     if (menu->actions.back) {
         sound_play_effect(SFX_EXIT);
+        if (features_enabled(FEATURE_CAROUSEL_ANIMATION)) {
+            state = CLOSING;
+            state_since = get_ticks_ms();
+        } else {
+            versions_screen_close();
+        }
+        return true;
+    }
+    if (menu->actions.enter && pick_fn) {
+        sound_play_effect(SFX_ENTER);
+        pick_fn(menu, rows[selected].entry);    /* e.g. "Hide from the cover tabs?" once the column has folded back */
         if (features_enabled(FEATURE_CAROUSEL_ANIMATION)) {
             state = CLOSING;
             state_since = get_ticks_ms();
@@ -507,7 +529,7 @@ void versions_screen_draw (menu_t *menu) {
         snprintf(heading, sizeof(heading), "%d versions", count);
         text_at(names_x(), CLIP_Y0 + 8, NAMES_X1 - names_x(), 22, FNT_DEFAULT, STL_GRAY, false, heading);
         games_ui_hints_backdrop_draw();
-        games_ui_hint_draw(GAMES_UI_CONTENT_X0, 0, "A", launch ? "Play" : "Game info");
+        games_ui_hint_draw(GAMES_UI_CONTENT_X0, 0, "A", pick_word ? pick_word : launch ? "Play" : "Game info");
         games_ui_hint_draw(GAMES_UI_CONTENT_X0, 1, "B", "Back");
         games_ui_hint_right_draw(0, "▲▼", "Choose");
     }
