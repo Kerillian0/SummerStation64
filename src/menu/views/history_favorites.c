@@ -18,6 +18,8 @@
 #include "../tabs.h"
 #include "../start_menu.h"
 #include "../favorite_toggle.h"
+#include "../game_status.h"
+#include "../menu_features.h"
 
 
 typedef enum {
@@ -53,21 +55,39 @@ static void row_ask (menu_t *menu, void *arg) {
     menu->next_mode = MENU_MODE_SETTINGS_EDITOR;
 }
 static char row_ask_text[40];
-static component_context_menu_t row_context_menu = { .list = {
-    { .text = "Random game", .action = row_random },
-    { .text = "Add to Favorites", .action = row_favorite },
-    { .text = "Game info", .action = row_game_info },
-    { .text = "Add to collection...", .action = row_add_to_collection },
-    { .text = "Hide this game", .action = row_ask_hide },
-    { .text = "Ask...", .action = row_ask },
+// Every row the menu can have; row_menu_show() copies the ones that apply into row_context_menu.
+#define ROW_MENU_ROWS \
+    { .text = "Random game", .action = row_random }, \
+    { .text = "Add to Favorites", .action = row_favorite }, \
+    { .text = "Game info", .action = row_game_info }, \
+    { .text = "Add to collection...", .action = row_add_to_collection }, \
+    { .text = "Status" },   /* opens game_status_menu() */ \
+    { .text = "Hide this game", .action = row_ask_hide }, \
+    { .text = "Ask...", .action = row_ask }, \
     COMPONENT_CONTEXT_MENU_LIST_END,
-}};
+static component_context_menu_t row_menu_rows = { .list = { ROW_MENU_ROWS } };
+static component_context_menu_t row_context_menu = { .list = { ROW_MENU_ROWS } };
 static void row_menu_show (menu_t *menu, bool favorites) {
-    // On Favorites every game is one, and taking it out asks first.
-    row_context_menu.list[1].text = favorites ? "Remove from Favorites"
-        : favorite_toggle_text(menu, path_get(item_list[selected_item].primary_path));
-    snprintf(row_ask_text, sizeof(row_ask_text), "Ask %s...", assistant_name());
-    row_context_menu.list[5].text = row_ask_text;
+    const char *path = path_get(item_list[selected_item].primary_path);
+    int n = 0;
+    for (int i = 0; row_menu_rows.list[i].text != NULL; i++) {
+        __typeof__(row_menu_rows.list[0]) row = row_menu_rows.list[i];
+        if (row.action == row_favorite) {
+            // On Favorites every game is one, and taking it out asks first.
+            row.text = favorites ? "Remove from Favorites" : favorite_toggle_text(menu, path);
+        } else if (row.action == row_ask) {
+            snprintf(row_ask_text, sizeof(row_ask_text), "Ask %s...", assistant_name());
+            row.text = row_ask_text;
+        } else if (row.action == NULL) {
+            if (!features_enabled(FEATURE_GAME_STATUS)) {
+                continue;   // Game Status switched off
+            }
+            row.text = game_status_row_text(path);  // "Status: Beaten", opening the list of statuses
+            row.submenu = game_status_menu(path);
+        }
+        row_context_menu.list[n++] = row;
+    }
+    row_context_menu.list[n] = (__typeof__(row_context_menu.list[0])) COMPONENT_CONTEXT_MENU_LIST_END;
     ui_components_context_menu_init(&row_context_menu);     // counts the rows
     ui_components_context_menu_show(&row_context_menu);
 }
