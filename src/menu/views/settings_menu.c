@@ -447,7 +447,7 @@ static const item_t theme_items[] = {
     ACTION("New Theme", new_theme,
         "Make a theme from scratch: pick a look to start from (a built-in one or plain dark), then change it the same way as Edit Theme and save it under a name you choose."),
     CHOICES("Animations", OPTION_ANIMATIONS, ANIMATIONS_COUNT, animations_name, NULL,
-        "Snappy keeps the menu quick and plain. Showy adds movement everywhere: covers, names and badges arrive in turn, the cover flies into Game info and back, highlights and tabs glide, pop-ups open and close, Settings rises in, and the player cards lift. Any button press finishes an animation at once."),
+        "Snappy keeps the menu quick and plain. Showy adds movement: covers, names and badges arrive in turn, the cover flies into Game info, highlights and tabs glide, pop-ups grow open and Settings rises in. Any button finishes an animation at once."),
     FEATURE("Rounded Corners", FEATURE_ROUNDED_CORNERS, "Round off the corners of the tabs, the clock, the title panel, the badges and the band behind the button hints. Off draws them square."),
     FEATURE("Button Icons", FEATURE_BUTTON_ICONS, "Show the buttons in the hints along the bottom in their own shapes and colors. Off shows them as plain boxes."),
     CHOICES("Tint Ring From Art", OPTION_RING_TINT, RING_TINT_COUNT, art_tint_name, NULL,
@@ -485,7 +485,7 @@ static const item_t badge_items[] = {
     CHOICES("Accessory Badges", OPTION_PAK_BADGES, PAK_BADGES_COUNT, games_ui_pak_badges_name, NULL,
         "Show which accessories a game uses (Controller Pak, Rumble Pak, Transfer Pak) under its name. Colored puts each in its own colored box, like Save found; Plain shows them in grey. Known for most games from the menu's built-in list."),
     FEATURE("Dump Check Marks", FEATURE_DUMP_MARKS, "A green check for a known good dump, an amber ? for a copy that differs from it, a red X for a bad dump. Needs menu/verified.txt from the Card Prep page."),
-    FEATURE("Review Scores", FEATURE_REVIEW_SCORES, "Show a game's review score out of 10 at the right of its name under the covers, and in a box on its info screen: green from 7.5, yellow from 5.0, red below. Also adds Review Score to Sort By. Hacks show none. The scores come from menu/reviewscores.txt on the SD card: none come with the menu. A game the menu hasn't looked at yet shows its score after a moment, and sorts with the unscored ones until the list is sorted again."),
+    FEATURE("Review Scores", FEATURE_REVIEW_SCORES, "A game's review score out of 10 beside its name and on Game info: green from 7.5, yellow from 5.0, red below. Adds Review Score to Sort By; hacks show none. The scores come only from menu/reviewscores.txt on the SD card."),
     FEATURE("Collection Progress", FEATURE_COLLECTION_PROGRESS, "On the Collections tab, a card says how many of its games are beaten (Beaten or 100%, from Game Status), with a green bar under its covers, and Complete once all of them are. Needs Game Status on (Games > Library)."),
     FEATURE("Scroll Long Names", FEATURE_NAME_SCROLL, "On the rows of covers, a name too long for the panel under them slides to its end and back after 2 seconds. Off cuts it short with ..."),
 };
@@ -502,7 +502,7 @@ static void open_fairy_look_row (menu_t *menu);     /* with the fairy's rows, fu
 
 static const item_t assistant_items[] = {
     CHOICES("Assistant", OPTION_ASSISTANT, ASSISTANT_COUNT, assistant_often_name, NULL,
-        "A fairy that flies in now and then with a tip, a joke or a word about your games. Leave the menu alone for a minute and it stays to chat. Any button sends it away. Rarely, Now and Then or Chatty: how often it comes by itself; pause on a well-known game for a word about it (Chatty: any game). Off: never."),
+        "A fairy that pops in with tips, jokes and a word about the game you pause on (Chatty: any game), and stays to chat when the menu is left alone. Any button sends it away. Rarely, Now and Then or Chatty: how often it comes. Off: never."),
     CHOICES("Assistant Mood", OPTION_ASSISTANT_MOOD, ASSISTANT_MOOD_COUNT, assistant_mood_name, NULL,
         "Eager is cheerful and keen to help. Snarky gives the same advice with an attitude."),
     ACTION_INFO("Fairy Look...", open_fairy_look_row, ask_info,
@@ -555,7 +555,7 @@ static const item_t startup_items[] = {
 
 static const item_t library_items[] = {
     CHOICES("Sort By", OPTION_SORT_ORDER, SORT_COUNT, sort_order_name, resort_browser,
-        "Type: folders, then each kind of file. Name: by name. Recently Played: games you played come first. Release Date, Developer: oldest first, or by who made the game; the menu looks these up while the Games tab is left alone. Recently Added: the games the menu saw most recently first. Review Score (with Review Scores on, in Display): the highest scored first, then the games with no score. Time Played: the games you have played longest first."),
+        "Type: folders, then each kind of file. Name A-Z or Z-A. Recently Played: your latest games first. Also Release Date and Developer (learned while the Games tab rests), Recently Added, Time Played, and Status and Review Score while those are switched on."),
     CHOICES("Game Versions", OPTION_GAME_VERSIONS, GAME_VERSIONS_COUNT, games_filter_versions_name, resort_browser,
         "Separate shows every file as its own cover. Grouped shows one cover per game: its hacks and other copies go under it, and A lists them to choose from. The Hacks filter still shows every hack."),
     CHOICES("Region Copies", OPTION_REGION_COPIES, REGION_COPIES_COUNT, region_pick_copies_name, resort_browser,
@@ -564,7 +564,7 @@ static const item_t library_items[] = {
         "Whose copy gives a game's cover with Region Copies on One Cover. Changing it also forgets each game's own choice."),
     CHOICES("Homebrew on Games", OPTION_HOMEBREW_ON_GAMES, HOMEBREW_ON_GAMES_COUNT, games_filter_homebrew_name, resort_browser,
         "Hide keeps homebrew off the Games tab and its filters, on the Homebrew tab only (add it in Settings > Games > Tabs). Folders, Recent, Favorites and your own collections still show it."),
-    FEATURE("Game Status", FEATURE_GAME_STATUS, "Mark games Playing, Beaten, 100% or Backlog with Z on a cover or in Game info's Options. The mark shows on the cover's title panel, C-up and C-down can step to each, Sort By can go by them, and Backlog and Beaten become collections. Off hides all of it; the marks are kept."),
+    FEATURE("Game Status", FEATURE_GAME_STATUS, "Mark games Playing, Beaten, 100% or Backlog with Z on a cover or in Game info's Options. The mark shows under the cover, C-up / C-down step to each, and Backlog and Beaten become collections. Off hides it all; marks are kept."),
     FEATURE("Never Played Step", FEATURE_NEVER_PLAYED_STEP, "C-up and C-down on the Games tab also step to Never Played: the games (and 64DD disks) you haven't started yet, each version on its own."),
     CHOICES("Hacks on Games", OPTION_HACKS_ON_GAMES, HACKS_ON_GAMES_COUNT, games_filter_homebrew_name, resort_browser,
         "Hide keeps ROM hacks off the Games tab, on the Hacks tab (add it in Settings > Games > Tabs) and the Hacks step only. Folders, Recent, Favorites and your own collections still show them."),
@@ -678,7 +678,7 @@ static const item_t tab_items[] = {
     CHOICES("Third Tab", OPTION_TAB3, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
         "What the third place on the tab bar holds. None leaves it out."),
     CHOICES("Fourth Tab", OPTION_TAB4, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
-        "What the fourth place on the tab bar holds. Choose Recent here to add the games you played last, Homebrew for homebrew games, Collections for series and multiplayer games, Retro for NES, SNES and Game Boy games, Hacks for ROM hacks, or any one collection (after Hacks) to give it a tab of its own."),
+        "What the fourth place on the tab bar holds: Recent (the games you played last), Homebrew, Collections (series and multiplayer), Retro (NES, SNES, Game Boy), Hacks, or any one collection, after Hacks, for a tab of its own."),
 };
 
 static const item_t file_items[] = {
@@ -1670,7 +1670,7 @@ static void draw_help (menu_t *menu, const item_t *it) {
         if (!features_available(it->feature)) {
             badge = "Needs Expansion Pak";
         } else {
-            note = "\nDefault follows the theme. A or left / right: Default, On, Off.";
+            note = "\nDefault, On or Off with A or left / right.";
         }
     } else if (it->type == ITEM_INFO && it->info == memory_note_info) {
         note = memory_note_details();

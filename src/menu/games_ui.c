@@ -119,6 +119,16 @@ void games_ui_round_fill (int x0, int y0, int x1, int y1, color_t color) {
 }
 
 /* A small labelled box: a tab, a button badge or the clock. */
+/* A tab's name, centred on the tab. Its box reaches past the tab's edges:
+   "Collections" with the full character set is 102 of the tab's 104 px, and
+   the text drawer wants a little room after the last letter, so a box the
+   tab's own width cut the final "s" (the owner, 2026-11-14). */
+#define TAB_LABEL_SPARE     (8)
+
+static void tab_label (int x, int width, menu_font_style_t style, const char *label) {
+    text(x - TAB_LABEL_SPARE, TOPBAR_Y, width + 2 * TAB_LABEL_SPARE, TOPBAR_HEIGHT, ALIGN_CENTER, style, label);
+}
+
 static void pill (int x, int width, const char *label, bool active) {
     const theme_t *t = theme_get();
 
@@ -129,11 +139,11 @@ static void pill (int x, int width, const char *label, bool active) {
            a yellow accent, while black letters inside that black edge ran
            together into a blob. */
         round_fill(x - 2, TOPBAR_Y - 2, x + width + 2, TOPBAR_Y + TOPBAR_HEIGHT + 2, t->accent);
-        text(x, TOPBAR_Y, width, TOPBAR_HEIGHT, ALIGN_CENTER, STL_WHITE, label);
+        tab_label(x, width, STL_WHITE, label);
         return;
     }
     round_fill(x, TOPBAR_Y, x + width, TOPBAR_Y + TOPBAR_HEIGHT, t->tab_inactive);
-    text(x, TOPBAR_Y, width, TOPBAR_HEIGHT, ALIGN_CENTER, STL_GRAY, label);
+    tab_label(x, width, STL_GRAY, label);
 }
 
 /* Under the clock: what sits in the console's memory slot, and how much
@@ -256,7 +266,7 @@ void games_ui_topbar_draw (menu_t *menu, games_tab_t selected) {
         static animations_glide_t tab_glide;
         int block_x = animations_glide_timed(&tab_glide, selected_x, TAB_GLIDE_MS, TAB_GLIDE_FRESH_MS);
         round_fill(block_x - 2, TOPBAR_Y - 2, block_x + TOPBAR_TAB_WIDTH + 2, TOPBAR_Y + TOPBAR_HEIGHT + 2, theme_get()->accent);
-        text(selected_x, TOPBAR_Y, TOPBAR_TAB_WIDTH, TOPBAR_HEIGHT, ALIGN_CENTER, STL_WHITE, tabs_label(selected));
+        tab_label(selected_x, TOPBAR_TAB_WIDTH, STL_WHITE, tabs_label(selected));
     }
 
     /* The clock only shows when the cart's clock is working. */

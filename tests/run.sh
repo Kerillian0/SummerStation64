@@ -48,6 +48,7 @@ gcc -std=gnu11 -Wall -Werror -I"$here/../src/menu" \
 echo
 echo "== what's new list =="
 python3 "$here/whats_new_check.py" || status=1
+python3 "$here/settings_help_check.py" || status=1
 
 echo
 echo "== settings search =="
