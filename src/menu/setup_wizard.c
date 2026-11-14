@@ -61,7 +61,7 @@ typedef enum {
 
 /* What Vee says on each page: eager, snarky (%n her name). */
 static const char *const asks[STEP_COUNT][2] = {
-    [STEP_WELCOME] = { "Hi! I'm %n, the menu's fairy. Let's set a few things up together. It only takes a minute!",
+    [STEP_WELCOME] = { "Hi! I'm %n, the menu's fairy. Let's set a few things up. It only takes a minute!",
                        "Oh, hi. I'm %n. Let's set a few things up now, so you stop asking me later." },
     [STEP_CONSOLE] = { "First things first: what are you playing on?",
                        "Let's get going. What are you playing on?" },
@@ -145,7 +145,7 @@ static void fill (menu_t *menu) {
     row_count = 0;
     switch (step) {
         case STEP_WELCOME:
-            add("Let's go!", "A answers and goes on, B goes back a page, and START keeps the rest as it is. Everything here is in Settings too.", 1);
+            add("Let's go!", "A answers and goes on, B goes back, START keeps the rest as it is. It's all in Settings too.", 1);
             add("Skip setup", "Keep everything as it is. You can run this again from Settings > Console > About > Setup Wizard.", 0);
             selected = 0;
             break;
@@ -446,9 +446,22 @@ void setup_wizard_draw (void) {
     snprintf(name, sizeof(name), "%s:", assistant_name());
     text(PANEL_X0 + PANEL_PAD, PANEL_Y0 + 8, PANEL_X1 - PANEL_X0 - 2 * PANEL_PAD, 22, ALIGN_LEFT, STL_ORANGE, name);
     line_for(ask, sizeof(ask), asks[step][(options_get(OPTION_ASSISTANT_MOOD) == ASSISTANT_SNARKY) ? 1 : 0]);
-    text(PANEL_X0 + PANEL_PAD, PANEL_Y0 + 30, PANEL_X1 - PANEL_X0 - 2 * PANEL_PAD, 48, ALIGN_LEFT, STL_DEFAULT, ask);
-    if (row_count > 0) {
-        text(PANEL_X0 + PANEL_PAD, PANEL_Y0 + 82, PANEL_X1 - PANEL_X0 - 2 * PANEL_PAD, PANEL_Y1 - PANEL_Y0 - 88, ALIGN_LEFT, STL_GRAY,
+    /* Her line takes the lines it needs (three with the full character set
+       and a long name: a fixed two-line box cut the welcome short), and the
+       row's description goes under it. */
+    int bytes = strlen(ask);    /* how much to lay out (0 laid out nothing: Vee said nothing) */
+    rdpq_paragraph_t *said = rdpq_paragraph_build(&(rdpq_textparms_t) {
+        .width = PANEL_X1 - PANEL_X0 - 2 * PANEL_PAD, .height = 80, .wrap = WRAP_WORD, .style_id = STL_DEFAULT,
+    }, FNT_DEFAULT, ask, &bytes);
+    int said_height = 44;
+    if (said) {
+        said_height = (int) (said->bbox.y1 - said->bbox.y0);
+        rdpq_paragraph_render(said, PANEL_X0 + PANEL_PAD, PANEL_Y0 + 30);
+        rdpq_paragraph_free(said);
+    }
+    int about_y = PANEL_Y0 + 30 + said_height + 8;
+    if (row_count > 0 && PANEL_Y1 - 6 - about_y >= 22) {
+        text(PANEL_X0 + PANEL_PAD, about_y, PANEL_X1 - PANEL_X0 - 2 * PANEL_PAD, PANEL_Y1 - 6 - about_y, ALIGN_LEFT, STL_GRAY,
             rows[selected].about);
     }
 

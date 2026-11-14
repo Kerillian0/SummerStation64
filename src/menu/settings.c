@@ -33,7 +33,7 @@ static settings_t init = {
     /* Beta feature flags (should always init to default) */
     .show_browser_file_extensions = true,
     .show_browser_rom_tags = true,
-    .wrap_file_list_scrolling = false,
+    .wrap_file_list_scrolling = true,      /* SummerStation64: on by default (the owner, 2026-11-14) */
     .rumble_enabled = false,
     .video_previews_enabled = true,
 };

@@ -546,7 +546,7 @@ static const item_t startup_items[] = {
     CHOICES("Intro Logo", OPTION_INTRO_LOGO, INTRO_LOGO_COUNT, intro_logo_name, NULL,
         "The look of the spinning logo in the intro. Vaporwave has patterned sides. Classic is the console's own green, blue, red and yellow. Off leaves it out."),
     CHOICES("Intro Title", OPTION_INTRO_TITLE, INTRO_TITLE_COUNT, intro_title_name, NULL,
-        "The menu's name under the logo in the intro. Picture is the drawn title, Text the name in plain letters (it uses no extra memory), Off leaves it out. With the logo or the title off, the other sits in the middle."),
+        "The menu's name under the logo in the intro, in plain letters. Off leaves it out. With the logo or the title off, the other sits in the middle."),
     CHOICES("Fade In", OPTION_FADE, FADE_COUNT, intro_fade_name, NULL,
         "When the menu starts, the picture comes up from black and the background music rises, over one or two seconds. Off shows the menu at once."),
     CHOICES("Game Start", OPTION_GAME_START, GAME_START_COUNT, game_start_name, NULL,
@@ -648,7 +648,7 @@ static const item_t control_items[] = {
     FEATURE("Quick Launch", FEATURE_QUICK_LAUNCH, "Tap A to start a game. Hold A to see its info instead."),
     FEATURE("Hold A To Launch", FEATURE_HOLD_LAUNCH, "Tap A to see a game's info. Hold A to start it."),
     FEATURE("Up/Down Also Scroll", FEATURE_UPDOWN_SCROLL, "Up and down move through the covers too. When this is off, up and down turn the game box over to show its back."),
-    SWITCH("Wrap File List", wrap_file_list_scrolling, false, NULL, "Going past the last item jumps back to the first. On the cover rows the last game then sits to the left of the first."),
+    SWITCH("Wrap File List", wrap_file_list_scrolling, true, NULL, "Going past the last item jumps back to the first. On the cover rows the last game then sits to the left of the first."),
     CHOICES("Name Entry", OPTION_NAME_ENTRY, NAME_ENTRY_COUNT, name_keyboard_entry_name, NULL,
         "How names are typed (collections, profiles, themes, renaming files). Keyboard is an on-screen keyboard: A types, B erases, R is Shift, C-down a space, START or OK keeps the name. Dial spells it round a circle with the stick."),
 };

@@ -90,10 +90,11 @@ typedef enum {
     FADE_COUNT
 } intro_fade_t;
 
-/** The name under the logo (option `intro_title` in options.ini). */
+/** The name under the logo (option `intro_name` in options.ini; the drawn
+ * picture title and its `intro_title` key were dropped by the owner,
+ * 2026-11-14: the plain text is the menu's look). */
 typedef enum {
-    INTRO_TITLE_PICTURE,    /**< the drawn title, rom:/wordmark.sprite (the default) */
-    INTRO_TITLE_TEXT,       /**< the name in plain letters with the accent line */
+    INTRO_TITLE_TEXT,       /**< the name in plain letters with the accent line (the default) */
     INTRO_TITLE_OFF,        /**< none: the logo alone */
     INTRO_TITLE_COUNT
 } intro_title_t;

@@ -45,11 +45,11 @@
 #define LOGO_SIZE           (52.0f) /* pixels for half its width */
 #define LOGO_TURN_MS        (2600)  /* time for one full turn */
 
-/* The title is a picture (rom:/wordmark.sprite, drawn by
-   assets/images/make_wordmark.py): the name in 80s-style letters with "64"
-   in neon across it. It is big for this console, about 220 KB, so it is in
-   memory only while the intro plays, and when memory is short the name is
-   written in plain text with the accent line instead. */
+/* The title was once also a picture (rom:/wordmark.sprite, drawn by
+   assets/images/make_wordmark.py); since 2026-11-14 it is always the name in
+   plain text with the accent line, and the picture is no longer built in.
+   The picture's drawing code stays for a future logo: `wordmark` is never
+   loaded now, so it is always NULL. */
 #define WORDMARK_Y          (258)
 #define WORDMARK_MIN_FREE   (700 * 1024)
 
@@ -222,15 +222,6 @@ void intro_begin (menu_t *menu) {
 
     int title = options_get(OPTION_INTRO_TITLE);
     show_title = (title != INTRO_TITLE_OFF);
-    if (title == INTRO_TITLE_PICTURE) {
-        heap_stats_t heap;
-        sys_get_heap_stats(&heap);
-        if ((heap.total - heap.used) >= WORDMARK_MIN_FREE) {
-            wordmark = sprite_load("rom:/wordmark.sprite");
-        } else {
-            memory_note_cut(MEMORY_CUT_INTRO_PICTURE);
-        }
-    }
     with_fairy = show_title && options_get(OPTION_ASSISTANT) != ASSISTANT_OFF;
     trail_next = 0;
     trail_last_at = -1000;
@@ -238,7 +229,7 @@ void intro_begin (menu_t *menu) {
         trail[i].at = -100000;
     }
     debugf("intro: logo %s, title %s, fairy %s\n", show_logo ? "on" : "off",
-        !show_title ? "off" : wordmark ? "picture" : (title == INTRO_TITLE_TEXT) ? "as text" : "as text (memory is short)",
+        show_title ? "as text" : "off",
         with_fairy ? "draws it" : "off");
     music_volume(0.0f);
 }
@@ -273,9 +264,8 @@ const char *intro_choice_name (int choice) {
 
 const char *intro_title_name (int choice) {
     switch (choice) {
-        case INTRO_TITLE_TEXT: return "Text";
         case INTRO_TITLE_OFF: return "Off";
-        default: return "Picture";
+        default: return "Text";
     }
 }
 

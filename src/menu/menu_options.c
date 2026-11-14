@@ -17,7 +17,7 @@ typedef struct {
 } option_info_t;
 
 static const option_info_t option_info[OPTION_COUNT] = {
-    [OPTION_SORT_ORDER] = { "sort_order", 0 },
+    [OPTION_SORT_ORDER] = { "sort_order", 3 },     /* SORT_RECENT_FIRST: Recently Played (the owner, 2026-11-14) */
     [OPTION_FONT] = { "font", 0 },
     /* Not "frame_rate": that key was written while the setting was on trial, and
        a leftover 60 must not stay switched on now that the row is hidden. */
@@ -51,7 +51,7 @@ static const option_info_t option_info[OPTION_COUNT] = {
     [OPTION_THEME_KEY] = { "theme_key", 0 },
     [OPTION_MUSIC_VOLUME] = { "music_volume", 5 }, /* the stock level */
     [OPTION_SOUND_VOLUME] = { "sound_volume", 5 },
-    [OPTION_INTRO_TITLE] = { "intro_title", 0 }, /* the picture */
+    [OPTION_INTRO_TITLE] = { "intro_name", 0 }, /* Text (the picture title and its key intro_title are gone) */
     [OPTION_NAME_ENTRY] = { "name_entry", 0 }, /* the keyboard */
     [OPTION_AVATAR_SHAPE] = { "avatar_shape", 0 }, /* round */
     [OPTION_ANIMATIONS] = { "animations", 0 }, /* snappy: the menu as it always was */
