@@ -35,10 +35,10 @@ a START opens Settings, and Z there searches every setting. Hold START for a sec
 q How do I play a game faster?
 a Settings > Console > Controls has Quick Launch (tap A to play, hold A for the info page) and Hold A To Launch (the other way round).
 q Which edition do I have?
-a The Art Edition has box art built into the menu file. The Standard edition is a small download that reads covers from the card's menu/metadata folder.
+a The Art Edition adds menu/art.pak, the box art, beside the menu file. The Standard edition is the menu alone and reads covers from the card's menu/metadata folder.
 a Settings > Console > About > Menu Information shows the version.
 q How do I update the menu?
-a Download the new sc64menu.n64 and copy it over the old one at the top of the card. Your settings, saves and lists stay where they are, in the menu folder and beside your games.
+a Copy the new sc64menu.n64 over the old one at the top of the card (with the Art Edition, menu/art.pak too). Your settings, saves and lists stay where they are.
 q How do I find a setting?
 a Press Z on any page of Settings and type a word or two: "beaten", "music", "cover". Every setting with those words in its name or help is listed, with where it lives.
 a A goes straight to it, B comes back to the list, and B again returns to where you were.
@@ -72,14 +72,14 @@ a That cover stands for several files: hacks, copies or other regions, grouped b
 
 topic Box art and clips
 q Why does a game have no cover?
-a The Art Edition has covers for most N64 games. Others show a plain box.
+a The Art Edition's menu/art.pak has covers for most N64 games. Others show a plain box.
 a Settings > Games > Game Folders > Find Missing Metadata lists every game lacking art or details in menu/missingart.txt. The Companion's Missing Metadata tab then fills them in from your computer.
 q Where do covers go on the card?
 a In menu/metadata/ and the four letters of the game's code, one folder each: NSME goes in menu/metadata/N/S/M/E/. The front is boxart_front.png.
 a The game's code is in its info page's Details (START). NES, SNES and Game Boy games go in menu/metadata/nes/ (or snes, gb, gbc) and a folder named like the game's file.
 q My own picture doesn't show.
 a Check the name is all lower case and ends .png: the menu reads PNG only.
-a On the Art Edition, built-in covers come first, so a card picture only shows for games without one. For your own art everywhere, use the Standard edition.
+a Covers in menu/art.pak come first, so a card picture only shows for games without one. For your own art everywhere, take art.pak off the card.
 q How do I get title logos and clips?
 a Download the Logos-and-Clips zip from the release and unzip it at the top of the card. The files go into menu/metadata/ beside the box art.
 a Logos work on every console. Clips need the Expansion Pak and play on the info page after a moment (Settings > Look > Game Info > Video Previews).
@@ -150,8 +150,8 @@ a Put the games in a Games folder and add the Retro tab in Settings > Games > Ta
 
 topic Trouble
 q The menu says "Watchdog timeout".
-a The cart has to read the whole menu file within five seconds. A fragmented or badly formatted card is too slow: back it up, reformat it (FAT32 or exFAT), and copy everything back.
-a The Standard edition is much smaller, if that doesn't help.
+a The cart has to read the whole menu file within five seconds. Since v0.5 it's about 3 MB, the art being in menu/art.pak; an older Art Edition is ten times that, so update.
+a Still happening? The card may be fragmented or badly formatted: back it up, reformat it (FAT32 or exFAT), and copy everything back.
 q A game won't start.
 a Some games need the Expansion Pak (Majora's Mask, Donkey Kong 64, most of Perfect Dark); the menu warns first. Otherwise try another copy: an amber ? from Card Prep means it differs from the known good dump.
 q Something is missing on my console.
