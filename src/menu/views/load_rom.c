@@ -113,6 +113,17 @@ static void scan_metadata_images(menu_t *menu) {
         }
     }
 
+    /* SummerStation64: pictures in the box art file (menu/art.pak) count too.
+       The card's folder may hold only a logo and a clip (the release's zip
+       makes those folders), so without this none could be stepped through. */
+    if (!(menu->load.rom_info.game_code[1] == 'E' && menu->load.rom_info.game_code[2] == 'D')) {
+        for (uint16_t i = 0; i < metadata_image_filename_cache_length; i++) {
+            if (!metadata_image_available[i] && baked_art_has(menu->load.rom_info.game_code, metadata_image_filename_cache[i])) {
+                metadata_image_available[i] = true;
+            }
+        }
+    }
+
     debugf("Metadata: Scanned metadata for ROM ID %s. \n", game_code_path);
 
     path_free(path);
