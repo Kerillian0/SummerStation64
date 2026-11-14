@@ -38,6 +38,11 @@ static shift_t shift = SHIFT_OFF;
 #define ERASE_HOLD_MS   (350)
 #define ERASE_EVERY_MS  (50)
 static uint64_t erase_next = 0;     /* when a held B erases again; 0 while B is up */
+/* C-left / C-right held: the text cursor keeps moving through the name, as
+   B keeps erasing (the menu's own held-direction repeat took C for a
+   direction and moved the key cursor instead; the owner, 2026-11-14). */
+static uint64_t step_next = 0;      /* when a held C moves the text cursor again; 0 while C is up */
+static int step_way = 0;            /* -1 left, 1 right */
 
 
 static bool on_space (void) {
@@ -210,6 +215,27 @@ static bool b_down (void) {
     return false;
 }
 
+/* Which way a C button is held now (0: neither). */
+static int c_held_way (void) {
+    JOYPAD_PORT_FOREACH (port) {
+        joypad_buttons_t held = joypad_get_buttons(port);
+        if (held.c_left != held.c_right) {
+            return held.c_right ? 1 : -1;
+        }
+    }
+    return 0;
+}
+
+static void step_cursor (int *cursor, int n, int way, bool quiet) {
+    int to = *cursor + way;
+    if (to >= 0 && to <= n) {
+        *cursor = to;
+        if (!quiet) {
+            sound_play_effect(SFX_CURSOR);
+        }
+    }
+}
+
 static void next_shift (void) {
     shift = (shift == SHIFT_OFF) ? SHIFT_ONCE : (shift == SHIFT_ONCE) ? SHIFT_CAPS : SHIFT_OFF;
     sound_play_effect(SFX_CURSOR);
@@ -297,12 +323,21 @@ name_keyboard_result_t name_keyboard_process (menu_t *menu, char *text, int *cur
         return NAME_KEYBOARD_TYPING;
     }
     if (pressed.c_left || pressed.c_right) {
-        int to = *cursor + (pressed.c_right ? 1 : -1);
-        if (to >= 0 && to <= n) {
-            *cursor = to;
-            sound_play_effect(SFX_CURSOR);
-        }
+        step_way = pressed.c_right ? 1 : -1;
+        step_next = get_ticks_ms() + ERASE_HOLD_MS;
+        step_cursor(cursor, n, step_way, false);
         return NAME_KEYBOARD_TYPING;
+    }
+    if (step_next) {
+        if (c_held_way() != step_way) {
+            step_next = 0;      /* let go (or the other one now): stop */
+        } else {
+            if (get_ticks_ms() >= step_next) {
+                step_next = get_ticks_ms() + ERASE_EVERY_MS;
+                step_cursor(cursor, n, step_way, true);
+            }
+            return NAME_KEYBOARD_TYPING;    /* a held C never moves the key cursor */
+        }
     }
     if (pressed.a) {
         if (col == RIGHT_COL) {

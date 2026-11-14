@@ -1,5 +1,5 @@
 ask 1
-; The assistant's questions and answers (Settings > Look > Assistant > Ask,
+; The assistant's questions and answers (Settings > Help > Questions > Ask,
 ; and Z on the cover tabs). Our own words, from the Companion's Guide.
 ;
 ;   open e|s <line>   a short opener in the Eager or Snarky mood, picked at

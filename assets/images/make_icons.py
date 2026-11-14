@@ -33,7 +33,7 @@ The icons are kept as small as the console allows:
 - avatar_disc.png: a 64 x 64 white disc in 16 shades (2 KB), the round
   ring behind a profile picture, tinted to the player's color. Larger than
   button.png so its edge stays sharp at the picture's size.
-- settings_icons.png: Settings' 21 page icons, 18 x 18 each side by side
+- settings_icons.png: Settings' 22 page icons, 18 x 18 each side by side
   (378 x 18), white in 16 shades (about 3.4 KB), tinted by the menu.
 """
 from PIL import Image, ImageDraw
@@ -438,9 +438,16 @@ def icon_about(d, k):       # a question mark in a circle
     f = ImageFont.truetype(FONT, int(14 * k))
     d.text((9 * k, 9.4 * k), "?", font=f, fill=0, anchor="mm")
 
+def icon_ask(d, k):         # a speech bubble with three dots (Help > Questions)
+    d.rounded_rectangle(p(k, 1, 1.5, 17, 12.5), radius=3 * k, fill=W)
+    d.polygon([(x * k, y * k) for x, y in [(4, 12), (8.5, 12), (3.5, 17)]], fill=W)
+    for x in (5, 9, 13):
+        d.ellipse(p(k, x - 1.4, 5.6, x + 1.4, 8.4), fill=0)
+
 PAGE_ICONS = [icon_theme, icon_covers, icon_box, icon_badges, icon_info, icon_fairy, icon_power,
               icon_library, icon_names, icon_folder, icon_save, icon_tabs, icon_profile, icon_file,
-              icon_controller, icon_sound, icon_tv, icon_camera, icon_film, icon_gear, icon_about]
+              icon_controller, icon_sound, icon_tv, icon_camera, icon_film, icon_gear, icon_about,
+              icon_ask]
 strip = Image.new("L", (ICON * len(PAGE_ICONS), ICON), 0)
 for i, draw in enumerate(PAGE_ICONS):
     strip.paste(page_icon(draw), (i * ICON, 0))

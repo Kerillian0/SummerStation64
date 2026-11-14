@@ -507,10 +507,14 @@ static const item_t assistant_items[] = {
         "Eager is cheerful and keen to help. Snarky gives the same advice with an attitude."),
     ACTION_INFO("Fairy Look...", open_fairy_look_row, ask_info,
         "The fairy itself: its name, which fairy it is, its colour and how it moves. A opens its page, with the fairy shown on it."),
-    ACTION_INFO("Ask a Question", open_ask, ask_info,
-        "Questions about the menu, answered by the assistant: getting started, finding games, box art, themes, saves, hacks, 64DD, cheats and trouble. Works with the assistant on or off."),
     ACTION("Reset Assistant Tips", reset_assistant,
         "The assistant says each tip once, and skips tips about things you already use. This lets it say the ones it has said again."),
+};
+
+/* Help (its own heading, the owner 2026-11-14): the assistant's answers. */
+static const item_t help_items[] = {
+    ACTION_INFO("Ask a Question", open_ask, ask_info,
+        "Questions about the menu, answered by the assistant: getting started, finding games, box art, themes, saves, hacks, 64DD, cheats and trouble. Works with the assistant on or off."),
 };
 
 /* How the fairy looks; the page shows it perched on the help panel. */
@@ -732,16 +736,21 @@ static const category_t console_pages[] = {
     { "About", information_items, COUNT(information_items) },
 };
 
+static const category_t help_pages[] = {
+    { "Questions", help_items, COUNT(help_items) },
+};
+
 /* The headings along the top, switched with L and R; each holds its pages. */
 static const group_t groups[] = {
     { "Look", look_pages, COUNT(look_pages) },
     { "Games", games_pages, COUNT(games_pages) },
     { "Console", console_pages, COUNT(console_pages) },
+    { "Help", help_pages, COUNT(help_pages) },
 };
 
 /* ---------- state ---------- */
 
-static int group = 0;           /* the heading along the top: Look, Games, Console */
+static int group = 0;           /* the heading along the top: Look, Games, Console, Help */
 static int category = 0;        /* the page within that heading */
 static int item = 0;
 static bool in_items = false;   /* false: choosing a page, true: inside one */
@@ -1175,7 +1184,7 @@ static void process (menu_t *menu) {
         return;
     }
     if (assistant_ask_active()) {
-        assistant_ask_process(menu);   /* Look > Assistant > Ask a Question */
+        assistant_ask_process(menu);   /* Help > Questions > Ask a Question */
         return;
     }
     if (avatar_pick_active()) {
@@ -1833,7 +1842,7 @@ static void draw (menu_t *menu, surface_t *d) {
            color at the top right, their name before it (as under the tabs). */
         int p = profiles_current();
         int x1 = ITEMS_X + ITEMS_WIDTH + PANEL_PAD;
-        int name_x0 = LEFT_X + (3 * (GROUP_TAB_WIDTH + GROUP_TAB_GAP)) + 8;
+        int name_x0 = LEFT_X + (COUNT(groups) * (GROUP_TAB_WIDTH + GROUP_TAB_GAP)) + 8;
         avatars_draw(profiles_picture(p), x1 - PLAYER_PICTURE, GROUP_TAB_Y + (ROW_HEIGHT - PLAYER_PICTURE) / 2, PLAYER_PICTURE,
                      profiles_color(p), profiles_name(p));
         rdpq_text_printf(&(rdpq_textparms_t) { .width = x1 - PLAYER_PICTURE - 8 - name_x0, .height = ROW_HEIGHT, .align = ALIGN_RIGHT,

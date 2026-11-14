@@ -32,7 +32,7 @@ item Meet Vee
 go Look > Assistant > Assistant
 about That's me! I pop up now and then with a tip, welcome you back from your games and have a word about the ones you rest on. Rarely, Chatty or off: you choose.
 item Ask me a question
-go Look > Assistant > Ask a Question
+go Help > Questions > Ask a Question
 about Answers about the whole menu, in eight topics. Also last in the Z menu on the covers.
 item Make me your own
 go Look > Assistant > Fairy Look...

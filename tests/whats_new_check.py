@@ -17,7 +17,7 @@ for m in re.finditer(r'static const category_t (\w+) = \{ "([^"]+)", (\w+), COUN
     if opener:
         subs[opener.group(1)] = items[m.group(3)]
 pages = {}
-for group, array in (('Look', 'look_pages'), ('Games', 'games_pages'), ('Console', 'console_pages')):
+for group, array in (('Look', 'look_pages'), ('Games', 'games_pages'), ('Console', 'console_pages'), ('Help', 'help_pages')):
     body = re.search(r'static const category_t ' + array + r'\[\] = \{(.*?)\n\};', src, re.S).group(1)
     for name, it in re.findall(r'\{ "([^"]+)", (\w+), COUNT', body):
         pages[(group, name)] = items[it]

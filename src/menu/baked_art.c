@@ -35,11 +35,17 @@
 #define PACK_PATH       "sd:/menu/art.pak"
 #define PACK_VERSION    (2)     /* 1 held the pictures packed */
 #define PACK_RECORD     (16)
-/* Spare cart memory, well above the menu file (about 3 MB) and below the
-   64DD's start-up program (0x13BC0000); the saves sit at the very top.
-   Nothing else uses it while the menu runs; a game loaded over it is
-   started straight away, and the next menu start reads the index again. */
-#define PACK_INDEX_PI   (0x13800000UL)
+/* Spare cart memory, at 48 MB: well above the menu file (about 3 MB, at most
+   6 MB by the release's check), above the 64DD's disk table (32 MB, written
+   only as a disk starts) and below the top 8 MB, which libdragon's USB
+   debug channel uses as its buffer (DEBUG_ADDRESS, 0x13800000-0x13FFFFFF):
+   the index sat there at first and every log line overwrote its first
+   records, so the covers of CFZE, CLBE and CZLE (sorted first) went missing,
+   even without a cable (the first line is written before the cart reports
+   the USB busy). Nothing else uses this while the menu runs; a game loaded
+   over it is started straight away, and the next menu start reads the
+   index again. */
+#define PACK_INDEX_PI   (0x13000000UL)
 #define PACK_INDEX_MAX  (256 * 1024)
 #define PACK_STAGE_PI   (PACK_INDEX_PI + PACK_INDEX_MAX)
 #define PACK_STAGE_MAX  (256 * 1024)
