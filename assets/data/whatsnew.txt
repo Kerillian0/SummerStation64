@@ -12,6 +12,8 @@ whatsnew 1
 ; Paths must match settings_menu.c (tests/whats_new_check.py checks them).
 
 version 0.5
+item Box art in its own file
+about The box art now lives in menu/art.pak on the card, so the menu starts on every card. Get it, with the logos and clips, from the release's Covers, Logos and Clips zip.
 item Status marks
 go Games > Library > Game Status
 about Mark a game Playing, Beaten, 100% or Backlog: Z on its cover, then Status. C-up / C-down step to each, and Backlog and Beaten turn up on the Collections tab.

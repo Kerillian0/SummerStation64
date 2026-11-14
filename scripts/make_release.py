@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
-"""Builds both release editions of SummerStation64 in one go.
+"""Builds a SummerStation64 release in one go.
 
     make release VERSION=0.2        (or: python3 scripts/make_release.py 0.2)
 
 Writes output/release-v<VERSION>/:
-  sc64menu.n64                          Standard edition: the menu (game details
-                                        built in), covers from the card's PNGs
-  SummerStation64-v<VERSION>-Art-Edition.zip  the same sc64menu.n64 plus
-                                        menu/art.pak, the baked covers
-  SummerStation64-v<VERSION>-Logos-and-Clips.zip  title logos and preview clips
-                                        for the SD card (when they have been made)
+  sc64menu.n64                          the menu (game details built in)
+  SummerStation64-v<VERSION>-Covers-Logos-and-Clips.zip  everything for the SD
+                                        card in one: menu/art.pak (the box
+                                        art) and the title logos and preview
+                                        clips (menu/metadata/...)
   SHA1SUMS.txt                          checksums, for the release notes
 
-Since v0.5 the covers are not inside the menu file: the SummerCart64 must
-load that whole file within 5 seconds, and with 32 MB of art slow cards
-stopped with "Watchdog timeout". Both editions carry the same menu file, and
-the release refuses one over MENU_MAX_BYTES. The art pack is made from the
+Since v0.5 there is one menu file and no editions (the owner, 2026-11-14:
+a Standard edition only confused players). The covers are not inside the
+menu file: the SummerCart64 must load that whole file within 5 seconds, and
+with 32 MB of art slow cards stopped with "Watchdog timeout"; the release
+refuses a menu file over MENU_MAX_BYTES. The art pack is made from the
 owner's baked pictures (build/art, make_baked_art.py), or taken from
 output/menu/art.pak. The details are baked again from assets/boxart/source
 first. Afterwards the next plain `make sc64` builds the usual working copy.
@@ -46,36 +46,27 @@ SKINS = os.path.join(ROOT, "filesystem", "assistant")
 SKINS_ASIDE = os.path.join(ROOT, "build", "assistant-set-aside")
 BUILT = os.path.join(ROOT, "output", "sc64menu.n64")
 PACK_SOURCES = [os.path.join(ROOT, "build", "logos", "menu"), os.path.join(ROOT, "build", "previews", "menu")]
-PACK_NOTICE = """Title logos and preview clips for SummerStation64
+PACK_NOTICE = """Covers, logos and clips for SummerStation64
 
-Unzip this at the top of the SD card: the files go into menu/metadata/,
-beside the box art. Game info then shows each game's logo in place of its
-name, and (with the Expansion Pak) a short clip in place of its cover.
+Unzip this at the top of the SD card, beside sc64menu.n64 (the menu folder
+inside goes over the card's menu folder; nothing of yours is replaced):
+  menu/art.pak          box art for about 750 games, read a cover at a time
+  menu/metadata/...     title logos (Game info shows them in place of the
+                        name) and short preview clips (with the Expansion
+                        Pak, in place of the cover)
+
+Without them the menu still works: covers then come from your own
+menu/metadata pictures, and Game info shows the plain name and cover.
 
 These pictures and clips are not part of SummerStation64's source code and
 not covered by its licence. They belong to the games' publishers and are
 included, in reduced size, for use with the menu on your own console. The
-logos come from libretro's thumbnail collection (libretro-thumbnails); the
-clips are cut from gameplay recordings kept on archive.org. If you hold the
-rights to any of them and want them removed, open an issue at
+box art comes from the community n64-flashcart-menu-metadata pack, the logos
+from libretro's thumbnail collection (libretro-thumbnails), and the clips
+are cut from gameplay recordings kept on archive.org. If you hold the rights
+to any of them and want them removed, open an issue at
 https://github.com/Kerillian0/SummerStation64 and the pack will be replaced
 without them.
-"""
-ART_NOTICE = """SummerStation64 Art Edition
-
-Copy both of these to the top of the SD card, keeping the folder:
-  sc64menu.n64        the menu (the same file as the Standard edition)
-  menu/art.pak        box art for about 750 games, read a cover at a time
-
-Without menu/art.pak the menu still works and takes covers from the card's
-menu/metadata pictures instead (slower to appear).
-
-The box art is not part of SummerStation64's source code and not covered by
-its licence. It belongs to the games' publishers and is included, in reduced
-size, for use with the menu on your own console. If you hold the rights to
-any of it and want it removed, open an issue at
-https://github.com/Kerillian0/SummerStation64 and the pack will be replaced
-without it.
 """
 STALE = [os.path.join(ROOT, "build", "N64FlashcartMenu.dfs"),        # the ROM's files, packed again
          os.path.join(ROOT, "build", "menu", "views", "credits.o")]  # carries the version name
@@ -119,7 +110,7 @@ def main():
         sys.exit("Which version? e.g.  make release VERSION=0.2")
     version = sys.argv[1].strip().lstrip("vV")
     out = os.path.join(ROOT, "output", f"release-v{version}")
-    art_zip = os.path.join(out, f"SummerStation64-v{version}-Art-Edition.zip")
+    pack = os.path.join(out, f"SummerStation64-v{version}-Covers-Logos-and-Clips.zip")
     menu_file = os.path.join(out, "sc64menu.n64")
 
     if os.path.isdir(OLD_ART):
@@ -160,35 +151,27 @@ def main():
             os.rename(SKINS_ASIDE, SKINS)
         forget_stale()      # the next plain build is the usual working copy (with the skins), not named v<version>
 
-    say("Art Edition")
-    with zipfile.ZipFile(art_zip, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
-        z.writestr("ART-EDITION-README.txt", ART_NOTICE)
-        z.write(menu_file, "sc64menu.n64")
-        z.write(ART_PACK, "menu/art.pak")
-
-    pack = os.path.join(out, f"SummerStation64-v{version}-Logos-and-Clips.zip")
-    sources = [s for s in PACK_SOURCES if os.path.isdir(s)]
-    if sources:
-        say("Logos and clips pack")
-        count = 0
-        # Stored, not packed again: sprites and H.264 clips hardly shrink.
-        with zipfile.ZipFile(pack, "w", zipfile.ZIP_STORED) as z:
-            z.writestr("LOGOS-AND-CLIPS-NOTICE.txt", PACK_NOTICE)
-            for source in sources:
-                for folder, _, files in os.walk(source):
-                    for name in sorted(files):
-                        path = os.path.join(folder, name)
-                        z.write(path, os.path.join("menu", os.path.relpath(path, source)))
-                        count += 1
-        print(f"  {count} files")
-    else:
-        print("Note: no logos or clips made (build/logos, build/previews): no pack this time.")
+    say("Covers, logos and clips")
+    count = 0
+    with zipfile.ZipFile(pack, "w") as z:
+        z.writestr("COVERS-LOGOS-AND-CLIPS-README.txt", PACK_NOTICE, compress_type=zipfile.ZIP_DEFLATED)
+        # The art packs well; sprites and H.264 clips hardly shrink, so they are stored.
+        z.write(ART_PACK, "menu/art.pak", compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
+        sources = [source for source in PACK_SOURCES if os.path.isdir(source)]
+        for source in sources:
+            for folder, _, files in os.walk(source):
+                for name in sorted(files):
+                    path = os.path.join(folder, name)
+                    z.write(path, os.path.join("menu", os.path.relpath(path, source)), compress_type=zipfile.ZIP_STORED)
+                    count += 1
+    print(f"  art.pak and {count} logo and clip files")
+    if not sources:
+        print("Note: no logos or clips made (build/logos, build/previews): the pack holds the box art only.")
 
     with open(os.path.join(out, "SHA1SUMS.txt"), "w", newline="\n") as f:
-        f.write(f"{sha1(menu_file)}  sc64menu.n64 (both editions)\n")
-        f.write(f"{sha1(ART_PACK)}  menu/art.pak in SummerStation64-v{version}-Art-Edition.zip\n")
-        if os.path.exists(pack):
-            f.write(f"{sha1(pack)}  SummerStation64-v{version}-Logos-and-Clips.zip\n")
+        f.write(f"{sha1(menu_file)}  sc64menu.n64\n")
+        f.write(f"{sha1(pack)}  SummerStation64-v{version}-Covers-Logos-and-Clips.zip\n")
+        f.write(f"{sha1(ART_PACK)}  menu/art.pak (inside the zip)\n")
 
     say("Done")
     for name in sorted(os.listdir(out)):
