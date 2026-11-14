@@ -67,6 +67,7 @@ static bool is_europe (char letter) {
 }
 
 static enum { PACK_UNTRIED, PACK_OPEN, PACK_NONE } pack_state;
+static baked_pack_status_t pack_why = BAKED_PACK_NOT_USED;
 static FIL pack;
 static uint32_t pack_count;
 
@@ -91,11 +92,13 @@ static bool pack_ready (void) {
     }
     pack_state = PACK_NONE;
     if (cart_type != CART_SC) {
-        return false;
+        return false;   /* BAKED_PACK_NOT_USED */
     }
+    pack_why = BAKED_PACK_BAD;  /* until it has opened */
     uint64_t began = get_ticks_ms();
     if (f_open(&pack, strip_fs_prefix(PACK_PATH), FA_READ) != FR_OK) {
         debugf("art pack: none at %s, covers come from the card's pictures\n", PACK_PATH);
+        pack_why = BAKED_PACK_MISSING;
         return false;
     }
     uint8_t header[SECTOR] __attribute__((aligned(16)));
@@ -147,6 +150,7 @@ static bool pack_ready (void) {
         }
     }
     pack_state = PACK_OPEN;
+    pack_why = BAKED_PACK_OK;
     debugf("art pack: %d pictures, %d MB, index read and mapped in %d ms, %d piece(s) on the card%s\n", (int) count,
         (int) (f_size(&pack) / (1024 * 1024)), (int) (get_ticks_ms() - began), run_count,
         run_count ? "" : " (too many: read the slower way; copying it to the card again helps)");
@@ -393,4 +397,9 @@ void baked_art_release (component_boxart_t *art) {
     if (art && !baked_art_free(art)) {
         ui_components_boxart_free(art);
     }
+}
+
+baked_pack_status_t baked_art_pack_status (void) {
+    pack_ready();
+    return pack_why;
 }

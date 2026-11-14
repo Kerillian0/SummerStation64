@@ -664,7 +664,7 @@ static const item_t profile_items[] = {
     ACTION_INFO("Playing As", next_profile, playing_info, "Who is playing. Each profile has its own game saves: a new profile starts every game fresh. A switches to the next profile."),
     ACTION_INFO("New Profile", new_profile, new_profile_info, "Add a player (up to four), named with the letter dial. The new profile is switched to."),
     ACTION("Rename Profile", rename_profile, "Give the profile that is playing a new name. Its saves stay where they are."),
-    ACTION_INFO("Profile Picture", choose_picture, picture_info, "The picture beside the player's name, in a ring of their color. A opens the pictures: those built into the menu, then any PNG in menu/avatars on the SD card. None shows the player's initial."),
+    ACTION_INFO("Profile Picture", choose_picture, picture_info, "The picture beside the player's name, in a ring of their color. A opens the pictures: any PNG in menu/avatars on the SD card (the Companion's Profile Pictures tab makes them). None shows the player's initial."),
     ACTION_INFO("Profile Color", next_color, color_info, "The color of the ring round the player's picture, and of their initial when they have none. A picks the next one."),
     CHOICES("Picture Shape", OPTION_AVATAR_SHAPE, AVATAR_SHAPE_COUNT, shape_name, shape_changed, "How every player's picture is cut: a circle or a rounded square."),
     ACTION("Delete Profile", delete_profile, "Take the profile that is playing off the list. Its saves stay on the SD card (in each saves folder, under its name), so nothing is lost. The first profile can't be deleted."),

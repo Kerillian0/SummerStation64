@@ -44,6 +44,10 @@ MENU_MAX_BYTES = 6 * 1024 * 1024
 # (neither edition); they are set aside for both builds and put back afterwards.
 SKINS = os.path.join(ROOT, "filesystem", "assistant")
 SKINS_ASIDE = os.path.join(ROOT, "build", "assistant-set-aside")
+# The owner's profile pictures (assets/profiles/make_avatars.py: Nintendo
+# characters), likewise the owner's own builds only since v0.5 (2026-11-14).
+AVATARS = os.path.join(ROOT, "filesystem", "avatars")
+AVATARS_ASIDE = os.path.join(ROOT, "build", "avatars-set-aside")
 BUILT = os.path.join(ROOT, "output", "sc64menu.n64")
 PACK_SOURCES = [os.path.join(ROOT, "build", "logos", "menu"), os.path.join(ROOT, "build", "previews", "menu")]
 PACK_NOTICE = """Covers, logos and clips for SummerStation64
@@ -90,11 +94,15 @@ def build(version):
 
 
 def no_skins(path, edition):
-    """Stop if a skin made it into a release file: each skin.txt starts "skin 1" then its name."""
+    """Stop if a skin or a profile picture made it into a release file: each
+    skin.txt starts "skin 1" then its name; the pictures' list.txt names its
+    first one "a00" followed by a tab."""
     with open(path, "rb") as f:
         data = f.read()
         if b"skin 1\nname " in data or b"skin 1\r\nname " in data:
             sys.exit(f"The assistant's skins ended up in {edition}: not releasing it.")
+        if b"a00\t" in data:
+            sys.exit(f"The owner's profile pictures ended up in {edition}: not releasing it.")
 
 
 def sha1(path):
@@ -119,6 +127,8 @@ def main():
         sys.exit("No baked art: run  python3 assets/boxart/make_baked_art.py  first.")
     if os.path.isdir(SKINS_ASIDE):
         sys.exit(f"The assistant's skins are in {SKINS_ASIDE} from an earlier run that stopped: move them back to {SKINS} first.")
+    if os.path.isdir(AVATARS_ASIDE):
+        sys.exit(f"The profile pictures are in {AVATARS_ASIDE} from an earlier run that stopped: move them back to {AVATARS} first.")
     changed = subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"], cwd=ROOT,
                              capture_output=True, text=True).stdout.strip()
     if changed:
@@ -137,6 +147,9 @@ def main():
     skins = os.path.isdir(SKINS)
     if skins:
         os.rename(SKINS, SKINS_ASIDE)   # Navi and Tatl: the owner's builds only, never released
+    avatars = os.path.isdir(AVATARS)
+    if avatars:
+        os.rename(AVATARS, AVATARS_ASIDE)   # the owner's profile pictures: likewise
     try:
         say(f"The menu, v{version}")
         build(version)
@@ -149,6 +162,8 @@ def main():
     finally:
         if skins:
             os.rename(SKINS_ASIDE, SKINS)
+        if avatars:
+            os.rename(AVATARS_ASIDE, AVATARS)
         forget_stale()      # the next plain build is the usual working copy (with the skins), not named v<version>
 
     say("Covers, logos and clips")
@@ -176,7 +191,7 @@ def main():
     say("Done")
     for name in sorted(os.listdir(out)):
         print(f"  {name:45} {os.path.getsize(os.path.join(out, name)) / (1024 * 1024):6.1f} MB")
-    print(f"\nIn {out}. output/sc64menu.n64 is the release menu (no skins); test it with output/menu/art.pak before publishing.")
+    print(f"\nIn {out}. output/sc64menu.n64 is the release menu (no skins or profile pictures); test it with output/menu/art.pak before publishing.")
     if skins:
         print("Your own build with Navi and Tatl: run  make sc64  again.")
 

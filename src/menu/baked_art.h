@@ -53,4 +53,15 @@ component_boxart_t *baked_art_open (const char *storage_prefix, const char *game
 /** Free a picture from baked_art_open(), whichever kind it is. NULL is fine. */
 void baked_art_release (component_boxart_t *art);
 
+/** @brief Whether the box art file (sd:/menu/art.pak) is in use. */
+typedef enum {
+    BAKED_PACK_NOT_USED,    /**< not a SummerCart64: the card's pictures are used */
+    BAKED_PACK_OK,          /**< read and in use */
+    BAKED_PACK_MISSING,     /**< not on the card */
+    BAKED_PACK_BAD,         /**< there, but not one this menu reads (another version, damaged) */
+} baked_pack_status_t;
+
+/** @brief Open the art file if not tried yet, and say how it went. */
+baked_pack_status_t baked_art_pack_status (void);
+
 #endif /* BAKED_ART_H__ */

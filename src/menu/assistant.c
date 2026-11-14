@@ -17,6 +17,7 @@
 #include "cover_list.h"
 #include "cover_clip.h"
 #include "cover_deal.h"
+#include "baked_art.h"
 #include "display_name.h"
 #include "game_data.h"
 #include "game_index.h"
@@ -71,6 +72,7 @@ typedef struct {
 static uint32_t used_bits = 0;      /* assistant_used_t */
 static uint32_t seen_bits = 0;      /* tips said, by their place in `tips` */
 static uint32_t said_bits = 0;      /* milestones said, once ever (SAID_...) */
+#define SAID_NO_ART     (11)    /* the box art file (menu/art.pak) missing or unreadable: said once, until tips are reset */
 
 static bool used (assistant_used_t what) {
     return (used_bits & (1u << what)) != 0;
@@ -462,6 +464,7 @@ static uint32_t saying_bits = 0;            /* the milestones being said: the sa
 void assistant_reset (void) {
     load();
     seen_bits = 0;
+    said_bits &= ~(1u << SAID_NO_ART);  /* the art file notice may come again; milestones stay said */
     save();
     last_talk_ms = 0;
     next_tip = 0;
@@ -616,6 +619,7 @@ static struct {
     char text[TEXT_LENGTH];
     uint32_t bits;          /* milestones it says (marked once it is talking) */
     uint64_t not_before;    /* 0: a welcome, said first; else not before this time since power-on */
+    bool urgent;            /* a problem to fix: first in line, said as soon as the covers are up */
 } pending[PENDING_MAX];
 static int pending_count = 0;
 static bool started_checked = false;
@@ -637,6 +641,21 @@ static void queue (uint32_t bits, const char *fmt, ...) {
     va_end(args);
     pending[pending_count].bits = bits;
     pending[pending_count].not_before = queue_not_before;
+    pending[pending_count].urgent = false;
+    pending_count++;
+}
+
+/* A problem the player should fix (the box art file missing): before the
+   greeting and everything else, as soon as the covers are up. */
+static void queue_urgent (uint32_t bits, const char *text) {
+    if (pending_count >= PENDING_MAX) {
+        pending_count--;    /* the last (least important) one makes room */
+    }
+    memmove(&pending[1], &pending[0], sizeof(pending[0]) * pending_count);
+    snprintf(pending[0].text, TEXT_LENGTH, "%s", text);
+    pending[0].bits = bits;
+    pending[0].not_before = 0;
+    pending[0].urgent = true;
     pending_count++;
 }
 
@@ -799,7 +818,25 @@ static void started_check (menu_t *menu) {
     if (intro_power_on() || intro_fairy_flew()) {    /* switched on, or Vee just flew off in the intro (it plays after RESET too) */
         greeting(menu, pending_count > 0);
     }
-    debugf("assistant: started, %d welcome(s) waiting, power-on %d, clock %ld\n", pending_count, (int) intro_power_on(), (long) menu->current_time);
+    /* The box art lives in its own file since v0.5: a player who copied only
+       the new menu file gets plain or card covers without knowing why. Once
+       per player (a player may leave it out on purpose, for their own art). */
+    baked_pack_status_t art = baked_art_pack_status();
+    if ((art == BAKED_PACK_MISSING || art == BAKED_PACK_BAD) && !(said_bits & (1u << SAID_NO_ART))) {
+        if (art == BAKED_PACK_MISSING) {
+            queue_urgent(1u << SAID_NO_ART, snarky()
+                ? "No box art file. menu/art.pak is in the release's Covers, Logos and Clips zip. Just saying."
+                : "I can't find the box art file, menu/art.pak! It's in the release's Covers, Logos and Clips zip.");
+        } else {
+            queue_urgent(1u << SAID_NO_ART, snarky()
+                ? "That menu/art.pak isn't one I can read. The one in this release's zip would be nice."
+                : "Your menu/art.pak doesn't match this menu. Grab the one from this release's Covers, Logos and Clips zip!");
+        }
+    }
+    static const char *art_words[] = { "not used", "in use", "missing", "unreadable" };
+    debugf("assistant: started, %d welcome(s) waiting, power-on %d, clock %ld, art file %s%s\n", pending_count,
+        (int) intro_power_on(), (long) menu->current_time, art_words[art],
+        (said_bits & (1u << SAID_NO_ART)) ? " (already told)" : "");
 
     /* Milestones: later, never as the first thing said. */
     queue_not_before = FIRST_TALK_MS;
@@ -1445,9 +1482,13 @@ void assistant_update (menu_t *menu) {
     if (!handoff && due >= 0 && pending[due].not_before == 0 && screen_is(menu, WHERE_COVERS)) {
         handoff = intro_fairy_handoff();
     }
-    if (due >= 0 && screen_is(menu, WHERE_COVERS)
+    /* A problem to fix (urgent, first in line): as soon as the covers have
+       dealt in, no waiting for a pause or the first seconds. */
+    bool urgent_now = (due >= 0 && pending[due].urgent && screen_is(menu, WHERE_COVERS)
+        && !cover_deal_running() && !animations_popup_up());
+    if (urgent_now || (due >= 0 && screen_is(menu, WHERE_COVERS)
         && (handoff ? quiet >= HANDOFF_QUIET_MS : (now >= EARLY_MS && quiet >= REACT_QUIET_MS))
-        && !animations_popup_up() && (!last_talk_ms || now - last_talk_ms >= REACT_GAP_MS)) {
+        && !animations_popup_up() && (!last_talk_ms || now - last_talk_ms >= REACT_GAP_MS))) {
         handoff = false;
         saying_tip = -1;
         saying_bits = pending[due].bits;
