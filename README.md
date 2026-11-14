@@ -18,10 +18,10 @@ it on PAL consoles, the **Analogue 3D** and the **ModRetro M64**.
      are stored on GitHub's image server rather than in the repository. -->
 
 > [!TIP]
-> **Quick start:** download **`sc64menu.n64`** from the
+> **Quick start:** from the
 > [latest release](https://github.com/Kerillian0/SummerStation64/releases/latest),
-> copy it to the top folder of your SD card, switch on. Covers and game
-> details are built in.
+> copy **`sc64menu.n64`** to the top folder of your SD card and unzip the
+> **Covers, Logos and Clips** zip there too. Switch on.
 
 > [!IMPORTANT]
 > **Back up your SD card** before trying a new menu, and keep your current
@@ -85,35 +85,35 @@ start.
 | 🎨 **Themes** | Six built-in themes, or your own made with the [Theme Maker](https://kerillian0.github.io/SummerStation64/companion/#themes) and shared with a short code. |
 | 💾 **Save backups** | Each start keeps the game's save from before, dated, five per game; "Restore save" brings one back. |
 | 🛡️ **Safe by design** | Safe mode (hold Z at power-on), safe settings saves, a friendly crash screen, and it leaves extras out instead of stopping when memory is short. |
-| 🌅 **Intro** | A spinning logo, a title picture and a tune at power-on, then a fade-in. Both optional. |
+| 🌅 **Intro** | A spinning logo, the menu's name and a tune at power-on, then a fade-in. Both optional. |
 
 ## 📥 Downloads
 
-Each [release](https://github.com/Kerillian0/SummerStation64/releases) comes in two editions of the same menu:
+Each [release](https://github.com/Kerillian0/SummerStation64/releases) has two downloads:
 
-- **Art Edition** (`sc64menu.n64`, recommended): box covers built in. Copy one file and go.
-- **Standard** (`.zip`): a small download that reads box covers from the
+- **`sc64menu.n64`**: the menu, about 3 MB, with the game details
+  (descriptions, release dates, developers, players) built in. Copy it to
+  the top folder of your SD card.
+- **Covers, Logos and Clips** (`.zip`): box art for most N64 games
+  (`menu/art.pak`), title logos and preview clips for Game info and the
+  covers. Unzip it at the top of your SD card. The clips need the Expansion
+  Pak. Prefer your own art? Leave `art.pak` out and use the
   [metadata pack](https://github.com/n64-tools/n64-flashcart-menu-metadata/releases)
-  on your SD card, for people who want their own art.
-
-Both have the game details (descriptions, release dates, developers, players)
-built in. A third download, **Logos and Clips** (`.zip`), adds title logos and
-preview clips for Game info: unzip it at the top of your SD card, beside the
-box art. The clips need the Expansion Pak.
+  or your own pictures in `menu/metadata/`.
 
 > [!WARNING]
 > **"Watchdog timeout" at power-on?** The SummerCart64 gives the menu file 5
-> seconds to load. On a card that has been used for a while, the Art Edition
-> (about 33 MB) can be scattered across it and take longer. Copy your files
-> off, reformat the card (FAT32 or exFAT, for example with the SD
-> Association's *SD Card Formatter*), and copy `sc64menu.n64` back first,
-> then everything else. If it still happens, use the **Standard** edition:
-> it loads as fast as the stock menu.
+> seconds to load. Since v0.5 it's about 3 MB (the box art is in its own
+> file), which any card loads in time; an older menu with the art inside was
+> about 33 MB, so update. If it still happens, the card may be failing or
+> badly formatted: copy your files off, reformat it (FAT32 or exFAT, for
+> example with the SD Association's *SD Card Formatter*) and copy everything
+> back.
 
 ## 📚 Documentation
 
-- **[Release notes and install guide](docs/RELEASE_NOTES_v0.3c.md)**
-  ([v0.3a](docs/RELEASE_NOTES_v0.3a.md), [v0.3](docs/RELEASE_NOTES_v0.3.md), [v0.2](docs/RELEASE_NOTES_v0.2.md), [v0.1](docs/RELEASE_NOTES_v0.1.md)): what's
+- **[Release notes and install guide](docs/RELEASE_NOTES_v0.5.md)**
+  ([v0.4a](docs/RELEASE_NOTES_v0.4a.md), [v0.3c](docs/RELEASE_NOTES_v0.3c.md), [v0.3a](docs/RELEASE_NOTES_v0.3a.md), [v0.3](docs/RELEASE_NOTES_v0.3.md), [v0.2](docs/RELEASE_NOTES_v0.2.md), [v0.1](docs/RELEASE_NOTES_v0.1.md)): what's
   new, installing, first steps, controls, settings and known limitations.
 - **[SummerStation64 Companion](https://kerillian0.github.io/SummerStation64/companion/)**:
   the Theme Maker, Card Prep (checks your games against known good dumps),
@@ -239,9 +239,9 @@ Code.
   figures) came back to Claude to fix.
 - **Not made by AI:** the music and interface sounds (credited below), the
   fonts, the box art and game details (a community pack), and
-  N64FlashcartMenu and libdragon, which this is built on. The icons, the
-  title picture and the intro logo are drawn by small programs Claude
-  wrote, not by an image-generating AI.
+  N64FlashcartMenu and libdragon, which this is built on. The icons and
+  the intro logo are drawn by small programs Claude wrote, not by an
+  image-generating AI.
 - There are a few placeholder elements, such as the Intro Logo that are AI generated. If this makes you uncomfortable, please contact me and I will rectify it asap. I am looking to commission or create these elements in the next few releases. If you are willing to contribute to this and create some assets for this frontend menu. Please contact my Discord at "kerillian." And we may work something out.
 - If you do not want to use this menu due to AI usage, I completely understand and accept this. Please use the stock menu or N64ever. I do not believe either of these utilize or at the very least disclose AI usage. They are far more talented than me. Please support them as this fork uses their code. They are the reason why this was possible in the first place.
 - If something seems wrong, please open an issue.

@@ -901,14 +901,16 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
         <li><b>Format</b>: the SummerCart64 reads FAT32 and exFAT cards. A card that already works with the cart is fine as it is.</li>
         <li><b>The menu</b>: download <code>sc64menu.n64</code> from the
           <a href="https://github.com/Kerillian0/SummerStation64/releases/latest">latest release</a> and copy it to the top folder of the card,
-          replacing the one there. The plain <code>sc64menu.n64</code> is the <b>Art Edition</b> (box covers built in); the <b>Standard</b> zip is a
-          small download that reads covers from the card.</li>
+          replacing the one there.</li>
+        <li><b>Covers, logos and clips</b>: from the same release, unzip <code>SummerStation64-…-Covers-Logos-and-Clips.zip</code> at the top
+          of the card. Its <code>menu</code> folder holds <code>art.pak</code> (box art for most N64 games) and the title logos and preview clips
+          (in <code>menu/metadata/</code>; the clips need the Expansion Pak). Nothing of yours is replaced.</li>
         <li><b>Games</b>: put them in a folder, for example <code>N64</code>. On the console, open the <b>Folders</b> tab, go into that folder,
           press <b>Z</b> and choose <b>Set current directory as default</b>; the <b>Games</b> tab now shows its games as covers. More folders can be
           added the same way with <b>Add this folder to Games</b>.</li>
-        <li><b>Standard edition only</b>: download the
-          <a href="https://github.com/n64-tools/n64-flashcart-menu-metadata/releases">metadata pack</a> and copy its <code>metadata</code> folder
-          into the card's <code>menu</code> folder (<code>menu/metadata/</code>).</li>
+        <li><b>Optional, for your own art</b>: leave <code>art.pak</code> out and copy the
+          <a href="https://github.com/n64-tools/n64-flashcart-menu-metadata/releases">metadata pack</a>'s <code>metadata</code> folder
+          into the card's <code>menu</code> folder (<code>menu/metadata/</code>), or add pictures as shown in <a href="#guide-art">Box art and details</a>.</li>
         <li><b>Optional</b>: run <a href="#prep">Card Prep</a> once to give each game a check mark for a known good dump, and make a theme in the
           <a href="#themes">Theme Maker</a> (each theme in a folder of its own, <code>menu/themes/My Theme/theme.ini</code>, then picked in Settings &gt; Look &gt; Theme &gt; Theme),
           or right on the console with <b>Settings &gt; Look &gt; Theme &gt; Edit Theme</b> (see <a href="#guide-themes-console">Making one on the console</a>).</li>
@@ -920,7 +922,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
     <section id="guide-art">
       <h2><i style="background:var(--n-yellow)"></i>Box art and details</h2>
       <p>Every game can have its own pictures (front, back, top label, cartridge) and details (developer, release date,
-        description). The Art Edition has them built in for most N64 games; for the rest, and for 64DD disks, NES, SNES,
+        description). The release's box art file (<code>menu/art.pak</code>) and the menu's built-in details cover most N64 games; for the rest, and for 64DD disks, NES, SNES,
         Game Boy and homebrew, you add your own. The console finds what is missing and this page fills it in.</p>
       <h3>Step by step</h3>
       <ol>
@@ -987,8 +989,8 @@ num-players = 1
 short-desc = Mario explores Princess Peach's castle.</code></pre>
       <div class="qa"><b>My picture doesn't show</b>
         <p>Check the file name (all lower case, <code>.png</code>; the menu reads PNG only, so convert a JPG made by hand) and
-          the folder. On the <b>Art Edition</b>, built-in covers come first: a picture on the card only shows for games without
-          one. To use your own art for every game, use the <b>Standard</b> edition.</p></div>
+          the folder. Covers in <code>menu/art.pak</code> come first: a picture on the card only shows for games without
+          one. To use your own art for every game, take <code>art.pak</code> off the card.</p></div>
       <div class="qa"><b>The page says there's no menu/missingart.txt</b>
         <p>Run Find Missing Metadata on the console first, and pick the card's top folder (picking the <code>menu</code> folder
           works too, but then 64DD and emulator games can't be found).</p></div>
@@ -1316,8 +1318,7 @@ rounded_corners = 1</code></pre>
       <ul>
         <li><b>Intro Logo</b>: the spinning logo as <b>Vaporwave</b> (patterned sides), <b>Classic</b> (the console's own colors) or
           <b>Off</b>.</li>
-        <li><b>Intro Title</b>: the name under it as a <b>Picture</b> (the drawn title), <b>Text</b> (plain letters, which needs no extra
-          memory) or <b>Off</b>.</li>
+        <li><b>Intro Title</b>: the name under it in plain letters (<b>Text</b>), or <b>Off</b>.</li>
       </ul>
       <p>With one of the two off, the other sits in the middle of the screen. A theme can bring its own intro tune (see
         <a href="#guide-themes">Making a theme</a>). Any button skips the intro.</p>
@@ -1353,8 +1354,7 @@ rounded_corners = 1</code></pre>
         Games &gt; Profiles &gt; <b>Profile Picture</b> (it also opens straight after a new profile is named):</p>
       <ul>
         <li><b>None</b> shows the player's initial in their color.</li>
-        <li>Then come the pictures built into the menu, and after them any PNG in <code>menu/avatars/</code> on the SD card (up to
-          32), named after the file.</li>
+        <li>Then any PNG in <code>menu/avatars/</code> on the SD card (up to 32), named after the file.</li>
       </ul>
       <p><b>Profile Color</b> sets the ring round the picture, and <b>Picture Shape</b> draws every player's picture as a circle or a
         rounded square.</p>
@@ -1382,7 +1382,7 @@ rounded_corners = 1</code></pre>
         says what was left out. Some games need the Expansion Pak themselves (Majora's Mask, Donkey Kong 64, most of Perfect Dark); the menu
         warns before starting them. Third-party Expansion Paks work the same as Nintendo's.</p>
       <h3>SD card</h3>
-      <p>Any reliable card will do; speed matters little, because the menu reads small files. Size: the Art Edition is about 35 MB and games are
+      <p>Any reliable card will do; speed matters little, because the menu reads small files. Size: the menu and its covers, logos and clips take about 190 MB, and games are
         4 to 64 MB each, so even a small card holds a full library. Buy from a trusted seller: fake cards that report more space than they have
         are common and lose files.</p>
       <h3>Picture</h3>
@@ -1407,8 +1407,8 @@ rounded_corners = 1</code></pre>
           <a href="https://github.com/Polprzewodnikowy/SummerCart64/releases">SummerCart64 releases</a>), over USB: update the cart's firmware,
           and read the menu's <b>debug log</b> with <code>sc64deployer debug --no-writeback</code>, the most useful thing to add to a bug report.</p></div>
       <div class="qa"><b>Metadata pack</b>
-        <p>Covers, descriptions and release dates for the Standard edition:
-          <a href="https://github.com/n64-tools/n64-flashcart-menu-metadata/releases">n64-flashcart-menu-metadata</a>. The Art Edition has them built in.</p></div>
+        <p>Covers, descriptions and release dates, for your own art or games the release's art file lacks:
+          <a href="https://github.com/n64-tools/n64-flashcart-menu-metadata/releases">n64-flashcart-menu-metadata</a>.</p></div>
       <div class="qa"><b>Checking a game file</b>
         <p><a href="#prep">Card Prep</a> checks every game on the card at once. To check one file by hand, work out its CRC32 or SHA-1 and compare
           it with No-Intro's list (<a href="https://datomatic.no-intro.org/">DAT-o-MATIC</a>):</p>
@@ -1429,10 +1429,13 @@ rounded_corners = 1</code></pre>
           picture. Nothing on the card is changed.</p></div>
       <div class="qa"><b>The menu doesn't start</b>
         <p>Check that <code>sc64menu.n64</code> is in the card's top folder and copied in full. Keep the cart's firmware up to date with the
-          deployer. To go back, copy your old <code>sc64menu.n64</code> over it.</p></div>
+          deployer. To go back, copy your old <code>sc64menu.n64</code> over it.</p>
+        <p><b>"Watchdog timeout"</b>: the cart must load the whole menu file within 5 seconds. Since v0.5 it's about 3 MB (the box art is
+          in <code>menu/art.pak</code>), which any card manages; an older menu with the art inside was about 33 MB. If it still happens, the
+          card may be failing or badly formatted: copy everything off, reformat it (FAT32 or exFAT) and copy it back.</p></div>
       <div class="qa"><b>A game has no cover, or the wrong one</b>
-        <p>The Art Edition has covers for the games in the metadata pack; others show a plain box. With the Standard edition, check that the pack is
-          in <code>menu/metadata/</code>. To add a missing one, see <a href="#guide-art">Box art and details</a>. A few games share a code with
+        <p>The release's <code>menu/art.pak</code> has covers for the games in the metadata pack; others show a plain box. Check that
+          <code>art.pak</code> is in the card's <code>menu</code> folder (the menu's assistant says so when it can't find it). To add a missing one, see <a href="#guide-art">Box art and details</a>. A few games share a code with
           another region's game and can show its cover; this is being fixed.</p></div>
       <div class="qa"><b>What do the ✓, ? and ✗ marks mean?</b>
         <p>They come from Card Prep. <b>✓</b>: exactly a known good dump. <b>?</b>: the file differs from the known dump. Often that is harmless
