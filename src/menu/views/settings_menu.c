@@ -607,7 +607,7 @@ static const item_t video_items[] = {
     SWITCH("PAL60 Mode", pal60_enabled, false, apply_pal60,
         "PAL consoles only. The picture may go dark if your TV can't show it; to undo that, edit menu/config.ini on the SD card."),
     CHOICES("Character Set", OPTION_FONT, FONT_COUNT, font_choice_name, NULL,
-        "Latin Only frees about 700 KB of memory but can't show Japanese names. Auto uses Latin Only without the Expansion Pak, Full with it. Restart the console to apply."),
+        "Latin Only frees about 700 KB of memory but can't show Japanese names. Full needs the Expansion Pak: without one, Latin Only is used. Auto picks for you. Restart the console to apply."),
 };
 
 static const item_t screenshot_items[] = {

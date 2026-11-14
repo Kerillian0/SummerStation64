@@ -10,8 +10,8 @@ static bool cut[MEMORY_CUT_COUNT];
 
 static const char *what_was_cut[MEMORY_CUT_COUNT] = {
     [MEMORY_CUT_SIDE_ART] = "art on the side covers",
-    [MEMORY_CUT_BAKED_ART] = "covers from the menu file",
-    [MEMORY_CUT_INTRO_PICTURE] = "the intro's title picture",
+    [MEMORY_CUT_BAKED_ART] = "covers from the art file",
+    [MEMORY_CUT_FULL_FONT] = "the full character set",
     [MEMORY_CUT_AVATAR] = "profile pictures",
     [MEMORY_CUT_TITLE_LOGO] = "a title logo",
     [MEMORY_CUT_VIDEO_PREVIEW] = "a Game info clip",
