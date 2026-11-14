@@ -132,8 +132,14 @@ static int answer_height = 0, scroll = 0;
 static uint64_t answer_since = 0;
 static int opener_next[2];
 
+static bool in_settings = false;   /* shown as Settings' Help heading: the headings, not its own title */
+
 bool assistant_ask_active (void) {
     return active;
+}
+
+bool assistant_ask_at_topics (void) {
+    return active && level == LEVEL_TOPICS;
 }
 
 static void answer_free (void) {
@@ -198,13 +204,28 @@ void assistant_ask_open (bool from_tabs) {
     }
     active = true;
     opened_from_tabs = from_tabs;
+    in_settings = false;
     level = LEVEL_TOPICS;
     topic = 0;
     question = 0;
 }
 
+void assistant_ask_open_help (void) {
+    assistant_ask_open(false);
+    in_settings = active;
+}
+
+void assistant_ask_close (void) {
+    active = false;
+    in_settings = false;
+    answer_free();
+    assistant_portrait_free();
+    forget();
+}
+
 static void close_page (menu_t *menu) {
     active = false;
+    in_settings = false;
     answer_free();
     assistant_portrait_free();
     forget();
@@ -371,9 +392,11 @@ void assistant_ask_draw (void) {
     char title[48];
     snprintf(title, sizeof(title), "Ask %s", assistant_name());
 
-    /* The title, like a heading tab. */
-    games_ui_round_fill(LEFT_X, TITLE_Y - 2, LEFT_X + TITLE_WIDTH, TITLE_Y - 2 + ROW_HEIGHT, th->accent);
-    text_at(LEFT_X, TITLE_Y - 2, TITLE_WIDTH, ROW_HEIGHT, ALIGN_CENTER, STL_WHITE, title);
+    /* The title, like a heading tab (inside Settings the headings are drawn instead). */
+    if (!in_settings) {
+        games_ui_round_fill(LEFT_X, TITLE_Y - 2, LEFT_X + TITLE_WIDTH, TITLE_Y - 2 + ROW_HEIGHT, th->accent);
+        text_at(LEFT_X, TITLE_Y - 2, TITLE_WIDTH, ROW_HEIGHT, ALIGN_CENTER, STL_WHITE, title);
+    }
 
     if (level == LEVEL_ANSWER) {
         draw_answer();

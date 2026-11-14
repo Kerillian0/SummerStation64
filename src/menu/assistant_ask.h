@@ -21,6 +21,15 @@ void assistant_ask_open (bool from_tabs);
 /** Whether the page is showing (Settings draws and runs it instead of its own page). */
 bool assistant_ask_active (void);
 
+/** @brief Open it as Settings' Help heading: the headings stay on top. */
+void assistant_ask_open_help (void);
+
+/** @brief Close it at once (Settings moving to another heading). */
+void assistant_ask_close (void);
+
+/** @brief Showing its list of topics (where B leaves Settings on the Help heading). */
+bool assistant_ask_at_topics (void);
+
 void assistant_ask_process (menu_t *menu);
 void assistant_ask_draw (void);
 

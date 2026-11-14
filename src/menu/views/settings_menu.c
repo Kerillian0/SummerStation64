@@ -750,7 +750,15 @@ static const group_t groups[] = {
 
 /* ---------- state ---------- */
 
+static int group;
+/* The Help heading shows the questions straight away. */
+static bool help_heading (void);
+
 static int group = 0;           /* the heading along the top: Look, Games, Console, Help */
+
+static bool help_heading (void) {
+    return groups[group].pages == help_pages;
+}
 static int category = 0;        /* the page within that heading */
 static int item = 0;
 static bool in_items = false;   /* false: choosing a page, true: inside one */
@@ -1183,8 +1191,35 @@ static void process (menu_t *menu) {
         pad_test_process(menu);        /* Console > Tools > Controller Test */
         return;
     }
+    /* The Help heading is the questions themselves (the owner, 2026-11-14:
+       a row to press A on first was one step too many). L and R move on to
+       the next heading; B on the topics leaves Settings, as on any heading. */
+    if (help_heading()) {
+        if (!assistant_ask_active()) {
+            assistant_ask_open_help();
+        }
+        joypad_buttons_t pressed = screenshot_pressed();    /* as the headings read L and R below */
+        if (pressed.l || pressed.r) {
+            assistant_ask_close();
+            group = (group + (pressed.r ? 1 : COUNT(groups) - 1)) % COUNT(groups);
+            sub_page = NULL;
+            category = item = 0;
+            in_items = false;
+            sound_play_effect(SFX_CURSOR);
+            return;
+        }
+        if (menu->actions.back && assistant_ask_at_topics()) {
+            assistant_ask_close();
+            menu->next_mode = games_ui_origin();
+            if (animations_showy()) {
+                tabs_slide_begin(menu, -1);
+            }
+            sound_play_effect(SFX_EXIT);
+            return;
+        }
+    }
     if (assistant_ask_active()) {
-        assistant_ask_process(menu);   /* Help > Questions > Ask a Question */
+        assistant_ask_process(menu);   /* the Help heading, or "Ask Vee..." from a cover tab's Z */
         return;
     }
     if (avatar_pick_active()) {
@@ -1808,6 +1843,9 @@ static void draw (menu_t *menu, surface_t *d) {
     }
 
     if (assistant_ask_active()) {
+        if (help_heading()) {
+            draw_group_tabs();      /* the Help heading: the headings stay on top */
+        }
         assistant_ask_draw();
         animations_draw_late(menu->mode);
         debug_stats_overlay_draw();
