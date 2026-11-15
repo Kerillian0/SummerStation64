@@ -86,6 +86,7 @@ SRCS = \
 	menu/settings.c \
 	menu/sound.c \
 	menu/attract.c \
+	menu/screen_dim.c \
 	menu/settings_search.c \
 	menu/library_stats.c \
 	menu/setup_wizard.c \
@@ -359,6 +360,8 @@ $(BUILD_DIR)/menu/views/credits.o: FLAGS+=-DMENU_VERSION=\"$(MENU_VERSION)\" -DB
 
 # Clips (src/menu/clip.c) swap in their own clock while recording.
 $(BUILD_DIR)/$(PROJECT_NAME).elf: LDFLAGS += --wrap=get_ticks_ms
+# Dim Screen (src/menu/screen_dim.c) darkens every frame last, as it goes to the TV.
+$(BUILD_DIR)/$(PROJECT_NAME).elf: LDFLAGS += --wrap=rdpq_detach_show
 
 $(BUILD_DIR)/$(PROJECT_NAME).elf: $(OBJS)
 

@@ -2,6 +2,7 @@
 
 #include "animations.h"
 #include "attract.h"
+#include "screen_dim.h"
 #include "screenshot.h"
 #include "actions.h"
 
@@ -145,8 +146,10 @@ void actions_update (menu_t *menu) {
     actions_clear(menu);
     actions_update_direction(menu);
     actions_update_buttons(menu);
-    if (attract_wake()) {
-        actions_clear(menu);    // attract mode: the first press only wakes it (attract.h)
+    bool woke = screen_dim_wake();     // Dim Screen (screen_dim.h)
+    woke = attract_wake() || woke;     // attract mode (attract.h): both wake on the same press
+    if (woke) {
+        actions_clear(menu);    // the first press only wakes them
         screenshot_note_pressed((joypad_buttons_t) { 0 });
     }
 }

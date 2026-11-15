@@ -70,6 +70,7 @@ static const option_info_t option_info[OPTION_COUNT] = {
     [OPTION_WHATS_NEW_SEEN] = { "whats_new_seen", 0 }, /* none yet */
     [OPTION_ATTRACT] = { "attract_mode", 0 }, /* off */
     [OPTION_ATTRACT_DIRECTION] = { "attract_direction", 0 }, /* right to left */
+    [OPTION_SCREEN_DIM] = { "screen_dim", 0 }, /* off */
 };
 
 static int values[OPTION_COUNT];

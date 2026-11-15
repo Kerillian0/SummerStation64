@@ -4,6 +4,7 @@
 
 #include "../assistant.h"
 #include "../attract.h"
+#include "../screen_dim.h"
 #include "../assistant_ask.h"
 #include "../cover_clip.h"
 #include "../fonts.h"
@@ -617,6 +618,8 @@ static const item_t video_items[] = {
         "Left alone on a row of covers this long, the covers drift past on their own, each game's clip playing as it goes by. The first button press stops it."),
     CHOICES("Attract Direction", OPTION_ATTRACT_DIRECTION, ATTRACT_DIRECTION_COUNT, attract_direction_name, NULL,
         "Which way the covers drift in Attract Mode."),
+    CHOICES("Dim Screen", OPTION_SCREEN_DIM, SCREEN_DIM_COUNT, screen_dim_name, NULL,
+        "Left alone this long, on any screen, the picture dims and the music goes quieter, so nothing bright sits still on a CRT. With Attract Mode on too, the covers drift first. The first press wakes it."),
 };
 
 static const item_t screenshot_items[] = {

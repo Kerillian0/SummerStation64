@@ -61,6 +61,7 @@ typedef enum {
     OPTION_WHATS_NEW_SEEN, /**< the newest version What's new has shown (500 = v0.5, see whats_new.h); the same for every player */
     OPTION_ATTRACT,     /**< an attract_wait_t value: how long the menu is left alone before the covers drift on their own (attract.h) */
     OPTION_ATTRACT_DIRECTION, /**< an attract_direction_t value */
+    OPTION_SCREEN_DIM,  /**< a screen_dim_wait_t value: how long the menu is left alone before the screen dims (screen_dim.h) */
     OPTION_COUNT
 } option_t;
 
