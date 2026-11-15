@@ -85,6 +85,7 @@ SRCS = \
 	menu/rom_info.c \
 	menu/settings.c \
 	menu/sound.c \
+	menu/attract.c \
 	menu/settings_search.c \
 	menu/library_stats.c \
 	menu/setup_wizard.c \

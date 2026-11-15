@@ -9,6 +9,7 @@
 #include <time.h>
 
 #include "../assistant.h"
+#include "../attract.h"
 #include "../assistant_ask.h"
 #include "../cover_clip.h"
 #include "../cover_deal.h"
@@ -1547,6 +1548,11 @@ static void process (menu_t *menu) {
             }
             sound_play_effect(SFX_CURSOR);
         }
+        // Left alone: the covers drift on their own, the selection moving on silently (attract.h).
+        int drift = folders_tab ? 0 : attract_frame(menu->browser.entries);
+        if (drift) {
+            menu->browser.selected = (menu->browser.selected + drift + menu->browser.entries) % menu->browser.entries;
+        }
         menu->browser.entry = &menu->browser.list[menu->browser.selected];
     }
 
@@ -1894,6 +1900,24 @@ static float carousel_slide (menu_t *menu) {
     int selected = covers->selected;
     bool same_folder = (covers->list == slide_list) && (covers->entries == slide_entries);
 
+    // Attract mode: the covers drift on their own, or ease back into place once woken (attract.h).
+    float drifting = attract_slide();
+    if (drifting != 0.0f || attract_running()) {
+        if (same_folder && slide_selected >= 0 && selected != slide_selected) {
+            int delta = selected - slide_selected;
+            if (covers->entries > 2 && (delta == covers->entries - 1 || delta == 1 - covers->entries)) {
+                delta = -delta;     // round the end of the row
+            }
+            animations_note_direction(delta);   // the name slides in from that side (Showy)
+        }
+        slide_list = covers->list;
+        slide_entries = covers->entries;
+        slide_selected = selected;
+        slide_dir = 0;
+        landed_ms = 0;
+        return drifting;
+    }
+
     if (!same_folder || slide_selected < 0) {
         slide_dir = 0;
     } else if (selected != slide_selected) {
@@ -2086,7 +2110,18 @@ void carousel_draw (menu_t *menu) {
                 y0 += deal_dy;
                 x0 = (x0 < 0) ? 0 : ((x0 + w > screen_w) ? screen_w - w : x0); // dealt in from the screen's edge, not past it
             }
-            if (x0 < 0 || (x0 + w) > screen_w) {
+            if (attract_running() || attract_slide() != 0.0f) {
+                // Attract mode: a cover crosses the screen's edge, fading as it goes, so the
+                // next one is already coming in (at rest a cover is drawn only when all of it shows).
+                if (x0 >= screen_w || (x0 + w) <= 0) {
+                    continue;
+                }
+                float inside = fminf((float) (screen_w - x0), (float) (x0 + w)) / (float) w;
+                alpha *= (inside < 1.0f) ? inside : 1.0f;
+                if (alpha < 1.0f) {
+                    continue;
+                }
+            } else if (x0 < 0 || (x0 + w) > screen_w) {
                 continue; // still off the edge of the screen
             }
             // During the fade-in a cover with its art is drawn already
@@ -2106,10 +2141,13 @@ void carousel_draw (menu_t *menu) {
             }
             carousel_art_brightness(cover_bright);
 
+            // Attract mode: the game passing the middle plays its clip as it goes, flat on its cover.
+            const bool attract_clip = (offset == 0) && attract_running() && back >= 1.0f && cover_clip_frame(menu, i) < 1.0f;
+
             // 3D Side Covers: every cover but the selected one at rest is a box
             // too, turned to face the middle with Angled Side Covers on. A cover
             // sliding into the middle turns round to the selected box's angle.
-            if (!resting_center) {
+            if (!resting_center && !attract_clip) {
                 float edge_turn = (away < 1.0f) ? away : 1.0f;
                 float side_yaw = angled ? ((pos < 0.0f) ? -CAROUSEL_SIDE_BOX_YAW : CAROUSEL_SIDE_BOX_YAW) : CAROUSEL_BOX_YAW;
                 float yaw = carousel_lerp(CAROUSEL_BOX_YAW, side_yaw, edge_turn);
@@ -2120,7 +2158,7 @@ void carousel_draw (menu_t *menu) {
                 }
             }
 
-            if (turn > 0.0f) {
+            if (turn > 0.0f && !attract_clip) {
                 float left = (pos < 0.0f) ? far : 1.0f;
                 float right = (pos < 0.0f) ? 1.0f : far;
                 if (!carousel_art_draw_angled(menu, i, x0, y0, w, h, left, right, (int) alpha)) {
@@ -2131,10 +2169,10 @@ void carousel_draw (menu_t *menu) {
             }
 
             // Rested 2 seconds: the game's clip in the cover's place, the cover fading out over it.
-            if (resting_center && !drawn_moving && back >= 1.0f && carousel_art_flip_width() >= 1.0f) {
+            if (((resting_center && !drawn_moving) || attract_clip) && back >= 1.0f && carousel_art_flip_width() >= 1.0f) {
                 float cover_left = cover_clip_frame(menu, i);
                 // With 3D Box on, on the box's front, with its depth, hover and lean.
-                if (cover_left < 1.0f && features_enabled(FEATURE_BOX_3D) && carousel_art_draw_box_clip(menu, i, x0, y0, w, h, cover_left)) {
+                if (cover_left < 1.0f && !attract_clip && features_enabled(FEATURE_BOX_3D) && carousel_art_draw_box_clip(menu, i, x0, y0, w, h, cover_left)) {
                     carousel_art_brightness(255);
                     continue;
                 }
@@ -2147,7 +2185,7 @@ void carousel_draw (menu_t *menu) {
                     clip_x0 = x0 + (w - clip_bw) / 2;
                     clip_y0 = y0 + (h - clip_bh) / 2;
                 }
-                cover_left = (cover_left < 1.0f) ? cover_clip_draw(menu, i, clip_x0, clip_y0, clip_bw, clip_bh, &clip_w, &clip_h) : 1.0f;
+                cover_left = (cover_left < 1.0f) ? cover_clip_draw(menu, i, clip_x0, clip_y0, clip_bw, clip_bh, &clip_w, &clip_h, attract_clip) : 1.0f;
                 if (cover_left < 1.0f) {
                     clip_on = true;
                     if (cover_left > 0.0f) {
@@ -2196,8 +2234,8 @@ void carousel_draw (menu_t *menu) {
             // Too small for its text: a cover flying back from Game info's top or
             // bottom label is about 22 px tall, and rdpq stops the menu on a text
             // box of negative height (a player's 4MB console, 2026-11-15).
-            if (w < 40 || h < 40 + 20) {
-                continue;
+            if (w < 40 || h < 40 + 20 || x0 < 0 || (x0 + w) > screen_w) {
+                continue;   // ... or partly off the screen (attract mode)
             }
 
             entry_t *e = &covers->list[i];
@@ -2231,7 +2269,7 @@ void carousel_draw (menu_t *menu) {
     ring_h = (int) (ring_h * pop);
     bool ring_hidden;
     color_t ring_color = carousel_ring_color(menu, covers->selected, t->accent, &ring_hidden);
-    ring_hidden = ring_hidden || (back < 1.0f) || cover_deal_hides_ring();    // the cover is still flying back into it, or being dealt in
+    ring_hidden = ring_hidden || (back < 1.0f) || cover_deal_hides_ring() || attract_running() || attract_slide() != 0.0f;    // the cover is still flying back into it, or being dealt in
     // Corner brackets stand a little further above and below the cover than the ring.
     const int ring_pad_y = (options_get(OPTION_SELECTION) == SELECTION_CORNERS) ? 9 : 5;
     if (!ring_hidden && options_get(OPTION_SELECTION) != SELECTION_OFF) {
@@ -2485,7 +2523,9 @@ static void draw (menu_t *menu, surface_t *d) {
     } else {
         games_ui_topbar_draw(menu, here_tab());
         if (!letter_wheel_keyboard_showing()) {
+            uint64_t covers_began = get_ticks_us();
             carousel_draw(menu);
+            attract_time(ATTRACT_TIME_COVERS, (uint32_t) (get_ticks_us() - covers_began));
         }
         if (menu->browser.entries <= 0 && !letter_wheel_keyboard_showing()) {
             rdpq_text_printf(&(rdpq_textparms_t) {
@@ -2579,6 +2619,7 @@ static void draw (menu_t *menu, surface_t *d) {
         intro_fade_draw(); // the fade-in after the menu starts, over the whole screen
     }
     animations_draw_late(menu->mode);  // Showy: a pop-up just closed shrinks away
+    if (!folders_tab) attract_draw_dim();  // attract mode: the tab bar, panel and hints dimmed
     assistant_draw(menu);   // the assistant's fairy and bubble, when it is talking
     if (versions_screen_active()) {
         versions_screen_draw(menu);     // the end of folding back: the flat cover lands on the real Games screen

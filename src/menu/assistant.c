@@ -1516,6 +1516,7 @@ void assistant_update (menu_t *menu) {
         static int rest_selected = -2;
         static const void *rest_list = NULL;
         static bool rest_said = false;
+        static uint64_t rest_since = 0;
         const cover_list_t *covers = cover_list_current(menu);
         uint64_t pressed = animations_last_press_ms();
         if (pressed != rest_press || covers->selected != rest_selected || (const void *) covers->list != rest_list) {
@@ -1523,11 +1524,13 @@ void assistant_update (menu_t *menu) {
             rest_selected = covers->selected;
             rest_list = covers->list;
             rest_said = false;
+            rest_since = now;   /* a press, a move, or attract mode moving on (attract.h) */
         }
         int clip = cover_clip_shown_ms();
+        uint64_t rested = now - rest_since;
         bool ready = (clip > 0) ? clip >= REACT_CLIP_MS
-                   : (clip < 0) ? quiet >= REACT_REST_MS
-                   : quiet >= REACT_NO_CLIP_MS;     /* a clip was found but never showed */
+                   : (clip < 0) ? rested >= REACT_REST_MS
+                   : rested >= REACT_NO_CLIP_MS;     /* a clip was found but never showed */
         bool rarely_wait = (often == ASSISTANT_RARELY && last_talk_ms && now - last_talk_ms < REACT_RARELY_GAP_MS);
         if (!rest_said && ready && !rarely_wait && !game_held(menu, now)) {
             rest_said = true;

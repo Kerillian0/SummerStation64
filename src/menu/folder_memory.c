@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "attract.h"
 #include "folder_memory.h"
 #include "ini_parser.h"
 #include "menu_features.h"
@@ -152,7 +153,8 @@ void folder_memory_update (menu_t *menu) {
         moved_at = get_ticks_ms();
     }
 
-    if (dirty && (get_ticks_ms() - moved_at) >= IDLE_SAVE_MS && safe_file_idle_turn()) {  // one idle save at a time
+    // Not while attract mode moves the covers: that would write the card every few seconds (attract.h).
+    if (dirty && (get_ticks_ms() - moved_at) >= IDLE_SAVE_MS && !attract_running() && safe_file_idle_turn()) {  // one idle save at a time
         folder_memory_flush();
     }
 }

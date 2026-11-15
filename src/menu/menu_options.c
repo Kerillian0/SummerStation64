@@ -68,6 +68,8 @@ static const option_info_t option_info[OPTION_COUNT] = {
     [OPTION_VERSIONS_LAYOUT] = { "versions_layout", 0 }, /* on the left */
     [OPTION_CONSOLE_TYPE] = { "console_type", 0 }, /* an N64 on a CRT */
     [OPTION_WHATS_NEW_SEEN] = { "whats_new_seen", 0 }, /* none yet */
+    [OPTION_ATTRACT] = { "attract_mode", 0 }, /* off */
+    [OPTION_ATTRACT_DIRECTION] = { "attract_direction", 0 }, /* right to left */
 };
 
 static int values[OPTION_COUNT];

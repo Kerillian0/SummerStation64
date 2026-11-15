@@ -455,6 +455,9 @@ static void live_forget (void) {
 }
 
 /* One corner of a triangle: position, color (0-1), pattern position. */
+/* Drawing the background over something, part see-through (theme_background_fade_part()); 255 = solid, as usual. */
+static int over_alpha = 255;
+
 static void live_vertex (float *v, int x, int y, int w, int h, float bright) {
     rgbf_t c = (theme.bg_type == THEME_BG_GRADIENT) ? gradient_color(&theme, x, y, w, h) : to_f(theme.color1);
     float k = bright / (255.0f * 255.0f);   /* the chip wants colors 0-1; the theme's are 0-255 */
@@ -463,7 +466,7 @@ static void live_vertex (float *v, int x, int y, int w, int h, float bright) {
     v[2] = c.r * k;
     v[3] = c.g * k;
     v[4] = c.b * k;
-    v[5] = 1.0f;
+    v[5] = over_alpha / 255.0f;
     v[6] = x;
     v[7] = y;
     v[8] = 1.0f;
@@ -491,9 +494,12 @@ static void live_draw (int x0, int y0, int x1, int y1, int bright) {
         rdpq_set_mode_standard();
         rdpq_mode_filter(FILTER_BILINEAR);
         rdpq_mode_dithering(theme.dither ? DITHER_BAYER_NONE : DITHER_NONE_NONE);
-        if (bright < 255) {
-            rdpq_set_prim_color(RGBA32(bright, bright, bright, 0xFF));
+        if (bright < 255 || over_alpha < 255) {
+            rdpq_set_prim_color(RGBA32(bright, bright, bright, over_alpha));
             rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);
+            if (over_alpha < 255) {
+                rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+            }
         } else {
             rdpq_mode_combiner(RDPQ_COMBINER_TEX);
         }
@@ -517,7 +523,15 @@ static void live_draw (int x0, int y0, int x1, int y1, int bright) {
     }
 
     if (!gradient && !tiled) {
-        rdpq_set_mode_fill(RGBA32(theme.color1.r * bright / 255, theme.color1.g * bright / 255, theme.color1.b * bright / 255, 0xFF));
+        color_t plain = RGBA32(theme.color1.r * bright / 255, theme.color1.g * bright / 255, theme.color1.b * bright / 255, over_alpha);
+        if (over_alpha < 255) {
+            rdpq_set_mode_standard();
+            rdpq_set_prim_color(plain);
+            rdpq_mode_combiner(RDPQ_COMBINER_FLAT);
+            rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+        } else {
+            rdpq_set_mode_fill(plain);
+        }
         rdpq_fill_rectangle(x0, y0, x1, y1);
         return;
     }
@@ -547,6 +561,9 @@ static void live_draw (int x0, int y0, int x1, int y1, int bright) {
         });
     } else {
         rdpq_mode_combiner(RDPQ_COMBINER_SHADE);
+    }
+    if (over_alpha < 255) {
+        rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);   /* the shade's alpha: part see-through */
     }
     const rdpq_trifmt_t *format = tiled ? &TRIFMT_SHADE_TEX : &TRIFMT_SHADE;
 
@@ -716,7 +733,13 @@ void theme_background_draw_part (int x0, int y0, int x1, int y1) {
     rdpq_mode_push();
     if (background.buffer) {
         rdpq_set_mode_standard();
-        rdpq_mode_combiner(RDPQ_COMBINER_TEX);
+        if (over_alpha < 255) {
+            rdpq_set_prim_color(RGBA32(0xFF, 0xFF, 0xFF, over_alpha));
+            rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);
+            rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+        } else {
+            rdpq_mode_combiner(RDPQ_COMBINER_TEX);
+        }
         rdpq_mode_dithering(theme.dither ? DITHER_BAYER_NONE : DITHER_NONE_NONE);
         rdpq_tex_blit(&background, x0, y0, &(rdpq_blitparms_t) {
             .s0 = x0 / BG_SCALE,
@@ -726,11 +749,26 @@ void theme_background_draw_part (int x0, int y0, int x1, int y1) {
             .scale_x = BG_SCALE,
             .scale_y = BG_SCALE,
         });
+    } else if (over_alpha < 255) {
+        rdpq_set_mode_standard();
+        rdpq_set_prim_color(RGBA32(theme.color1.r, theme.color1.g, theme.color1.b, over_alpha));
+        rdpq_mode_combiner(RDPQ_COMBINER_FLAT);
+        rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+        rdpq_fill_rectangle(x0, y0, x1, y1);
     } else {
         rdpq_set_mode_fill(theme.color1);
         rdpq_fill_rectangle(x0, y0, x1, y1);
     }
     rdpq_mode_pop();
+}
+
+void theme_background_fade_part (int x0, int y0, int x1, int y1, int alpha) {
+    if (alpha <= 0) {
+        return;
+    }
+    over_alpha = (alpha > 255) ? 255 : alpha;
+    theme_background_draw_part(x0, y0, x1, y1);
+    over_alpha = 255;
 }
 
 void theme_background_draw (void) {

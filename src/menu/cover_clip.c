@@ -3,6 +3,7 @@
 #include <libdragon.h>
 
 #include "animations.h"
+#include "attract.h"
 #include "carousel_art.h"
 #include "cover_clip.h"
 #include "cover_deal.h"
@@ -184,10 +185,18 @@ float cover_clip_frame (menu_t *menu, int index) {
     return 1.0f - video_preview_fade();
 }
 
-float cover_clip_draw (menu_t *menu, int index, int x0, int y0, int w, int h, int *shown_w, int *shown_h) {
+float cover_clip_draw (menu_t *menu, int index, int x0, int y0, int w, int h, int *shown_w, int *shown_h, bool moving) {
     float cover_left = cover_clip_frame(menu, index);
     if (cover_left >= 1.0f || !video_preview_fit(w, h, shown_w, shown_h)) {
         return 1.0f;
+    }
+    if (moving) {
+        /* A new place every frame (attract mode): never the recorded blitter, which
+           would be freed and recorded again each frame while the chip may still use it. */
+        uint64_t began = get_ticks_us();
+        bool drawn = video_preview_draw_moving(x0 + (w - *shown_w) / 2, y0 + (h - *shown_h) / 2, *shown_w, *shown_h);
+        attract_time(ATTRACT_TIME_CLIP, (uint32_t) (get_ticks_us() - began));
+        return drawn ? cover_left : 1.0f;
     }
     video_preview_draw(x0, y0, w, h);
     return cover_left;

@@ -34,10 +34,11 @@ float cover_clip_frame (menu_t *menu, int index);
 /**
  * Draw the clip for list entry `index` flat in the cover's box, if it is ready.
  * @param shown_w, shown_h  Out: the size it was drawn at (for the ring).
+ * @param moving  The box moves or changes size every frame (attract mode).
  * @return The cover's remaining opacity over it (1 = the cover still fully
  *         shows, so nothing was drawn; 0 = the clip alone).
  */
-float cover_clip_draw (menu_t *menu, int index, int x0, int y0, int w, int h, int *shown_w, int *shown_h);
+float cover_clip_draw (menu_t *menu, int index, int x0, int y0, int w, int h, int *shown_w, int *shown_h, bool moving);
 
 /** Name of an option `cover_clips` value, for Settings. */
 const char *cover_clip_name (int choice);

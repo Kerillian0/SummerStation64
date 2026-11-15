@@ -5,6 +5,8 @@
 
 #include <libdragon.h>
 
+#include "attract.h"
+
 #include "carousel.h"
 #include "carousel_art.h"
 #include "controls.h"
@@ -118,6 +120,11 @@ int cover_row_process (menu_t *menu) {
         row.selected = (row.selected < (row.entries - 1)) ? (row.selected + 1) : 0;
         sound_play_effect(SFX_CURSOR);
     }
+    /* Left alone: the covers drift on their own, the selection moving on silently (attract.h). */
+    int drift = attract_frame(row.entries);
+    if (drift) {
+        row.selected = (row.selected + drift + row.entries) % row.entries;
+    }
 
     left[current].selected = row.selected;
     left[current].place = row_places[row.selected];
@@ -149,7 +156,9 @@ void cover_row_draw (menu_t *menu, const char *empty_message, const char *z_acti
         return;
     }
 
+    uint64_t covers_began = get_ticks_us();
     carousel_draw(menu);
+    attract_time(ATTRACT_TIME_COVERS, (uint32_t) (get_ticks_us() - covers_began));
     games_ui_hints_backdrop_draw();
 
     const char *tap = "Load";

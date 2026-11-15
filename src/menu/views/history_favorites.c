@@ -1,5 +1,6 @@
 #include <stdarg.h>
 #include "../assistant.h"
+#include "../attract.h"
 #include "../assistant_ask.h"
 #include "../animations.h"
 #include "../debug_stats.h"
@@ -349,6 +350,7 @@ static void draw(menu_t *menu, surface_t *display) {
             );
         }
         animations_draw_late(menu->mode);  // Showy: a pop-up just closed shrinks away
+        attract_draw_dim();     // attract mode: the tab bar, panel and hints dimmed
         assistant_draw(menu);   // the assistant's fairy and bubble, when it is talking
         debug_stats_overlay_draw(); // Performance Overlay, if it is on
         rdpq_detach_show();

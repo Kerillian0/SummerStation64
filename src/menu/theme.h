@@ -123,6 +123,13 @@ bool theme_background_dimmed (void);
  */
 void theme_background_draw_part (int x0, int y0, int x1, int y1);
 
+/**
+ * Draw one part of the background over what is there, `alpha` of 255 see
+ * through: what sits there fades toward the background, and the background
+ * itself is unchanged (attract mode's dimming, attract.h).
+ */
+void theme_background_fade_part (int x0, int y0, int x1, int y1, int alpha);
+
 /** Draw the background (drawn live, or the pre-built picture). Call right after rdpq_attach(). */
 void theme_background_draw (void);
 

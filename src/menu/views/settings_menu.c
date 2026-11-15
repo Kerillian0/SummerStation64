@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "../assistant.h"
+#include "../attract.h"
 #include "../assistant_ask.h"
 #include "../cover_clip.h"
 #include "../fonts.h"
@@ -612,6 +613,10 @@ static const item_t video_items[] = {
         "PAL consoles only. The picture may go dark if your TV can't show it; to undo that, edit menu/config.ini on the SD card."),
     CHOICES("Character Set", OPTION_FONT, FONT_COUNT, font_choice_name, NULL,
         "Latin Only frees about 700 KB of memory but can't show Japanese names. Full needs the Expansion Pak: without one, Latin Only is used. Auto picks for you. Restart the console to apply."),
+    CHOICES("Attract Mode", OPTION_ATTRACT, ATTRACT_COUNT, attract_wait_name, NULL,
+        "Left alone on a row of covers this long, the covers drift past on their own, each game's clip playing as it goes by. The first button press stops it."),
+    CHOICES("Attract Direction", OPTION_ATTRACT_DIRECTION, ATTRACT_DIRECTION_COUNT, attract_direction_name, NULL,
+        "Which way the covers drift in Attract Mode."),
 };
 
 static const item_t screenshot_items[] = {

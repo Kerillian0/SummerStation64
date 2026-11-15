@@ -1,6 +1,7 @@
 #include <libdragon.h>
 
 #include "animations.h"
+#include "attract.h"
 #include "screenshot.h"
 #include "actions.h"
 
@@ -144,4 +145,8 @@ void actions_update (menu_t *menu) {
     actions_clear(menu);
     actions_update_direction(menu);
     actions_update_buttons(menu);
+    if (attract_wake()) {
+        actions_clear(menu);    // attract mode: the first press only wakes it (attract.h)
+        screenshot_note_pressed((joypad_buttons_t) { 0 });
+    }
 }
