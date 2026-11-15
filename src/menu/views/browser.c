@@ -2193,6 +2193,12 @@ void carousel_draw (menu_t *menu) {
             if (!side_covers && away >= 0.5f) {
                 continue;
             }
+            // Too small for its text: a cover flying back from Game info's top or
+            // bottom label is about 22 px tall, and rdpq stops the menu on a text
+            // box of negative height (a player's 4MB console, 2026-11-15).
+            if (w < 40 || h < 40 + 20) {
+                continue;
+            }
 
             entry_t *e = &covers->list[i];
 

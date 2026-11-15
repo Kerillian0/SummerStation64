@@ -582,7 +582,7 @@ static const item_t name_items[] = {
 
 static const item_t folder_items[] = {
     INFO("Game Folders", games_folders_info, "Where the Games tab finds games: the start folder, plus folders added from the Folders tab (Z, \"Add this folder to Games\")."),
-    INFO("Start Folder", default_folder, "The folder the menu opens in. Change it from Options on the Files screen."),
+    INFO("Start Folder", default_folder, "The folder the menu opens in. To change it, open the Folders tab, go into the folder, press Z and choose \"Set current directory as default\"."),
     ACTION("Forget Added Folders", forget_games_folders, "The Games tab goes back to showing the start folder only, and no folder stays marked as hacks. No files are touched."),
     INFO("Hidden Games", hidden_info, "Games hidden from the cover tabs with Z, \"Hide this game\". They stay on the card and in the Folders tab, where Z, \"Unhide this game\", brings one back."),
     ACTION("Unhide All Games", show_hidden_games, "Bring every hidden game back to the cover tabs. No files are touched."),
