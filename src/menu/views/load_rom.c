@@ -9,6 +9,9 @@
 #include "../rom_info.h"
 #include "../sound.h"
 #include "boot/boot.h"
+#include "boot/ra_hook.h"
+#include "flashcart/sc64/sc64.h"
+#include "../menu_options.h"
 #include "../game_start.h"
 #include "utils/fs.h"
 #include "../games_ui.h"
@@ -1075,6 +1078,14 @@ static void load (menu_t *menu) {
         debugf("Cheats disabled or Expansion Pak not present\n");
         menu->boot_params->cheat_list = NULL;
     }
+
+    // SummerStation64: the RetroAchievements experiment, step 1 (boot/ra_hook.h): hidden option ra_test,
+    // Super Mario 64 (USA) with the Expansion Pak only; 1 KB round Mario's coins, stars, lives and health.
+    bool ra_test = options_get(OPTION_RA_TEST) && is_memory_expanded() && (memcmp(menu->load.rom_info.game_code, "NSME", 4) == 0);
+    ra_hook_arm(ra_test ? 0x8033B000UL : 0, ra_test ? 256 : 0);
+    sc64_keep_rom_write = ra_test;
+    debugf("ra test: option %d, Expansion Pak %d, game code %.4s -> %s\n", options_get(OPTION_RA_TEST), (int) is_memory_expanded(),
+           menu->load.rom_info.game_code, ra_test ? "copying 0x8033B000 (1 KB) to the cart at 0x13B00000 every frame" : "off");
 
     menu->boot_params->clear_rdram = menu->load.rom_info.settings.clear_rdram_enabled;
 }

@@ -318,8 +318,11 @@ static flashcart_err_t sc64_init (void) {
  * 
  * @return flashcart_err_t Error code.
  */
+/** SummerStation64: leave the cart's memory writable for the game (the RetroAchievements experiment, boot/ra_hook.h). */
+bool sc64_keep_rom_write = false;
+
 static flashcart_err_t sc64_deinit (void) {
-    sc64_ll_set_config(CFG_ID_ROM_WRITE_ENABLE, false);
+    sc64_ll_set_config(CFG_ID_ROM_WRITE_ENABLE, sc64_keep_rom_write);
 
     sc64_ll_lock();
 

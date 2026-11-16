@@ -7,6 +7,7 @@
 #include <libdragon.h>
 #include "boot_io.h"
 #include "cheats.h"
+#include "ra_hook.h"
 #include "vr4300_asm.h"
 
 #define HIT_INVALIDATE_I ((4 << 2) | 0)
@@ -207,8 +208,12 @@ static void cheats_update_cache (volatile void *start, volatile void *end) {
  * @return true if successful, false otherwise.
  */
 bool cheats_install (cic_type_t cic_type, uint32_t *cheat_list) {
+    static uint32_t no_cheats[2] = { 0, 0 };
     if (!cheat_list) {
-        return false;
+        if (!ra_hook_armed()) {
+            return false;
+        }
+        cheat_list = no_cheats;    // SummerStation64: the RetroAchievements experiment uses the engine alone (ra_hook.h)
     }
 
     io32_t *engine_start = (io32_t *)(ENGINE_TEMPORARY_ADDRESS);
@@ -361,6 +366,8 @@ bool cheats_install (cic_type_t cic_type, uint32_t *cheat_list) {
             }
         }
     }
+
+    engine_p = ra_hook_emit(engine_p, (uint32_t) (final_engine_address) - 16);   // SummerStation64: copy game memory to the cart (ra_hook.h)
 
     *engine_p++ = I_J(RELOCATED_EXCEPTION_HANDLER_ADDRESS);
     *engine_p++ = I_NOP();

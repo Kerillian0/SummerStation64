@@ -71,6 +71,7 @@ static const option_info_t option_info[OPTION_COUNT] = {
     [OPTION_ATTRACT] = { "attract_mode", 0 }, /* off */
     [OPTION_ATTRACT_DIRECTION] = { "attract_direction", 0 }, /* right to left */
     [OPTION_SCREEN_DIM] = { "screen_dim", 0 }, /* off */
+    [OPTION_RA_TEST] = { "ra_test", 0 }, /* off: the RetroAchievements experiment */
 };
 
 static int values[OPTION_COUNT];
@@ -86,7 +87,8 @@ static bool shared (int option) {
     return option == OPTION_FONT || option == OPTION_FRAME_RATE || option == OPTION_PARTY_TEST
         || option == OPTION_AVATAR_SHAPE   /* the pictures show side by side on "Who's playing?" */
         || option == OPTION_CONSOLE_TYPE /* one console, whoever plays (setup_wizard.h) */
-        || option == OPTION_WHATS_NEW_SEEN;
+        || option == OPTION_WHATS_NEW_SEEN
+        || option == OPTION_RA_TEST;      /* an experiment for the console, not a player */
 }
 
 static ini_t *shared_load (void) {

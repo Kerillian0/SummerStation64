@@ -18,6 +18,9 @@
 
 flashcart_t *sc64_get_flashcart (void);
 
+/** SummerStation64: keep the cart's memory writable while the game runs (the RetroAchievements experiment, boot/ra_hook.h). */
+extern bool sc64_keep_rom_write;
+
 /** @} */ /* sc64 */
 
 
