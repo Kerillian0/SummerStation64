@@ -17,12 +17,13 @@
 #define SLOT_SIZE   (4096)
 
 static uint32_t copy_size = 0;
-static hook_range_t list_kept[HOOK_MAX_RANGES];    /* sent again if the menu clears it (each launch does) */
+static hook_entry_t list_kept[HOOK_MAX_ENTRIES];   /* sent again if the menu clears it (each launch does) */
 static int list_count = 0;
 static uint32_t list_from = 0;     /* frames up to this one may still use an older list: skipped */
 static bool have_last = false;
 static uint32_t last_frame = 0;
 static uint32_t seen = 0, missed = 0;
+static bool old_hook = false;
 static uint8_t ring[SLOTS * SLOT_SIZE];
 
 static void put32 (uint8_t *p, uint32_t v) {
@@ -33,27 +34,29 @@ static uint32_t get32 (const uint8_t *p) {
     return ((uint32_t) p[0] << 24) | ((uint32_t) p[1] << 16) | ((uint32_t) p[2] << 8) | p[3];
 }
 
-bool hook_set_list (const hook_range_t *ranges, int count) {
-    if (count > HOOK_MAX_RANGES) {
-        count = HOOK_MAX_RANGES;
+bool hook_set_list (const hook_entry_t *entries, int count) {
+    if (count > HOOK_MAX_ENTRIES) {
+        count = HOOK_MAX_ENTRIES;
     }
-    if (ranges != list_kept) {
-        memcpy(list_kept, ranges, count * sizeof(hook_range_t));
+    if (entries != list_kept) {
+        memcpy(list_kept, entries, count * sizeof(hook_entry_t));
         list_count = count;
     }
-    uint8_t list[8 + HOOK_MAX_RANGES * 8];
+    static uint8_t list[8 + HOOK_MAX_ENTRIES * 8];
     put32(list, 0);         /* not valid while it changes ... */
     put32(list + 4, (uint32_t) count);
     copy_size = 0;
     for (int i = 0; i < count; i++) {
-        put32(list + 8 + i * 8, ranges[i].address);
-        put32(list + 12 + i * 8, ranges[i].length);
-        copy_size += ranges[i].length;
+        put32(list + 8 + i * 8, entries[i].address);
+        put32(list + 12 + i * 8, entries[i].length);
+        if (!(entries[i].address & HOOK_POINTER)) {
+            copy_size += entries[i].length + ((entries[i].address & HOOK_TELL) ? 4 : 0);
+        }
     }
     if (copy_size > HOOK_MAX_BYTES) {
         copy_size = HOOK_MAX_BYTES;
     }
-    if (!sc64_write(LIST, list, 8 + count * 8) || !sc64_write(LIST, "RAL1", 4)) {   /* ... until "RAL1" goes in, last */
+    if (!sc64_write(LIST, list, 8 + count * 8) || !sc64_write(LIST, "RAL2", 4)) {   /* ... until "RAL2" goes in, last */
         return false;
     }
     /* The hook reads the list at each frame; any frame numbered after the counter
@@ -62,7 +65,7 @@ bool hook_set_list (const hook_range_t *ranges, int count) {
     if (!sc64_read(STATUS, status, sizeof(status))) {
         return false;
     }
-    list_from = (memcmp(status, "RAH2", 4) == 0) ? get32(status + 4) : 0;
+    list_from = (memcmp(status, "RAH3", 4) == 0) ? get32(status + 4) : 0;
     return true;
 }
 
@@ -78,7 +81,8 @@ bool hook_poll (hook_frame_fn fn, void *context, bool *running) {
     if (!sc64_read(STATUS, status, sizeof(status))) {
         return false;
     }
-    *running = (memcmp(status, "RAH2", 4) == 0);
+    old_hook = (memcmp(status, "RAH2", 4) == 0);
+    *running = (memcmp(status, "RAH3", 4) == 0);
     if (!*running) {
         return true;
     }
@@ -87,7 +91,7 @@ bool hook_poll (hook_frame_fn fn, void *context, bool *running) {
     if (!sc64_read(LIST, list_magic, sizeof(list_magic))) {
         return false;
     }
-    if (memcmp(list_magic, "RAL1", 4) != 0 && list_count > 0) {
+    if (memcmp(list_magic, "RAL2", 4) != 0 && list_count > 0) {
         return hook_set_list(list_kept, list_count);  /* a new launch cleared it: the next frames will have it */
     }
     if (!sc64_read(RING, ring, sizeof(ring))) {
@@ -120,6 +124,10 @@ bool hook_poll (hook_frame_fn fn, void *context, bool *running) {
         seen++;
     }
     return true;
+}
+
+bool hook_is_old (void) {
+    return old_hook;
 }
 
 uint32_t hook_frames_seen (void) {

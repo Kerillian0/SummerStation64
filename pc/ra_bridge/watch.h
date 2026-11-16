@@ -2,17 +2,19 @@
  * @file watch.h
  * @brief Checks a game's achievements against every frame the hook copies.
  *
- * The achievements go into rcheevos's runtime. What memory they read is found
- * by asking: a frame is run with nothing copied yet and every address the
- * runtime reads is noted; those are packed into the hook's list (at most
- * HOOK_MAX_RANGES ranges, HOOK_MAX_BYTES bytes). A later frame that reads
- * something not copied (an achievement following a pointer) gets zeros
- * there, and the list is planned again from what that frame read.
+ * The achievements go into rcheevos's runtime, and what memory they read is
+ * taken from its parsed form: every fixed address goes into the hook's list
+ * as ranges; every pointer chain (AddAddress) becomes entries the hook
+ * follows itself each frame, copying what the chain leads to and where that
+ * was, so each frame is checked with that frame's own memory. An achievement
+ * with a chain of a kind the hook can't follow is left out ("not checked
+ * yet"). A frame that still reads something not copied gets zeros there and
+ * is counted (watch_misses).
  *
- * Byte order: the N64 is big-endian. RetroAchievements' N64 sets may address
+ * Byte order: the N64 is big-endian. RetroAchievements' N64 sets address
  * memory as emulators expose it, 32-bit words byte-swapped (byte A of their
  * view is the console's byte A ^ 3); WATCH_VIEW_SWAPPED gives that view,
- * WATCH_VIEW_NATIVE the console's own.
+ * WATCH_VIEW_NATIVE the console's own (pointer chains: swapped view only).
  */
 
 #ifndef WATCH_H__
@@ -21,6 +23,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "hook_ring.h"
 #include "rcheevos/include/rc_api_runtime.h"
 
 typedef enum { WATCH_VIEW_SWAPPED, WATCH_VIEW_NATIVE } watch_view_t;
@@ -28,22 +31,25 @@ typedef enum { WATCH_VIEW_SWAPPED, WATCH_VIEW_NATIVE } watch_view_t;
 /** Load the game's promoted achievements into the checker. */
 int watch_load (const rc_api_fetch_game_data_response_t *game, watch_view_t view);
 
-/** Find what memory they read and give the hook its list. */
+/** Work out what memory they read and give the hook its list. */
 bool watch_plan (void);
 
 /** Check one frame (from hook_poll). Prints "WOULD UNLOCK" for each achievement it meets. */
 void watch_frame (uint32_t frame, const uint8_t *data, uint32_t length, void *context);
 
-/** Frames that read memory not copied yet (each sends the hook a new list). */
+/** Frames that read memory the hook didn't copy (should stay 0). */
 uint32_t watch_misses (void);
 
-/** Achievements left out because they follow pointers (not checked yet). */
+/** Achievements left out because they follow pointers in a way the hook can't (not checked yet). */
 int watch_skipped (void);
 
 /** Achievements met so far. */
 int watch_met (void);
 
-/** Ranges and bytes in the hook's current list. */
-void watch_list_size (int *ranges, int *bytes);
+/** Fixed ranges, pointer chains and bytes a frame in the hook's list. */
+void watch_list_size (int *ranges, int *chains, int *bytes);
+
+/** The hook's list as planned (for tests). */
+const hook_entry_t *watch_list (int *count);
 
 #endif

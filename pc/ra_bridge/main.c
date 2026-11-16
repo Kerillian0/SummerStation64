@@ -1,18 +1,19 @@
 /**
  * @file main.c
- * @brief ra_bridge, the RetroAchievements experiment's PC program, step 2c-2.
+ * @brief ra_bridge, the RetroAchievements experiment's PC program, step 2d.
  *
  * Finds the SummerCart64, waits for a game started with the hidden option
  * ra_test = 1, works out the game's RetroAchievements hash from the ROM in
  * the cart, logs in (once; only the token is kept), downloads the game's
- * achievements and checks them against every frame the game's hook copies.
+ * achievements and checks them against every frame the game's hook copies
+ * (the hook also follows the achievements' pointer chains, see watch.h).
  * Each one met is printed as "WOULD UNLOCK": nothing is ever sent to the
  * account (the owner's choice until RetroAchievements approves the bridge).
  *
  *     ra_bridge.exe                  (finds the SummerCart64 by itself)
  *     ra_bridge.exe --port COM3
- *     ra_bridge.exe --view native    (RetroAchievements' N64 byte order is still being
- *                                     settled: "swapped" by default, see watch.h)
+ *     ra_bridge.exe --view native    (the console's own byte order instead of
+ *                                     RetroAchievements' swapped view; for tests)
  *
  * The downloaded definitions are saved beside the .exe as
  * ra_bridge_game_<id>.txt, to look at.
@@ -132,12 +133,12 @@ int main (int argc, char **argv) {
         fprintf(stderr, "Could not give the hook its list: %s\n", sc64_error());
         return 1;
     }
-    int ranges = 0, bytes = 0;
-    watch_list_size(&ranges, &bytes);
-    printf("Checking %d achievements (memory view: %s); the hook copies %d ranges, %d bytes a frame.\n",
-           active, view == WATCH_VIEW_SWAPPED ? "swapped" : "native", ranges, bytes);
+    int ranges = 0, chains = 0, bytes = 0;
+    watch_list_size(&ranges, &chains, &bytes);
+    printf("Checking %d achievements (memory view: %s); the hook copies %d ranges and follows %d pointer chains, %d bytes a frame.\n",
+           active, view == WATCH_VIEW_SWAPPED ? "swapped" : "native", ranges, chains, bytes);
     if (watch_skipped()) {
-        printf("Not checked yet: %d achievements that follow pointers through the game's memory.\n", watch_skipped());
+        printf("Not checked yet: %d achievements that follow pointers in a way the hook can't.\n", watch_skipped());
     }
     printf("Nothing is sent to your account: met achievements are only printed. Ctrl+C stops.\n\n");
 
@@ -150,10 +151,11 @@ int main (int argc, char **argv) {
         }
         if (running) {
             double seconds = (GetTickCount() - started) / 1000.0;
-            watch_list_size(&ranges, &bytes);
-            printf("\r%5.1f frames/s checked, %lu missed, %lu re-plans (%d ranges, %d bytes)  |  %d of %d met   ",
+            printf("\r%5.1f frames/s checked, %lu missed, %lu with reads not found  |  %d of %d met   ",
                    hook_frames_seen() / (seconds > 0.001 ? seconds : 0.001), (unsigned long) hook_frames_missed(),
-                   (unsigned long) watch_misses(), ranges, bytes, watch_met(), active);
+                   (unsigned long) watch_misses(), watch_met(), active);
+        } else if (hook_is_old()) {
+            printf("\rThe menu on the SD card is older than this program: copy the new sc64menu.n64 to the card.   ");
         } else {
             printf("\rNo hook yet (start the game with ra_test = 1).        ");
         }

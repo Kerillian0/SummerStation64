@@ -1,5 +1,6 @@
 #!/bin/sh
-# PC-side tests: the theme.ini reader, the hack finder, the review scores reader, play stats per year, status marks, settings search (C, built with the
+# PC-side tests: the theme.ini reader, the hack finder, the review scores reader, play stats per year, status marks, settings search,
+# the RetroAchievements bridge's planning (C, built with the
 # PC's own compiler), the Theme Maker's share codes, the Card Prep page and the Hacks, Missing Art and Collections tabs
 # (JavaScript, run with Node.js).
 # Run from anywhere:  sh tests/run.sh
@@ -49,6 +50,17 @@ echo
 echo "== what's new list =="
 python3 "$here/whats_new_check.py" || status=1
 python3 "$here/settings_help_check.py" || status=1
+
+echo
+echo "== RetroAchievements bridge: what the hook copies and follows =="
+ra="$here/../pc/ra_bridge"
+for f in "$ra"/rcheevos/src/runtime/*.c "$ra"/rcheevos/src/util/*.c; do
+    gcc -O2 -std=c99 -w -DRC_DISABLE_LUA -I"$ra/rcheevos/include" -I"$ra/rcheevos/src" -c "$f" -o "$out/rc_$(basename "$f" .c).o"
+done
+gcc -O2 -std=gnu11 -Wall -Wextra -Werror -DWATCH_TEST -I"$ra" -I"$ra/rcheevos/include" \
+    -o "$out/ra_watch_test" "$here/ra_watch_test.c" "$ra/watch.c" "$out"/rc_*.o -lm
+"$out/ra_watch_test" > "$out/ra_watch.txt" || status=1
+grep -v "WOULD UNLOCK" "$out/ra_watch.txt"
 
 echo
 echo "== settings search =="

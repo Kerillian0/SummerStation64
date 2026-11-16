@@ -111,7 +111,7 @@ def write_memory(link, address, data):
 def set_list(link, ranges):
     body = struct.pack(">I", len(ranges)) + b"".join(struct.pack(">II", a, n) for a, n in ranges)
     write_memory(link, LIST, b"\0\0\0\0" + body)    # not valid while it changes ...
-    write_memory(link, LIST, b"RAL1")                # ... until "RAL1" goes in, last
+    write_memory(link, LIST, b"RAL2")                # ... until "RAL2" goes in, last
 
 
 def decode(data):
@@ -144,7 +144,7 @@ def main():
     try:
         while True:
             status = command(link, b"m", STATUS, 8)
-            if status[:4] != b"RAH2":
+            if status[:4] != b"RAH3":
                 print(f"\rNo hook yet (status holds {status[:4]!r}).        ", end="", flush=True)
                 time.sleep(0.5)
                 continue
