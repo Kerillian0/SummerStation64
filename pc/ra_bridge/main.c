@@ -11,6 +11,9 @@
  * account (the owner's choice until RetroAchievements approves the bridge).
  *
  *     ra_bridge.exe                  (finds the SummerCart64 by itself)
+ *     ra_bridge.exe --prepare E:\    (no N64 needed: puts every game's achievement set
+ *                                     and badges on the SD card in the PC's reader,
+ *                                     for the menu's own achievements; see prep.h)
  *     ra_bridge.exe --port COM3
  *     ra_bridge.exe --view native    (the console's own byte order instead of
  *                                     RetroAchievements' swapped view; for tests)
@@ -27,6 +30,7 @@
 
 #include "game.h"
 #include "hook_ring.h"
+#include "prep.h"
 #include "ra_web.h"
 #include "sc64_link.h"
 #include "watch.h"
@@ -69,16 +73,27 @@ static void save_definitions (const rc_api_fetch_game_data_response_t *game) {
 
 int main (int argc, char **argv) {
     const char *port = NULL;
+    const char *prepare = NULL;
     watch_view_t view = WATCH_VIEW_SWAPPED;
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--port") == 0 && i + 1 < argc) {
             port = argv[++i];
+        } else if (strcmp(argv[i], "--prepare") == 0 && i + 1 < argc) {
+            prepare = argv[++i];
         } else if (strcmp(argv[i], "--view") == 0 && i + 1 < argc) {
             view = (strcmp(argv[++i], "native") == 0) ? WATCH_VIEW_NATIVE : WATCH_VIEW_SWAPPED;
         }
     }
     SetConsoleCtrlHandler(on_ctrl_c, TRUE);
     SetConsoleOutputCP(CP_UTF8);
+
+    if (prepare) {
+        if (!ra_web_login()) {
+            fprintf(stderr, "Could not log in to RetroAchievements: %s\n", ra_web_error());
+            return 1;
+        }
+        return prep_card(prepare) ? 0 : 1;
+    }
 
     if (!sc64_open(port)) {
         fprintf(stderr, "Could not reach the SummerCart64: %s\n", sc64_error());

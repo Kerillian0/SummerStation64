@@ -26,6 +26,7 @@ typedef struct {
     bool clear_rdram;           /**< "clear memory before start" switched on */
     bool front_picture;         /**< the picture being shown is the front cover */
     const char *z_hint;         /**< Z's hint ("Cheats"), or NULL */
+    const char *l_hint;         /**< L's hint ("Achievements"), or NULL */
     sprite_t *logo;             /**< the game's title logo, drawn in the name's place, or NULL */
     const char *clip;           /**< the game's preview clip (video_preview.h), or NULL */
 } game_info_view_t;

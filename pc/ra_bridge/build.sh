@@ -14,7 +14,7 @@ for f in rcheevos/src/api/*.c rcheevos/src/runtime/*.c rcheevos/src/util/*.c; do
     $CC -O2 -std=c99 -w -DRC_DISABLE_LUA -Ircheevos/include -Ircheevos/src -c "$f" -o "$OBJ/$(basename "$f" .c).o"
 done
 $CC -O2 -Wall -Wextra -Werror -std=c11 -static \
-    -Ircheevos/include main.c sc64_link.c hook_ring.c game.c http.c ra_web.c watch.c $OBJ/*.o \
+    -Ircheevos/include main.c sc64_link.c hook_ring.c game.c http.c ra_web.c watch.c prep.c $OBJ/*.o \
     -lsetupapi -lwinhttp -o ../../output/ra_bridge-build.exe
 # Windows keeps a running .exe locked: if the old one is still open, the new one is left as ra_bridge-new.exe.
 if mv -f ../../output/ra_bridge-build.exe ../../output/ra_bridge.exe 2>/dev/null; then

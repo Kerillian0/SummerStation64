@@ -32,6 +32,7 @@
 #include "../rom_hacks.h"
 #include "../memory_note.h" // a title logo left out for want of memory
 #include "../video_preview.h" // the game's clip in the cover's place
+#include "../achievements_ui.h" // L: the game's achievements
 #include <string.h>
 #include <sys/stat.h>
 
@@ -780,6 +781,9 @@ static void process (menu_t *menu) {
         sound_play_effect(SFX_EXIT);
         return;
     }
+    if (!show_extra_info_message && achievements_ui_process(menu)) { // L flips to the achievements page and back; it takes the D-Pad there
+        return;
+    }
 
     if (menu->actions.enter) {
         if (rom_requires_missing_expansion_pak(menu)) {
@@ -829,6 +833,7 @@ static void draw (menu_t *menu, surface_t *d) {
 #if 1 // redesigned main page (game_info_ui.c); set to 0 for the stock one
         (void) format_rom_expansion_pak_info; // only the stock page uses these two
         (void) format_rom_pak_feature_info;
+        if (achievements_ui_showing()) achievements_ui_draw(menu); else
         game_info_ui_draw(menu, boxart, &(game_info_view_t) {
             .name = display_name_info(rom_filename),
             .description = format_rom_description(menu),
@@ -836,6 +841,7 @@ static void draw (menu_t *menu, surface_t *d) {
             .tv = format_rom_tv_type(rom_info_get_tv_type(&menu->load.rom_info)),
             .cheats = menu->load.rom_info.settings.cheats_enabled,
             .z_hint = has_cheat_file ? "Cheats" : NULL,
+            .l_hint = achievements_ui_available() ? "Achievements" : NULL,
             .patches = menu->load.rom_info.settings.patches_enabled,
             .clear_rdram = menu->load.rom_info.settings.clear_rdram_enabled,
             .front_picture = (current_metadata_image_index == 0),
@@ -1095,6 +1101,7 @@ static void load (menu_t *menu) {
 
 static void deinit (void) {
     game_start_end();
+    achievements_ui_close();
     logo_free();
     video_preview_stop();
     clip_path[0] = '\0';
@@ -1173,6 +1180,7 @@ void view_load_rom_init (menu_t *menu) {
     }
 #endif
     has_cheat_file = cheat_menu_available(path_get(menu->load.rom_path));
+    achievements_ui_open(path_get(menu->load.rom_path)); // which achievements the card holds for it (achievements.h)
     logo_free(); // back from the cheat code editor, which doesn't close this screen
     bool own_art = own_code_art(menu);
     if (own_art) {
