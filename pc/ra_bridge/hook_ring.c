@@ -19,6 +19,7 @@
 static uint32_t copy_size = 0;
 static hook_range_t list_kept[HOOK_MAX_RANGES];    /* sent again if the menu clears it (each launch does) */
 static int list_count = 0;
+static uint32_t list_from = 0;     /* frames up to this one may still use an older list: skipped */
 static bool have_last = false;
 static uint32_t last_frame = 0;
 static uint32_t seen = 0, missed = 0;
@@ -52,10 +53,17 @@ bool hook_set_list (const hook_range_t *ranges, int count) {
     if (copy_size > HOOK_MAX_BYTES) {
         copy_size = HOOK_MAX_BYTES;
     }
-    if (!sc64_write(LIST, list, 8 + count * 8)) {
+    if (!sc64_write(LIST, list, 8 + count * 8) || !sc64_write(LIST, "RAL1", 4)) {   /* ... until "RAL1" goes in, last */
         return false;
     }
-    return sc64_write(LIST, "RAL1", 4);   /* ... until "RAL1" goes in, last */
+    /* The hook reads the list at each frame; any frame numbered after the counter
+       as it stands now started after the list was in place. */
+    uint8_t status[8];
+    if (!sc64_read(STATUS, status, sizeof(status))) {
+        return false;
+    }
+    list_from = (memcmp(status, "RAH2", 4) == 0) ? get32(status + 4) : 0;
+    return true;
 }
 
 typedef struct { uint32_t frame; int slot; } found_t;
@@ -84,6 +92,10 @@ bool hook_poll (hook_frame_fn fn, void *context, bool *running) {
     }
     if (!sc64_read(RING, ring, sizeof(ring))) {
         return false;
+    }
+    if (list_from && (!have_last || last_frame < list_from)) {
+        last_frame = list_from;     /* copied with an older list: not counted as missed */
+        have_last = true;
     }
     found_t found[SLOTS];
     int count = 0;
