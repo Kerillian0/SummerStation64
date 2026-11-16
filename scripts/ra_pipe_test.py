@@ -1,26 +1,28 @@
 #!/usr/bin/env python3
-"""RetroAchievements experiment, step 1: read the game's memory over USB.
+"""RetroAchievements experiment, step 2a: the PC chooses what the game copies.
 
 With the hidden option `ra_test = 1` in sd:/menu/options.ini and Super Mario
-64 (USA) started on a console with the Expansion Pak, the menu's hook copies
-1 KB of the game's memory to the SummerCart64 every frame (src/boot/ra_hook.h).
-This script reads that copy a few times a second over the SC64's USB cable
-and prints Mario's coins, stars, lives and health, plus the hook's frame
-counter (it should climb by about 60 a second on NTSC, 50 on PAL).
+64 (USA) started on a console with the Expansion Pak, the menu's hook runs a
+small copy loop in the game once a frame (src/boot/ra_hook.h). This script
+tells it what to copy (Mario's coins, stars, lives and health, as two ranges),
+then reads the ring of the last 16 frames a few times a second and goes
+through every frame in order, as an achievement checker must: it prints a
+line whenever a value changes, with the frame it changed on, and counts any
+frames it missed.
 
     pip install pyserial
     python ra_pipe_test.py            (finds the SC64 by itself)
     python ra_pipe_test.py --port COM5
 
 Close sc64deployer (and anything else using the cart's USB port) first.
-Ctrl+C stops it. Nothing is written to the cart: it only reads.
+Ctrl+C stops it. It writes only the copy list, in the cart's spare memory.
 
 Protocol (SummerCart64 docs/03_usb_interface.md): a command is "CMD", one ID
 character, two big-endian uint32 arguments, then any data; the answer is
 "CMP" (or "ERR"), the same ID, a big-endian uint32 length, then the data.
-'v' answers "SCv2"; 'm' (MEMORY_READ) takes an address and a length. The
-cart's memory starts at 0 from USB; the hook writes at 0x03B00000 (the N64
-sees it at 0x13B00000).
+'v' answers "SCv2"; 'm' MEMORY_READ (address, length); 'M' MEMORY_WRITE
+(address, length, data). The cart's memory starts at 0 from USB; the N64 sees
+it 0x10000000 higher.
 """
 import argparse
 import struct
@@ -33,12 +35,13 @@ try:
 except ImportError:
     sys.exit("pyserial is missing: run  pip install pyserial")
 
-COPY_ADDRESS = 0x03B00000       # RA_HOOK_CART as seen from USB
-COPY_WORDS = 256                # the 1 KB the hook copies, from 0x8033B000
-MAGIC = b"RAH1"
-GAME_BASE = 0x8033B000
-# Super Mario 64 (USA): Mario's state (the addresses the well-known GameShark codes use)
-COINS, STARS, LIVES, HEALTH = 0x8033B218, 0x8033B21A, 0x8033B21D, 0x8033B21E
+# src/boot/ra_hook.h, as seen from USB
+LIST, STATUS, RING = 0x03B00000, 0x03B01000, 0x03B10000
+SLOTS, SLOT_SIZE = 16, 4096
+
+# Super Mario 64 (USA): Mario's state (the addresses the well-known GameShark codes use), as RDRAM offsets
+RANGES = [(0x0033B218, 4),      # coins (s16), stars (s16)
+          (0x0033B21C, 4)]      # (a byte), lives (s8), health (s16: wedges in the high byte)
 
 
 def find_port():
@@ -68,9 +71,9 @@ def reset(link):
     wait_dsr(link, False)
 
 
-def read_exact(link, count):
+def read_exact(link, count, seconds=2.0):
     data = b""
-    end = time.time() + 2.0
+    end = time.time() + seconds
     while len(data) < count:
         piece = link.read(count - len(data))
         if piece:
@@ -80,65 +83,100 @@ def read_exact(link, count):
     return data
 
 
-def command(link, cmd_id, arg0=0, arg1=0, data=b""):
-    link.write(b"CMD" + cmd_id + struct.pack(">II", arg0, arg1) + data)
+def answer(link, cmd_id, seconds=2.0):
     while True:
-        head = read_exact(link, 4)
+        head = read_exact(link, 4, seconds)
         length = struct.unpack(">I", read_exact(link, 4))[0]
         payload = read_exact(link, length) if length else b""
-        if head[:3] == b"PKT":
-            continue    # something the N64 side sent on its own (debug output): not our answer
         if head[:3] == b"ERR":
             raise RuntimeError(f"the cart answered ERR to '{cmd_id.decode()}'")
         if head[:3] == b"CMP" and head[3:4] == cmd_id:
             return payload
-        raise RuntimeError(f"unexpected answer {head!r}")
+        # anything else (debug packets, a late answer to another command) is not ours
 
 
-def word_at(copy, address, size, signed=True):
-    offset = 8 + (address - GAME_BASE)
-    return int.from_bytes(copy[offset:offset + size], "big", signed=signed)
+def command(link, cmd_id, arg0=0, arg1=0, data=b""):
+    link.write(b"CMD" + cmd_id + struct.pack(">II", arg0, arg1) + data)
+    return answer(link, cmd_id)
+
+
+def write_memory(link, address, data):
+    link.write(b"CMD" + b"M" + struct.pack(">II", address, len(data)) + data)
+    try:
+        answer(link, b"M", seconds=0.5)     # the docs list no answer data; take a CMP if one comes
+    except TimeoutError:
+        pass
+
+
+def set_list(link, ranges):
+    body = struct.pack(">I", len(ranges)) + b"".join(struct.pack(">II", a, n) for a, n in ranges)
+    write_memory(link, LIST, b"\0\0\0\0" + body)    # not valid while it changes ...
+    write_memory(link, LIST, b"RAL1")                # ... until "RAL1" goes in, last
+
+
+def decode(data):
+    coins = int.from_bytes(data[0:2], "big", signed=True)
+    stars = int.from_bytes(data[2:4], "big", signed=True)
+    lives = int.from_bytes(data[5:6], "big", signed=True)
+    health = int.from_bytes(data[6:8], "big", signed=True) >> 8
+    return {"coins": coins, "stars": stars, "lives": lives, "health": health}
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--port", help="the SC64's serial port (COM5, /dev/ttyUSB0, ...)")
-    parser.add_argument("--every", type=float, default=0.25, help="seconds between reads (default 0.25)")
+    parser.add_argument("--every", type=float, default=0.1, help="seconds between reads (default 0.1; the ring holds 16 frames)")
     args = parser.parse_args()
 
     port = args.port or find_port()
     print(f"Opening {port}...")
     link = serial.Serial(port, timeout=0.5, write_timeout=2.0)
     reset(link)
-    ident = command(link, b"v")
-    print(f"Cart says {ident!r} (expected b'SCv2')")
+    print(f"Cart says {command(link, b'v')!r} (expected b'SCv2')")
+    set_list(link, RANGES)
+    size = sum(n for _, n in RANGES)
+    print(f"Asked for {len(RANGES)} ranges, {size} bytes a frame. Start Super Mario 64 (USA) if it isn't running yet. Ctrl+C stops.\n")
 
-    last_counter = None
-    last_time = None
-    last_copy = None
-    print("Reading the hook's copy. Start Super Mario 64 (USA) if it isn't running yet. Ctrl+C stops.\n")
+    last_frame = None
+    last_values = None
+    processed = missed = 0
+    started = time.time()
     try:
         while True:
-            copy = command(link, b"m", COPY_ADDRESS, 8 + COPY_WORDS * 4)
-            now = time.time()
-            if copy[:4] != MAGIC:
-                print(f"\rNo copy yet (the cart holds {copy[:4]!r} there; the hook hasn't run).        ", end="", flush=True)
-            else:
-                counter = int.from_bytes(copy[4:8], "big")
-                rate = ""
-                if last_counter is not None and now > last_time:
-                    rate = f"{(counter - last_counter) / (now - last_time):5.1f} frames/s"
-                changed = 0
-                if last_copy is not None:
-                    changed = sum(1 for i in range(8, len(copy), 4) if copy[i:i + 4] != last_copy[i:i + 4])
-                health = word_at(copy, HEALTH, 2) >> 8
-                print(f"\rframe {counter:8d}  {rate:>15}  coins {word_at(copy, COINS, 2):4d}  "
-                      f"stars {word_at(copy, STARS, 2):3d}  lives {word_at(copy, LIVES, 1):3d}  "
-                      f"health {health:2d}/8  ({changed:3d} words changed)   ", end="", flush=True)
-                last_counter, last_time, last_copy = counter, now, copy
+            status = command(link, b"m", STATUS, 8)
+            if status[:4] != b"RAH2":
+                print(f"\rNo hook yet (status holds {status[:4]!r}).        ", end="", flush=True)
+                time.sleep(0.5)
+                continue
+            now_frame = int.from_bytes(status[4:8], "big")
+            ring = command(link, b"m", RING, SLOTS * SLOT_SIZE)
+            frames = {}
+            for slot in range(SLOTS):
+                base = slot * SLOT_SIZE
+                frame = int.from_bytes(ring[base:base + 4], "big")
+                # only frames the hook can't have started overwriting while we read
+                if now_frame - (SLOTS - 2) <= frame <= now_frame and frame % SLOTS == slot:
+                    frames[frame] = ring[base + 4:base + 4 + size]
+            for frame in sorted(frames):
+                if last_frame is not None and frame <= last_frame:
+                    continue
+                if last_frame is not None and frame > last_frame + 1:
+                    missed += frame - last_frame - 1
+                values = decode(frames[frame])
+                if last_values is not None and values != last_values:
+                    changes = ", ".join(f"{k} {last_values[k]} -> {v}" for k, v in values.items() if v != last_values[k])
+                    print(f"\rframe {frame:8d}: {changes}{' ' * 30}")
+                last_values = values
+                last_frame = frame
+                processed += 1
+            if last_values is not None:
+                rate = processed / max(time.time() - started, 0.001)
+                print(f"\rframe {last_frame:8d}  {rate:5.1f} frames/s checked, {missed} missed  |  coins {last_values['coins']:3d}  "
+                      f"stars {last_values['stars']:3d}  lives {last_values['lives']:2d}  health {last_values['health']}/8   ",
+                      end="", flush=True)
             time.sleep(args.every)
     except KeyboardInterrupt:
-        print("\nStopped.")
+        print(f"\nStopped: {processed} frames checked, {missed} missed.")
     finally:
         link.close()
 

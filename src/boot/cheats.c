@@ -367,7 +367,7 @@ bool cheats_install (cic_type_t cic_type, uint32_t *cheat_list) {
         }
     }
 
-    engine_p = ra_hook_emit(engine_p, (uint32_t) (final_engine_address) - 16);   // SummerStation64: copy game memory to the cart (ra_hook.h)
+    engine_p = ra_hook_emit(engine_p, (uint32_t) (final_engine_address) - 64);   // SummerStation64: copy game memory to the cart (ra_hook.h)
 
     *engine_p++ = I_J(RELOCATED_EXCEPTION_HANDLER_ADDRESS);
     *engine_p++ = I_NOP();
