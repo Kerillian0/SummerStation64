@@ -16,6 +16,7 @@
 #include <string.h>
 #include <windows.h>
 
+#include "game.h"
 #include "hook_ring.h"
 #include "sc64_link.h"
 
@@ -45,7 +46,7 @@ static void on_frame (uint32_t frame, const uint8_t *data, uint32_t length, void
         if (now.stars != last->stars) printf(" stars %d -> %d", last->stars, now.stars);
         if (now.lives != last->lives) printf(" lives %d -> %d", last->lives, now.lives);
         if (now.health != last->health) printf(" health %d -> %d", last->health, now.health);
-        printf("%40s\n", "");
+        printf("%60s\n", "");
     }
     *last = now;
 }
@@ -69,6 +70,28 @@ int main (int argc, char **argv) {
         return 1;
     }
     printf("Opened %s, cart says \"%s\" (expected \"SCv2\")\n", sc64_port(), ident);
+
+    game_note_t note;
+    printf("Waiting for a game started with ra_test = 1...\n");
+    while (!stop && !game_read_note(&note)) {
+        Sleep(500);
+    }
+    if (stop) {
+        return 0;
+    }
+    printf("Game: %s  (code %s, %lu bytes)\n", note.path, note.code, (unsigned long) note.rom_size);
+    char hash[33];
+    DWORD hash_started = GetTickCount();
+    if (!game_hash(&note, hash)) {
+        fprintf(stderr, "Could not read the ROM from the cart: %s\n", sc64_error());
+        return 1;
+    }
+    printf("RetroAchievements hash: %s  (read and hashed in %.1f s)\n\n", hash, (GetTickCount() - hash_started) / 1000.0);
+    if (strcmp(note.code, "NSME") != 0) {
+        printf("The Mario test below needs Super Mario 64 (USA); stopping here.\n");
+        sc64_close();
+        return 0;
+    }
 
     hook_range_t ranges[] = {
         { 0x0033B218, 4 },  /* coins (s16), stars (s16) */

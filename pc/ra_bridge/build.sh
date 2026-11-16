@@ -7,6 +7,12 @@ set -e
 cd "$(dirname "$0")"
 mkdir -p ../../output
 x86_64-w64-mingw32-gcc -O2 -Wall -Wextra -Werror -std=c11 -static \
-    main.c sc64_link.c hook_ring.c \
-    -lsetupapi -o ../../output/ra_bridge.exe
-ls -l ../../output/ra_bridge.exe
+    main.c sc64_link.c hook_ring.c game.c rcheevos/src/util/md5.c \
+    -lsetupapi -o ../../output/ra_bridge-build.exe
+# Windows keeps a running .exe locked: if the old one is still open, the new one is left as ra_bridge-new.exe.
+if mv -f ../../output/ra_bridge-build.exe ../../output/ra_bridge.exe 2>/dev/null; then
+    ls -l ../../output/ra_bridge.exe
+else
+    mv -f ../../output/ra_bridge-build.exe ../../output/ra_bridge-new.exe
+    echo "output/ra_bridge.exe is in use (still running?): the new build is output/ra_bridge-new.exe"
+fi

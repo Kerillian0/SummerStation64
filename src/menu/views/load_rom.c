@@ -1084,6 +1084,9 @@ static void load (menu_t *menu) {
     bool ra_test = options_get(OPTION_RA_TEST) && is_memory_expanded() && (memcmp(menu->load.rom_info.game_code, "NSME", 4) == 0);
     ra_hook_arm(ra_test);
     sc64_keep_rom_write = ra_test;
+    if (ra_test) {
+        ra_hook_note_game(path_get(menu->load.rom_path), (uint32_t) file_get_size(path_get(menu->load.rom_path)), menu->load.rom_info.game_code);
+    }
     debugf("ra test: option %d, Expansion Pak %d, game code %.4s -> %s\n", options_get(OPTION_RA_TEST), (int) is_memory_expanded(),
            menu->load.rom_info.game_code, ra_test ? "the copy loop is armed (list at 0x13B00000)" : "off");
 

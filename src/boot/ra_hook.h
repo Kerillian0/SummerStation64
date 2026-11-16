@@ -16,6 +16,10 @@
  *                               in bytes (a multiple of 4). Write "RAL1" last.
  *   RA_HOOK_STATUS  0x13B01000  written by the hook every frame: "RAH2", then
  *                               the frame counter.
+ *   RA_HOOK_GAME    0x13B02000  written by the menu at launch (ra_hook_note_game):
+ *                               "RAG1", the ROM file's size, its game code, then
+ *                               its path (NUL-terminated, at most 243 bytes), so
+ *                               the PC can hash the ROM straight from the cart.
  *   RA_HOOK_RING    0x13B10000  RA_HOOK_SLOTS slots of RA_HOOK_SLOT_SIZE bytes;
  *                               frame N goes to slot N % RA_HOOK_SLOTS: the
  *                               ranges' bytes from offset 4 in list order (at
@@ -38,6 +42,7 @@
 #include "boot_io.h"
 
 #define RA_HOOK_LIST        (0x13B00000UL)
+#define RA_HOOK_GAME        (0x13B02000UL)  /* written by the menu at launch: "RAG1", ROM size, game code, ROM path */
 #define RA_HOOK_STATUS      (0x13B01000UL)
 #define RA_HOOK_RING        (0x13B10000UL)
 #define RA_HOOK_SLOTS       (16)
@@ -46,6 +51,13 @@
 
 /** Install the copy loop with the next game (or not). */
 void ra_hook_arm (bool on);
+
+/**
+ * From the menu at launch: clear the old copy list and status, and note the
+ * game for the PC (its ROM file's size, game code and path). The cart's
+ * memory must still be writable (it is, until the menu hands over).
+ */
+void ra_hook_note_game (const char *path, uint32_t rom_size, const char game_code[4]);
 
 /** The copy loop is armed for the next game. */
 bool ra_hook_armed (void);

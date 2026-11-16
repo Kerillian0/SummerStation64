@@ -11,6 +11,10 @@
  * flight, k0 the PI waits.
  */
 
+#include <string.h>
+#ifndef RA_HOOK_PC_TEST
+#include <libdragon.h>
+#endif
 #include "ra_hook.h"
 #include "vr4300_asm.h"
 
@@ -39,6 +43,23 @@ void ra_hook_arm (bool on) {
 bool ra_hook_armed (void) {
     return armed;
 }
+
+#ifndef RA_HOOK_PC_TEST
+void ra_hook_note_game (const char *path, uint32_t rom_size, const char game_code[4]) {
+    io_write(RA_HOOK_LIST, 0);          /* an old game's copy list must not run in this one */
+    io_write(RA_HOOK_STATUS, 0);
+    io_write(RA_HOOK_GAME, 0);          /* not valid while it changes */
+    io_write(RA_HOOK_GAME + 4, rom_size);
+    io_write(RA_HOOK_GAME + 8, ((uint32_t) (uint8_t) game_code[0] << 24) | ((uint32_t) (uint8_t) game_code[1] << 16)
+                               | ((uint32_t) (uint8_t) game_code[2] << 8) | (uint8_t) game_code[3]);
+    uint8_t name[244] = { 0 };
+    strncpy((char *) name, path, sizeof(name) - 1);
+    for (int i = 0; i < (int) sizeof(name); i += 4) {
+        io_write(RA_HOOK_GAME + 12 + i, ((uint32_t) name[i] << 24) | ((uint32_t) name[i + 1] << 16) | ((uint32_t) name[i + 2] << 8) | name[i + 3]);
+    }
+    io_write(RA_HOOK_GAME, 0x52414731UL);   /* "RAG1", last */
+}
+#endif
 
 /* Branches to places further on are written once those are known. */
 typedef enum { L_END, L_RESTORE, L_RANGES, L_RANGES_DONE, L_WORDS, L_CHECK_ROOM, L_BODY, L_COUNT } label_t;
