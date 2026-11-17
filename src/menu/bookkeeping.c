@@ -286,6 +286,15 @@ void bookkeeping_favorite_add(bookkeeping_t *bookkeeping, path_t *primary_path, 
  * @param bookkeeping Pointer to the bookkeeping structure.
  * @param selection Index of the item to remove.
  */
+/** SummerStation64: take a game off Recent (its file is gone), as bookkeeping_favorite_remove does for Favorites. */
+void bookkeeping_history_remove(bookkeeping_t *bookkeeping, int selection) {
+    if(bookkeeping->history_items[selection].bookkeeping_type != BOOKKEEPING_TYPE_EMPTY) {
+        bookkeeping_move_items_up(bookkeeping->history_items, selection, HISTORY_COUNT - 1);
+        bookkeeping_clear_item(&bookkeeping->history_items[HISTORY_COUNT - 1], false);
+        bookkeeping_save(bookkeeping);
+    }
+}
+
 void bookkeeping_favorite_remove(bookkeeping_t *bookkeeping, int selection) {
     if(bookkeeping->favorite_items[selection].bookkeeping_type != BOOKKEEPING_TYPE_EMPTY) {
         bookkeeping_move_items_up(bookkeeping->favorite_items, selection, FAVORITES_COUNT - 1);

@@ -13,6 +13,7 @@
 #include "../letter_wheel.h"
 #include "views.h"
 #include "../controls.h"
+#include "utils/fs.h" // file_exists: a game whose file is gone
 #include "../display_name.h"
 #include "../games_ui.h"
 #include "../cover_row.h"
@@ -40,6 +41,7 @@ static uint16_t item_max = 0;
 
 static bool confirm_remove = false;  // "Remove this favorite?" is showing
 static bool confirm_hide = false;    // "Hide from the cover tabs?" is showing
+static bool confirm_missing = false; // "This game's file is gone: remove it?" is showing
 
 // Z on the cover rows: the same Options as on the Games tab.
 static void row_random (menu_t *menu, void *arg) {
@@ -165,6 +167,15 @@ static void item_move_previous() {
 }
 
 static void open_selected (menu_t *menu) {
+    // A file renamed or replaced since it was added: the stock menu went on to
+    // "Couldn't open ROM file". Ask whether to take it off the list instead.
+    if (item_list[selected_item].primary_path && !file_exists(path_get(item_list[selected_item].primary_path))) {
+        debugf("recent/favorites: %s is no longer on the card\n", path_get(item_list[selected_item].primary_path));
+        controls_consume_launch_request();  // a quick launch must not carry over to another game
+        confirm_missing = true;
+        sound_play_effect(SFX_ERROR);
+        return;
+    }
     if(tab_context == BOOKKEEPING_TAB_CONTEXT_FAVORITE) {
         menu->load.load_favorite_id = selected_item;
         menu->load.load_history_id = -1;
@@ -204,6 +215,25 @@ static void process(menu_t *menu) {
             sound_play_effect(SFX_SETTING);
         } else if (menu->actions.back || menu->actions.options) {
             confirm_hide = false;
+            sound_play_effect(SFX_EXIT);
+        }
+        return;
+    }
+
+    // A game whose file is gone: take it off the list, or keep it.
+    if (confirm_missing) {
+        if (menu->actions.enter && selected_item != -1) {
+            confirm_missing = false;
+            if (tab_context == BOOKKEEPING_TAB_CONTEXT_FAVORITE) {
+                bookkeeping_favorite_remove(&menu->bookkeeping, selected_item);
+            } else {
+                bookkeeping_history_remove(&menu->bookkeeping, selected_item);
+            }
+            item_reset_selected(menu);
+            if (COVER_ROWS) cover_row_open(menu, item_list, item_max); // the list changed: build the row again
+            sound_play_effect(SFX_SETTING);
+        } else if (menu->actions.back || menu->actions.options) {
+            confirm_missing = false;
             sound_play_effect(SFX_EXIT);
         }
         return;
@@ -341,6 +371,16 @@ static void draw(menu_t *menu, surface_t *display) {
                 display_name_file(path_last_get(item_list[selected_item].primary_path)), STL_RED, STL_GREEN
             );
         }
+        if (confirm_missing && selected_item != -1) {
+            ui_components_messagebox_draw(
+                "This game's file is no longer on the card:\n\n"
+                "%s\n\n"
+                "Remove it from %s?\n\n"
+                "^%02XA: Remove^00    ^%02XB: Keep^00",
+                path_last_get(item_list[selected_item].primary_path),
+                (tab_context == BOOKKEEPING_TAB_CONTEXT_FAVORITE) ? "Favorites" : "Recent", STL_RED, STL_GREEN
+            );
+        }
         if (confirm_remove && selected_item != -1) {
             ui_components_messagebox_draw(
                 "Remove from Favorites?\n\n"
@@ -396,6 +436,7 @@ static void draw(menu_t *menu, surface_t *display) {
 void view_favorite_init (menu_t *menu) {
     tab_context = BOOKKEEPING_TAB_CONTEXT_FAVORITE;
     confirm_remove = false;
+    confirm_missing = false;
     start_menu_init();
     ui_components_context_menu_init(&row_context_menu); // closed until Z is pressed
     games_ui_set_origin(MENU_MODE_FAVORITE);
@@ -415,6 +456,7 @@ void view_favorite_display (menu_t *menu, surface_t *display) {
 
 void view_history_init (menu_t *menu) {
     tab_context = BOOKKEEPING_TAB_CONTEXT_HISTORY;
+    confirm_missing = false;
     start_menu_init();
     ui_components_context_menu_init(&row_context_menu); // closed until Z is pressed
     games_ui_set_origin(MENU_MODE_HISTORY);

@@ -81,4 +81,7 @@ void bookkeeping_favorite_add(bookkeeping_t *bookkeeping, path_t *primary_path, 
  */
 void bookkeeping_favorite_remove(bookkeeping_t *bookkeeping, int selection);
 
+/** SummerStation64: remove an item from Recent (the history). */
+void bookkeeping_history_remove(bookkeeping_t *bookkeeping, int selection);
+
 #endif /* BOOKKEEPING_H__ */

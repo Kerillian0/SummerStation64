@@ -1382,6 +1382,7 @@ rom_err_t rom_config_load (path_t *path, rom_info_t *rom_info) {
     debugf("[META] rom_config_load: starting for '%s'\\n", path_get(path));
 
     if ((f = fopen(path_get(path), "rb")) == NULL) {
+        debugf("rom_config_load: can't open %s: %s (errno %d)\n", path_get(path), strerror(errno), errno); // SummerStation64: why, in the log
         return ROM_ERR_NO_FILE;
     }
     setbuf(f, NULL);
