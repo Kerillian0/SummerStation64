@@ -293,6 +293,90 @@ static bool download (const char *url, const char *relative) {
 
 static int badges_fetched = 0, badges_failed = 0;
 
+/* A file from the card in memory (NULL if it isn't there). */
+static uint8_t *read_card_file (const char *relative, size_t *length) {
+    wchar_t path[PATH_MAX_W];
+    card_path(relative, path);
+    FILE *f = _wfopen(path, L"rb");
+    *length = 0;
+    if (!f) {
+        return NULL;
+    }
+    fseek(f, 0, SEEK_END);
+    long size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    uint8_t *data = (size > 0 && size < 4 * 1024 * 1024) ? malloc(size) : NULL;
+    if (data && fread(data, 1, size, f) == (size_t) size) {
+        *length = size;
+    } else {
+        free(data);
+        data = NULL;
+    }
+    fclose(f);
+    return data;
+}
+
+static void put32 (uint8_t *p, uint32_t v) {
+    p[0] = v >> 24; p[1] = v >> 16; p[2] = v >> 8; p[3] = v;
+}
+
+/* All of a game's pictures in one file, so the menu opens one file instead of
+   searching a big folder per badge: "BPK1", the number of pictures, then an
+   offset and a size each (big-endian; size 0 = none), then the PNGs. Pictures
+   2i and 2i+1 are achievement i's (in set.txt's order), coloured and locked;
+   the last is the game's icon. */
+static bool write_pak (const char *folder, char **badges, int count) {
+    int pictures = count * 2 + 1;
+    size_t header = 8 + (size_t) pictures * 8;
+    uint8_t *head = calloc(1, header);
+    uint8_t **data = calloc(pictures, sizeof(uint8_t *));
+    size_t *sizes = calloc(pictures, sizeof(size_t));
+    if (!head || !data || !sizes) {
+        free(head); free(data); free(sizes);
+        return false;
+    }
+    for (int i = 0; i < pictures; i++) {
+        char name[200];
+        if (i == pictures - 1) {
+            snprintf(name, sizeof(name), "%s/icon.png", folder);
+        } else if (badges[i / 2]) {
+            snprintf(name, sizeof(name), "%s/badges/%s%s.png", folder, badges[i / 2], (i & 1) ? "_lock" : "");
+        } else {
+            continue;
+        }
+        data[i] = read_card_file(name, &sizes[i]);
+    }
+    memcpy(head, "BPK1", 4);
+    put32(head + 4, (uint32_t) pictures);
+    size_t at = header, total;
+    for (int i = 0; i < pictures; i++) {
+        put32(head + 8 + i * 8, data[i] ? (uint32_t) at : 0);
+        put32(head + 12 + i * 8, data[i] ? (uint32_t) sizes[i] : 0);
+        at += data[i] ? sizes[i] : 0;
+    }
+    total = at;
+    uint8_t *all = malloc(total);
+    bool ok = false;
+    if (all) {
+        memcpy(all, head, header);
+        for (int i = 0, o = (int) header; i < pictures; i++) {
+            if (data[i]) {
+                memcpy(all + o, data[i], sizes[i]);
+                o += (int) sizes[i];
+            }
+        }
+        char name[160];
+        snprintf(name, sizeof(name), "%s/badges.pak", folder);
+        ok = write_file(name, all, total);
+        free(all);
+    }
+    for (int i = 0; i < pictures; i++) {
+        free(data[i]);
+    }
+    free(head); free(data); free(sizes);
+    return ok;
+}
+
 /* One game's set, logic, icon and badges. */
 static bool prepare_game (uint32_t id) {
     rc_api_fetch_game_data_response_t game;
@@ -315,6 +399,7 @@ static bool prepare_game (uint32_t id) {
     text_add(&set, "\n");
     text_add(&logic, "achlogic 1\n");
     int count = 0;
+    char **badges = calloc(game.num_achievements ? game.num_achievements : 1, sizeof(char *));
     for (uint32_t i = 0; i < game.num_achievements; i++) {
         const rc_api_achievement_definition_t *d = &game.achievements[i];
         if (d->category != RC_ACHIEVEMENT_CATEGORY_PROMOTED || d->id == 101000001UL || !d->definition) {
@@ -333,6 +418,9 @@ static bool prepare_game (uint32_t id) {
         text_add(&logic, number);
         text_field(&logic, d->definition);
         text_add(&logic, "\n");
+        if (badges && d->badge_name && d->badge_name[0]) {
+            badges[count] = strdup(d->badge_name);
+        }
         count++;
 
         if (d->badge_name && d->badge_name[0]) {
@@ -351,12 +439,18 @@ static bool prepare_game (uint32_t id) {
     }
     snprintf(name, sizeof(name), "%s/icon.png", folder);
     download(game.image_url, name);
+    bool packed = badges && write_pak(folder, badges, count);
+    for (int i = 0; badges && i < count; i++) {
+        free(badges[i]);
+    }
+    free(badges);
 
     snprintf(name, sizeof(name), "%s/set.txt", folder);
     bool ok = set.text && write_file(name, set.text, set.length);
     snprintf(name, sizeof(name), "%s/logic.txt", folder);
     ok = logic.text && write_file(name, logic.text, logic.length) && ok;
-    printf("  %s: %d achievements%s\n", game.title ? game.title : "?", count, ok ? "" : " (could not write its files)");
+    printf("  %s: %d achievements%s\n", game.title ? game.title : "?", count,
+           !ok ? " (could not write its files)" : !packed ? " (badges not packed: the menu reads them one by one)" : "");
     free(set.text);
     free(logic.text);
     rc_api_destroy_fetch_game_data_response(&game);

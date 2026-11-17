@@ -70,6 +70,16 @@ static slot_t slots[SLOTS];
 static int decoding = -2;       /* the slot being decoded, -2 none */
 static uint32_t frame = 0;
 
+/* The game's badges.pak (pc/ra_bridge/prep.h), open while the page is: one
+   file instead of a search through a folder of hundreds per badge. */
+static FILE *pak = NULL;
+static uint32_t *pak_index = NULL;  /* offset, size per picture */
+static int pak_pictures = 0;
+
+/* How long starting each picture took, for the log. */
+static int timed = 0;
+static uint32_t timed_total_us = 0, timed_worst_us = 0;
+
 /* ---------- badge pictures, one card read at a time ---------- */
 
 static void slot_free (slot_t *s) {
@@ -137,6 +147,71 @@ static bool memory_ok (void) {
     return true;
 }
 
+static uint32_t get32 (const uint8_t *p) {
+    return ((uint32_t) p[0] << 24) | ((uint32_t) p[1] << 16) | ((uint32_t) p[2] << 8) | p[3];
+}
+
+static void pak_close (void) {
+    if (pak) {
+        fclose(pak);
+    }
+    pak = NULL;
+    free(pak_index);
+    pak_index = NULL;
+    pak_pictures = 0;
+}
+
+static void pak_open (void) {
+    pak_close();
+    char path[64];
+    snprintf(path, sizeof(path), DIR "/%lu/badges.pak", (unsigned long) game_id);
+    pak = fopen(path, "r");
+    if (!pak) {
+        debugf("achievements: no badges.pak, reading the badge files one by one\n");
+        return;
+    }
+    uint8_t head[8];
+    int pictures = achievements_count() * 2 + 1;
+    if (fread(head, 1, 8, pak) != 8 || memcmp(head, "BPK1", 4) != 0 || (int) get32(head + 4) != pictures) {
+        debugf("achievements: badges.pak doesn't match the list (prepare the card again)\n");
+        pak_close();
+        return;
+    }
+    uint8_t *raw = malloc(pictures * 8);
+    pak_index = malloc(pictures * 2 * sizeof(uint32_t));
+    if (!raw || !pak_index || fread(raw, 1, pictures * 8, pak) != (size_t) (pictures * 8)) {
+        free(raw);
+        pak_close();
+        return;
+    }
+    for (int i = 0; i < pictures * 2; i++) {
+        pak_index[i] = get32(raw + i * 4);
+    }
+    free(raw);
+    pak_pictures = pictures;
+}
+
+/* A picture from the pack, started decoding. */
+static png_err_t start_from_pak (int picture, int slot) {
+    uint32_t offset = pak_index[picture * 2], size = pak_index[picture * 2 + 1];
+    if (size == 0 || size > 256 * 1024) {
+        return PNG_ERR_NO_FILE;
+    }
+    uint8_t *buf = malloc(size);
+    if (!buf) {
+        return PNG_ERR_OUT_OF_MEM;
+    }
+    if (fseek(pak, offset, SEEK_SET) != 0 || fread(buf, 1, size, pak) != size) {
+        free(buf);
+        return PNG_ERR_BAD_FILE;
+    }
+    png_err_t err = png_decoder_start_mem(buf, size, BADGE_SIZE, BADGE_SIZE, decoded, (void *) (intptr_t) slot);
+    if (err != PNG_OK) {
+        free(buf);      /* only ours again when it wasn't taken */
+    }
+    return err;
+}
+
 /* Start reading one waiting picture, the selected badge first, then the icon, then the rest. */
 static void load_one (void) {
     if (decoding != -2) {
@@ -151,21 +226,40 @@ static void load_one (void) {
         }
     }
     if (!next) {
+        if (timed > 0) {
+            debugf("achievements: %d pictures started (%s), %lu us each on average, slowest %lu us\n", timed,
+                   pak ? "from badges.pak" : "one file each", (unsigned long) (timed_total_us / timed), (unsigned long) timed_worst_us);
+            timed = 0;
+            timed_total_us = timed_worst_us = 0;
+        }
         return;
     }
     if (!memory_ok()) {
         next->state = SLOT_FAILED;
         return;
     }
-    char path[160];
-    if (next->index == ICON_SLOT) {
-        snprintf(path, sizeof(path), DIR "/%lu/icon.png", (unsigned long) game_id);
-    } else {
-        const achievement_t *a = achievements_get(next->index);
-        snprintf(path, sizeof(path), DIR "/%lu/badges/%s%s.png", (unsigned long) game_id, a ? a->badge : "", next->locked ? "_lock" : "");
-    }
     int slot = (int) (next - slots);
-    png_err_t err = png_decoder_start(path, BADGE_SIZE, BADGE_SIZE, decoded, (void *) (intptr_t) slot);
+    uint32_t started = get_ticks_us();
+    png_err_t err;
+    if (pak) {
+        int picture = (next->index == ICON_SLOT) ? pak_pictures - 1 : next->index * 2 + (next->locked ? 1 : 0);
+        err = start_from_pak(picture, slot);
+    } else {
+        char path[160];
+        if (next->index == ICON_SLOT) {
+            snprintf(path, sizeof(path), DIR "/%lu/icon.png", (unsigned long) game_id);
+        } else {
+            const achievement_t *a = achievements_get(next->index);
+            snprintf(path, sizeof(path), DIR "/%lu/badges/%s%s.png", (unsigned long) game_id, a ? a->badge : "", next->locked ? "_lock" : "");
+        }
+        err = png_decoder_start(path, BADGE_SIZE, BADGE_SIZE, decoded, (void *) (intptr_t) slot);
+    }
+    uint32_t took = get_ticks_us() - started;
+    timed++;
+    timed_total_us += took;
+    if (took > timed_worst_us) {
+        timed_worst_us = took;
+    }
     if (err == PNG_OK) {
         next->state = SLOT_DECODING;
         decoding = slot;
@@ -186,6 +280,9 @@ void achievements_ui_close (void) {
         slot_free(&slots[i]);
     }
     decoding = -2;
+    pak_close();
+    timed = 0;
+    timed_total_us = timed_worst_us = 0;
     achievements_set_free();
     kind = ACH_NONE;
     game_id = 0;
@@ -236,6 +333,9 @@ bool achievements_ui_process (menu_t *menu) {
             showing = true;
             if (kind == ACH_SET && !loaded) {
                 loaded = achievements_set_load(game_id);
+                if (loaded) {
+                    pak_open();
+                }
             }
             sound_play_effect(SFX_SETTING);
             return true;

@@ -23,11 +23,18 @@
  *   menu/achievements/<id>/logic.txt     "achlogic 1", then "id <TAB> definition"
  *   menu/achievements/<id>/icon.png      the game's icon
  *   menu/achievements/<id>/badges/<badge>.png, <badge>_lock.png
+ *   menu/achievements/<id>/badges.pak    the same pictures in one file, which the
+ *                                        menu reads: "BPK1", count, then offset
+ *                                        and size per picture (big-endian; size 0:
+ *                                        none), then the PNGs; 2i coloured and
+ *                                        2i+1 locked for set.txt's achievement i,
+ *                                        the last the icon
  *
  * Promoted achievements only, never the server's "Unknown Emulator" warning.
  * Nothing here is sent to the player's account: logging in only lets the
  * sets be downloaded. ROMs already in the index with the same size aren't
- * read again, and badges already on the card aren't downloaded again.
+ * read again, and badges already on the card aren't downloaded again (the
+ * pack is made again from them each time).
  */
 
 #ifndef PREP_H__
