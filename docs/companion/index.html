@@ -543,7 +543,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
       <p class="hint">libretro (CC-BY-SA 4.0) gives NES, SNES and Game Boy games' developer, release date, genre and players,
         matched exactly by each file's CRC. LaunchBox's database also has descriptions, and covers N64 and 64DD games, matched
         by name: download <code>Metadata.zip</code> yourself from
-        <a href="https://gamesdb.launchbox-app.com/" target="_blank" rel="noopener">the LaunchBox Games Database</a> and choose
+        <a href="http://gamesdb.launchbox-app.com/Metadata.zip" target="_blank" rel="noopener">the LaunchBox Games Database</a> and choose
         it here. It is read in this browser only; LaunchBox publishes no terms for using it elsewhere, so it is never bundled
         with SummerStation64. Only what a game is missing is filled in, and nothing is written until you save.</p>
       <div class="tablewrap" style="margin-top:10px"><table>
@@ -733,7 +733,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
         <button class="go" id="sndMake" disabled>Download sound pack (.zip)</button>
         <span class="status" id="sndStatus">Pick at least one sound.</span>
       </div>
-      <p class="hint">Unzip it at the top of the SD card: the files land in <code>menu/themes/<b>name</b>/</code>. Then choose
+      <p class="hint">Unzip it at the top of the SD card (on Windows, see <a href="#guide-unzip">Unzipping on Windows</a>): the files land in <code>menu/themes/<b>name</b>/</code>. Then choose
         the theme in <b>Settings &gt; Look &gt; Theme &gt; Theme</b>. A theme can also carry its own text font as
         <code>font.font64</code>, made with libdragon's mkfont (it applies after a restart). Limits and tips are in
         <a href="#guide-themes">Making a theme</a>.</p>
@@ -788,7 +788,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
         <button class="go" id="picMake" disabled>Download pictures (.zip)</button>
         <span class="status" id="picStatus">Pick at least one picture.</span>
       </div>
-      <p class="hint">Unzip it at the top of the SD card: the pictures land in <code>menu/avatars/</code>. Then choose one in
+      <p class="hint">Unzip it at the top of the SD card (on Windows, see <a href="#guide-unzip">Unzipping on Windows</a>): the pictures land in <code>menu/avatars/</code>. Then choose one in
         <b>Settings &gt; Games &gt; Profiles &gt; Profile Picture</b>. Each is a 64 × 64 PNG named after its picture; more on this in
         <a href="#guide-profiles">Profiles</a>.</p>
     </section>
@@ -903,7 +903,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
           <a href="https://github.com/Kerillian0/SummerStation64/releases/latest">latest release</a> and copy it to the top folder of the card,
           replacing the one there.</li>
         <li><b>Covers, logos and clips</b>: from the same release, unzip <code>SummerStation64-…-Covers-Logos-and-Clips.zip</code> at the top
-          of the card. Its <code>menu</code> folder holds <code>art.pak</code> (box art for most N64 games) and the title logos and preview clips
+          of the card (on Windows, see <a href="#guide-unzip">Unzipping on Windows</a>). Its <code>menu</code> folder holds <code>art.pak</code> (box art for most N64 games) and the title logos and preview clips
           (in <code>menu/metadata/</code>; the clips need the Expansion Pak). Nothing of yours is replaced.</li>
         <li><b>Games</b>: put them in a folder, for example <code>N64</code>. On the console, open the <b>Folders</b> tab, go into that folder,
           press <b>Z</b> and choose <b>Set current directory as default</b>; the <b>Games</b> tab now shows its games as covers. More folders can be
@@ -941,14 +941,15 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
         <li><b>Fill in details automatically (optional).</b> <b>Fill details from libretro</b> fills NES, SNES and Game Boy
           games' developer, date, genre and players. <b>Fill from LaunchBox's Metadata.zip</b> also has descriptions and
           covers N64 and 64DD games: download <code>Metadata.zip</code> from the
-          <a href="https://gamesdb.launchbox-app.com/" target="_blank" rel="noopener">LaunchBox Games Database</a> yourself
+          <a href="http://gamesdb.launchbox-app.com/Metadata.zip" target="_blank" rel="noopener">LaunchBox Games Database</a> yourself
           and choose it. Only what is missing is filled in.</li>
         <li><b>Fill in a game.</b> Press <b>Fill in</b> beside it. Choose a picture for each slot from your computer (PNG or
           JPG, any size: the page shrinks it to fit). For a top label or spine, the frame editor lets you zoom, move and
           turn it until it fits; <b>Use for the other edges too</b> puts it on the box's other sides. Type the developer,
           date and description if you have them. Press <b>Keep</b>. Do the same for other games.</li>
         <li><b>Save.</b> Press <b>Save to card</b>. With Firefox and others, unzip <code>art-for-sd-card.zip</code> into the
-          card's <b>top folder</b> (it holds a <code>menu</code> folder that merges with yours).</li>
+          card's <b>top folder</b> (it holds a <code>menu</code> folder that merges with yours). On Windows, see <a href="#guide-unzip">Unzipping on Windows</a>: "Extract All"
+          otherwise puts it in a folder of its own, where the menu can't find it.</li>
         <li><b>Check on the console.</b> Run <b>Find Missing Metadata</b> again: the games you filled in drop off the list.</li>
       </ol>
       <h3>The pictures</h3>
@@ -1433,6 +1434,13 @@ rounded_corners = 1</code></pre>
         <p><b>"Watchdog timeout"</b>: the cart must load the whole menu file within 5 seconds. Since v0.5 it's about 3 MB (the box art is
           in <code>menu/art.pak</code>), which any card manages; an older menu with the art inside was about 33 MB. If it still happens, the
           card may be failing or badly formatted: copy everything off, reformat it (FAT32 or exFAT) and copy it back.</p></div>
+      <div class="qa" id="guide-unzip"><b>I unzipped files onto the card but the menu doesn't see them</b>
+        <p>The zips from this page and from the release start with the card's own folders (<code>menu</code>, or the game folders), so they
+          must be unzipped <b>straight onto the card</b>. Windows' <b>Extract All</b> suggests a new folder named after the zip
+          (<code>E:\art-for-sd-card</code>); everything then lands in that folder and the menu never finds it. In the Extract box, delete the
+          zip's name from the end of the path so it reads just the card (<code>E:\</code>), and say yes to merging folders. If it already
+          happened: open the extra folder on the card, move what is inside it (the <code>menu</code> folder and any others) to the card's top
+          folder, merging, then delete the empty folder.</p></div>
       <div class="qa"><b>A game has no cover, or the wrong one</b>
         <p>The release's <code>menu/art.pak</code> has covers for the games in the metadata pack; others show a plain box. Check that
           <code>art.pak</code> is in the card's <code>menu</code> folder (the menu's assistant says so when it can't find it). To add a missing one, see <a href="#guide-art">Box art and details</a>. A few games share a code with
@@ -4562,7 +4570,8 @@ $('hackSave').addEventListener('click', async function () {
   a.href = URL.createObjectURL(new Blob([zipStore(files, crcOf)], { type: 'application/zip' }));
   a.download = 'hacks-for-sd-card.zip';
   a.click();
-  if (!hk.root) $('hackSaveStatus').innerHTML = 'Unzip <b>hacks-for-sd-card.zip</b> into the card\'s top folder (it holds a <b>menu</b> folder).';
+  if (!hk.root) $('hackSaveStatus').innerHTML = 'Unzip <b>hacks-for-sd-card.zip</b> into the card\'s top folder (it holds a <b>menu</b> folder). On Windows, see' +
+      ' <a href="#guide-unzip">Unzipping on Windows</a>.';
 });
 })();
 </script>
@@ -5500,7 +5509,8 @@ $('artSave').addEventListener('click', async function () {
   a.href = URL.createObjectURL(new Blob([T.zipStore(files, T.crcOf)], { type: 'application/zip' }));
   a.download = 'art-for-sd-card.zip';
   a.click();
-  if (!card.root) $('artSaveStatus').innerHTML = 'Unzip <b>art-for-sd-card.zip</b> into the card\'s top folder (it holds a <b>menu</b> folder).';
+  if (!card.root) $('artSaveStatus').innerHTML = 'Unzip <b>art-for-sd-card.zip</b> into the card\'s top folder (it holds a <b>menu</b> folder). On Windows, see' +
+      ' <a href="#guide-unzip">Unzipping on Windows</a>.';
   $('artSave').disabled = false;
 });
 })();
@@ -6639,7 +6649,8 @@ $('chtSave').addEventListener('click', async function () {
     a.href = URL.createObjectURL(new Blob([T.zipStore(out, T.crcOf)], { type: 'application/zip' }));
     a.download = 'cheats-for-sd-card.zip';
     a.click();
-    $('chtSaveStatus').innerHTML = 'Unzip <b>cheats-for-sd-card.zip</b> into the card\'s top folder: each file lands beside its game.';
+    $('chtSaveStatus').innerHTML = 'Unzip <b>cheats-for-sd-card.zip</b> into the card\'s top folder: each file lands beside its game. On Windows, see' +
+      ' <a href="#guide-unzip">Unzipping on Windows</a>.';
   }
   closeEditor();
   renderRows();
@@ -6801,7 +6812,7 @@ $('sndMake').addEventListener('click', function () {
   a.download = themeFolderName($('sndTheme').value) + ' sounds.zip';
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
-  status('Downloaded. Unzip it at the top of the SD card.');
+  status('Downloaded. Unzip it straight onto the top of the SD card, not into a new folder of its own.');
 });
 })();
 </script>
@@ -7013,7 +7024,7 @@ $('picMake').addEventListener('click', async function () {
   a.download = 'profile pictures.zip';
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
-  status('Downloaded. Unzip it at the top of the SD card.');
+  status('Downloaded. Unzip it straight onto the top of the SD card, not into a new folder of its own.');
 });
 })();
 </script>
