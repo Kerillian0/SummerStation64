@@ -12,6 +12,7 @@
 #include "../attract.h"
 #include "../assistant_ask.h"
 #include "../cover_clip.h"
+#include "../cover_pick.h"
 #include "../cover_deal.h"
 #include "../debug_stats.h"
 #include "../cart_load.h"
@@ -1167,6 +1168,19 @@ static void status_row (menu_t *menu, void *arg) {
     (void) arg;
 }
 
+// Z > "Cover: USA": the row opens cover_pick_menu() (filled in entry_menu_fill()); this only marks the row.
+static void region_cover_row (menu_t *menu, void *arg) {
+    (void) menu;
+    (void) arg;
+}
+
+// A cover was chosen there: read the list again and stay on that game, whichever copy shows it now.
+static void cover_picked (menu_t *menu) {
+    marked_reload(menu);
+    cover_pick_select(menu);
+    note_show(cover_pick_note());
+}
+
 // Every row the Options menu can have. entry_menu_fill() copies the ones
 // that suit the tab into entry_context_menu each time it is opened: on the
 // cover tabs the first five (a game's own), on the Folders tab the rest.
@@ -1176,6 +1190,7 @@ static void status_row (menu_t *menu, void *arg) {
         { .text = "Game info", .action = show_game_info }, \
         { .text = "Add to collection...", .action = add_to_collection }, \
         { .text = "Status", .action = status_row }, \
+        { .text = "Cover", .action = region_cover_row }, \
         { .text = "Hide this game", .action = hide_game }, \
         { .text = "Mark as homebrew", .action = toggle_homebrew }, \
         { .text = "Mark as ROM hack", .action = toggle_hack }, \
@@ -1204,10 +1219,18 @@ static void entry_menu_fill (menu_t *menu) {
     for (int i = 0; entry_menu_rows.list[i].text != NULL; i++) {
         __typeof__(entry_menu_rows.list[0]) row = entry_menu_rows.list[i];
         bool cover_row = (row.action == random_game || row.action == toggle_favorite || row.action == show_game_info
-                          || row.action == add_to_collection || row.action == status_row || row.action == hide_game || row.action == toggle_homebrew || row.action == toggle_hack
+                          || row.action == add_to_collection || row.action == status_row || row.action == region_cover_row || row.action == hide_game || row.action == toggle_homebrew || row.action == toggle_hack
                           || row.action == ask_assistant);
         if (row.action == status_row && !features_enabled(FEATURE_GAME_STATUS)) {
             continue;   // Game Status switched off
+        }
+        if (row.action == region_cover_row) {
+            if (folders_tab || !cover_pick_offer(menu, e, cover_picked)) {
+                continue;   // only on a cover standing for copies from two regions or more
+            }
+            row.text = cover_pick_row_text();   // "Cover: USA", opening the list of regions
+            row.submenu = cover_pick_menu();
+            row.action = NULL;
         }
         if (!folders_tab) {
             // A cover tab: the game's own rows only.

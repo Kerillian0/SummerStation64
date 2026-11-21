@@ -2,12 +2,14 @@
  * @file region_pick.h
  * @brief Region Copies: which region's copy of a game gives its cover.
  *
- * With Region Copies on One Cover (Settings > Library), a game kept in
- * several regions shows once under All. Its cover is the copy from the
- * Preferred Region, unless the player has started another region's copy of
- * that game three times in a row: then that region becomes the game's own
- * choice. Starting the preferred region's copy once, or changing Preferred
- * Region, goes back to the preferred one. A game is the first three letters
+ * With Region Copies on One Cover or Fixed Cover (Settings > Library), a
+ * game kept in several regions shows once under All. Its cover is the copy
+ * from the Preferred Region. On One Cover, starting another region's copy
+ * of that game three times in a row makes that region the game's own
+ * choice; starting the preferred region's copy once, or changing Preferred
+ * Region, goes back to the preferred one. Fixed Cover learns nothing from
+ * play. Either way the player can choose a game's cover with Z ("Cover"):
+ * that choice stays until changed there. A game is the first three letters
  * of its code ("NSM" for NSME, NSMJ and NSMP).
  *
  * The games' own choices are kept in sd:/menu/regionpicks.txt.
@@ -22,7 +24,8 @@
 /** Region Copies (option `region_copies`). */
 typedef enum {
     REGION_COPIES_SEPARATE,     /**< every copy its own cover (the default) */
-    REGION_COPIES_ONE_COVER,    /**< one cover per game under All */
+    REGION_COPIES_ONE_COVER,    /**< one cover per game under All, following the copy played */
+    REGION_COPIES_FIXED,        /**< one cover per game, always the Preferred Region's (or the one chosen with Z) */
     REGION_COPIES_COUNT
 } region_copies_t;
 
@@ -58,7 +61,19 @@ int region_pick_list_order (const char *code);
  */
 void region_pick_launched (menu_t *menu, const char *rom_path, const char *code);
 
-/** Forget every game's own choice (Preferred Region was changed). */
+/** Forget the covers learned from play (Preferred Region was changed); covers chosen with Z stay. */
 void region_pick_forget_all (void);
+
+/** A code's region: 'U' USA, 'J' Japan, 'E' Europe, 'A' every region, 0 not known. */
+char region_pick_region (const char *code);
+
+/** "USA", "Japan", "Europe" for those letters. */
+const char *region_pick_region_name (char region);
+
+/** The region chosen with Z for this code's game, or 0 when it is automatic. */
+char region_pick_by_hand (const char *code);
+
+/** Choose this code's game's cover by hand ('U', 'J', 'E'), or 0 for automatic again. Saves. */
+void region_pick_set (const char *code, char region);
 
 #endif /* REGION_PICK_H__ */

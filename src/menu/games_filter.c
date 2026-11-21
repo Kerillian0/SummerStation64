@@ -96,7 +96,7 @@ static filter_t current = FILTER_ALL;
 
 /* Whether other regions' copies are left out for this filter: under All, and in a collection. */
 static bool region_folding (filter_t f) {
-    return (f == FILTER_ALL || f == FILTER_COLLECTION) && options_get(OPTION_REGION_COPIES) == REGION_COPIES_ONE_COVER;
+    return (f == FILTER_ALL || f == FILTER_COLLECTION) && options_get(OPTION_REGION_COPIES) != REGION_COPIES_SEPARATE;
 }
 static filter_t stepped = FILTER_ALL;   /* the Games tab's step, kept while the shelf shows */
 static bool shelf = false;              /* the Homebrew or Retro tab is showing */
@@ -872,6 +872,21 @@ int games_filter_versions (menu_t *menu, const entry_t *e) {
         n += (cover_of(menu->browser.list[i].index) == e->index) ? 1 : 0;
     }
     return (n > 0) ? n : 1;
+}
+
+int games_filter_region_list (menu_t *menu, const entry_t *e, entry_t **out, int most) {
+    int n = 0;
+    if (!e || !rgroup || !region_folding(current) || e->index < 0 || e->index >= marks_count) {
+        return 0;
+    }
+    int all = games_filter_all_entries(menu->browser.entries);
+    for (int i = 0; i < all && n < most; i++) {
+        int k = menu->browser.list[i].index;
+        if (k >= 0 && k < marks_count && rgroup[k] == e->index) {
+            out[n++] = &menu->browser.list[i];
+        }
+    }
+    return n;
 }
 
 int games_filter_version_list (menu_t *menu, const entry_t *e, entry_t **out, int most) {

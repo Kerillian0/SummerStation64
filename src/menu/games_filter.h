@@ -164,6 +164,13 @@ int games_filter_versions (menu_t *menu, const entry_t *e);
 int games_filter_version_list (menu_t *menu, const entry_t *e, entry_t **out, int most);
 
 /**
+ * With Region Copies folding the filter shown: the region copies a cover
+ * stands for (itself included; with versions grouped, each group's cover),
+ * at most `most`. 0 when nothing is folded by region.
+ */
+int games_filter_region_list (menu_t *menu, const entry_t *e, entry_t **out, int most);
+
+/**
  * Which file's cover this one shows under for the filter in use (its own
  * entry->index when nothing folds it, or the list is not the Games list).
  */

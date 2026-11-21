@@ -175,7 +175,8 @@ static void fill (menu_t *menu) {
         case STEP_COPIES:
             add("One cover per game", "Each game shows once, as your region's copy. A on it lets you pick another copy.", REGION_COPIES_ONE_COVER);
             add("Every copy its own cover", "Every file gets its own cover, side by side.", REGION_COPIES_SEPARATE);
-            select_value(options_get(OPTION_REGION_COPIES));
+            /* Fixed Cover is one cover per game too: keep it rather than offer it here. */
+            select_value(options_get(OPTION_REGION_COPIES) == REGION_COPIES_FIXED ? REGION_COPIES_ONE_COVER : options_get(OPTION_REGION_COPIES));
             break;
         case STEP_THEME: {
             static const char *const about = "Settings > Look > Theme has more, and Edit Theme there makes your own.";
@@ -318,6 +319,9 @@ static void answer (menu_t *menu, int value) {
             }
             break;
         case STEP_COPIES:
+            if (value == REGION_COPIES_ONE_COVER && options_get(OPTION_REGION_COPIES) == REGION_COPIES_FIXED) {
+                break;      /* one cover per game already, the Fixed kind */
+            }
             if (value != options_get(OPTION_REGION_COPIES)) {
                 options_change(OPTION_REGION_COPIES, value);
                 menu->browser.reload = true;
