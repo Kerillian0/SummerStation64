@@ -588,8 +588,8 @@ static const item_t folder_items[] = {
     ACTION("Forget Added Folders", forget_games_folders, "The Games tab goes back to showing the start folder only, and no folder stays marked as hacks. No files are touched."),
     INFO("Hidden Games", hidden_info, "Games hidden from the cover tabs with Z, \"Hide this game\". They stay on the card and in the Folders tab, where Z, \"Unhide this game\", brings one back."),
     ACTION("Unhide All Games", show_hidden_games, "Bring every hidden game back to the cover tabs. No files are touched."),
-    ACTION("Find Missing Metadata", make_art_report, "Check every game on the Games tab for its cover, the back of its box, top label, cartridge picture, description, release date and developer. Games lacking any are listed in menu/missingart.txt on the SD card, for the Companion's Missing Metadata tab. Stay on this page until it is done."),
-    INFO("Missing Metadata", art_report_info, "How many games lack something, from the last check. The Companion's Missing Metadata tab shows which, and fills them in."),
+    ACTION("Find Missing Metadata", make_art_report, "Check every N64 cartridge game on the Games tab for its cover, box back, top label, cartridge picture, description, date and developer; those lacking any go in menu/missingart.txt. Stay here until done. The Companion's Missing Metadata tab finds 64DD and Retro games too."),
+    INFO("Missing Metadata", art_report_info, "How many N64 cartridge games lack something, from the last check. The Companion's Missing Metadata tab shows which and fills them in, along with the 64DD and Retro games it finds on the card."),
 };
 
 static const item_t play_items[] = {

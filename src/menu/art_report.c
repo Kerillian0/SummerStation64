@@ -262,7 +262,7 @@ void art_report_step (menu_t *menu) {
         snprintf(status, sizeof(status), "Could not write");
         debugf("art report: could not write %s\n", REPORT_PATH);
     } else {
-        snprintf(status, sizeof(status), "%d of %d games", lacking, game_count);
+        snprintf(status, sizeof(status), "%d of %d N64 games", lacking, game_count);   /* cartridges only: 64DD and Retro are the Companion's */
         debugf("art report: %d of %d games lack something, in %d ms\n", lacking, game_count, (int) (get_ticks_ms() - began));
     }
     finish();

@@ -73,7 +73,7 @@ a That cover stands for several files: hacks, copies or other regions, grouped b
 topic Box art and clips
 q Why does a game have no cover?
 a The release's Covers, Logos and Clips zip has box art for most N64 games, in menu/art.pak. Others show a plain box.
-a Settings > Games > Game Folders > Find Missing Metadata lists every game lacking art or details in menu/missingart.txt. The Companion's Missing Metadata tab then fills them in from your computer.
+a Settings > Games > Game Folders > Find Missing Metadata lists every N64 cartridge game lacking art or details in menu/missingart.txt. The Companion's Missing Metadata tab then fills them in from your computer, and finds 64DD and Retro games itself.
 q Where do covers go on the card?
 a In menu/metadata/ and the four letters of the game's code, one folder each: NSME goes in menu/metadata/N/S/M/E/. The front is boxart_front.png.
 a The game's code is in its info page's Details (START). NES, SNES and Game Boy games go in menu/metadata/nes/ (or snes, gb, gbc) and a folder named like the game's file.
