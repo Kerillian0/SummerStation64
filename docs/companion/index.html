@@ -976,7 +976,8 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
           <code>Super Metroid (USA).sfc</code> → <code>menu/metadata/snes/Super Metroid (USA)/</code>.</li>
         <li><b>Homebrew:</b> pictures in <code>menu/metadata/homebrew/</code> and the title the game gives itself; details
           in a file beside the game named like it, ending <code>.metadata.ini</code>
-          (<code>Game.z64</code> → <code>Game.metadata.ini</code>). The page does this for you.</li>
+          (<code>Game.z64</code> → <code>Game.metadata.ini</code>), and the full description beside it as
+          <code>Game.description.txt</code>. The page does this for you.</li>
         <li><b>ROM hacks</b> share their original's code, and so its cover. To give a hack its own, set it up in the
           <a href="#hacks">Hacks</a> tab first, then run Find Missing Metadata.</li>
       </ul>
@@ -5462,14 +5463,18 @@ async function filesToWrite() {
       var values = { 'release-date': c.date, author: c.dev ? T.iniValue(authorWith(oldAuthor, c.dev), 60) : '' };
       if (c.genre) values.genre = T.iniValue(c.genre, 40);
       if (c.players && /^\d+$/.test(c.players)) values['num-players'] = c.players;
-      // The menu keeps up to 255 characters of a value; homebrew has no description.txt, so it gets more here.
+      // The menu keeps up to 255 characters of a value. Homebrew's full text goes in a file beside the game
+      // ("Game.description.txt", named by long-desc-fn); the longer short-desc is for menus before v0.5b.
+      var ownText = homebrew ? iniPath.replace(/\.metadata\.ini$/i, '.description.txt') : null;
       if (c.desc) values['short-desc'] = T.iniValue(shortDesc(c.desc, homebrew ? 250 : 120));
+      if (c.desc && ownText) values['long-desc-fn'] = T.iniValue(ownText.slice(ownText.lastIndexOf('/') + 1), 200);
       if (!ini) values.name = T.iniValue(gameName(c.item), 90);
       var bytes = enc.encode(mergeIni(ini, values));
       if (homebrew) out.push({ path: iniPath, bytes: bytes });
       else add('metadata.ini', bytes);
     }
     if (c.desc && !homebrew) add('description.txt', enc.encode(c.desc + '\n'));
+    if (c.desc && homebrew) out.push({ path: iniPath.replace(/\.metadata\.ini$/i, '.description.txt'), bytes: enc.encode(c.desc + '\n') });
     if (target.copyFrom) {
       // The pictures and text it was using from the folder without the region letter.
       for (var name of sharedNames) {

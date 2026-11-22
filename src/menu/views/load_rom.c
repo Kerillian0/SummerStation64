@@ -135,7 +135,8 @@ static void scan_metadata_images(menu_t *menu) {
 }
 
 static const char *format_rom_description(menu_t *menu) {
-    const char *rom_description = baked_meta_description(menu->load.rom_info.game_code); // SummerStation64: the full text; the pack's short-desc stops mid-sentence
+    const char *rom_description = baked_meta_own_description(path_get(menu->load.rom_path), menu->load.rom_info.meta.long_description_fn); // SummerStation64: the game's own file beside it
+    if (!rom_description) rom_description = baked_meta_description(menu->load.rom_info.game_code); // SummerStation64: the full text; the pack's short-desc stops mid-sentence
     if (rom_description) {
         return rom_description;
     }

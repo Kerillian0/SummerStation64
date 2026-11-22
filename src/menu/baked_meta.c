@@ -53,6 +53,42 @@ static char *read_text (const char *path) {
     return text;
 }
 
+const char *baked_meta_own_description (const char *rom_path, const char *long_desc_fn) {
+    static char asked[256] = "";
+    static char *text = NULL;
+    if (!rom_path || !rom_path[0]) {
+        return NULL;
+    }
+    char key[256];
+    snprintf(key, sizeof(key), "%s|%s", rom_path, long_desc_fn ? long_desc_fn : "");
+    if (strcmp(key, asked) == 0) {
+        return text;    /* this game was looked for already (found or not): no card read every frame */
+    }
+    free(text);
+    text = NULL;
+    snprintf(asked, sizeof(asked), "%s", key);
+
+    const char *slash = strrchr(rom_path, '/');
+    const char *dot = strrchr(rom_path, '.');
+    char path[320];
+    if (long_desc_fn && long_desc_fn[0]) {
+        /* A name in the game's own folder; nothing that climbs out of it. */
+        if (strstr(long_desc_fn, "..") || strchr(long_desc_fn, ':') || long_desc_fn[0] == '/' || !slash) {
+            debugf("own description: \"%s\" left alone (outside the game's folder)\n", long_desc_fn);
+            return NULL;
+        }
+        snprintf(path, sizeof(path), "%.*s/%s", (int) (slash - rom_path), rom_path, long_desc_fn);
+    } else {
+        int stem = (dot && (!slash || dot > slash)) ? (int) (dot - rom_path) : (int) strlen(rom_path);
+        snprintf(path, sizeof(path), "%.*s.description.txt", stem, rom_path);
+    }
+    text = read_text(path);
+    if (text) {
+        debugf("own description: %s\n", path);
+    }
+    return text;
+}
+
 const char *baked_meta_description (const char *game_code) {
     static char code[5] = "";
     static char *text = NULL;

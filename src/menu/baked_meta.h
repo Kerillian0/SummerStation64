@@ -30,4 +30,13 @@ bool baked_meta_path (const char *game_code, char *path, size_t size);
  */
 const char *baked_meta_description (const char *game_code);
 
+/**
+ * A game's own full description, kept beside its file: the file its
+ * metadata.ini names with `long-desc-fn` (in the game's folder), else
+ * "Game.description.txt" beside "Game.z64". Wins over the pack's, since it
+ * is about this one file (homebrew shares codes). NULL if there is none.
+ * Looked for once per game; the text is kept until another game is asked for.
+ */
+const char *baked_meta_own_description (const char *rom_path, const char *long_desc_fn);
+
 #endif /* BAKED_META_H__ */
