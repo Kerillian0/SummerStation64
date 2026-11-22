@@ -53,20 +53,33 @@ static char *read_text (const char *path) {
     return text;
 }
 
+/* What the two description lookups last read, kept so they read the card once per game. */
+static char own_asked[256] = "";
+static char *own_text = NULL;
+static char desc_code[5] = "";
+static char *desc_text = NULL;
+
+void baked_meta_forget (void) {
+    free(own_text);
+    own_text = NULL;
+    own_asked[0] = '\0';
+    free(desc_text);
+    desc_text = NULL;
+    desc_code[0] = '\0';
+}
+
 const char *baked_meta_own_description (const char *rom_path, const char *long_desc_fn) {
-    static char asked[256] = "";
-    static char *text = NULL;
     if (!rom_path || !rom_path[0]) {
         return NULL;
     }
     char key[256];
     snprintf(key, sizeof(key), "%s|%s", rom_path, long_desc_fn ? long_desc_fn : "");
-    if (strcmp(key, asked) == 0) {
-        return text;    /* this game was looked for already (found or not): no card read every frame */
+    if (strcmp(key, own_asked) == 0) {
+        return own_text;    /* this game was looked for already (found or not): no card read every frame */
     }
-    free(text);
-    text = NULL;
-    snprintf(asked, sizeof(asked), "%s", key);
+    free(own_text);
+    own_text = NULL;
+    snprintf(own_asked, sizeof(own_asked), "%s", key);
 
     const char *slash = strrchr(rom_path, '/');
     const char *dot = strrchr(rom_path, '.');
@@ -82,16 +95,14 @@ const char *baked_meta_own_description (const char *rom_path, const char *long_d
         int stem = (dot && (!slash || dot > slash)) ? (int) (dot - rom_path) : (int) strlen(rom_path);
         snprintf(path, sizeof(path), "%.*s.description.txt", stem, rom_path);
     }
-    text = read_text(path);
-    if (text) {
+    own_text = read_text(path);
+    if (own_text) {
         debugf("own description: %s\n", path);
     }
-    return text;
+    return own_text;
 }
 
 const char *baked_meta_description (const char *game_code) {
-    static char code[5] = "";
-    static char *text = NULL;
     if (!game_code) {
         return NULL;
     }
@@ -100,22 +111,22 @@ const char *baked_meta_description (const char *game_code) {
             return NULL;
         }
     }
-    if (memcmp(code, game_code, 4) == 0) {
-        return text;
+    if (memcmp(desc_code, game_code, 4) == 0) {
+        return desc_text;
     }
-    free(text);
-    memcpy(code, game_code, 4);
+    free(desc_text);
+    memcpy(desc_code, game_code, 4);
 
     char path[64];
     snprintf(path, sizeof(path), "rom:/meta/%c/%c/%.4s.txt", game_code[1], game_code[2], game_code);
-    text = read_text(path);
-    if (!text) {
+    desc_text = read_text(path);
+    if (!desc_text) {
         snprintf(path, sizeof(path), "sd:/menu/metadata/%c/%c/%c/%c/description.txt", game_code[0], game_code[1], game_code[2], game_code[3]);
-        text = read_text(path);
+        desc_text = read_text(path);
     }
-    if (!text && baked_art_card_ok("sd:/", game_code)) {   /* not another region's game sharing the code */
+    if (!desc_text && baked_art_card_ok("sd:/", game_code)) {   /* not another region's game sharing the code */
         snprintf(path, sizeof(path), "sd:/menu/metadata/%c/%c/%c/description.txt", game_code[0], game_code[1], game_code[2]);
-        text = read_text(path);
+        desc_text = read_text(path);
     }
-    return text;
+    return desc_text;
 }

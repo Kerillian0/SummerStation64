@@ -86,6 +86,7 @@ SRCS = \
 	menu/rom_info.c \
 	menu/settings.c \
 	menu/sound.c \
+	menu/metadata_clear.c \
 	menu/cover_pick.c \
 	menu/achievements.c \
 	menu/achievements_ui.c \

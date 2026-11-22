@@ -39,4 +39,7 @@ const char *baked_meta_description (const char *game_code);
  */
 const char *baked_meta_own_description (const char *rom_path, const char *long_desc_fn);
 
+/** Forget the descriptions read so far (their files were moved or changed). */
+void baked_meta_forget (void);
+
 #endif /* BAKED_META_H__ */

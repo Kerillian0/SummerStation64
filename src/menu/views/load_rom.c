@@ -24,6 +24,7 @@
 #include "../save_backup.h"
 #include "../game_status.h"
 #include "../baked_art.h" // the cover comes from art baked into the menu when there is some
+#include "../metadata_clear.h" // Options > "Clear Metadata...": the game's own pictures and details to the trash
 #include "../baked_meta.h" // the full description, baked into the menu or from the card
 #include "../game_index.h"
 #include "../games_filter.h" // telling a hack from the game it was made from
@@ -532,6 +533,12 @@ static void status_row (menu_t *menu, void *arg) {
     (void) arg;
 }
 
+// "Clear Metadata...": options_menu_fill() gives the row metadata_clear_menu(); this only marks it.
+static void clear_metadata_row (menu_t *menu, void *arg) {
+    (void) menu;
+    (void) arg;
+}
+
 // Every row Game info's Options can have; options_menu_fill() copies them
 // into options_context_menu when it opens, leaving out the advanced ones
 // unless Settings asks for them (FEATURE_ADVANCED_OPTIONS).
@@ -549,6 +556,7 @@ static component_context_menu_t options_menu_rows = { .list = {
 #endif
     { .text = "Clear RDRAM on boot", .submenu = &set_clear_rdram_options_menu },
     { .text = "Restore save", .submenu = &restore_save_context_menu },
+    { .text = "Clear Metadata...", .action = clear_metadata_row },
     { .text = "Status", .action = status_row },
     { .text = "Add to favorites", .action = add_favorite },
     { .text = "Show/hide real file name", .action = display_name_toggle_real },
@@ -569,6 +577,7 @@ static component_context_menu_t options_context_menu = { .list = {
 #endif
     { .text = "Clear RDRAM on boot", .submenu = &set_clear_rdram_options_menu },
     { .text = "Restore save", .submenu = &restore_save_context_menu },
+    { .text = "Clear Metadata...", .action = clear_metadata_row },
     { .text = "Status", .action = status_row },
     { .text = "Add to favorites", .action = add_favorite },
     { .text = "Show/hide real file name", .action = display_name_toggle_real },
@@ -592,6 +601,10 @@ static void options_menu_fill (menu_t *menu) {
             }
             row.text = game_status_row_text(path_get(menu->load.rom_path));     // "Status: Beaten", opening the list
             row.submenu = game_status_menu(path_get(menu->load.rom_path));
+            row.action = NULL;
+        }
+        if (row.action == clear_metadata_row) {
+            row.submenu = metadata_clear_menu();    // Pictures and details / Pictures only / Details only
             row.action = NULL;
         }
         options_context_menu.list[rows++] = row;
@@ -763,6 +776,9 @@ static void process (menu_t *menu) {
         return;
     }
     if (save_backup_prompt_process(menu)) { // "Go back to the save from ...?" is up
+        return;
+    }
+    if (metadata_clear_prompt_process(menu)) { // "Clear this game's ...?" is up
         return;
     }
 
@@ -969,6 +985,7 @@ static void draw (menu_t *menu, surface_t *d) {
         }
 
         save_backup_prompt_draw(); // restoring a save: the question, or how it went
+        metadata_clear_prompt_draw(); // clearing its pictures or details: the question, or how it went
         ui_components_context_menu_draw(&options_context_menu);
         cheat_menu_draw();
 #ifdef FEATURE_AUTOLOAD_ROM_ENABLED
