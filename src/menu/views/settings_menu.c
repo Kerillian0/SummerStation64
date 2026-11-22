@@ -691,6 +691,14 @@ static const item_t tab_items[] = {
         "What the third place on the tab bar holds. None leaves it out."),
     CHOICES("Fourth Tab", OPTION_TAB4, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
         "What the fourth place on the tab bar holds: Recent (the games you played last), Homebrew, Collections (series and multiplayer), Retro (NES, SNES, Game Boy), Hacks, or any one collection, after Hacks, for a tab of its own."),
+    CHOICES("Fifth Tab", OPTION_TAB5, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
+        "What the fifth place on the tab bar holds. Four tabs show at a time: with more, the bar slides along as L and R move, and a ◀ or ▶ shows more tabs that way."),
+    CHOICES("Sixth Tab", OPTION_TAB6, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
+        "What the sixth place on the tab bar holds. None leaves it out."),
+    CHOICES("Seventh Tab", OPTION_TAB7, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
+        "What the seventh place on the tab bar holds. None leaves it out."),
+    CHOICES("Eighth Tab", OPTION_TAB8, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
+        "What the eighth place on the tab bar holds. None leaves it out."),
 };
 
 static const item_t file_items[] = {

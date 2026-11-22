@@ -243,30 +243,128 @@ games_tab_t games_ui_tab_shown (void) {
     return tab_shown;
 }
 
+/* With more than four tabs the bar scrolls: four show at a time, a little
+   narrower so a ◀ and ▶ fit at its ends, and it slides along to keep the
+   selected tab in view. The slide and the selected tab's block move with
+   Snappy too, only quicker than with Showy. */
+#define BAR_PLACES          (4)     /* tabs that fit beside the clock */
+#define BAR_TAB_NARROW      (96)    /* a tab's width while the bar scrolls */
+#define BAR_ARROW_WIDTH     (14)
+#define BAR_ARROW_GAP       (4)
+#define BAR_SLIDE_SHOWY_MS  (220)
+#define BAR_SLIDE_SNAPPY_MS (130)
+#define BAR_BLOCK_SNAPPY_MS (110)
+
+typedef struct {
+    bool set;
+    int from, to;
+    uint64_t since;     /* when it set off for `to`; 0 when it is there */
+    uint64_t last;      /* when it was last asked: after a long gap it starts where it is wanted */
+} bar_slide_t;
+
+static int bar_slide_at (const bar_slide_t *slide, uint64_t now, int ms) {
+    if (slide->since == 0) {
+        return slide->to;
+    }
+    float progress = (float) (now - slide->since) / ms;
+    if (progress >= 1.0f) {
+        return slide->to;
+    }
+    float left = 1.0f - progress;
+    float eased = 1.0f - (left * left * left);      /* fast at first, easing into place */
+    return slide->from + (int) ((slide->to - slide->from) * eased);
+}
+
+static int bar_slide (bar_slide_t *slide, int target, int ms) {
+    uint64_t now = get_ticks_ms();
+    if (!slide->set || (now - slide->last) > TAB_GLIDE_FRESH_MS) {
+        slide->set = true;
+        slide->from = slide->to = target;
+        slide->since = 0;
+    }
+    slide->last = now;
+    if (target != slide->to) {
+        slide->from = bar_slide_at(slide, now, ms);
+        slide->to = target;
+        slide->since = now;
+    }
+    return bar_slide_at(slide, now, ms);
+}
+
+static void bar_arrow (int x, const char *arrow) {
+    text(x - 5, TOPBAR_Y, BAR_ARROW_WIDTH + 10, TOPBAR_HEIGHT, ALIGN_CENTER, STL_GRAY, arrow);
+}
+
 void games_ui_topbar_draw (menu_t *menu, games_tab_t selected) {
     tab_shown = selected;
     games_tab_t shown[GAMES_TAB_COUNT];
     int count = tabs_list(shown);
 
-    /* Showy (animations.h): the selected tab's block glides over from the
-       tab that was selected, across the change of screen. The others are
-       drawn first, so it passes over them; its label waits in its place. */
-    int x = TABS_X;
-    int selected_x = -1;
+    bool scrolls = (count > BAR_PLACES);
+    int width = scrolls ? BAR_TAB_NARROW : TOPBAR_TAB_WIDTH;
+    int step = width + TOPBAR_TAB_GAP;
+    int x0 = scrolls ? (TABS_X + BAR_ARROW_WIDTH + BAR_ARROW_GAP) : TABS_X;
+    int x1 = x0 + (BAR_PLACES * step) - TOPBAR_TAB_GAP;
+
+    int here = -1;
     for (int i = 0; i < count; i++) {
         if (shown[i] == selected) {
-            selected_x = x;
-            round_fill(x, TOPBAR_Y, x + TOPBAR_TAB_WIDTH, TOPBAR_Y + TOPBAR_HEIGHT, theme_get()->tab_inactive);   /* under the block, until it arrives */
-        } else {
-            pill(x, TOPBAR_TAB_WIDTH, tabs_label(shown[i]), false);    /* a long collection name ends in ... */
+            here = i;
         }
-        x += TOPBAR_TAB_WIDTH + TOPBAR_TAB_GAP;
     }
-    if (selected_x >= 0) {
-        static animations_glide_t tab_glide;
-        int block_x = animations_glide_timed(&tab_glide, selected_x, TAB_GLIDE_MS, TAB_GLIDE_FRESH_MS);
-        round_fill(block_x - 2, TOPBAR_Y - 2, block_x + TOPBAR_TAB_WIDTH + 2, TOPBAR_Y + TOPBAR_HEIGHT + 2, theme_get()->accent);
-        tab_label(selected_x, TOPBAR_TAB_WIDTH, STL_WHITE, tabs_label(selected));
+    static int first = 0;       /* the first tab in view */
+    if (here >= 0) {
+        if (here < first) {
+            first = here;
+        } else if (here >= first + BAR_PLACES) {
+            first = here - BAR_PLACES + 1;
+        }
+    }
+    int most = scrolls ? (count - BAR_PLACES) : 0;
+    first = (first > most) ? most : ((first < 0) ? 0 : first);
+
+    bool showy = animations_showy();
+    static bar_slide_t scroll_slide;
+    int scroll = bar_slide(&scroll_slide, first * step, showy ? BAR_SLIDE_SHOWY_MS : BAR_SLIDE_SNAPPY_MS) & ~1;
+
+    if (scrolls) {
+        /* Tabs sliding in or out are cut at the bar's ends (the block's edge reaches 2 px out). */
+        rdpq_set_scissor(x0 - 2, TOPBAR_Y - 2, x1 + 2, TOPBAR_Y + TOPBAR_HEIGHT + 2);
+    }
+
+    /* The selected tab's block glides over from the tab that was selected,
+       across the change of screen. The others are drawn first, so it passes
+       over them; its label waits in its place. */
+    int selected_x = -1;
+    for (int i = 0; i < count; i++) {
+        int x = x0 + (i * step) - scroll;
+        if ((x + width) < (x0 - 2) || x > (x1 + 2)) {
+            continue;   /* out of view */
+        }
+        if (i == here) {
+            selected_x = x;
+            round_fill(x, TOPBAR_Y, x + width, TOPBAR_Y + TOPBAR_HEIGHT, theme_get()->tab_inactive);   /* under the block, until it arrives */
+        } else {
+            pill(x, width, tabs_label(shown[i]), false);    /* a long collection name ends in ... */
+        }
+    }
+    if (here >= 0) {
+        static bar_slide_t block_slide;
+        int block_x = x0 + bar_slide(&block_slide, here * step, showy ? TAB_GLIDE_MS : BAR_BLOCK_SNAPPY_MS) - scroll;
+        round_fill(block_x - 2, TOPBAR_Y - 2, block_x + width + 2, TOPBAR_Y + TOPBAR_HEIGHT + 2, theme_get()->accent);
+        if (selected_x >= 0) {
+            tab_label(selected_x, width, STL_WHITE, tabs_label(selected));
+        }
+    }
+
+    if (scrolls) {
+        rdpq_set_scissor(0, 0, display_get_width(), display_get_height());
+        if (first > 0) {
+            bar_arrow(TABS_X, "◀");
+        }
+        if (first < most) {
+            bar_arrow(x1 + BAR_ARROW_GAP, "▶");
+        }
     }
 
     /* The clock only shows when the cart's clock is working. */

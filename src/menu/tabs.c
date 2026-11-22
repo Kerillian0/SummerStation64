@@ -16,7 +16,7 @@ static bool retro_wanted = false;
 static bool hacks_wanted = false;
 static games_tab_t pinned_wanted = GAMES_TAB_COUNT;
 
-static const option_t places[] = { OPTION_TAB1, OPTION_TAB2, OPTION_TAB3, OPTION_TAB4 };
+static const option_t places[TABS_PLACES] = { OPTION_TAB1, OPTION_TAB2, OPTION_TAB3, OPTION_TAB4, OPTION_TAB5, OPTION_TAB6, OPTION_TAB7, OPTION_TAB8 };
 
 const char *tabs_choice_name (int choice) {
     switch (choice) {
@@ -41,7 +41,7 @@ const char *tabs_choice_name (int choice) {
 }
 
 int tabs_pinned_collection (games_tab_t tab) {
-    if (tab < GAMES_TAB_PINNED1 || tab > GAMES_TAB_PINNED4) {
+    if (tab < GAMES_TAB_PINNED1 || tab > GAMES_TAB_PINNED8) {
         return -1;
     }
     int id = options_get(places[tab - GAMES_TAB_PINNED1]) - TAB_CHOICE_COLLECTION;
@@ -58,7 +58,7 @@ const char *tabs_label (games_tab_t tab) {
 }
 
 void tabs_collection_deleted (int id) {
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < TABS_PLACES; i++) {
         int value = options_get(places[i]);
         int other = value - TAB_CHOICE_COLLECTION;
         if (other == id) {
@@ -72,10 +72,10 @@ void tabs_collection_deleted (int id) {
 
 int tabs_list (games_tab_t *out) {
     bool seen[GAMES_TAB_COUNT] = { false };
-    int seen_values[4];
+    int seen_values[TABS_PLACES];
     int count = 0;
 
-    for (int i = 0; i < (int) (sizeof(places) / sizeof(places[0])); i++) {
+    for (int i = 0; i < TABS_PLACES; i++) {
         games_tab_t tab;
         int value = options_get(places[i]);
         seen_values[i] = value;

@@ -48,7 +48,7 @@ a Prefer spelling with a dial? Settings > Console > Controls > Name Entry.
 
 topic Finding games
 q How do the tabs work?
-a L and R step through up to four tabs. Games, Favorites and Folders come first. Settings > Games > Tabs can add Recent, Homebrew, Hacks, Retro, Collections, or any one of your collections.
+a L and R step through up to eight tabs; four show at a time and the bar slides along. Games, Favorites and Folders come first. Settings > Games > Tabs can add Recent, Homebrew, Hacks, Retro, Collections, or any one of your collections.
 a Each tab goes back to the game you left it on.
 q How do I find one game quickly?
 a Hold Z on the covers for the letter dial. Point the stick at a letter and the covers jump there; A adds the letter, so you can spell more, and B takes one away. Let go of Z to stay.

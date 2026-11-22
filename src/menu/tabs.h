@@ -2,7 +2,7 @@
  * @file tabs.h
  * @brief Which tabs are on the tab bar, and in what order.
  *
- * The bar has up to four places. The player picks what goes in each
+ * The bar has up to eight places (four show at a time; the bar scrolls). The player picks what goes in each
  * (Settings > Tabs): Games, Favorites, Folders, Recent, Homebrew,
  * Collections, Retro, Hacks, one collection of its own, or nothing. Out of the box it is Games, Favorites, Folders. L and R step
  * through them.
@@ -20,7 +20,10 @@
 #include "games_ui.h"
 #include "menu_state.h"
 
-/** What a place on the bar can hold (options `tab1` to `tab4` in options.ini). */
+/** How many places the bar has. */
+#define TABS_PLACES     (8)
+
+/** What a place on the bar can hold (options `tab1` to `tab8` in options.ini). */
 typedef enum {
     TAB_CHOICE_NONE,
     TAB_CHOICE_GAMES,
@@ -99,7 +102,7 @@ bool tabs_browser_shows_retro (void);
 /** Whether the browser should show the Games list on its Hacks shelf. */
 bool tabs_browser_shows_hacks (void);
 
-/** The collection tab the browser should show (GAMES_TAB_PINNED1..4), or GAMES_TAB_COUNT for none. */
+/** The collection tab the browser should show (GAMES_TAB_PINNED1..8), or GAMES_TAB_COUNT for none. */
 games_tab_t tabs_browser_pinned (void);
 
 #endif /* TABS_H__ */

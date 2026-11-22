@@ -63,6 +63,10 @@ typedef enum {
     OPTION_ATTRACT_DIRECTION, /**< an attract_direction_t value */
     OPTION_SCREEN_DIM,  /**< a screen_dim_wait_t value: how long the menu is left alone before the screen dims (screen_dim.h) */
     OPTION_RA_TEST,     /**< hidden, for the RetroAchievements experiment: 1 copies Super Mario 64 (USA)'s memory to the cart while it runs (boot/ra_hook.h) */
+    OPTION_TAB5,        /**< fifth to eighth places on the tab bar (OPTION_TAB1 ...) */
+    OPTION_TAB6,
+    OPTION_TAB7,
+    OPTION_TAB8,
     OPTION_COUNT
 } option_t;
 

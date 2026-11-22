@@ -87,7 +87,7 @@ static int collection_open = -1;            // ... the collection shown, by its 
 static bool hacks_tab = false;              // the Games list on its Hacks shelf
 static games_tab_t pinned_tab = GAMES_TAB_COUNT;    // a collection's own tab (tabs.h), showing collection_open; GAMES_TAB_COUNT for none
 static path_t *folders_directory = NULL;    // where the Folders tab was left
-static char left_on[10][256];   // the entry the Games [0], Folders [1], Homebrew [2], Collections [3], Retro [4], Hacks [5] and collection tabs [6-9] were left on, to go back to it (while the console is on)
+static char left_on[14][256];   // the entry the Games [0], Folders [1], Homebrew [2], Collections [3], Retro [4], Hacks [5] and collection tabs [6-13] were left on, to go back to it (while the console is on)
 
 static int tab_slot (void) {
     if (!folders_tab && pinned_tab != GAMES_TAB_COUNT) {
