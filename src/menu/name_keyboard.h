@@ -48,4 +48,7 @@ void name_keyboard_draw (const char *prompt, const char *text, int cursor, int l
 /** Let go of what it keeps while open. */
 void name_keyboard_end (void);
 
+/** After name_keyboard_begin(): keeping an empty name is allowed (it gives a thing back its usual name). */
+void name_keyboard_allow_empty (void);
+
 #endif /* NAME_KEYBOARD_H__ */

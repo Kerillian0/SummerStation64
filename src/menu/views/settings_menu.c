@@ -52,6 +52,7 @@
 #include "../video_preview.h"
 #include "../volume.h"
 #include "../settings_search.h"
+#include "../tab_names.h"
 #include "../ui_components/constants.h"
 #include "settings_menu.h"
 #include "views.h"
@@ -181,6 +182,7 @@ static void fairy_named (menu_t *menu, const char *name) {
 static void rename_fairy (menu_t *menu) {
     (void) menu;
     letter_wheel_name_begin("Fairy's name", assistant_name(), fairy_named);
+    letter_wheel_name_allow_empty();    /* empty: its usual name */
 }
 
 static const char *fairy_name_info (menu_t *menu) {
@@ -682,23 +684,85 @@ static const item_t profile_items[] = {
     ACTION("Delete Profile", delete_profile, "Take the profile that is playing off the list. Its saves stay on the SD card (in each saves folder, under its name), so nothing is lost. The first profile can't be deleted."),
 };
 
+/* Settings > Games > Tabs: a row per place on the bar, each opening a page
+   of its own with what the tab shows and its name. One page serves all
+   eight: its Shows row is pointed at the place when it opens. */
+static const option_t tab_place_options[TABS_PLACES] = {
+    OPTION_TAB1, OPTION_TAB2, OPTION_TAB3, OPTION_TAB4, OPTION_TAB5, OPTION_TAB6, OPTION_TAB7, OPTION_TAB8,
+};
+static const char *const tab_place_titles[TABS_PLACES] = {
+    "First Tab", "Second Tab", "Third Tab", "Fourth Tab", "Fifth Tab", "Sixth Tab", "Seventh Tab", "Eighth Tab",
+};
+static int tab_place = 0;       /* the place whose page is open */
+
+static void tab_named (menu_t *menu, const char *name) {
+    (void) menu;
+    if (name) {
+        /* The usual name kept as it was is no name of its own. */
+        bool usual = (strcmp(name, tabs_choice_name(options_get(tab_place_options[tab_place]))) == 0);
+        tab_names_set(tab_place, usual ? "" : name);
+        sound_play_effect(SFX_SETTING);
+    }
+}
+
+static void rename_tab (menu_t *menu) {
+    (void) menu;
+    const char *own = tab_names_get(tab_place);
+    letter_wheel_short_name_begin("Tab's name", own[0] ? own : tabs_choice_name(options_get(tab_place_options[tab_place])),
+                                  TAB_NAME_MAX, tab_named);
+    letter_wheel_name_allow_empty();    /* empty: its usual name */
+}
+
+static const char *tab_name_info (menu_t *menu) {
+    (void) menu;
+    const char *own = tab_names_get(tab_place);
+    return own[0] ? own : "Usual";
+}
+
+static item_t tab_place_items[] = {
+    CHOICES("Shows", OPTION_TAB1, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
+        "What this tab holds: Games, Favorites, Folders, Recent (the games you played last), Homebrew, Collections (series and multiplayer), Retro (NES, SNES, Game Boy), Hacks, or any one collection, after Hacks. None leaves it out."),
+    ACTION_INFO("Name", rename_tab, tab_name_info,
+        "Give this tab a name of your own, typed with the keyboard (up to 16 letters; about 10 fit on the tab). The name stays with this place on the bar. Erase it all and keep the empty name to give the tab back its usual one."),
+};
+static category_t tab_place_page = { "First Tab", tab_place_items, COUNT(tab_place_items) };
+
+static void open_tab_place (int place) {
+    tab_place = place;
+    tab_place_items[0].option = tab_place_options[place];
+    tab_place_page.label = tab_place_titles[place];
+    open_sub_page(&tab_place_page);
+}
+
+#define TAB_PLACE_FUNCS(n) \
+    static void open_tab_##n (menu_t *menu) { (void) menu; open_tab_place(n - 1); } \
+    static const char *tab_info_##n (menu_t *menu) { (void) menu; return tabs_place_name(n - 1); }
+TAB_PLACE_FUNCS(1)
+TAB_PLACE_FUNCS(2)
+TAB_PLACE_FUNCS(3)
+TAB_PLACE_FUNCS(4)
+TAB_PLACE_FUNCS(5)
+TAB_PLACE_FUNCS(6)
+TAB_PLACE_FUNCS(7)
+TAB_PLACE_FUNCS(8)
+
 static const item_t tab_items[] = {
-    CHOICES("First Tab", OPTION_TAB1, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
-        "What the first place on the tab bar holds. The menu opens on this tab. L and R step through the tabs."),
-    CHOICES("Second Tab", OPTION_TAB2, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
-        "What the second place on the tab bar holds. None leaves it out."),
-    CHOICES("Third Tab", OPTION_TAB3, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
-        "What the third place on the tab bar holds. None leaves it out."),
-    CHOICES("Fourth Tab", OPTION_TAB4, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
-        "What the fourth place on the tab bar holds: Recent (the games you played last), Homebrew, Collections (series and multiplayer), Retro (NES, SNES, Game Boy), Hacks, or any one collection, after Hacks, for a tab of its own."),
-    CHOICES("Fifth Tab", OPTION_TAB5, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
-        "What the fifth place on the tab bar holds. Four tabs show at a time: with more, the bar slides along as L and R move, and a ◀ or ▶ shows more tabs that way."),
-    CHOICES("Sixth Tab", OPTION_TAB6, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
-        "What the sixth place on the tab bar holds. None leaves it out."),
-    CHOICES("Seventh Tab", OPTION_TAB7, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
-        "What the seventh place on the tab bar holds. None leaves it out."),
-    CHOICES("Eighth Tab", OPTION_TAB8, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
-        "What the eighth place on the tab bar holds. None leaves it out."),
+    ACTION_INFO("First Tab", open_tab_1, tab_info_1,
+        "The first place on the tab bar. The menu opens on this tab; L and R step through the tabs. A opens it: what it shows, and a name of your own."),
+    ACTION_INFO("Second Tab", open_tab_2, tab_info_2,
+        "The second place on the tab bar. A opens it: what it shows (None leaves it out), and a name of your own."),
+    ACTION_INFO("Third Tab", open_tab_3, tab_info_3,
+        "The third place on the tab bar. A opens it: what it shows (None leaves it out), and a name of your own."),
+    ACTION_INFO("Fourth Tab", open_tab_4, tab_info_4,
+        "The fourth place on the tab bar: Recent, Homebrew, Collections, Retro, Hacks or any one collection can go here. A opens it: what it shows, and a name of your own."),
+    ACTION_INFO("Fifth Tab", open_tab_5, tab_info_5,
+        "The fifth place on the tab bar. Four tabs show at a time: with more, the bar slides along as L and R move, and a ◀ or ▶ shows more tabs that way. A opens it."),
+    ACTION_INFO("Sixth Tab", open_tab_6, tab_info_6,
+        "The sixth place on the tab bar. A opens it: what it shows (None leaves it out), and a name of your own."),
+    ACTION_INFO("Seventh Tab", open_tab_7, tab_info_7,
+        "The seventh place on the tab bar. A opens it: what it shows (None leaves it out), and a name of your own."),
+    ACTION_INFO("Eighth Tab", open_tab_8, tab_info_8,
+        "The eighth place on the tab bar. A opens it: what it shows (None leaves it out), and a name of your own."),
 };
 
 static const item_t file_items[] = {

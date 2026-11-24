@@ -150,7 +150,10 @@ static void labels_make (void) {
 
 static sprite_t *corner = NULL;     /* rom:/corner.sprite: a 16x16 disc, for the keys' round corners */
 
+static bool empty_ok = false;       /* name_keyboard_allow_empty(): an empty name may be kept */
+
 void name_keyboard_begin (const char *text) {
+    empty_ok = false;
     erase_next = 0;
     row = 1;
     col = 0;
@@ -241,8 +244,12 @@ static void next_shift (void) {
     sound_play_effect(SFX_CURSOR);
 }
 
+void name_keyboard_allow_empty (void) {
+    empty_ok = true;
+}
+
 static name_keyboard_result_t finish (const char *text) {
-    if (!text[0]) {
+    if (!text[0] && !empty_ok) {
         sound_play_effect(SFX_ERROR);   /* nothing typed yet */
         return NAME_KEYBOARD_TYPING;
     }

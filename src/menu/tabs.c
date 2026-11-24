@@ -7,6 +7,7 @@
 #include "menu_features.h"
 #include "menu_options.h"
 #include "collections.h"
+#include "tab_names.h"
 #include "tabs.h"
 
 static bool folders_wanted = false;
@@ -48,7 +49,19 @@ int tabs_pinned_collection (games_tab_t tab) {
     return (id >= 0 && id < COLLECTIONS_IDS) ? id : -1;
 }
 
+static games_tab_t tab_of (int place);
+
 const char *tabs_label (games_tab_t tab) {
+    /* A name the player gave the place this tab is in. */
+    for (int i = 0; i < TABS_PLACES; i++) {
+        if (tab_of(i) == tab) {
+            const char *own = tab_names_get(i);
+            if (own[0]) {
+                return own;
+            }
+            break;
+        }
+    }
     static const char *const labels[GAMES_TAB_PINNED1] = { "Games", "Recent", "Favorites", "Folders", "Homebrew", "Collections", "Retro", "Hacks" };
     if (tab >= 0 && tab < GAMES_TAB_PINNED1) {
         return labels[tab];
@@ -70,41 +83,40 @@ void tabs_collection_deleted (int id) {
     options_flush();
 }
 
+/* The tab a place on the bar holds, or GAMES_TAB_COUNT for none (None, a
+   collection that is gone, or a collection already in an earlier place). */
+static games_tab_t tab_of (int place) {
+    int value = options_get(places[place]);
+    switch (value) {
+        case TAB_CHOICE_GAMES: return GAMES_TAB_GAMES;
+        case TAB_CHOICE_FAVORITES: return GAMES_TAB_FAVORITES;
+        case TAB_CHOICE_FOLDERS: return GAMES_TAB_FOLDERS;
+        case TAB_CHOICE_RECENT: return GAMES_TAB_RECENT;
+        case TAB_CHOICE_HOMEBREW: return GAMES_TAB_HOMEBREW;
+        case TAB_CHOICE_COLLECTIONS: return GAMES_TAB_COLLECTIONS;
+        case TAB_CHOICE_RETRO: return GAMES_TAB_RETRO;
+        case TAB_CHOICE_HACKS: return GAMES_TAB_HACKS;
+        default: break;
+    }
+    int id = value - TAB_CHOICE_COLLECTION;
+    if (id < 0 || id >= COLLECTIONS_IDS || !collections_name(id)[0]) {
+        return GAMES_TAB_COUNT;
+    }
+    for (int j = 0; j < place; j++) {
+        if (options_get(places[j]) == value) {
+            return GAMES_TAB_COUNT;     /* the same collection in two places counts once */
+        }
+    }
+    return (games_tab_t) (GAMES_TAB_PINNED1 + place);
+}
+
 int tabs_list (games_tab_t *out) {
-    bool seen[GAMES_TAB_COUNT] = { false };
-    int seen_values[TABS_PLACES];
+    bool seen[GAMES_TAB_COUNT + 1] = { false };
     int count = 0;
 
     for (int i = 0; i < TABS_PLACES; i++) {
-        games_tab_t tab;
-        int value = options_get(places[i]);
-        seen_values[i] = value;
-        switch (value) {
-            case TAB_CHOICE_GAMES: tab = GAMES_TAB_GAMES; break;
-            case TAB_CHOICE_FAVORITES: tab = GAMES_TAB_FAVORITES; break;
-            case TAB_CHOICE_FOLDERS: tab = GAMES_TAB_FOLDERS; break;
-            case TAB_CHOICE_RECENT: tab = GAMES_TAB_RECENT; break;
-            case TAB_CHOICE_HOMEBREW: tab = GAMES_TAB_HOMEBREW; break;
-            case TAB_CHOICE_COLLECTIONS: tab = GAMES_TAB_COLLECTIONS; break;
-            case TAB_CHOICE_RETRO: tab = GAMES_TAB_RETRO; break;
-            case TAB_CHOICE_HACKS: tab = GAMES_TAB_HACKS; break;
-            default: {
-                int id = value - TAB_CHOICE_COLLECTION;
-                if (id < 0 || id >= COLLECTIONS_IDS || !collections_name(id)[0]) {
-                    continue;
-                }
-                bool twice = false;     /* the same collection in two places counts once */
-                for (int j = 0; j < i; j++) {
-                    twice |= (seen_values[j] == value);
-                }
-                if (twice) {
-                    continue;
-                }
-                tab = (games_tab_t) (GAMES_TAB_PINNED1 + i);
-                break;
-            }
-        }
-        if (!seen[tab]) {
+        games_tab_t tab = tab_of(i);
+        if (tab != GAMES_TAB_COUNT && !seen[tab]) {
             seen[tab] = true;
             out[count++] = tab;
         }
@@ -118,6 +130,18 @@ int tabs_list (games_tab_t *out) {
     }
 
     return count;
+}
+
+const char *tabs_place_name (int place) {
+    if (place < 0 || place >= TABS_PLACES) {
+        return "";
+    }
+    const char *own = tab_names_get(place);
+    if (own[0] && tab_of(place) != GAMES_TAB_COUNT) {
+        return own;
+    }
+    const char *usual = tabs_choice_name(options_get(places[place]));
+    return usual[0] ? usual : "None";
 }
 
 games_tab_t tabs_first (void) {

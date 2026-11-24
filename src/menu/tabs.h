@@ -45,7 +45,7 @@ const char *tabs_choice_name (int choice);
 /** The collection a GAMES_TAB_PINNED tab shows (its number), or -1. */
 int tabs_pinned_collection (games_tab_t tab);
 
-/** A tab's name on the bar. */
+/** A tab's name on the bar: the name the player gave its place (tab_names.h), else its usual one. */
 const char *tabs_label (games_tab_t tab);
 
 /** One of the player's own collections was deleted: tabs that showed it go, later ones keep theirs. */
@@ -58,6 +58,9 @@ void tabs_collection_deleted (int id);
  * @return How many there are.
  */
 int tabs_list (games_tab_t *out);
+
+/** What a place (0 to 7) shows, as Settings names it: its own name if it has one, else the usual one. */
+const char *tabs_place_name (int place);
 
 /** The tab the menu opens on. */
 games_tab_t tabs_first (void);

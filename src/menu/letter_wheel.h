@@ -52,8 +52,14 @@ void letter_wheel_close (void);
  */
 void letter_wheel_name_begin (const char *prompt, const char *start, void (*done) (menu_t *menu, const char *name));
 
+/** The same for a shorter name (a tab's): up to `limit` characters (at most 27). */
+void letter_wheel_short_name_begin (const char *prompt, const char *start, int limit, void (*done) (menu_t *menu, const char *name));
+
 /** The same for a file name (file_rename.h): up to 100 characters. */
 void letter_wheel_file_name_begin (const char *prompt, const char *start, void (*done) (menu_t *menu, const char *name));
+
+/** Right after a *_name_begin(): START may keep an empty name (for names where empty means "the usual one"). */
+void letter_wheel_name_allow_empty (void);
 
 /** True while the keyboard covers the screen (naming with option `name_entry` on Keyboard): the screen under it can leave its content out. */
 bool letter_wheel_keyboard_showing (void);

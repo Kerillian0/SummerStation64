@@ -343,6 +343,7 @@ static void disc_draw (int x, int y, int radius, color_t color) {
 }
 
 static bool keyboard = false;       /* naming with the keyboard (option `name_entry`), not the dial */
+static bool name_empty_ok = false;  /* letter_wheel_name_allow_empty() */
 
 static void name_begin (const char *prompt, const char *start, int limit, void (*done) (menu_t *menu, const char *name)) {
     name_limit = limit;
@@ -350,6 +351,7 @@ static void name_begin (const char *prompt, const char *start, int limit, void (
     cursor = (int) strlen(name_text);
     name_prompt = prompt ? prompt : "";
     name_done = done;
+    name_empty_ok = false;
     page = PAGE_UPPER;
     pointed = 1;
     naming = true;
@@ -379,8 +381,19 @@ void letter_wheel_name_begin (const char *prompt, const char *start, void (*done
     name_begin(prompt, start, NAME_MAX, done);
 }
 
+void letter_wheel_short_name_begin (const char *prompt, const char *start, int limit, void (*done) (menu_t *menu, const char *name)) {
+    name_begin(prompt, start, (limit > 0 && limit < NAME_MAX) ? limit : NAME_MAX, done);
+}
+
 void letter_wheel_file_name_begin (const char *prompt, const char *start, void (*done) (menu_t *menu, const char *name)) {
     name_begin(prompt, start, FILE_NAME_MAX, done);
+}
+
+void letter_wheel_name_allow_empty (void) {
+    name_empty_ok = true;
+    if (keyboard) {
+        name_keyboard_allow_empty();
+    }
 }
 
 bool letter_wheel_keyboard_showing (void) {
@@ -446,7 +459,7 @@ void letter_wheel_name_process (menu_t *menu) {
             naming = false;     /* the cursor at the start: give up */
             if (name_done) name_done(menu, NULL);
         }
-    } else if (menu->actions.settings && n > 0) {     /* START as the menu sees it: one press, also when a tap acts on release (screenshot.h) */
+    } else if (menu->actions.settings && (n > 0 || name_empty_ok)) {     /* START as the menu sees it: one press, also when a tap acts on release (screenshot.h) */
         name_finish(menu);
     }
 }
