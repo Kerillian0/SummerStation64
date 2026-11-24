@@ -699,7 +699,7 @@ static void tab_named (menu_t *menu, const char *name) {
     (void) menu;
     if (name) {
         /* The usual name kept as it was is no name of its own. */
-        bool usual = (strcmp(name, tabs_choice_name(options_get(tab_place_options[tab_place]))) == 0);
+        bool usual = (strcmp(name, tabs_place_usual_name(tab_place)) == 0);
         tab_names_set(tab_place, usual ? "" : name);
         sound_play_effect(SFX_SETTING);
     }
@@ -708,7 +708,7 @@ static void tab_named (menu_t *menu, const char *name) {
 static void rename_tab (menu_t *menu) {
     (void) menu;
     const char *own = tab_names_get(tab_place);
-    letter_wheel_short_name_begin("Tab's name", own[0] ? own : tabs_choice_name(options_get(tab_place_options[tab_place])),
+    letter_wheel_short_name_begin("Tab's name", own[0] ? own : tabs_place_usual_name(tab_place),
                                   TAB_NAME_MAX, tab_named);
     letter_wheel_name_allow_empty();    /* empty: its usual name */
 }
@@ -719,9 +719,14 @@ static const char *tab_name_info (menu_t *menu) {
     return own[0] ? own : "Usual";
 }
 
+/* The Shows list names the place's folder, if it has one (a folder tab made from the Folders tab). */
+static const char *tab_shows_name (int choice) {
+    return tabs_place_choice_name(tab_place, choice);
+}
+
 static item_t tab_place_items[] = {
-    CHOICES("Shows", OPTION_TAB1, TAB_CHOICE_VALUES, tabs_choice_name, NULL,
-        "What this tab holds: Games, Favorites, Folders, Recent (the games you played last), Homebrew, Collections (series and multiplayer), Retro (NES, SNES, Game Boy), Hacks, or any one collection, after Hacks. None leaves it out."),
+    CHOICES("Shows", OPTION_TAB1, TAB_CHOICE_VALUES, tab_shows_name, reload_browser,
+        "What this tab holds: Games, Favorites, Folders, Recent, Homebrew, Collections, Retro, Hacks, any one collection, or a folder of its own (on the Folders tab, Z on a folder: Make ... a tab). None leaves it out."),
     ACTION_INFO("Name", rename_tab, tab_name_info,
         "Give this tab a name of your own, typed with the keyboard (up to 16 letters; about 10 fit on the tab). The name stays with this place on the bar. Erase it all and keep the empty name to give the tab back its usual one."),
 };

@@ -17,6 +17,7 @@
 #define NAMES_HEADER    "tabnames 1"
 
 static char names[TABS_PLACES][TAB_NAME_MAX + 1];
+static char folders[TABS_PLACES][TAB_FOLDER_MAX + 1];
 static bool loaded = false;
 static int loaded_for = 0;      /* profiles_generation() when loaded */
 
@@ -27,6 +28,7 @@ static void load (void) {
     loaded = true;
     loaded_for = profiles_generation();     /* another player: forget the last one's */
     memset(names, 0, sizeof(names));
+    memset(folders, 0, sizeof(folders));
 
     /* If power was cut between remove and rename, the temp file is the good copy. */
     FILE *f = fopen(NAMES_PATH, "r");
@@ -36,7 +38,7 @@ static void load (void) {
     if (!f) {
         return;
     }
-    char line[64];
+    char line[TAB_FOLDER_MAX + 8];
     bool header = false;
     while (fgets(line, sizeof(line), f)) {
         line[strcspn(line, "\r\n")] = '\0';
@@ -44,6 +46,13 @@ static void load (void) {
             header = (strcmp(line, NAMES_HEADER) == 0);
             if (!header) {
                 break;      /* not a file the menu wrote */
+            }
+            continue;
+        }
+        if (line[0] == 'f') {
+            int place = line[1] - '1';
+            if (place >= 0 && place < TABS_PLACES && line[2] == ' ' && line[3] == '/') {
+                snprintf(folders[place], sizeof(folders[0]), "%s", line + 3);
             }
             continue;
         }
@@ -66,6 +75,9 @@ static void save (void) {
     for (int i = 0; i < TABS_PLACES; i++) {
         if (names[i][0]) {
             fprintf(f, "%d %s\n", i + 1, names[i]);
+        }
+        if (folders[i][0]) {
+            fprintf(f, "f%d %s\n", i + 1, folders[i]);
         }
     }
     bool ok = (fclose(f) == 0);
@@ -102,5 +114,26 @@ void tab_names_set (int place, const char *name) {
         return;
     }
     snprintf(names[place], sizeof(names[0]), "%s", start);
+    save();
+}
+
+const char *tab_names_folder (int place) {
+    if (place < 0 || place >= TABS_PLACES) {
+        return "";
+    }
+    load();
+    return folders[place];
+}
+
+void tab_names_set_folder (int place, const char *folder) {
+    if (place < 0 || place >= TABS_PLACES) {
+        return;
+    }
+    load();
+    const char *kept = (folder && folder[0] == '/') ? folder : "";
+    if (strcmp(folders[place], kept) == 0) {
+        return;
+    }
+    snprintf(folders[place], sizeof(folders[0]), "%s", kept);
     save();
 }

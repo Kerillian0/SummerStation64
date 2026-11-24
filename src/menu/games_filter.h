@@ -106,6 +106,15 @@ void games_filter_shelf (menu_t *menu, games_shelf_t which, bool list_loaded);
  */
 void games_filter_collection (menu_t *menu, int which, bool list_loaded);
 
+/**
+ * A folder tab (tabs.h): show every game in one folder ("/Utilities", and
+ * the folders right inside it), or NULL to go back to what showed before.
+ */
+void games_filter_folder (menu_t *menu, const char *folder, bool list_loaded);
+
+/** Before games_filter_after_load(): entries read from this one on (in read order) came from folder tabs that aren't Games folders, and show only there. */
+void games_filter_tab_only_from (int index);
+
 /** The player changed a collection of their own: work the collections out again (shows at once in an open one). */
 void games_filter_collections_changed (menu_t *menu);
 

@@ -4,7 +4,8 @@
  *
  * The bar has up to eight places (four show at a time; the bar scrolls). The player picks what goes in each
  * (Settings > Tabs): Games, Favorites, Folders, Recent, Homebrew,
- * Collections, Retro, Hacks, one collection of its own, or nothing. Out of the box it is Games, Favorites, Folders. L and R step
+ * Collections, Retro, Hacks, one collection of its own, a folder of its
+ * own (made from the Folders tab: Z, "Make ... a tab"), or nothing. Out of the box it is Games, Favorites, Folders. L and R step
  * through them.
  *
  * Games, Homebrew, Collections and Folders are the same screen (the file
@@ -36,11 +37,36 @@ typedef enum {
     TAB_CHOICE_HACKS,
     TAB_CHOICE_COUNT,
     TAB_CHOICE_COLLECTION = 16,     /* 16 + a collection's number (collections.h): that collection as a tab */
-    TAB_CHOICE_VALUES = TAB_CHOICE_COLLECTION + 64
+    TAB_CHOICE_FOLDER = TAB_CHOICE_COLLECTION + 64,     /* the folder kept for this place (tab_names.h) as a tab */
+    TAB_CHOICE_VALUES
 } tab_choice_t;
 
 /** Name of a choice, for the settings screen ("" for a value not in use: Settings skips it). */
 const char *tabs_choice_name (int choice);
+
+/** The same for one place's Shows list in Settings: a folder tab named by its folder, only where the place has one. */
+const char *tabs_place_choice_name (int place, int choice);
+
+/** The name a place's tab has when it has none of its own ("Retro", a collection's, a folder's). */
+const char *tabs_place_usual_name (int place);
+
+/** The folder a GAMES_TAB_PINNED tab shows ("/Utilities"), or NULL when it isn't a folder tab. */
+const char *tabs_pinned_folder (games_tab_t tab);
+
+/** The folders on the bar as folder tabs ("/Utilities"), each once. @param out Room for TABS_PLACES. */
+int tabs_folders (const char **out);
+
+/** The place showing this folder ("sd:/Utilities" or "/Utilities") as a tab, or -1. */
+int tabs_folder_place (const char *folder);
+
+/**
+ * Make a folder a tab, in the first place set to None. Returns the place,
+ * or -1 when every place is in use. The folder from the top of the card.
+ */
+int tabs_add_folder (const char *folder);
+
+/** Take a folder's tab off the bar (its place goes back to None, its name with it). */
+void tabs_remove_folder (const char *folder);
 
 /** The collection a GAMES_TAB_PINNED tab shows (its number), or -1. */
 int tabs_pinned_collection (games_tab_t tab);

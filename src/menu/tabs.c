@@ -4,6 +4,8 @@
  */
 
 #include <libdragon.h>
+#include <string.h>
+#include <strings.h>
 #include "menu_features.h"
 #include "menu_options.h"
 #include "collections.h"
@@ -51,6 +53,99 @@ int tabs_pinned_collection (games_tab_t tab) {
 
 static games_tab_t tab_of (int place);
 
+/* "/Games/Utilities" -> "Utilities". */
+static const char *folder_last (const char *folder) {
+    const char *slash = strrchr(folder, '/');
+    return (slash && slash[1]) ? slash + 1 : folder;
+}
+
+/* A folder as kept here: from the top of the card, no "sd:", no slash at the end. */
+static void tidy (char *out, size_t size, const char *folder) {
+    const char *from = strstr(folder, ":/");
+    from = from ? from + 1 : folder;
+    snprintf(out, size, "%s", from);
+    size_t length = strlen(out);
+    while (length > 1 && out[length - 1] == '/') {
+        out[--length] = '\0';
+    }
+}
+
+const char *tabs_place_choice_name (int place, int choice) {
+    if (choice == TAB_CHOICE_FOLDER) {
+        const char *folder = tab_names_folder(place);
+        return folder[0] ? folder_last(folder) : "";
+    }
+    return tabs_choice_name(choice);
+}
+
+const char *tabs_place_usual_name (int place) {
+    if (place < 0 || place >= TABS_PLACES) {
+        return "";
+    }
+    return tabs_place_choice_name(place, options_get(places[place]));
+}
+
+const char *tabs_pinned_folder (games_tab_t tab) {
+    if (tab < GAMES_TAB_PINNED1 || tab > GAMES_TAB_PINNED8) {
+        return NULL;
+    }
+    int place = tab - GAMES_TAB_PINNED1;
+    if (options_get(places[place]) != TAB_CHOICE_FOLDER) {
+        return NULL;
+    }
+    const char *folder = tab_names_folder(place);
+    return folder[0] ? folder : NULL;
+}
+
+int tabs_folders (const char **out) {
+    int count = 0;
+    for (int i = 0; i < TABS_PLACES; i++) {
+        if (tab_of(i) != GAMES_TAB_COUNT && tabs_pinned_folder((games_tab_t) (GAMES_TAB_PINNED1 + i))) {
+            out[count++] = tab_names_folder(i);
+        }
+    }
+    return count;
+}
+
+int tabs_folder_place (const char *folder) {
+    char tidied[TAB_FOLDER_MAX + 1];
+    tidy(tidied, sizeof(tidied), folder);
+    for (int i = 0; i < TABS_PLACES; i++) {
+        if (options_get(places[i]) == TAB_CHOICE_FOLDER && strcasecmp(tab_names_folder(i), tidied) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+int tabs_add_folder (const char *folder) {
+    int place = tabs_folder_place(folder);
+    if (place >= 0) {
+        return place;
+    }
+    char tidied[TAB_FOLDER_MAX + 1];
+    tidy(tidied, sizeof(tidied), folder);
+    for (int i = 0; i < TABS_PLACES; i++) {
+        if (options_get(places[i]) == TAB_CHOICE_NONE) {
+            tab_names_set_folder(i, tidied);
+            options_change(places[i], TAB_CHOICE_FOLDER);
+            options_flush();
+            return i;
+        }
+    }
+    return -1;
+}
+
+void tabs_remove_folder (const char *folder) {
+    int place;
+    while ((place = tabs_folder_place(folder)) >= 0) {
+        options_change(places[place], TAB_CHOICE_NONE);
+        tab_names_set_folder(place, NULL);
+        tab_names_set(place, NULL);
+    }
+    options_flush();
+}
+
 const char *tabs_label (games_tab_t tab) {
     /* A name the player gave the place this tab is in. */
     for (int i = 0; i < TABS_PLACES; i++) {
@@ -66,6 +161,10 @@ const char *tabs_label (games_tab_t tab) {
     if (tab >= 0 && tab < GAMES_TAB_PINNED1) {
         return labels[tab];
     }
+    const char *folder = tabs_pinned_folder(tab);
+    if (folder) {
+        return folder_last(folder);
+    }
     int id = tabs_pinned_collection(tab);
     return (id >= 0) ? collections_name(id) : "";
 }
@@ -74,6 +173,9 @@ void tabs_collection_deleted (int id) {
     for (int i = 0; i < TABS_PLACES; i++) {
         int value = options_get(places[i]);
         int other = value - TAB_CHOICE_COLLECTION;
+        if (value == TAB_CHOICE_FOLDER) {
+            continue;
+        }
         if (other == id) {
             options_change(places[i], TAB_CHOICE_NONE);
         } else if (other > id && collections_mine(other - 1) >= 0) {
@@ -97,6 +199,18 @@ static games_tab_t tab_of (int place) {
         case TAB_CHOICE_RETRO: return GAMES_TAB_RETRO;
         case TAB_CHOICE_HACKS: return GAMES_TAB_HACKS;
         default: break;
+    }
+    if (value == TAB_CHOICE_FOLDER) {
+        const char *folder = tab_names_folder(place);
+        if (!folder[0]) {
+            return GAMES_TAB_COUNT;
+        }
+        for (int j = 0; j < place; j++) {
+            if (options_get(places[j]) == TAB_CHOICE_FOLDER && strcasecmp(tab_names_folder(j), folder) == 0) {
+                return GAMES_TAB_COUNT;     /* the same folder in two places counts once */
+            }
+        }
+        return (games_tab_t) (GAMES_TAB_PINNED1 + place);
     }
     int id = value - TAB_CHOICE_COLLECTION;
     if (id < 0 || id >= COLLECTIONS_IDS || !collections_name(id)[0]) {
@@ -140,7 +254,7 @@ const char *tabs_place_name (int place) {
     if (own[0] && tab_of(place) != GAMES_TAB_COUNT) {
         return own;
     }
-    const char *usual = tabs_choice_name(options_get(places[place]));
+    const char *usual = tabs_place_usual_name(place);
     return usual[0] ? usual : "None";
 }
 
@@ -220,7 +334,7 @@ void tabs_open (menu_t *menu, games_tab_t tab) {
     collections_wanted = (tab == GAMES_TAB_COLLECTIONS);
     retro_wanted = (tab == GAMES_TAB_RETRO);
     hacks_wanted = (tab == GAMES_TAB_HACKS);
-    pinned_wanted = (tabs_pinned_collection(tab) >= 0) ? tab : GAMES_TAB_COUNT;
+    pinned_wanted = (tabs_pinned_collection(tab) >= 0 || tabs_pinned_folder(tab)) ? tab : GAMES_TAB_COUNT;
     switch (tab) {
         case GAMES_TAB_RECENT:
             menu->next_mode = MENU_MODE_HISTORY;

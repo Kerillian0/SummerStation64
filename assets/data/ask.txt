@@ -50,6 +50,7 @@ topic Finding games
 q How do the tabs work?
 a L and R step through up to eight tabs; four show at a time and the bar slides along. Games, Favorites and Folders come first. Settings > Games > Tabs can add Recent, Homebrew, Hacks, Retro, Collections, or any one of your collections.
 a Each tab goes back to the game you left it on. A tab can have a name of your own: Settings > Games > Tabs, open its row, then Name.
+a A folder can be a tab too (a Utilities tab for tool ROMs): on the Folders tab, Z on the folder, then Make ... a tab.
 q How do I find one game quickly?
 a Hold Z on the covers for the letter dial. Point the stick at a letter and the covers jump there; A adds the letter, so you can spell more, and B takes one away. Let go of Z to stay.
 a Or press Z, "Random game" to let the menu pick for you.

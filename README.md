@@ -69,7 +69,7 @@ start.
 | | |
 |---|---|
 | 🎮 **Cover row** | Your games as 3D boxes or cartridges that hover; hold B to turn one round, or turn it over to see its back. Japanese and 64DD boxes keep their own shape. |
-| 🗂️ **Tabs** | Games, Favorites, Folders, Recent, Collections, Homebrew, Retro, Hacks, or any one collection, up to eight in the order you choose. Games gathers games from as many folders as you like. |
+| 🗂️ **Tabs** | Games, Favorites, Folders, Recent, Collections, Homebrew, Retro, Hacks, any one collection, or a folder of its own (a Utilities tab for tool ROMs), up to eight in the order you choose, each with a name of your own if you like. Games gathers games from as many folders as you like. |
 | ⭐ **Favorites** | Up to 50; add or remove one from any cover with Z, without opening Game info. |
 | 🔎 **Find a game** | Hold Z for a letter dial; filter by region, 64DD, hacks or party size; sort by name, recently played or added, release date or developer; or a random game. |
 | 📚 **Collections** | Series and multiplayer collections found by themselves, and your own, as cards; one cover per game with its hacks and other regions' copies underneath. |

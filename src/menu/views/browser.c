@@ -86,6 +86,7 @@ static bool collections_tab = false;        // the Collections tab: its row of c
 static int collection_open = -1;            // ... the collection shown, by its number, or -1 while the cards show
 static bool hacks_tab = false;              // the Games list on its Hacks shelf
 static games_tab_t pinned_tab = GAMES_TAB_COUNT;    // a collection's own tab (tabs.h), showing collection_open; GAMES_TAB_COUNT for none
+static bool pinned_folder = false;          // ... or a folder tab: the Games list showing one folder (games_filter_folder)
 static path_t *folders_directory = NULL;    // where the Folders tab was left
 static char left_on[14][256];   // the entry the Games [0], Folders [1], Homebrew [2], Collections [3], Retro [4], Hacks [5] and collection tabs [6-13] were left on, to go back to it (while the console is on)
 
@@ -535,6 +536,24 @@ static int scan_subfolders (menu_t *menu, const char *folder, const char **added
     return (r == -2) ? -2 : 0;
 }
 
+// A folder tab's folder (tabs.h) already read with the Games folders: one
+// of them, or a folder right inside an added one (the start folder is read
+// without the folders inside it).
+static bool folder_read_already (const char *folder, const char **read, int count, int deep_from) {
+    for (int i = 0; i < count; i++) {
+        if (strcasecmp(folder, read[i]) == 0) {
+            return true;
+        }
+        size_t length = strlen(read[i]);
+        const char *rest = folder + length;
+        if (i >= deep_from && strncasecmp(folder, read[i], length) == 0
+            && (rest[0] == '/' || length == 1) && !strchr(rest + 1, '/')) {
+            return true;
+        }
+    }
+    return false;
+}
+
 static bool load_directory (menu_t *menu) {
     int result;
 
@@ -563,6 +582,31 @@ static bool load_directory (menu_t *menu) {
                 break;
             }
             // A folder that has gone missing is left out, not an error.
+        }
+        // Folder tabs whose folders aren't among those: read too, their games kept to their own tabs.
+        games_filter_tab_only_from(menu->browser.entries);
+        const char *tab_folders[TABS_PLACES];
+        int tab_count = (result == -2) ? 0 : tabs_folders(tab_folders);
+        const char *read[GAMES_FOLDERS_MAX + 1 + TABS_PLACES];
+        int read_count = 0;
+        for (int i = 0; i < count; i++) {
+            read[read_count++] = folders[i];
+        }
+        for (int t = 0; t < tab_count; t++) {
+            if (folder_read_already(tab_folders[t], read, read_count, 1)) {
+                continue;
+            }
+            path_t *path = path_init(menu->storage_prefix, (char *) tab_folders[t]);
+            int r = scan_folder(menu, path, tab_folders[t] + 1);
+            path_free(path);
+            if (r != -2) {
+                r = scan_subfolders(menu, tab_folders[t], read, read_count);
+            }
+            if (r == -2) {
+                result = r;
+                break;
+            }
+            read[read_count++] = tab_folders[t];
         }
     }
 
@@ -850,6 +894,39 @@ static void unmark_hacks_folder (menu_t *menu, void *arg) {
         note_show("No longer marked as hacks.");
     } else {
         note_show("This folder was not marked as hacks.");
+    }
+    path_free(target);
+}
+
+// Folders tab, Options: a folder as a tab of its own (tabs.h), its games
+// as covers ("Utilities" for a folder of tools). It goes in the first place
+// set to None; its games stay off the Games tab unless the folder is one of
+// the Games folders.
+static void make_folder_tab (menu_t *menu, void *arg) {
+    path_t *target = folder_target(menu);
+    if (!folders_tab) {
+        note_show("Go to the folder in the Folders tab first.");
+    } else if (path_is_root(target)) {
+        note_show("The top of the SD card can't be a tab.\nChoose a folder.");
+    } else if (tabs_folder_place(path_get(target)) >= 0) {
+        note_showf("\"%s\" is already a tab.", path_last_get(target));
+    } else if (tabs_add_folder(path_get(target)) >= 0) {
+        note_showf("\"%s\" is now a tab: L and R find it.\nSettings > Games > Tabs can move\nor rename it.", path_last_get(target));
+    } else {
+        note_show("The tab bar is full (8 tabs).\nSet a tab to None in Settings > Games > Tabs first.");
+    }
+    path_free(target);
+}
+
+static void remove_folder_tab (menu_t *menu, void *arg) {
+    path_t *target = folder_target(menu);
+    if (!folders_tab) {
+        note_show("Go to the folder in the Folders tab first.");
+    } else if (tabs_folder_place(path_get(target)) >= 0) {
+        tabs_remove_folder(path_get(target));
+        note_showf("\"%s\" is no longer a tab.", path_last_get(target));
+    } else {
+        note_show("This folder is not a tab.");
     }
     path_free(target);
 }
@@ -1206,6 +1283,8 @@ static void cover_picked (menu_t *menu) {
         { .text = "Unmark this folder as hacks", .action = unmark_hacks_folder }, \
         { .text = "Mark this folder as homebrew", .action = mark_homebrew_folder }, \
         { .text = "Unmark this folder as homebrew", .action = unmark_homebrew_folder }, \
+        { .text = "Make this folder a tab", .action = make_folder_tab }, \
+        { .text = "Remove this folder's tab", .action = remove_folder_tab }, \
         COMPONENT_CONTEXT_MENU_LIST_END,
 
 static component_context_menu_t entry_menu_rows = { .list = { ENTRY_MENU_ROWS } };
@@ -1247,26 +1326,32 @@ static void entry_menu_fill (menu_t *menu) {
         }
         if (folders_tab && (row.action == add_games_folder || row.action == remove_games_folder
                             || row.action == mark_hacks_folder || row.action == unmark_hacks_folder
-                            || row.action == mark_homebrew_folder || row.action == unmark_homebrew_folder)) {
+                            || row.action == mark_homebrew_folder || row.action == unmark_homebrew_folder
+                            || row.action == make_folder_tab || row.action == remove_folder_tab)) {
             // Only the rows that apply to the folder they act on (the highlighted one, else this one).
             path_t *target = folder_target(menu);
             bool in_games = games_folders_has(path_get(target));
             bool hacks = games_folders_is_hacks(path_get(target));
             bool homebrew = games_folders_is_homebrew(path_get(target));
             bool start = folder_is_start(menu, target);
+            bool root = path_is_root(target);
+            bool tab = (tabs_folder_place(path_get(target)) >= 0);
             path_free(target);
             if ((row.action == add_games_folder && (in_games || start)) || (row.action == remove_games_folder && !in_games)
                 || (row.action == mark_hacks_folder && hacks) || (row.action == unmark_hacks_folder && !hacks)
-                || (row.action == mark_homebrew_folder && homebrew) || (row.action == unmark_homebrew_folder && !homebrew)) {
+                || (row.action == mark_homebrew_folder && homebrew) || (row.action == unmark_homebrew_folder && !homebrew)
+                || (row.action == make_folder_tab && (tab || root)) || (row.action == remove_folder_tab && !tab)) {
                 continue;
             }
             if (e && e->type == ENTRY_TYPE_DIR) {
-                static char texts[6][48];
+                static char texts[8][48];
                 int k = (row.action == add_games_folder) ? 0 : (row.action == remove_games_folder) ? 1 : (row.action == mark_hacks_folder) ? 2
-                      : (row.action == unmark_hacks_folder) ? 3 : (row.action == mark_homebrew_folder) ? 4 : 5;
-                static const char *formats[6] = { "Add \"%.20s\" to Games", "Remove \"%.20s\" from Games",
+                      : (row.action == unmark_hacks_folder) ? 3 : (row.action == mark_homebrew_folder) ? 4
+                      : (row.action == unmark_homebrew_folder) ? 5 : (row.action == make_folder_tab) ? 6 : 7;
+                static const char *formats[8] = { "Add \"%.20s\" to Games", "Remove \"%.20s\" from Games",
                                                    "Mark \"%.20s\" as hacks", "Unmark \"%.20s\" as hacks",
-                                                   "Mark \"%.20s\" as homebrew", "Unmark \"%.20s\" as homebrew" };
+                                                   "Mark \"%.20s\" as homebrew", "Unmark \"%.20s\" as homebrew",
+                                                   "Make \"%.20s\" a tab", "Remove the \"%.20s\" tab" };
                 snprintf(texts[k], sizeof(texts[k]), formats[k], entry_file_name(e->name));
                 row.text = texts[k];
             }
@@ -1417,14 +1502,36 @@ static void collection_show (menu_t *menu, int which) {
 // that one collection, with no cards to go back to.
 static void browser_show_pinned (menu_t *menu, games_tab_t tab) {
     int id = tabs_pinned_collection(tab);
-    if (tab == pinned_tab && (id < 0 || (collections_tab && collection_open == id))) {
+    const char *folder = tabs_pinned_folder(tab);
+    if (tab == pinned_tab && (folder ? pinned_folder : (id < 0 || (collections_tab && collection_open == id)))) {
         return;
     }
     bool loaded = menu->browser.valid && !folders_tab;
     if (loaded && pinned_tab != GAMES_TAB_COUNT) {
         snprintf(left_on[tab_slot()], sizeof(left_on[0]), "%s", menu->browser.entry ? menu->browser.entry->name : "");
     }
-    if (id >= 0) {
+    if (folder) {
+        // A folder tab: the Games list showing one folder, like a shelf.
+        if (collections_tab) {
+            if (pinned_tab == GAMES_TAB_COUNT && loaded) {
+                snprintf(left_on[3], sizeof(left_on[0]), "%s", menu->browser.entry ? menu->browser.entry->name : "");
+            }
+            collection_show(menu, -1);
+            collections_ui_free();
+            collections_tab = false;
+        } else if (loaded) {
+            carousel_art_reset();
+            game_facts_reset();
+            folder_memory_flush();
+        }
+        pinned_tab = tab;
+        pinned_folder = true;
+        games_filter_folder(menu, folder, loaded);
+        if (loaded) {
+            select_left_on(menu);
+        }
+    } else if (id >= 0) {
+        pinned_folder = false;
         if (collections_tab && pinned_tab == GAMES_TAB_COUNT && loaded) {
             snprintf(left_on[3], sizeof(left_on[0]), "%s", menu->browser.entry ? menu->browser.entry->name : "");
         }
@@ -1432,6 +1539,18 @@ static void browser_show_pinned (menu_t *menu, games_tab_t tab) {
         pinned_tab = tab;
         collections_tab = true;
         collection_show(menu, id);
+        if (loaded) {
+            select_left_on(menu);
+        }
+    } else if (pinned_tab != GAMES_TAB_COUNT && pinned_folder) {
+        pinned_tab = GAMES_TAB_COUNT;
+        pinned_folder = false;
+        if (loaded) {
+            carousel_art_reset();
+            game_facts_reset();
+            folder_memory_flush();
+        }
+        games_filter_folder(menu, NULL, loaded);
         if (loaded) {
             select_left_on(menu);
         }
@@ -2720,7 +2839,9 @@ void view_browser_init (menu_t *menu) {
 
 void view_browser_display (menu_t *menu, surface_t *display) {
     process(menu);
-    folder_memory_use_key(folders_tab ? NULL : (homebrew_tab ? "homebrew:" : (collections_tab ? "collections:" : (retro_tab ? "retro:" : (hacks_tab ? "hacks:" : "games:"))))); // the Games, Homebrew, Hacks and Collections tabs keep their own places
+    static char tab_key[8];
+    snprintf(tab_key, sizeof(tab_key), "tab%d:", (int) (pinned_tab - GAMES_TAB_PINNED1) + 1);
+    folder_memory_use_key(folders_tab ? NULL : (pinned_folder ? tab_key : (homebrew_tab ? "homebrew:" : (collections_tab ? "collections:" : (retro_tab ? "retro:" : (hacks_tab ? "hacks:" : "games:")))))); // the Games, Homebrew, Hacks, Collections and folder tabs keep their own places
     folder_memory_update(menu); // put the selection back where it was left in this folder
 
     draw(menu, display);

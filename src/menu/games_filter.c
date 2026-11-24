@@ -47,11 +47,12 @@ typedef enum {
     FILTER_HOMEBREW = FILTER_STEPS,     /* the Homebrew tab's shelf */
     FILTER_COLLECTION,                  /* the Collections tab's shelf: one collection (collections.h), not a mark */
     FILTER_RETRO,                       /* the Retro tab's shelf: emulator games, one system or all (retro.h) */
+    FILTER_FOLDER,                      /* a folder tab's shelf (tabs.h): every game in one folder, not a mark */
     FILTER_COUNT
 } filter_t;
 
 static const char *names[FILTER_COUNT] = { "All", "USA", "Japan", "Europe", "64DD", "Hacks", "Party", "Never Played",
-    "Playing", "Beaten", "100%", "Backlog", "Homebrew", "Collection", "Retro" };
+    "Playing", "Beaten", "100%", "Backlog", "Homebrew", "Collection", "Retro", "Folder" };
 #define STATUS_BITS     ((1u << FILTER_PLAYING) | (1u << FILTER_BEATEN) | (1u << FILTER_COMPLETE) | (1u << FILTER_BACKLOG))
 static int status_generation = -1;  /* game_status_generation() the marks were worked out for */
 static int collection = -1;     /* the collection the Collections tab shows, by its number (collections_id()) */
@@ -76,6 +77,13 @@ static int16_t *group = NULL;       /* by entry->index: the index of its cover's
 #define MARK_REGION_FOLDED  (1u << 16)   /* in marks: folded under another region's cover */
 static int16_t *rgroup = NULL;      /* by entry->index: the index of its cover's file, or -1 */
 
+/* Folder tabs (tabs.h). A folder that is a tab but not one of the Games
+   folders is read with them; its games show on their own tab only (and in
+   the player's collections), not on Games, its steps or the other shelves. */
+#define MARK_TAB_ONLY   (1u << 17)
+static int tab_only_from = 0x7FFF;  /* entries read from here on (by entry->index) came from such folders */
+static char folder_prefix[160];     /* the folder tab showing: "Utilities/" as the list's names begin */
+
 const char *games_filter_versions_name (int choice) {
     static const char *versions_names[GAME_VERSIONS_COUNT] = { "Separate", "Grouped" };
     return (choice >= 0 && choice < GAME_VERSIONS_COUNT) ? versions_names[choice] : "";
@@ -89,7 +97,7 @@ const char *games_filter_homebrew_name (int choice) {
 /* Whether folded files are left out for this filter: with Grouped on, except
    on the Hacks step, which shows every hack. */
 static bool folding (filter_t f) {
-    return f != FILTER_HACKS && f != FILTER_NEVER_PLAYED && !(STATUS_BITS & (1u << f))
+    return f != FILTER_HACKS && f != FILTER_FOLDER     /* a folder tab shows each of its files */ && f != FILTER_NEVER_PLAYED && !(STATUS_BITS & (1u << f))
         && options_get(OPTION_GAME_VERSIONS) == GAME_VERSIONS_GROUPED;   /* those steps show each version on its own */
 }
 static filter_t current = FILTER_ALL;
@@ -239,6 +247,13 @@ static void note_players (menu_t *menu) {
 }
 
 static bool matches (const entry_t *e, filter_t f) {
+    if (e->index >= 0 && e->index < marks_count && (marks[e->index] & MARK_TAB_ONLY) && f != FILTER_FOLDER && f != FILTER_COLLECTION) {
+        return false;   /* a folder tab's own game */
+    }
+    if (f == FILTER_FOLDER) {
+        return e->index >= 0 && e->index < marks_count && folder_prefix[0]
+            && strncasecmp(e->name, folder_prefix, strlen(folder_prefix)) == 0;
+    }
     if (f == FILTER_HOMEBREW && e->index >= 0 && e->index < marks_count && (marks[e->index] & (1 << FILTER_HACKS))) {
         return false;   /* a hack without a proper code is still a hack, not homebrew */
     }
@@ -582,7 +597,7 @@ void games_filter_after_load (menu_t *menu, int (*compare) (const void *, const 
     for (int i = 0; i < total; i++) {
         entry_t *e = &menu->browser.list[i];
         e->index = i;
-        marks[i] = classify(menu, e);
+        marks[i] = classify(menu, e) | ((i >= tab_only_from) ? MARK_TAB_ONLY : 0);
     }
     mark_hacks(menu);
     collections_build(menu);
@@ -712,6 +727,39 @@ const char *games_filter_label (void) {
         return label;
     }
     return (current == FILTER_ALL || shelf) ? NULL : names[current];
+}
+
+void games_filter_tab_only_from (int index) {
+    tab_only_from = index;
+}
+
+void games_filter_folder (menu_t *menu, const char *folder, bool list_loaded) {
+    if (folder) {
+        if (current == FILTER_COLLECTION) {
+            games_filter_collection(menu, -1, false);
+        }
+        const char *from = (folder[0] == '/') ? folder + 1 : folder;    /* the list's names have no leading slash */
+        char wanted[sizeof(folder_prefix)];
+        snprintf(wanted, sizeof(wanted), "%s/", from);
+        if (shelf && current == FILTER_FOLDER && strcmp(wanted, folder_prefix) == 0) {
+            return;
+        }
+        snprintf(folder_prefix, sizeof(folder_prefix), "%s", wanted);
+        if (!shelf) {
+            stepped = current;
+        }
+        shelf = true;
+        current = FILTER_FOLDER;
+    } else if (current == FILTER_FOLDER) {
+        shelf = false;
+        current = stepped;
+        folder_prefix[0] = '\0';
+    } else {
+        return;
+    }
+    if (list_loaded && total > 0) {
+        reapply(menu);
+    }
 }
 
 void games_filter_collection (menu_t *menu, int which, bool list_loaded) {
