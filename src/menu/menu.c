@@ -40,6 +40,7 @@
 #include "logo_shots.h"
 #endif
 #include "video_preview.h"
+#include "log_file.h"
 
 #define MENU_DIRECTORY              "/menu"
 #define MENU_SETTINGS_FILE          "config.ini"
@@ -74,6 +75,8 @@ static void menu_init (boot_params_t *boot_params) {
     menu->flashcart_err = flashcart_init(&menu->storage_prefix);
     if (menu->flashcart_err != FLASHCART_OK) {
         menu->next_mode = MENU_MODE_FAULT;
+    } else {
+        log_file_rescue(menu->storage_prefix); // a crash's log, kept in cart memory through RESET
     }
 
     joypad_init();

@@ -86,6 +86,7 @@ SRCS = \
 	menu/rom_info.c \
 	menu/settings.c \
 	menu/sound.c \
+	menu/log_file.c \
 	menu/tab_names.c \
 	menu/metadata_clear.c \
 	menu/cover_pick.c \
@@ -363,11 +364,15 @@ $(FILESYSTEM_DIR)/Firple-Bold-Title20.font64: $(ASSETS_DIR)/fonts/Firple-Bold.tt
 
 $(BUILD_DIR)/menu/views/credits.o: .FORCE
 $(BUILD_DIR)/menu/views/credits.o: FLAGS+=-DMENU_VERSION=\"$(MENU_VERSION)\" -DBUILD_TIMESTAMP=\"$(BUILD_TIMESTAMP)\"
+$(BUILD_DIR)/menu/log_file.o: .FORCE
+$(BUILD_DIR)/menu/log_file.o: FLAGS+=-DMENU_VERSION=\"$(MENU_VERSION)\"
 
 # Clips (src/menu/clip.c) swap in their own clock while recording.
 $(BUILD_DIR)/$(PROJECT_NAME).elf: LDFLAGS += --wrap=get_ticks_ms
 # Dim Screen (src/menu/screen_dim.c) darkens every frame last, as it goes to the TV.
 $(BUILD_DIR)/$(PROJECT_NAME).elf: LDFLAGS += --wrap=rdpq_detach_show
+# The log kept in memory for Save Log and crashes (src/menu/log_file.c): every debugf line, and a failed check.
+$(BUILD_DIR)/$(PROJECT_NAME).elf: LDFLAGS += --wrap=write --wrap=__inspector_assertion
 
 $(BUILD_DIR)/$(PROJECT_NAME).elf: $(OBJS)
 

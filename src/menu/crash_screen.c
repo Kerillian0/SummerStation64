@@ -1,6 +1,7 @@
 #include <libdragon.h>
 
 #include "crash_screen.h"
+#include "log_file.h"
 
 #define SCREEN_WIDTH    (320)
 #define SCREEN_HEIGHT   (240)
@@ -28,6 +29,9 @@ static const char *const lines[] = {
     "while turning the console on to",
     "start in Safe Mode.",
     "",
+    "Press RESET (don't switch off) to",
+    "save the log to the SD card as",
+    "menu/crash-log.txt for a report.",
     "",
     "START: technical details",
 };
@@ -49,6 +53,7 @@ static void crash_handler (exception_t *ex) {
         exception_default_handler(ex);
     }
     entered = true;
+    log_file_crash();   /* the log's last lines, kept through RESET for menu/crash-log.txt */
 
     /* Free the menu's framebuffers and put the video output in a known state.
        Same steps as libdragon's own crash screen: finish any half-applied video

@@ -53,6 +53,7 @@
 #include "../volume.h"
 #include "../settings_search.h"
 #include "../tab_names.h"
+#include "../log_file.h"
 #include "../ui_components/constants.h"
 #include "settings_menu.h"
 #include "views.h"
@@ -783,12 +784,33 @@ static const item_t file_items[] = {
 #endif
 };
 
+/* Save Log: the menu's last log lines to sd:/menu/log.txt, for a bug report (log_file.h). */
+static int log_state = 0;   /* 0 not saved yet, 1 saved, 2 the card refused */
+
+static void save_log (menu_t *menu) {
+    log_state = log_file_save(menu->storage_prefix) ? 1 : 2;
+    sound_play_effect((log_state == 1) ? SFX_SETTING : SFX_ERROR);
+}
+
+static const char *save_log_info (menu_t *menu) {
+    (void) menu;
+    if (log_state == 1) {
+        return "Saved";
+    }
+    if (log_state == 2) {
+        return "Card error";
+    }
+    return log_file_crash_saved() ? "Crash log saved" : "";
+}
+
 static const item_t information_items[] = {
     ACTION("What's New", open_whats_new, "What came with this version of the menu, with Vee: A on an item goes straight to its setting, and B comes back."),
     ACTION("Setup Wizard", open_setup_wizard, "Vee asks her setup questions again: your console and TV, the picture, regions and names, the look, the start-up, and how she talks. Each starts on what you have now."),
     ACTION("Menu Information", open_credits, "The menu's version, the people and projects it is built on, and the music and sound credits."),
     ACTION("Flashcart Information", open_flashcart_info, "The SummerCart64's firmware version and what it supports."),
     ACTION("N64 Information", open_system_info, "The console: Expansion Pak or not, region, the controllers plugged in and whether a 64DD drive is attached."),
+    ACTION_INFO("Save Log", save_log, save_log_info,
+        "For a bug report: A saves the menu's last few hundred log lines to menu/log.txt on the SD card; attach it to your report. After a crash, press RESET and the lines from before it are saved as menu/crash-log.txt."),
 };
 
 static const category_t look_pages[] = {
