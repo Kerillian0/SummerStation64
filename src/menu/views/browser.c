@@ -501,10 +501,12 @@ static int scan_folder (menu_t *menu, path_t *path, const char *prefix) {
         if (!hide) {
             if (!is_memory_expanded() && menu->browser.entries >= DIRECTORY_MAX_ENTRIES_JUMPER_PAK) {
                 directory_entry_limit_exceeded = true;
+                debugf("browser: list full at %d entries (Jumper Pak limit), reading %s\n", (int) menu->browser.entries, path_get(path));
                 return -2;
             }
 
             if (browser_list_reserve(menu, menu->browser.entries + 1)) {
+                debugf("browser: no memory for entry %d, reading %s\n", (int) menu->browser.entries + 1, path_get(path));
                 return -2;
             }
 
@@ -512,6 +514,7 @@ static int scan_folder (menu_t *menu, path_t *path, const char *prefix) {
 
             entry->name = name_with_prefix(prefix, info.d_name);
             if (!entry->name) {
+                debugf("browser: no memory for a name at entry %d, reading %s\n", (int) menu->browser.entries + 1, path_get(path));
                 return -2;
             }
 
@@ -560,6 +563,9 @@ static int scan_folder (menu_t *menu, path_t *path, const char *prefix) {
         result = dir_findnext(path_get(path), &info);
     }
 
+    if (result < -1) {
+        debugf("browser: reading %s stopped with an error (errno %d) after %d entries\n", path_get(path), errno, (int) menu->browser.entries);
+    }
     return result;
 }
 
@@ -646,6 +652,10 @@ static bool load_directory (menu_t *menu) {
         for (int i = 0; i < count; i++) {
             path_t *path = path_init(menu->storage_prefix, (char *) folders[i]);
             int r = scan_folder(menu, path, folders[i] + 1); // without the leading '/'
+            if (r == -2 && !directory_exists(path_get(path))) {
+                debugf("browser: Games folder %s not found, left out\n", folders[i]);
+                r = -1;     // gone (renamed or deleted on a PC): not a reason to fail the whole list
+            }
             path_free(path);
             if (i > 0 && r != -2) {
                 r = scan_subfolders(menu, folders[i], folders, count); // an added folder: one level down too
@@ -671,6 +681,11 @@ static bool load_directory (menu_t *menu) {
             }
             path_t *path = path_init(menu->storage_prefix, (char *) tab_folders[t]);
             int r = scan_folder(menu, path, tab_folders[t] + 1);
+            if (r == -2 && !directory_exists(path_get(path))) {
+                debugf("browser: folder tab's %s not found, left out\n", tab_folders[t]);
+                path_free(path);
+                continue;   // its tab shows nothing until the folder is back
+            }
             path_free(path);
             if (r != -2) {
                 r = scan_subfolders(menu, tab_folders[t], read, read_count);
@@ -985,8 +1000,8 @@ static void make_folder_tab (menu_t *menu, void *arg) {
     path_t *target = folder_target(menu);
     if (!folders_tab) {
         note_show("Go to the folder in the Folders tab first.");
-    } else if (path_is_root(target)) {
-        note_show("The top of the SD card can't be a tab.\nChoose a folder.");
+    } else if (path_is_root(target) || menu->browser.archive) {
+        note_show("Only a folder on the SD card can be a tab\n(not the top of the card, nor one inside a zip).");
     } else if (tabs_folder_place(path_get(target)) >= 0) {
         note_showf("\"%s\" is already a tab.", path_last_get(target));
     } else if (tabs_add_folder(path_get(target)) >= 0) {
