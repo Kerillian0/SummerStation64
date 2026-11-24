@@ -11,6 +11,7 @@
 #include <time.h>
 
 #include "cart_load.h"
+#include "games_ui.h"
 #include "game_facts.h"
 #include "menu_features.h"
 #include "path.h"
@@ -157,8 +158,9 @@ static void find_kept (void) {
             k->when = ((uint64_t) year * 10000000000ull) + ((uint64_t) month * 100000000ull) + ((uint64_t) day * 1000000ull) +
                 (hour * 10000) + (minute * 100) + second;
             if (year > 0 && month >= 1 && month <= 12) {
-                int hour12 = (hour % 12) ? (hour % 12) : 12;
-                snprintf(k->label, sizeof(k->label), "%s %d, %d:%02d %s", month_names[month - 1], day, hour12, minute, (hour >= 12) ? "PM" : "AM");
+                char time_text[12];
+                games_ui_time(time_text, sizeof(time_text), hour, minute);     /* 12- or 24-hour, as the player chose */
+                snprintf(k->label, sizeof(k->label), "%s %d, %s", month_names[month - 1], day, time_text);
             } else {
                 snprintf(k->label, sizeof(k->label), "Date not known");
             }

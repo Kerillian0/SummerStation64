@@ -67,6 +67,7 @@ typedef enum {
     OPTION_TAB6,
     OPTION_TAB7,
     OPTION_TAB8,
+    OPTION_CLOCK_24H,   /**< 1: times as 14:35, 0: as 2:35 PM (games_ui_time()) */
     OPTION_COUNT
 } option_t;
 

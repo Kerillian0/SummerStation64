@@ -157,6 +157,12 @@ void games_ui_hint_right_draw (int row, const char *button, const char *action);
  * opened from it (a game's info) knows where B should go back to.
  */
 void games_ui_set_origin (menu_mode_t tab);
+
+/** A time of day as the player likes it (option `clock_24h`): "2:35 PM" or "14:35". */
+void games_ui_time (char *out, size_t size, int hour, int minute);
+
+/** Name of a Clock setting value: "12-Hour (2:35 PM)" / "24-Hour (14:35)". */
+const char *games_ui_clock_name (int value);
 menu_mode_t games_ui_origin (void);
 
 #endif /* GAMES_UI_H__ */

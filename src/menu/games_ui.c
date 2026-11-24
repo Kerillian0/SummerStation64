@@ -372,8 +372,7 @@ void games_ui_topbar_draw (menu_t *menu, games_tab_t selected) {
         struct tm *now = localtime(&menu->current_time);
         if (now) {
             char clock[16];
-            int hour = now->tm_hour % 12;
-            snprintf(clock, sizeof(clock), "%d:%02d %s", hour ? hour : 12, now->tm_min, (now->tm_hour < 12) ? "AM" : "PM");
+            games_ui_time(clock, sizeof(clock), now->tm_hour, now->tm_min);
             pill(VISIBLE_AREA_X1 - TOPBAR_INSET - CLOCK_WIDTH, CLOCK_WIDTH, clock, false);
         }
     }
@@ -389,6 +388,19 @@ void games_ui_topbar_draw (menu_t *menu, games_tab_t selected) {
             memory_badge_draw();
         }
     }
+}
+
+void games_ui_time (char *out, size_t size, int hour, int minute) {
+    if (options_get(OPTION_CLOCK_24H)) {
+        snprintf(out, size, "%d:%02d", hour, minute);
+    } else {
+        int hour12 = hour % 12;
+        snprintf(out, size, "%d:%02d %s", hour12 ? hour12 : 12, minute, (hour < 12) ? "AM" : "PM");
+    }
+}
+
+const char *games_ui_clock_name (int value) {
+    return (value == 0) ? "12-Hour (2:35 PM)" : (value == 1) ? "24-Hour (14:35)" : "";
 }
 
 static menu_mode_t origin = MENU_MODE_BROWSER;

@@ -621,6 +621,8 @@ static const item_t video_items[] = {
         "Left alone on a row of covers this long, the covers drift past on their own, each game's clip playing as it goes by. The first button press stops it."),
     CHOICES("Attract Direction", OPTION_ATTRACT_DIRECTION, ATTRACT_DIRECTION_COUNT, attract_direction_name, NULL,
         "Which way the covers drift in Attract Mode."),
+    CHOICES("Clock", OPTION_CLOCK_24H, 2, games_ui_clock_name, NULL,
+        "How times show: the clock on the tab bar and the dates of kept saves. 12-Hour reads 2:35 PM, 24-Hour reads 14:35. The time itself is set in Console > Tools > Clock."),
     CHOICES("Dim Screen", OPTION_SCREEN_DIM, SCREEN_DIM_COUNT, screen_dim_name, NULL,
         "Left alone this long, on any screen, the picture dims and the music goes quieter, so nothing bright sits still on a CRT. With Attract Mode on too, the covers drift first. The first press wakes it."),
 };
