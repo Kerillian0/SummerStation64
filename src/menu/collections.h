@@ -64,4 +64,13 @@ bool collections_is_status (int id);
 /** True if this entry of the Games list is in the collection with this number. */
 bool collections_has (int id, const entry_t *e);
 
+/** The Games list is set aside while the Folders tab shows its own: keep its collections for when it comes back. */
+void collections_park (void);
+
+/** The parked Games list is back: its collections with it. */
+void collections_unpark (void);
+
+/** The parked Games list was given up: free its collections. */
+void collections_drop_parked (void);
+
 #endif /* COLLECTIONS_H__ */

@@ -112,6 +112,15 @@ void games_filter_collection (menu_t *menu, int which, bool list_loaded);
  */
 void games_filter_folder (menu_t *menu, const char *folder, bool list_loaded);
 
+/** The Folders tab is about to show its own list: keep the Games list's marks aside (browser.c parks the list itself). */
+void games_filter_park (void);
+
+/** The parked Games list is back in menu->browser.list: its marks with it. */
+void games_filter_unpark (void);
+
+/** Give up the parked marks. Returns how many entries the parked list held (shown and hidden), for freeing their names. */
+int games_filter_drop_parked (void);
+
 /** Before games_filter_after_load(): entries read from this one on (in read order) came from folder tabs that aren't Games folders, and show only there. */
 void games_filter_tab_only_from (int index);
 

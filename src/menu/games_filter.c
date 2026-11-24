@@ -563,6 +563,62 @@ bool games_filter_region_copies (menu_t *menu, const char *path) {
     return e && rgroup && e->index >= 0 && e->index < marks_count && rgroup[e->index] >= 0;
 }
 
+/* The Games list parked while the Folders tab shows its own list (browser.c):
+   its marks kept aside, so it comes back without being read and sorted out
+   again. Meanwhile everything here sees no Games list, as before. */
+static struct {
+    bool held;
+    uint32_t *marks;
+    int marks_count, total;
+    int16_t *group, *rgroup;
+    uint8_t *players;
+} parked;
+
+void games_filter_park (void) {
+    games_filter_drop_parked();
+    parked.held = true;
+    parked.marks = marks;
+    parked.marks_count = marks_count;
+    parked.total = total;
+    parked.group = group;
+    parked.rgroup = rgroup;
+    parked.players = players;
+    marks = NULL;
+    group = rgroup = NULL;
+    players = NULL;
+    marks_count = 0;
+    total = 0;
+    collections_park();
+}
+
+void games_filter_unpark (void) {
+    if (!parked.held) {
+        return;
+    }
+    games_filter_forget();
+    marks = parked.marks;
+    marks_count = parked.marks_count;
+    total = parked.total;
+    group = parked.group;
+    rgroup = parked.rgroup;
+    players = parked.players;
+    parked.held = false;
+    collections_unpark();
+}
+
+int games_filter_drop_parked (void) {
+    if (!parked.held) {
+        return 0;
+    }
+    free(parked.marks);
+    free(parked.group);
+    free(parked.rgroup);
+    free(parked.players);
+    parked.held = false;
+    collections_drop_parked();
+    return parked.total;
+}
+
 void games_filter_forget (void) {
     free(marks);
     marks = NULL;

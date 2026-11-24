@@ -118,6 +118,46 @@ static uint64_t collections_of (const char *code, int indexed_players) {
     return in;
 }
 
+/* The Games list parked while the Folders tab shows its own (games_filter_park()). */
+static struct {
+    bool held;
+    uint64_t *member;
+    int member_count;
+    int offered[COLLECTIONS_MAX];
+    int offered_count;
+} parked;
+
+void collections_park (void) {
+    collections_drop_parked();
+    parked.held = true;
+    parked.member = member;
+    parked.member_count = member_count;
+    memcpy(parked.offered, offered, sizeof(offered));
+    parked.offered_count = offered_count;
+    member = NULL;
+    member_count = 0;
+    offered_count = 0;
+}
+
+void collections_unpark (void) {
+    if (!parked.held) {
+        return;
+    }
+    collections_forget();
+    member = parked.member;
+    member_count = parked.member_count;
+    memcpy(offered, parked.offered, sizeof(offered));
+    offered_count = parked.offered_count;
+    parked.held = false;
+}
+
+void collections_drop_parked (void) {
+    if (parked.held) {
+        free(parked.member);
+        parked.held = false;
+    }
+}
+
 void collections_forget (void) {
     free(member);
     member = NULL;

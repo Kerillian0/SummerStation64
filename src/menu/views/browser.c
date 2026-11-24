@@ -277,6 +277,78 @@ static void browser_list_free (menu_t *menu) {
     menu->browser.selected = -1;
 }
 
+// The Games list, parked while the Folders tab shows its own list, so that
+// leaving Folders doesn't read and sort out every game again (it cost the
+// owner's card about 280 ms a time). Kept only while memory allows, and
+// given up whenever something on Folders could change what the Games list
+// holds (its Z menu, a reload).
+#define GAMES_PARK_MIN_FREE     (512 * 1024)
+
+static struct {
+    bool held;
+    entry_t *list;
+    int32_t capacity, entries, selected;
+} parked_games;
+
+static void games_list_drop (void) {
+    if (!parked_games.held) {
+        return;
+    }
+    int all = games_filter_drop_parked();
+    if (all < parked_games.entries) {
+        all = parked_games.entries;
+    }
+    for (int i = all - 1; i >= 0; i--) {
+        free(parked_games.list[i].name);
+    }
+    free(parked_games.list);
+    parked_games.held = false;
+    debugf("browser: kept Games list given up\n");
+}
+
+static void games_list_park (menu_t *menu) {
+    games_list_drop();
+    if (!menu->browser.valid || !menu->browser.list || menu->browser.archive) {
+        return;
+    }
+    heap_stats_t heap;
+    sys_get_heap_stats(&heap);
+    if ((heap.total - heap.used) < GAMES_PARK_MIN_FREE) {
+        debugf("browser: Games list not kept (%d KB free)\n", (heap.total - heap.used) / 1024);
+        return;
+    }
+    parked_games.held = true;
+    parked_games.list = menu->browser.list;
+    parked_games.capacity = menu->browser.list_capacity;
+    parked_games.entries = menu->browser.entries;
+    parked_games.selected = menu->browser.selected;
+    games_filter_park();
+    letter_wheel_close();   // its names are of this list
+    menu->browser.list = NULL;
+    menu->browser.list_capacity = 0;
+    menu->browser.entries = 0;
+    menu->browser.entry = NULL;
+    menu->browser.selected = -1;
+    debugf("browser: Games list kept (%d entries)\n", (int) parked_games.entries);
+}
+
+// Back from Folders: the kept Games list in place of the Folders one. False if none was kept.
+static bool games_list_unpark (menu_t *menu) {
+    if (!parked_games.held) {
+        return false;
+    }
+    browser_list_free(menu);    // the Folders list
+    games_filter_unpark();
+    menu->browser.list = parked_games.list;
+    menu->browser.list_capacity = parked_games.capacity;
+    menu->browser.entries = parked_games.entries;
+    menu->browser.selected = parked_games.selected;
+    menu->browser.entry = (menu->browser.selected >= 0 && menu->browser.selected < menu->browser.entries)
+                        ? &menu->browser.list[menu->browser.selected] : NULL;
+    parked_games.held = false;
+    return true;
+}
+
 static bool browser_list_reserve(menu_t *menu, int32_t required) {
     if (required <= menu->browser.list_capacity) {
         return false;
@@ -556,6 +628,7 @@ static bool folder_read_already (const char *folder, const char **read, int coun
 
 static bool load_directory (menu_t *menu) {
     int result;
+    uint64_t began_ms = get_ticks_ms();
 
     browser_list_free(menu);
     directory_entry_limit_exceeded = false;
@@ -615,7 +688,9 @@ static bool load_directory (menu_t *menu) {
         return true;
     }
 
+    uint64_t read_ms = get_ticks_ms();
     if (!folders_tab) games_filter_after_load(menu, compare_entry); // Games: hide what the region filter leaves out
+    uint64_t filtered_ms = get_ticks_ms();
 
     if (menu->browser.entries > 0) {
         menu->browser.selected = 0;
@@ -624,6 +699,10 @@ static bool load_directory (menu_t *menu) {
 
     sort_order_apply(menu, compare_entry); // the player's sort order; compare_entry is the stock one
 
+    uint64_t now = get_ticks_ms();
+    debugf("browser: %s list read in %d ms (%d entries), sorted out in %d ms, sorted in %d ms\n",
+           folders_tab ? "Folders" : "Games", (int) (read_ms - began_ms), (int) menu->browser.entries,
+           (int) (filtered_ms - read_ms), (int) (now - filtered_ms));
     return false;
 }
 
@@ -1418,10 +1497,11 @@ static void browser_show_tab (menu_t *menu, bool folders) {
         return;
     }
 
+    uint64_t began_ms = get_ticks_ms();
     carousel_art_reset();
     game_facts_reset();
-    folder_memory_flush();
     folders_ui_forget(); // the Folders list's kept text
+    // Folder places are saved after a rest (folder_memory.h), not at every tab switch: it cost about 75 ms a time.
 
     if (folders_tab) {
         // Leaving Folders: remember where it was (a zip counts as its folder).
@@ -1436,6 +1516,11 @@ static void browser_show_tab (menu_t *menu, bool folders) {
     }
     // Remember the entry this tab was on.
     snprintf(left_on[tab_slot()], sizeof(left_on[0]), "%s", (menu->browser.entry && !menu->browser.archive) ? menu->browser.entry->name : "");
+
+    if (folders && !folders_tab) {
+        games_list_park(menu);     // the Games list waits for the way back
+    }
+    bool kept = !folders && folders_tab && games_list_unpark(menu);
 
     folders_tab = folders;
 
@@ -1452,7 +1537,9 @@ static void browser_show_tab (menu_t *menu, bool folders) {
         menu->browser.directory = path_init(menu->storage_prefix, "/");
     }
 
-    menu->browser.valid = false;
+    menu->browser.valid = kept;     // a kept Games list needs no reading
+    debugf("browser: switching to %s took %d ms%s\n", folders ? "Folders" : "Games", (int) (get_ticks_ms() - began_ms),
+           kept ? " (Games list kept)" : "");
 }
 
 // Put the selection back on the entry this tab was left on, if it is in the list.
@@ -1477,7 +1564,7 @@ static void browser_show_shelf (menu_t *menu, bool homebrew, bool retro, bool ha
     if (loaded) {
         carousel_art_reset();
         game_facts_reset();
-        folder_memory_flush();
+        // folder places: saved after a rest, not at a tab switch
         snprintf(left_on[tab_slot()], sizeof(left_on[0]), "%s", menu->browser.entry ? menu->browser.entry->name : "");
     }
     homebrew_tab = homebrew;
@@ -1522,7 +1609,7 @@ static void browser_show_pinned (menu_t *menu, games_tab_t tab) {
         } else if (loaded) {
             carousel_art_reset();
             game_facts_reset();
-            folder_memory_flush();
+            // folder places: saved after a rest, not at a tab switch
         }
         pinned_tab = tab;
         pinned_folder = true;
@@ -1548,7 +1635,7 @@ static void browser_show_pinned (menu_t *menu, games_tab_t tab) {
         if (loaded) {
             carousel_art_reset();
             game_facts_reset();
-            folder_memory_flush();
+            // folder places: saved after a rest, not at a tab switch
         }
         games_filter_folder(menu, NULL, loaded);
         if (loaded) {
@@ -1774,6 +1861,7 @@ static void process (menu_t *menu) {
         }
         sound_play_effect(SFX_EXIT);
     } else if (menu->actions.options && menu->browser.entry) {
+        if (folders_tab) games_list_drop(); // Folders' Z rows can change what the Games list holds (delete, rename, folders, marks)
         entry_menu_fill(menu); // "Random game" on the Games tab only; hiding as it suits the tab
         ui_components_context_menu_show(menu->browser.archive ? &archive_context_menu : &entry_context_menu);
         sound_play_effect(SFX_SETTING);
@@ -2773,6 +2861,7 @@ static void draw (menu_t *menu, surface_t *d) {
 
 
 void view_browser_init (menu_t *menu) {
+    if (menu->browser.reload || !menu->browser.valid) games_list_drop(); // something changed (Settings, a profile, the Games folders): read the Games list afresh
     games_ui_set_origin(MENU_MODE_BROWSER); // where B on a game's info screen comes back to
     if (menu->browser.select_file) tabs_browser_show_folders(true); // being sent to a particular file: that is the Folders tab's job
     browser_show_tab(menu, tabs_browser_shows_folders());
@@ -2861,6 +2950,6 @@ void view_browser_display (menu_t *menu, surface_t *display) {
 
     if (menu->next_mode != MENU_MODE_BROWSER) carousel_art_reset(); // free the cover before another screen loads its own
     if (menu->next_mode != MENU_MODE_BROWSER) collections_ui_free();
-    if (menu->next_mode != MENU_MODE_BROWSER) folder_memory_flush();
+    if (menu->next_mode != MENU_MODE_BROWSER && menu->next_mode != MENU_MODE_HISTORY && menu->next_mode != MENU_MODE_FAVORITE) folder_memory_flush(); // not for a tab switch: saved after a rest instead
     if (menu->next_mode != MENU_MODE_BROWSER) game_facts_reset(); // favorites may change while away
 }
