@@ -12,7 +12,8 @@ const { execFileSync } = require('child_process');
 const html = fs.readFileSync(path.join(__dirname, '..', 'docs', 'companion', 'index.html'), 'utf8');
 const a = html.indexOf('// --- sounds logic'), b = html.indexOf('// --- end sounds logic ---');
 if (a < 0 || b < 0) throw new Error('Could not find the logic block in the Sounds tab; did it change?');
-const t = new Function(html.slice(a, b) + 'return {wav64Raw, fadeTail, themeFolderName, SND_SLOTS, SND_RATE};')();
+const V = require(path.join(__dirname, '..', 'docs', 'companion', 'vadpcm.js'));
+const t = new Function(html.slice(a, b) + 'return {wav64Raw, soundBytes, fadeTail, themeFolderName, SND_SLOTS, SND_RATE};')();
 
 let checks = 0, failures = 0;
 function check(cond, what) {
@@ -57,10 +58,33 @@ if (fs.existsSync(conv)) {
     const ours = Buffer.from(t.wav64Raw(asFloat(chans), 22050));
     check(ref.equals(ours), name + ': byte for byte like audioconv64 (' + ref.length + ' bytes)');
   }
+  // Button sounds: VADPCM (docs/companion/vadpcm.js) like audioconv64 without Huffman.
+  let seed = 7;
+  const noise = (n) => Array.from({ length: n }, () => { seed = (seed * 1103515245 + 12345) >>> 0; return Math.round((seed / 4294967296 * 2 - 1) * 30000); });
+  const loud = [Array.from({ length: 4321 }, (_, i) => Math.round(32767 * Math.sin(i * 0.31)))];
+  for (const [name, chans, rate] of [['vadpcm-mono', mono, 32000], ['vadpcm-loud', loud, 32000], ['vadpcm-noise', [noise(2500)], 22050],
+                                      ['vadpcm-stereo', [tone(3000, 0.05), noise(3000)], 22050], ['vadpcm-silence', [new Array(300).fill(0)], 32000]]) {
+    fs.writeFileSync(path.join(dir, name + '.wav'), wavFile(chans, rate));
+    execFileSync(conv, ['--wav-compress', 'vadpcm,huffman=false', '-o', dir, path.join(dir, name + '.wav')], { stdio: 'ignore' });
+    const ref = fs.readFileSync(path.join(dir, name + '.wav64'));
+    const ours = Buffer.from(V.wav64(chans.map((d) => Int16Array.from(d)), rate));
+    check(ref.equals(ours), name + ': byte for byte like audioconv64 (' + ref.length + ' bytes)');
+  }
   fs.rmSync(dir, { recursive: true, force: true });
 } else {
   console.log('audioconv64 not found: comparison skipped');
 }
+
+console.log('which sounds are compressed');
+const effects = t.SND_SLOTS.filter((s) => s.compress).map((s) => s.file).join();
+check(effects === 'move.wav64,select.wav64,back.wav64,setting.wav64,error.wav64,tab.wav64', 'the six button sounds, not the music or intro (' + effects + ')');
+const effectSlot = t.SND_SLOTS.find((s) => s.file === 'move.wav64'), musicSlot = t.SND_SLOTS.find((s) => s.file === 'music.wav64');
+const e = t.soundBytes(asFloat(mono), effectSlot, V), mu = t.soundBytes(asFloat(mono), musicSlot, V);
+check(e[5] === 1 && mu[5] === 0, 'a button sound comes out VADPCM, the music plain');
+check(e.length < (32 + 1001 * 2) / 2, 'a compressed button sound is much smaller (' + e.length + ' bytes)');
+const longest = t.soundBytes([new Float32Array(48000)], effectSlot, V);
+check(longest.length <= 48 * 1024, 'the longest button sound (1.5 s at 32 kHz) fits the 48 KB a 4MB console allows (' + longest.length + ' bytes)');
+check(t.soundBytes(asFloat(mono), effectSlot, null)[5] === 0, 'without the encoder file, plain as before');
 
 console.log('cutting and names');
 const tail = t.fadeTail([new Float32Array(100).fill(1)], 1000, 10);

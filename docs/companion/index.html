@@ -722,7 +722,8 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
       <h2><span class="n">2</span>Pick the sounds</h2>
       <p>Pick only the ones you want to change; the menu uses its own for the rest. Music loops; long files are cut
         (music after 3 minutes, the intro after 8 seconds, button sounds after 1.5 seconds). Button sounds are kept in the
-        console's memory, so keep them short: under 0.75 seconds also works on consoles without the Expansion Pak.</p>
+        console's memory, compressed to about a quarter of their size, so even the longest fits a console without the
+        Expansion Pak.</p>
       <p class="hint"><b>Only the music should loop.</b> The files this page makes never ask to loop; the menu loops the
         music itself. If you make a <code>.wav64</code> another way (libdragon's audioconv64), leave out any loop for the
         intro and the button sounds: a WAV with a loop point (a <code>smpl</code> marker, set in some audio editors) keeps
@@ -1261,11 +1262,12 @@ rounded_corners = 1</code></pre>
       </table></div>
       <ul>
         <li>A file over its limit, or one the menu can't play, is skipped and the menu's own sound is used, so a bad file can't stop the menu.</li>
-        <li>On a console without the Expansion Pak, 48 KB is about 0.75 seconds of button sound, and 160 KB is about 1.8 seconds of stereo intro. Keep sounds short, or
-          your theme falls back to the menu's own there.</li>
+        <li>On a console without the Expansion Pak, 160 KB is about 1.8 seconds of stereo intro. Button sounds from the Sounds tab are compressed, so 48 KB holds
+          about 2.7 seconds and every one fits; an uncompressed one holds only 0.75 seconds. Too large and your theme falls back to the menu's own there.</li>
         <li>Only the music should loop. The menu loops it itself, so make the intro and button sounds without a loop.</li>
-        <li>Sound files from the Sounds tab are uncompressed, which is what lets the music play without crackling. A compressed <code>music.wav64</code> made with
-          libdragon's audioconv64 may crackle while the card is busy.</li>
+        <li>The music and intro from the Sounds tab are uncompressed, which is what lets the music play without crackling. A compressed <code>music.wav64</code> made with
+          libdragon's audioconv64 may crackle while the card is busy. Button sounds are compressed (VADPCM, like the menu's own), which costs nothing as they play:
+          the console keeps them whole in memory and its sound chip unpacks them.</li>
         <li>Fonts are made with libdragon's mkfont. The big title sizes and the smallest text stay the menu's own. A <code>custom.font64</code> in
           <code>menu/</code> wins over a theme's font.</li>
         <li>The intro and the theme's font come before "Who's playing?", so with several profiles they follow whoever played last.</li>
@@ -6767,6 +6769,7 @@ $('chtPickOld').addEventListener('change', function () {
 })();
 </script>
 
+<script src="vadpcm.js"></script>
 <script>
 (function(){
 'use strict';
@@ -6778,12 +6781,12 @@ var SND_EFFECT_4MB = 48 * 1024; // the most a button sound may take without the 
 var SND_SLOTS = [
   { file: 'music.wav64',   label: 'Background music', seconds: 180, channels: 2, rate: SND_RATE },
   { file: 'intro.wav64',   label: 'Power-on tune',    seconds: 8,   channels: 2, rate: SND_RATE },
-  { file: 'move.wav64',    label: 'Move',             seconds: 1.5, channels: 1, rate: SND_EFFECT_RATE },
-  { file: 'select.wav64',  label: 'Select',           seconds: 1.5, channels: 1, rate: SND_EFFECT_RATE },
-  { file: 'back.wav64',    label: 'Back',             seconds: 1.5, channels: 1, rate: SND_EFFECT_RATE },
-  { file: 'setting.wav64', label: 'Change a setting', seconds: 1.5, channels: 1, rate: SND_EFFECT_RATE },
-  { file: 'error.wav64',   label: 'Error',            seconds: 1.5, channels: 1, rate: SND_EFFECT_RATE },
-  { file: 'tab.wav64',     label: 'Switch tab (L / R)', seconds: 1.5, channels: 1, rate: SND_EFFECT_RATE }
+  { file: 'move.wav64',    label: 'Move',             seconds: 1.5, channels: 1, rate: SND_EFFECT_RATE, compress: true },
+  { file: 'select.wav64',  label: 'Select',           seconds: 1.5, channels: 1, rate: SND_EFFECT_RATE, compress: true },
+  { file: 'back.wav64',    label: 'Back',             seconds: 1.5, channels: 1, rate: SND_EFFECT_RATE, compress: true },
+  { file: 'setting.wav64', label: 'Change a setting', seconds: 1.5, channels: 1, rate: SND_EFFECT_RATE, compress: true },
+  { file: 'error.wav64',   label: 'Error',            seconds: 1.5, channels: 1, rate: SND_EFFECT_RATE, compress: true },
+  { file: 'tab.wav64',     label: 'Switch tab (L / R)', seconds: 1.5, channels: 1, rate: SND_EFFECT_RATE, compress: true }
 ];
 
 // An uncompressed wav64, as libdragon's audioconv64 --wav-compress 0 writes it:
@@ -6815,6 +6818,17 @@ function wav64Raw(channels, rate) {
   return out;
 }
 
+// The sound file for one slot: button sounds compressed with VADPCM (`enc`,
+// docs/companion/vadpcm.js: what audioconv64 writes, a quarter of the memory
+// on the console), the music and the intro plain (they are read from the card
+// while the menu draws, and plain files are what keeps that from crackling).
+function soundBytes(channels, slot, enc) {
+  if (!slot.compress || !enc) return wav64Raw(channels, slot.rate);
+  return enc.wav64(channels.map(function (d) {
+    return Int16Array.from(d, function (x) { x = x > 1 ? 1 : (x < -1 ? -1 : x); return Math.round(x * 32767); });
+  }), slot.rate);
+}
+
 // A cut sound fades out over its last `ms` instead of stopping with a click.
 function fadeTail(channels, rate, ms) {
   var n = channels[0].length, k = Math.min(n, Math.round(rate * ms / 1000));
@@ -6827,7 +6841,7 @@ function themeFolderName(text) {
   return String(text || '').replace(/[\\/:*?"<>|]/g, '').trim().slice(0, 40);
 }
 // --- end sounds logic ---
-if (typeof document === 'undefined') { module.exports = { wav64Raw: wav64Raw, fadeTail: fadeTail, themeFolderName: themeFolderName, SND_SLOTS: SND_SLOTS, SND_RATE: SND_RATE }; return; }
+if (typeof document === 'undefined') { module.exports = { wav64Raw: wav64Raw, soundBytes: soundBytes, fadeTail: fadeTail, themeFolderName: themeFolderName, SND_SLOTS: SND_SLOTS, SND_RATE: SND_RATE }; return; }
 
 var T = window.cardTools;
 var $ = function (id) { return document.getElementById(id); };
@@ -6864,7 +6878,7 @@ async function convert(file, slot) {
   var data = [];
   for (var c = 0; c < ch; c++) data.push(new Float32Array(done.getChannelData(c)));
   if (cut) fadeTail(data, slot.rate, slot.channels === 1 ? 50 : 1500);
-  return { bytes: wav64Raw(data, slot.rate), seconds: seconds, cut: cut };
+  return { bytes: soundBytes(data, slot, window.vadpcm), seconds: seconds, cut: cut };
 }
 
 SND_SLOTS.forEach(function (slot) {

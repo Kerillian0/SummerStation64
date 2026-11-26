@@ -8,8 +8,12 @@ One web page, `index.html`, with ten tabs: **Theme Maker**, **Card Prep**,
 own address: `#themes`, `#prep`, `#hacks`, `#art`, `#coll`, `#clips`, `#sounds`, `#pics`, `#cheats`, `#guide` (and `#guide-setup`,
 `#guide-themes`, `#guide-themes-console`, `#guide-menu`, `#guide-profiles`, `#guide-hardware`, `#guide-tools`, `#guide-help`).
 
-Markup, styles and scripts are all in the one file, with no build step. It
-also opens straight from disk in a browser for a quick look.
+Markup, styles and scripts are all in the one file, with no build step, except
+`vadpcm.js`: the Sounds tab's VADPCM encoder for button sounds, a port of the
+codec in libdragon's audioconv64 (by Dietrich Epp). It is under the Mozilla
+Public License 2.0 like the code it comes from, so it stays a file of its own
+with that notice. The page also opens straight from disk in a browser (keep
+`vadpcm.js` beside it; without it, button sounds are written uncompressed).
 
 ## Theme Maker
 
@@ -209,6 +213,7 @@ and settings are named exactly as on the console).
 There is no browser in the dev container. `sh tests/run.sh` runs the Theme
 Maker's share codes, Card Prep's working code (between `// --- logic` and
 `// --- end logic ---`), the Hacks tab's (`// --- hacks logic`), the Missing Metadata
-tab's (`// --- art logic`) and the Collections tab's (`// --- collections logic`) in Node.js, taken straight out of this page. The parts
+tab's (`// --- art logic`), the Collections tab's (`// --- collections logic`) and the Sounds tab's
+(`// --- sounds logic`, with `vadpcm.js` checked byte for byte against audioconv64) in Node.js, taken straight out of this page. The parts
 that need a browser (the preview, picking a folder, saving) are checked by
 opening the page.
