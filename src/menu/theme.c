@@ -5,6 +5,7 @@
 #include <strings.h>
 #include <ctype.h>
 
+#include "memory_log.h"
 #include "theme.h"
 #include "theme_parse.h"
 #include "safe_mode.h"
@@ -786,11 +787,13 @@ static void theme_ensure_background (void) {
     }
     background_built = true;
     theme_init();
+    int before = memory_log_used();
     if (live_possible(&theme)) {
         live_prepare(&theme);
     } else {
         theme_build_background(&theme);
     }
+    memory_log_since(before, "theme background");
 }
 
 const theme_t *theme_get (void) {

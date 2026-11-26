@@ -37,7 +37,7 @@ static int stat_count = 0;
 
 /* Each game's starts and time played per year (play_years.h): 12 bytes a
    game and year. When full, the earliest year's least-played game makes way. */
-#define MAX_YEAR_ROWS   (1024)
+#define MAX_YEAR_ROWS   (512)    /* 6 KB: a game's year is a row; when full, the earliest year's least played goes */
 static play_year_t year_rows[MAX_YEAR_ROWS];
 static play_years_t years = { .rows = year_rows, .count = 0, .max = MAX_YEAR_ROWS };
 static bool loaded = false;

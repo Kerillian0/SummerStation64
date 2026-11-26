@@ -31,11 +31,30 @@
 
 /* ---------- the player's own pairs ---------- */
 
-static struct {
+typedef struct {
     char disk[NAME_LENGTH];
     char cart[NAME_LENGTH];     /* "-" for none */
-} pairs[PAIRS_MAX];
+} pair_t;
+static pair_t *pairs = NULL;    /* allocated as pairs are chosen, 4 at a time: most cards have none */
 static int pairs_count = 0;
+static int pairs_room = 0;
+
+/* Room for one more pair; false when full or out of memory. */
+static bool pairs_make_room (void) {
+    if (pairs_count < pairs_room) {
+        return true;
+    }
+    if (pairs_room >= PAIRS_MAX) {
+        return false;
+    }
+    pair_t *more = realloc(pairs, (pairs_room + 4) * sizeof(pair_t));
+    if (!more) {
+        return false;
+    }
+    pairs = more;
+    pairs_room += 4;
+    return true;
+}
 static bool loaded = false;
 
 /* "sd:/64DD/Game.ndd" -> "64DD/Game.ndd". */
@@ -58,7 +77,7 @@ static void load (void) {
     }
     char line[2 * NAME_LENGTH + 4];
     if (fgets(line, sizeof(line), f) && strncmp(line, FILE_HEADER, strlen(FILE_HEADER)) == 0) {
-        while (pairs_count < PAIRS_MAX && fgets(line, sizeof(line), f)) {
+        while (fgets(line, sizeof(line), f) && pairs_make_room()) {
             line[strcspn(line, "\r\n")] = '\0';
             char *tab = strchr(line, '\t');
             if (!tab || line[0] == '#') {
@@ -111,7 +130,7 @@ static void set_pair (const char *disk, const char *cart) {
         return;
     }
     if (i < 0) {
-        if (pairs_count >= PAIRS_MAX) {
+        if (!pairs_make_room()) {
             return;
         }
         i = pairs_count++;

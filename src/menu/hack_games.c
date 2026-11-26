@@ -17,12 +17,14 @@
 #define MAX_HACKS       (64)
 #define NAME_LENGTH     (96)
 
-static struct {
+typedef struct {
     uint32_t size;
     uint32_t crc;           /* 0: match by name */
     char code[4];
     char name[NAME_LENGTH]; /* the file's name, without its folder */
-} hacks[MAX_HACKS];
+} hack_t;
+static hack_t *hacks = NULL;     /* grown 8 at a time as hacks.txt is read: most cards have none */
+static int room = 0;
 static int count = 0;
 static bool loaded = false;
 
@@ -64,6 +66,14 @@ static void load (void) {
         char code[5];
         int used = 0;
         if (sscanf(line, "%lu %lx %4s %n", &size, &crc, code, &used) == 3 && used > 0 && code_ok(code) && line[used]) {
+            if (count == room) {
+                hack_t *more = realloc(hacks, (room + 8) * sizeof(hack_t));
+                if (!more) {
+                    break;
+                }
+                hacks = more;
+                room += 8;
+            }
             hacks[count].size = (uint32_t) size;
             hacks[count].crc = (uint32_t) crc;
             memcpy(hacks[count].code, code, 4);

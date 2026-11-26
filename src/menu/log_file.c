@@ -16,7 +16,7 @@
 #define MENU_VERSION "Unknown"
 #endif
 
-#define RING_SIZE       (16 * 1024)
+#define RING_SIZE       (8 * 1024)    /* about the last 100 lines */
 
 /* Spare cart memory for a crash's lines: just below the art file's index
    (baked_art.c, 0x13000000) and far from the USB log's area (0x13800000 up).
@@ -96,7 +96,7 @@ static bool write_file (const char *storage_prefix, const char *name, const char
 }
 
 bool log_file_save (const char *storage_prefix) {
-    debugf("log file: saving %s\n", wrapped ? "the last 16 KB" : "everything since start-up");
+    debugf("log file: saving %s\n", wrapped ? "the last 8 KB" : "everything since start-up");
     return write_file(storage_prefix, "log", "SummerStation64 log (Settings > Console > About > Save Log)", ring_each);
 }
 

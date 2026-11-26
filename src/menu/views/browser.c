@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <time.h>
 
+#include "../memory_log.h"
 #include "../assistant.h"
 #include "../attract.h"
 #include "../assistant_ask.h"
@@ -668,6 +669,7 @@ static bool load_directory (menu_t *menu) {
 
     browser_list_free(menu);
     directory_entry_limit_exceeded = false;
+    int memory_before = memory_log_used(); // what the list costs (memory_log.h)
     games_list_cut = false;
 
     if (folders_tab) {
@@ -749,6 +751,7 @@ static bool load_directory (menu_t *menu) {
     debugf("browser: %s list read in %d ms (%d entries), sorted out in %d ms, sorted in %d ms\n",
            folders_tab ? "Folders" : "Games", (int) (read_ms - began_ms), (int) menu->browser.entries,
            (int) (filtered_ms - read_ms), (int) (now - filtered_ms));
+    memory_log_since(memory_before, folders_tab ? "Folders list" : "Games list, its marks and collections");
     return false;
 }
 

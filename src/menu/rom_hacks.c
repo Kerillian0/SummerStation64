@@ -4,6 +4,7 @@
  */
 
 #include <ctype.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "rom_hacks.h"
@@ -96,12 +97,17 @@ static bool holds (const words_t *big, const words_t *small) {
 
 void rom_hacks_find (const char *const *names, const char (*codes)[4], const bool *is_rom, int count, bool *hack) {
     static const char unknown[4] = { 0, 0, 0, 0 };
-    static words_t words[GROUP_MOST];
-    static int score[GROUP_MOST];
+    int score[GROUP_MOST];
     int member[GROUP_MOST];
 
     for (int i = 0; i < count; i++) {
         hack[i] = is_rom[i] && rom_hacks_name_says(names[i]);
+    }
+
+    /* The words of one group's names (7.5 KB), only while this runs. */
+    words_t *words = malloc(GROUP_MOST * sizeof(words_t));
+    if (!words) {
+        return;     /* rule 1 only */
     }
 
     /* Rule 2, a group of files at a time: the files sharing one game code. */
@@ -145,4 +151,5 @@ void rom_hacks_find (const char *const *names, const char (*codes)[4], const boo
             if (!original) hack[member[m]] = true;
         }
     }
+    free(words);
 }

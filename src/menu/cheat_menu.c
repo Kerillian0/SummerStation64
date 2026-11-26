@@ -37,12 +37,12 @@ static char file_path[256];
 static char *text = NULL;           /* the file as read, one line each, '\0' at each line end */
 static char **lines = NULL;         /* each line's start */
 static int line_count = 0;
-static struct {
+static struct cheat {
     int first;                      /* its first line */
     int count;                      /* its lines (the named one and those under it) */
     bool on;
     char name[NAME_LENGTH];
-} cheats[CHEATS_MAX];
+} *cheats = NULL;                   /* CHEATS_MAX of them, only while the list is open (7.5 KB) */
 static int cheat_count = 0;
 static int row = 0, first_row = 0;
 
@@ -90,8 +90,10 @@ static const char *code_part (const char *line, bool *off) {
 static void forget (void) {
     free(text);
     free(lines);
+    free(cheats);
     text = NULL;
     lines = NULL;
+    cheats = NULL;
     line_count = 0;
     cheat_count = 0;
 }
@@ -108,7 +110,8 @@ static bool read_file (void) {
     }
     text = malloc(size + 1);
     lines = malloc(sizeof(char *) * (size / 2 + 2));
-    bool ok = text && lines && fread(text, 1, size, f) == (size_t) size;
+    cheats = malloc(sizeof(struct cheat) * CHEATS_MAX);
+    bool ok = text && lines && cheats && fread(text, 1, size, f) == (size_t) size;
     fclose(f);
     if (!ok) {
         forget();

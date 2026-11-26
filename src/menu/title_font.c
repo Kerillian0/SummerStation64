@@ -5,6 +5,7 @@
 #include "fonts.h"
 #include "theme.h"
 #include "title_font.h"
+#include "memory_log.h"
 
 #define FIT_MARGIN  (16)
 
@@ -36,10 +37,12 @@ void title_font_restyle (void) {
 }
 
 void title_font_init (void) {
+    int before = memory_log_used();
     load(FNT_TITLE, "rom:/Firple-Bold-Title.font64");
     load(FNT_TITLE_MEDIUM, "rom:/Firple-Bold-Title20.font64");
     load(FNT_SMALL, "rom:/Firple-Bold-Small.font64");
     loaded = true;
+    memory_log_since(before, "title and small fonts");
 }
 
 /* True if every character is one the title font has: printable ASCII,

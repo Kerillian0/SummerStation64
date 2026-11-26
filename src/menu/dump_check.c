@@ -18,10 +18,11 @@
 #define VERIFIED_HEADER "verified 1"
 #define MAX_FILES       (768)       /* 13 bytes each: about 10 KB */
 
-static uint32_t keys[MAX_FILES];
-static uint32_t sizes[MAX_FILES];
-static uint32_t crcs[MAX_FILES];    /* the file's CRC-32, for hacks.txt (hack_games.c) */
-static char results[MAX_FILES];     /* 'V', 'M' or 'U', as Card Prep wrote them */
+/* Allocated only when the card has a verified.txt (most don't). */
+static uint32_t *keys;
+static uint32_t *sizes;
+static uint32_t *crcs;              /* the file's CRC-32, for hacks.txt (hack_games.c) */
+static char *results;               /* 'V', 'M' or 'U', as Card Prep wrote them */
 static int count = 0;
 static bool loaded = false;
 
@@ -44,6 +45,16 @@ static void load (void) {
         debugf("dump check: no verified.txt, nothing marked\n");
         return;
     }
+    uint8_t *room = malloc(MAX_FILES * (3 * sizeof(uint32_t) + 1));
+    if (!room) {
+        fclose(f);
+        debugf("dump check: no memory for verified.txt\n");
+        return;
+    }
+    keys = (uint32_t *) room;
+    sizes = keys + MAX_FILES;
+    crcs = sizes + MAX_FILES;
+    results = (char *) (crcs + MAX_FILES);
     char line[256];
     if (fgets(line, sizeof(line), f) && strncmp(line, VERIFIED_HEADER, strlen(VERIFIED_HEADER)) == 0) {
         while (count < MAX_FILES && fgets(line, sizeof(line), f)) {

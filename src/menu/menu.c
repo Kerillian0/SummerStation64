@@ -10,6 +10,7 @@
 
 #include <libdragon.h>
 
+#include "memory_log.h"
 #include "assistant.h"
 #include "animations.h"
 #include "screenshot.h"
@@ -66,6 +67,7 @@ static void menu_init (boot_params_t *boot_params) {
     crash_screen_init();
     menu = calloc(1, sizeof(menu_t));
     assert(menu != NULL);
+    memory_log_begin(); // SummerStation64: where the memory goes (memory_log.h)
 
     menu->boot_params = boot_params;
 
@@ -86,11 +88,13 @@ static void menu_init (boot_params_t *boot_params) {
     rspq_init();
     rdpq_init();
     dfs_init(DFS_DEFAULT_LOCATION);
+    memory_log_step("card, controllers, graphics queues");
 
     actions_init();
     sound_init_default();
     sound_init_sfx();
     sound_init_bgm();
+    memory_log_step("sound (mixer, button sounds, music)");
 
     hdmi_clear_game_id();
 
@@ -109,6 +113,7 @@ static void menu_init (boot_params_t *boot_params) {
     menu->load.load_history_id = -1;
     menu->load.load_favorite_id = -1;
     path_pop(path);
+    memory_log_step("settings, Recent and Favorites");
 
     // Force interlacing off in VI settings for TVs and other devices that struggle with interlaced video input.
     interlaced = !menu->settings.force_progressive_scan;
@@ -120,6 +125,7 @@ static void menu_init (boot_params_t *boot_params) {
     };
 
     display_init(resolution, DEPTH_16_BPP, 2, GAMMA_NONE, interlaced ? FILTERS_DISABLED : FILTERS_RESAMPLE);
+    memory_log_step("screen buffers");
     
     if (menu->settings.pal60_enabled) { // it is not given that hardware VI mods understand the output
         tv_type_t tv_type = get_tv_type();
@@ -139,6 +145,7 @@ static void menu_init (boot_params_t *boot_params) {
     path_push(path, MENU_CUSTOM_FONT_FILE);
     fonts_init(path_get(path));
     path_pop(path);
+    memory_log_step("fonts");
 
     // path_push(path, MENU_CUSTOM_BGM_FILE);
     // bgm_init(path_get(path));
@@ -162,6 +169,7 @@ static void menu_init (boot_params_t *boot_params) {
         menu->browser.directory = path_init(menu->storage_prefix, "/");
     }
 
+    memory_log_step("the rest of start-up");
     debugf("N64FlashcartMenu debugging...\n");
 }
 

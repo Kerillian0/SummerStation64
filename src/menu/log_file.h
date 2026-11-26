@@ -3,7 +3,7 @@
  * @brief The menu's log, kept in memory, saved to the SD card for a bug report.
  *
  * Everything the menu writes to its debug log (debugf) is also kept in a
- * 16 KB ring in memory, the last few hundred lines. Most players have no
+ * 8 KB ring in memory, about the last 100 lines. Most players have no
  * USB cable to read the log live, so:
  *   - Settings > Console > About > Save Log writes it to sd:/menu/log.txt.
  *   - When the menu crashes (the friendly crash screen, or a failed check

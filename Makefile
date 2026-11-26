@@ -90,6 +90,7 @@ SRCS = \
 	menu/rom_info.c \
 	menu/settings.c \
 	menu/sound.c \
+	menu/memory_log.c \
 	menu/log_file.c \
 	menu/tab_names.c \
 	menu/metadata_clear.c \

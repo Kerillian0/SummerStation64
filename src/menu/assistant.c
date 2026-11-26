@@ -7,6 +7,7 @@
 #include <libdragon.h>
 
 #include "animations.h"
+#include "memory_log.h"
 #include "assistant.h"
 #include "game_start.h"
 #include "fonts.h"
@@ -229,12 +230,12 @@ static struct {
     color_t color;
     char games[8][3];
     int game_count;
-    struct {
+    struct skin_line {
         uint8_t kind;           /* LINE_... */
         char mood;              /* 'e' or 's' */
         char key[6];            /* LINE_ON: a code's first three letters, or "zelda" */
         char text[SKIN_LINE_LENGTH];
-    } lines[SKIN_LINES_MAX];
+    } *lines;                   /* allocated when a skin with lines is chosen (9 KB): Vee has none */
     int line_count;
 } skin = { .choice = -1 };
 
@@ -245,6 +246,12 @@ static int line_next[LINE_KINDS];
 static void skin_add (int kind, char mood, const char *key, const char *text) {
     if (skin.line_count >= SKIN_LINES_MAX || (mood != 'e' && mood != 's') || !text[0]) {
         return;
+    }
+    if (!skin.lines) {
+        skin.lines = malloc(SKIN_LINES_MAX * sizeof(skin.lines[0]));
+        if (!skin.lines) {
+            return;
+        }
     }
     skin.lines[skin.line_count].kind = (uint8_t) kind;
     skin.lines[skin.line_count].mood = mood;
@@ -262,6 +269,7 @@ static void skin_load (void) {
     if (choice == skin.choice) {
         return;
     }
+    free(skin.lines);
     memset(&skin, 0, sizeof(skin));
     skin.choice = choice;
     snprintf(skin.name, sizeof(skin.name), "%s", FAIRY_NAME);
@@ -583,6 +591,7 @@ static void set_words (const char *message, bool swap) {
 static void say (const char *message) {
     skin_load();
     if (!fairy) {
+        int before = memory_log_used();
         if (skin.choice > 0) {
             char path[64];
             snprintf(path, sizeof(path), "rom:/assistant/%s.sprite", skin_files[skin.choice - 1]);
@@ -591,6 +600,7 @@ static void say (const char *message) {
             fairy = sprite_load(FAIRY_PATH);
         }
         sparkle = sprite_load(SPARKLE_PATH);
+        memory_log_since(before, "assistant's pictures");
     }
     set_words(message, false);
     state = ARRIVING;
