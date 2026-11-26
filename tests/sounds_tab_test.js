@@ -68,7 +68,7 @@ check(tail[0][89] === 1 && tail[0][99] === 0 && tail[0][95] > 0 && tail[0][95] <
 check(t.themeFolderName(' Lava/Lamp: 2 ') === 'LavaLamp 2', 'slashes and colons left out of the folder name');
 check(t.SND_SLOTS.every((s) => s.rate <= 44100 && s.rate >= 8000), 'every rate is one src/menu/theme_pack.c accepts (8000-44100)');
 check(t.SND_SLOTS.filter((s) => s.channels === 1).every((s) => s.seconds * s.rate * 2 + 32 <= 128 * 1024), 'a button sound at its longest fits the 8MB limit');
-check(t.SND_SLOTS.map((s) => s.file).join() === 'music.wav64,intro.wav64,move.wav64,select.wav64,back.wav64,setting.wav64,error.wav64',
+check(t.SND_SLOTS.map((s) => s.file).join() === 'music.wav64,intro.wav64,move.wav64,select.wav64,back.wav64,setting.wav64,error.wav64,tab.wav64',
   'the file names src/menu/theme_pack.h reads');
 
 console.log(checks + ' checks, ' + failures + ' failed');

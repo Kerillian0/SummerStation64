@@ -515,7 +515,7 @@ static void save (void) {
 #define COPY_CHUNK  (32 * 1024)     /* read and written each frame: the menu keeps drawing (and playing) meanwhile */
 
 static const char *pack_files[] = {
-    "music.wav64", "intro.wav64", "move.wav64", "select.wav64", "back.wav64", "setting.wav64", "error.wav64", "font.font64",
+    "music.wav64", "intro.wav64", "move.wav64", "select.wav64", "back.wav64", "setting.wav64", "error.wav64", "tab.wav64", "font.font64",
 };
 #define PACK_COUNT  ((int) (sizeof(pack_files) / sizeof(pack_files[0])))
 

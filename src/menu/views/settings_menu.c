@@ -1316,7 +1316,7 @@ static void process (menu_t *menu) {
             sub_page = NULL;
             category = item = 0;
             in_items = false;
-            sound_play_effect(SFX_CURSOR);
+            sound_play_effect(SFX_TAB);
             return;
         }
         if (menu->actions.back && assistant_ask_at_topics()) {
@@ -1397,7 +1397,7 @@ static void process (menu_t *menu) {
         category = 0;
         item = 0;
         in_items = false;
-        sound_play_effect(SFX_CURSOR);
+        sound_play_effect(SFX_TAB);
         return;
     }
 

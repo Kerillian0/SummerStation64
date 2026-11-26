@@ -18,6 +18,7 @@
 #define NUM_CHANNELS        (16)
 
 static wav64_t *sfx_cursor, *sfx_error, *sfx_enter, *sfx_exit, *sfx_setting;   // SummerStation64: loaded by theme_pack_effect()
+static wav64_t *sfx_tab;    // SummerStation64: a theme's tab.wav64, else NULL (the cursor sound plays)
 static wav64_t bgm;
 static waveform_t *bgm_wave;     // SummerStation64: &bgm.wave, or a theme's music read ahead (card_music.h)
 static bool bgm_card = false;
@@ -93,6 +94,7 @@ void sound_init_sfx (void) {
     sfx_setting = theme_pack_effect("setting.wav64", "rom:/settings.wav64");
     sfx_enter = theme_pack_effect("select.wav64", "rom:/enter.wav64");
     sfx_error = theme_pack_effect("error.wav64", "rom:/error.wav64");
+    sfx_tab = theme_pack_effect_own("tab.wav64");
     sfx_enabled = true;
     sfx_opened = true;
 }
@@ -169,6 +171,9 @@ void sound_play_effect(sound_effect_t sfx) {
             case SFX_ERROR:
                 wav64_play(sfx_error, SOUND_SFX_CHANNEL);
                 break;
+            case SFX_TAB:
+                wav64_play(sfx_tab ? sfx_tab : sfx_cursor, SOUND_SFX_CHANNEL);
+                break;
             default:
                 break;
         } 
@@ -189,6 +194,7 @@ void sound_reload_files (void) {
         wav64_close(sfx_setting);
         wav64_close(sfx_enter);
         wav64_close(sfx_error);
+        if (sfx_tab) wav64_close(sfx_tab);
         bool was_enabled = sfx_enabled;
         sound_init_sfx();
         sfx_enabled = was_enabled;
@@ -214,6 +220,7 @@ void sound_deinit (void) {
             wav64_close(sfx_setting);
             wav64_close(sfx_enter);
             wav64_close(sfx_error);
+            if (sfx_tab) wav64_close(sfx_tab);
             sfx_opened = false;
         }
         if (bgm_opened) {

@@ -26,6 +26,7 @@ typedef enum {
     SFX_ENTER,   /**< Sound effect for entering a menu */
     SFX_EXIT,    /**< Sound effect for exiting a menu */
     SFX_SETTING, /**< Sound effect for changing a setting */
+    SFX_TAB,     /**< SummerStation64: switching tabs with L / R (a theme's tab.wav64, else the cursor sound) */
 } sound_effect_t;
 
 /**

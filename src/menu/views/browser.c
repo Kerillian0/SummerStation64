@@ -1729,7 +1729,7 @@ static void browser_step_tab (menu_t *menu, int direction) {
     if (next == here) {
         return;
     }
-    sound_play_effect(SFX_CURSOR);
+    sound_play_effect(SFX_TAB);
     tabs_open(menu, next);
     tabs_slide_begin(menu, direction); // the new tab's covers slide in from that side
     if (menu->next_mode == MENU_MODE_BROWSER) {

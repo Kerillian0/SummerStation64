@@ -273,7 +273,7 @@ static void process(menu_t *menu) {
         games_tab_t here = (tab_context == BOOKKEEPING_TAB_CONTEXT_FAVORITE) ? GAMES_TAB_FAVORITES : GAMES_TAB_RECENT;
         tabs_open(menu, tabs_step(here, menu->actions.go_right ? 1 : -1));
         tabs_slide_begin(menu, menu->actions.go_right ? 1 : -1); // the new tab's covers slide in from that side
-        sound_play_effect(SFX_CURSOR);
+        sound_play_effect(SFX_TAB);
     } else if (menu->actions.settings) {
         menu->next_mode = MENU_MODE_SETTINGS_EDITOR; // START opens Settings at once
         sound_play_effect(SFX_SETTING);

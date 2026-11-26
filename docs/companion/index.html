@@ -1255,6 +1255,7 @@ rounded_corners = 1</code></pre>
           <tr><td><code>back.wav64</code></td><td>Going back</td><td>48 KB / 128 KB</td></tr>
           <tr><td><code>setting.wav64</code></td><td>Changing a setting</td><td>48 KB / 128 KB</td></tr>
           <tr><td><code>error.wav64</code></td><td>Something went wrong</td><td>48 KB / 128 KB</td></tr>
+          <tr><td><code>tab.wav64</code></td><td>Switching tabs with L or R, on the cover tabs and Settings' headings. Without it, the move sound plays</td><td>48 KB / 128 KB</td></tr>
           <tr><td><code>font.font64</code></td><td>The menu's body text, after a restart</td><td>128 KB / 1 MB</td></tr>
         </tbody>
       </table></div>
@@ -6781,7 +6782,8 @@ var SND_SLOTS = [
   { file: 'select.wav64',  label: 'Select',           seconds: 1.5, channels: 1, rate: SND_EFFECT_RATE },
   { file: 'back.wav64',    label: 'Back',             seconds: 1.5, channels: 1, rate: SND_EFFECT_RATE },
   { file: 'setting.wav64', label: 'Change a setting', seconds: 1.5, channels: 1, rate: SND_EFFECT_RATE },
-  { file: 'error.wav64',   label: 'Error',            seconds: 1.5, channels: 1, rate: SND_EFFECT_RATE }
+  { file: 'error.wav64',   label: 'Error',            seconds: 1.5, channels: 1, rate: SND_EFFECT_RATE },
+  { file: 'tab.wav64',     label: 'Switch tab (L / R)', seconds: 1.5, channels: 1, rate: SND_EFFECT_RATE }
 ];
 
 // An uncompressed wav64, as libdragon's audioconv64 --wav-compress 0 writes it:

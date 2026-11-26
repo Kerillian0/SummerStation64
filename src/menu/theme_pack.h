@@ -12,6 +12,8 @@
  *   back.wav64     going back
  *   setting.wav64  changing a setting
  *   error.wav64    something went wrong
+ *   tab.wav64      switching tabs with L / R (the cover tabs and Settings'
+ *                  headings); without one, the move sound plays as before
  *   font.font64    the menu's text font (applies after a restart)
  * Button sounds and the intro tune are read into memory whole (at most 48 KB
  * each and 160 KB on a 4MB console, 128 KB and 768 KB with the Expansion
@@ -34,6 +36,9 @@ const char *theme_pack_sound (const char *file_name, const char *rom_path);
 
 /** A button sound: the theme's own read into memory whole (if it fits), else `rom_path` streamed as before. */
 wav64_t *theme_pack_effect (const char *file_name, const char *rom_path);
+
+/** A button sound the menu has no file of its own for: the theme's, read into memory whole, or NULL. */
+wav64_t *theme_pack_effect_own (const char *file_name);
 
 /** The intro tune to play (once): the theme's own read into memory whole if it fits, else the menu's. Call theme_pack_intro_free() after stopping its channel. */
 waveform_t *theme_pack_intro (void);

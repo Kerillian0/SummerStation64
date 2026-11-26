@@ -88,10 +88,10 @@ static long file_size (const char *path) {
 /* Reading a sound from the card bit by bit while it plays held up frames
    by 50-90 ms and made it crunch (the owner's logs, 2026-10-28), so a
    theme's button sounds and intro tune are read into memory once, whole.
-   Too large for this console: the menu's own. */
+   Too large for this console: the menu's own (`rom_path`; NULL: none). */
 static wav64_t *load_whole (const char *file_name, const char *rom_path, long most_4mb, long most_8mb) {
-    const char *path = theme_pack_sound(file_name, rom_path);
-    if (strncmp(path, "rom:", 4) != 0) {
+    const char *path = theme_pack_sound(file_name, rom_path ? rom_path : "");
+    if (path[0] && strncmp(path, "rom:", 4) != 0) {
         long most = (get_memory_size() > 0x400000) ? most_8mb : most_4mb;
         long size = file_size(path);
         if (size > 0 && size <= most) {
@@ -103,11 +103,15 @@ static wav64_t *load_whole (const char *file_name, const char *rom_path, long mo
         debugf("theme pack: %s left out (%ld bytes, at most %ld kept in memory here)\n", path, size, most);
         path = rom_path;
     }
-    return wav64_load(path, NULL);
+    return path && path[0] ? wav64_load(path, NULL) : NULL;
 }
 
 wav64_t *theme_pack_effect (const char *file_name, const char *rom_path) {
     return load_whole(file_name, rom_path, EFFECT_MAX_4MB, EFFECT_MAX_8MB);
+}
+
+wav64_t *theme_pack_effect_own (const char *file_name) {
+    return load_whole(file_name, NULL, EFFECT_MAX_4MB, EFFECT_MAX_8MB);
 }
 
 /* The intro tune. libdragon plays a sound kept whole in memory straight
