@@ -24,6 +24,11 @@ The logos and clips (scripts/fetch_logos.py, scripts/fetch_preview_clips.py,
 scripts/make_preview_clip.py, in build/logos and build/previews) are far too
 big for the menu file, which the cart must load within 5 seconds, so they
 go in a pack of their own that players unzip onto the card.
+
+Card themes the owner ships (assets/themes/source/<name>/: theme.ini, its
+.wav64 sounds and font; git-ignored, never committed: the OOT File Select
+theme's music and sounds are Nintendo's) go in the same zip as
+menu/themes/<name>/, which Settings > Look > Theme then lists.
 Never run `make clean` near a release: it deletes output/.
 """
 import hashlib
@@ -72,6 +77,19 @@ to any of them and want them removed, open an issue at
 https://github.com/Kerillian0/SummerStation64 and the pack will be replaced
 without them.
 """
+THEMES_SOURCE = os.path.join(ROOT, "assets", "themes", "source")
+# What a card theme folder may hold (src/menu/theme_pack.h); anything else
+# (desktop.ini, notes, the sounds' originals) is left out of the zip.
+THEME_FILES = {"theme.ini", "theme.txt", "font.font64", "music.wav64", "intro.wav64", "move.wav64",
+               "select.wav64", "back.wav64", "setting.wav64", "error.wav64", "tab.wav64"}
+THEMES_NOTICE = """
+  menu/themes/...       extra themes, listed under Settings > Look > Theme
+                        once unzipped
+
+The themes' music and sounds are not part of SummerStation64 either; they
+belong to the games they come from and their publishers, and are included
+for use with the menu on your own console, on the same terms as above.
+"""
 STALE = [os.path.join(ROOT, "build", "N64FlashcartMenu.dfs"),        # the ROM's files, packed again
          os.path.join(ROOT, "build", "menu", "views", "credits.o")]  # carries the version name
 
@@ -103,6 +121,27 @@ def no_skins(path, edition):
             sys.exit(f"The assistant's skins ended up in {edition}: not releasing it.")
         if b"a00\t" in data:
             sys.exit(f"The owner's profile pictures ended up in {edition}: not releasing it.")
+
+
+def add_themes(z):
+    """Each folder in assets/themes/source with a theme.ini goes in as
+    menu/themes/<folder>/. Returns the themes' names."""
+    names = []
+    if not os.path.isdir(THEMES_SOURCE):
+        return names
+    for name in sorted(os.listdir(THEMES_SOURCE)):
+        folder = os.path.join(THEMES_SOURCE, name)
+        if not os.path.isdir(folder):
+            continue
+        files = sorted(f for f in os.listdir(folder) if f.lower() in THEME_FILES and os.path.isfile(os.path.join(folder, f)))
+        if not any(f.lower() in ("theme.ini", "theme.txt") for f in files):
+            print(f"Note: assets/themes/source/{name} has no theme.ini: left out.")
+            continue
+        for f in files:
+            # Raw sounds shrink a little; wav64 files are small enough to deflate quickly.
+            z.write(os.path.join(folder, f), f"menu/themes/{name}/{f.lower()}", compress_type=zipfile.ZIP_DEFLATED)
+        names.append(f"{name} ({len(files)} files)")
+    return names
 
 
 def sha1(path):
@@ -169,7 +208,8 @@ def main():
     say("Covers, logos and clips")
     count = 0
     with zipfile.ZipFile(pack, "w") as z:
-        z.writestr("COVERS-LOGOS-AND-CLIPS-README.txt", PACK_NOTICE, compress_type=zipfile.ZIP_DEFLATED)
+        themes = add_themes(z)
+        z.writestr("COVERS-LOGOS-AND-CLIPS-README.txt", PACK_NOTICE + (THEMES_NOTICE if themes else ""), compress_type=zipfile.ZIP_DEFLATED)
         # The art packs well; sprites and H.264 clips hardly shrink, so they are stored.
         z.write(ART_PACK, "menu/art.pak", compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
         sources = [source for source in PACK_SOURCES if os.path.isdir(source)]
@@ -180,6 +220,7 @@ def main():
                     z.write(path, os.path.join("menu", os.path.relpath(path, source)), compress_type=zipfile.ZIP_STORED)
                     count += 1
     print(f"  art.pak and {count} logo and clip files")
+    print("  themes: " + (", ".join(themes) if themes else "none (assets/themes/source is empty)"))
     if not sources:
         print("Note: no logos or clips made (build/logos, build/previews): the pack holds the box art only.")
 
@@ -196,4 +237,5 @@ def main():
         print("Your own build with Navi and Tatl: run  make sc64  again.")
 
 
-main()
+if __name__ == "__main__":
+    main()

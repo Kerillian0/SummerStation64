@@ -24,6 +24,8 @@
 /assets/profiles/source/
 /filesystem/avatars/
 /assets/assistant/source/
+# Card themes shipped only in the release's SD card zip (see assets/themes/README.md)
+/assets/themes/source/
 /filesystem/assistant/
 
 # Ignore external development tools
