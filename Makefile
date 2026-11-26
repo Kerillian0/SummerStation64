@@ -22,6 +22,10 @@ N64_ROM_REGIONFREE = 1
 N64_ROM_REGION = E
 N64_ROM_EXPANSIONPAK = recommended
 
+# SummerStation64: code is built for size (-Os), which on a 4MB console leaves
+# about 150 KB more memory free than libdragon's usual -O2. Files that crunch
+# data (SPEED_OBJS below) stay on -O2.
+N64_CFLAGS += -Os
 N64_CFLAGS += -iquote $(SOURCE_DIR) -iquote $(ASSETS_DIR) -I $(SOURCE_DIR)/libs -isystem $(SOURCE_DIR)/libs/miniz -flto=auto $(FLAGS)
 
 SRCS = \
@@ -263,6 +267,17 @@ $(FILESYSTEM_DIR)/sparkle.sprite: MKSPRITE_FLAGS=--format I4
 OBJS = $(addprefix $(BUILD_DIR)/, $(addsuffix .o,$(basename $(SRCS))))
 MINIZ_OBJS = $(filter $(BUILD_DIR)/libs/miniz/%.o,$(OBJS))
 SPNG_OBJS = $(filter $(BUILD_DIR)/libs/libspng/%.o,$(OBJS))
+
+# Built for speed (-O2) where loops crunch data: picture, PNG, zip and sound
+# decoding (card covers, music played while the menu draws), the per-pixel
+# work on covers and backgrounds, the 3D box sums, the SD card and the boot
+# code. Everything else is mostly calls into libdragon, which keeps its own -O2.
+SPEED_SRCS = libs/% flashcart/% boot/% \
+	menu/audio_player.c menu/png_decoder.c menu/jpeg_decoder.c menu/shot_png.c \
+	menu/art_tint.c menu/art_trim.c menu/theme.c menu/box3d.c \
+	menu/card_music.c menu/theme_pack.c
+SPEED_OBJS = $(addprefix $(BUILD_DIR)/, $(addsuffix .o,$(basename $(filter $(SPEED_SRCS),$(SRCS)))))
+$(SPEED_OBJS): N64_CFLAGS += -O2
 DEPS = $(OBJS:.o=.d)
 
 FILESYSTEM = \
