@@ -35,6 +35,7 @@ static const option_info_t option_info[OPTION_COUNT] = {
     [OPTION_TAB7] = { "tab7", 0 },
     [OPTION_TAB8] = { "tab8", 0 },
     [OPTION_CLOCK_24H] = { "clock_24h", 0 },
+    [OPTION_MUSIC_BOOST] = { "music_boost", 0 }, /* off */
     [OPTION_RING_TINT] = { "ring_tint", 1 },    /* on the Game info screen */
     [OPTION_PERF_OVERLAY] = { "perf_overlay", 0 },
     [OPTION_PAK_BADGES] = { "pak_badges", 2 },  /* colored */

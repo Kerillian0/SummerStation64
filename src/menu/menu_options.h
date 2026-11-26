@@ -68,6 +68,7 @@ typedef enum {
     OPTION_TAB7,
     OPTION_TAB8,
     OPTION_CLOCK_24H,   /**< 1: times as 14:35, 0: as 2:35 PM (games_ui_time()) */
+    OPTION_MUSIC_BOOST, /**< 0-4: the music made louder by 0, 3, 6, 9 or 12 dB (see volume.h) */
     OPTION_COUNT
 } option_t;
 

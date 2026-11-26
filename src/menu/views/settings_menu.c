@@ -674,6 +674,8 @@ static const item_t sound_items[] = {
     SWITCH("Sound Effects", soundfx_enabled, false, apply_soundfx, "Play sounds when moving around the menu."),
     SWITCH("Background Music", bgm_enabled, false, apply_bgm, "Play music in the menu."),
     SLIDER("Music Volume", OPTION_MUSIC_VOLUME, apply_volume, "How loud the menu's music plays. 5 is the usual level, 10 twice as loud. Left and right change it."),
+    CHOICES("Music Boost", OPTION_MUSIC_BOOST, VOLUME_BOOST_STEPS, volume_boost_name, apply_volume,
+        "Makes quiet music louder, on top of Music Volume. Each 3 dB step is about 1.4 times as loud; +12 dB about four times. Turn it down if the music crackles or distorts."),
     SLIDER("Sound Volume", OPTION_SOUND_VOLUME, apply_volume, "How loud the button sounds and the intro tune play. 5 is the usual level, 10 twice as loud. Left and right change it."),
 };
 
