@@ -54,6 +54,7 @@
 #include "../cover_list.h"
 #include "../carousel.h"
 #include "../tabs.h"
+#include "../memory_note.h"
 #include "../folders_ui.h"
 #include "../intro.h"
 #include "../versions_screen.h"
@@ -117,6 +118,25 @@ static bool cards_showing (void) {
 static bool archive_entry_limit_exceeded = false;
 static bool archive_entry_precheck_failed = false;
 static bool directory_entry_limit_exceeded = false;
+
+// Without the Expansion Pak the Games list (every Games folder in one list)
+// is not refused past the stock 1,024 files: the first 1,024 are always
+// read (stopping only if memory is all but gone), and past them it carries
+// on while 512 KB stays free. Either way it stops and keeps what it has
+// (the start folder comes first), instead of failing with "too large for
+// Jumper Pak". A fixed floor for every game was wrong: with a stored
+// background (Grape) a Jumper Pak has under 300 KB free before a single
+// game is read, and the list came up empty (2026-11-26).
+#define GAMES_LIST_SAFE_FREE    (128 * 1024)    // below this, stop at once: nothing else could be loaded
+#define GAMES_LIST_EXTRA_FREE   (512 * 1024)    // past the stock 1,024: only while this much stays free
+static bool games_list_cut = false;     // this reading of the Games list was stopped for memory
+
+static bool games_list_memory_short (int entries) {
+    heap_stats_t heap;
+    sys_get_heap_stats(&heap);
+    int free_bytes = heap.total - heap.used;
+    return free_bytes < ((entries < DIRECTORY_MAX_ENTRIES_JUMPER_PAK) ? GAMES_LIST_SAFE_FREE : GAMES_LIST_EXTRA_FREE);
+}
 
 static const char *hidden_root_paths[] = {
     "/menu.bin",
@@ -499,7 +519,17 @@ static int scan_folder (menu_t *menu, path_t *path, const char *prefix) {
         }
 
         if (!hide) {
-            if (!is_memory_expanded() && menu->browser.entries >= DIRECTORY_MAX_ENTRIES_JUMPER_PAK) {
+            if (!folders_tab && !is_memory_expanded()) {
+                // The Games list: by memory, checked every 64 games (cheap); stop, don't fail.
+                if (games_list_cut || ((menu->browser.entries & 63) == 0 && games_list_memory_short((int) menu->browser.entries))) {
+                    if (!games_list_cut) {
+                        debugf("browser: Games list stopped at %d entries, memory short, reading %s\n", (int) menu->browser.entries, path_get(path));
+                        memory_note_cut(MEMORY_CUT_GAMES_LIST);
+                    }
+                    games_list_cut = true;
+                    return -1;
+                }
+            } else if (!is_memory_expanded() && menu->browser.entries >= DIRECTORY_MAX_ENTRIES_JUMPER_PAK) {
                 directory_entry_limit_exceeded = true;
                 debugf("browser: list full at %d entries (Jumper Pak limit), reading %s\n", (int) menu->browser.entries, path_get(path));
                 return -2;
@@ -638,6 +668,7 @@ static bool load_directory (menu_t *menu) {
 
     browser_list_free(menu);
     directory_entry_limit_exceeded = false;
+    games_list_cut = false;
 
     if (folders_tab) {
         path_t *path = path_clone(menu->browser.directory);
@@ -1069,6 +1100,7 @@ static void version_name (char *out, size_t size, const char *name, bool hack) {
 // covers (versions_screen.c); with `screen` false the same column chooses one
 // to hide instead. @return true if it did.
 static void hide_picked_version (menu_t *menu, entry_t *e);
+static void hide_version_row (menu_t *menu, void *arg);
 
 static bool versions_open (menu_t *menu, entry_t *cover, bool screen) {
     if (folders_tab || cover->type != ENTRY_TYPE_ROM || games_filter_versions(menu, cover) < 2) {
@@ -1116,6 +1148,15 @@ static bool versions_open (menu_t *menu, entry_t *cover, bool screen) {
     }
     versions_menu.list[n].text = NULL;
     version_launch = controls_consume_launch_request();
+    if (!versions_screen_fits(menu, version_entries, n)) {
+        // Too little memory for the column (a Jumper Pak): the plain list, A starts or hides the version.
+        for (int i = 0; !screen && i < n; i++) {
+            versions_menu.list[i].action = hide_version_row;
+        }
+        ui_components_context_menu_init(&versions_menu);
+        ui_components_context_menu_show(&versions_menu);
+        return true;
+    }
     if (screen) {
         const char *names[VERSIONS_MAX];
         for (int i = 0; i < n; i++) {
@@ -1174,6 +1215,11 @@ static void hide_ask (entry_t **entries, int n) {
 static void hide_picked_version (menu_t *menu, entry_t *e) {
     (void) menu;
     hide_ask(&e, 1);    // asked once the column has folded back
+}
+
+// The plain list's row, when the column didn't fit: hide that version (asked first).
+static void hide_version_row (menu_t *menu, void *arg) {
+    hide_picked_version(menu, (entry_t *) arg);
 }
 
 static void hide_all_versions (menu_t *menu, void *arg) {

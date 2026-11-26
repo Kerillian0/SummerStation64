@@ -16,6 +16,8 @@ static const char *what_was_cut[MEMORY_CUT_COUNT] = {
     [MEMORY_CUT_TITLE_LOGO] = "a title logo",
     [MEMORY_CUT_VIDEO_PREVIEW] = "a Game info clip",
     [MEMORY_CUT_ACHIEVEMENT_BADGE] = "achievement badges",
+    [MEMORY_CUT_VERSIONS_COLUMN] = "the versions column",
+    [MEMORY_CUT_GAMES_LIST] = "some games (the Games list was cut short)",
 };
 
 static int free_kb (void) {

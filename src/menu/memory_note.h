@@ -20,6 +20,8 @@ typedef enum {
     MEMORY_CUT_TITLE_LOGO,      /**< Game info showed the name as text, not the game's logo */
     MEMORY_CUT_VIDEO_PREVIEW,   /**< Game info showed the cover, not the game's clip */
     MEMORY_CUT_ACHIEVEMENT_BADGE,   /**< an achievement shown without its badge picture */
+    MEMORY_CUT_VERSIONS_COLUMN, /**< a game's versions shown as a plain list, not the column of covers */
+    MEMORY_CUT_GAMES_LIST,      /**< the Games list stopped reading: the last folders' games left out */
     MEMORY_CUT_COUNT
 } memory_cut_t;
 

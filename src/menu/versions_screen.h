@@ -79,4 +79,11 @@ void versions_screen_after_draw (menu_t *menu);
 /** Close at once and free its covers (the list is being read again, or the screen left). */
 void versions_screen_close (void);
 
+/**
+ * Whether the column fits in memory now: open, it must still leave the
+ * 256 KB reserve (its blur and covers counted). When it doesn't, the caller
+ * shows the plain pop-up list of versions instead (a Jumper Pak's case).
+ */
+bool versions_screen_fits (menu_t *menu, entry_t **entries, int n);
+
 #endif /* VERSIONS_SCREEN_H__ */

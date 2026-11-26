@@ -12,6 +12,7 @@
 #include "games_ui.h"
 #include "menu_features.h"
 #include "menu_options.h"
+#include "memory_note.h"
 #include "play_stats.h"
 #include "sound.h"
 #include "theme.h"
@@ -186,6 +187,46 @@ void versions_screen_open (menu_t *menu, entry_t **entries, const char **names, 
     state = features_enabled(FEATURE_CAROUSEL_ANIMATION) ? OPENING : OPEN;
     state_since = get_ticks_ms();
     debugf("versions screen: %d versions, %d pictures\n", count, art_count);
+}
+
+/* What the column takes while open: the blur's four steps
+   (320x240 + 160x120 + 80x60 + 40x30, 16-bit), and a baked cover per game
+   code (a picture from the card waits for CARD_MIN_FREE by itself). */
+#define BLUR_BYTES      ((320 * 240 + 160 * 120 + 80 * 60 + 40 * 30) * 2)
+#define COVER_BYTES     (36 * 1024)
+#define RESERVE_BYTES   (256 * 1024)    /* kept free on every screen (CLAUDE.md, memory budget) */
+
+bool versions_screen_fits (menu_t *menu, entry_t **entries, int n) {
+    heap_stats_t heap;
+    sys_get_heap_stats(&heap);
+    int free_bytes = heap.total - heap.used;
+    int need = (free_bytes >= BLUR_MIN_FREE) ? BLUR_BYTES : 0;
+    char codes[MAX_ROWS][4];
+    int code_count = 0;
+    for (int i = 0; i < n && i < MAX_ROWS; i++) {
+        path_t *path = path_clone_push(menu->browser.directory, entries[i]->name);
+        const game_index_entry_t *known = game_index_find(path_get(path), entries[i]->size);
+        path_free(path);
+        if (!known || !known->code[0]) {
+            continue;
+        }
+        bool seen = false;
+        for (int k = 0; k < code_count && !seen; k++) {
+            seen = (memcmp(codes[k], known->code, 4) == 0);
+        }
+        if (!seen) {
+            memcpy(codes[code_count++], known->code, 4);
+            if (baked_art_has(known->code, IMAGE_BOXART_FRONT)) {
+                need += COVER_BYTES;
+            }
+        }
+    }
+    bool fits = (free_bytes - need) >= RESERVE_BYTES;
+    if (!fits) {
+        debugf("versions screen: %d KB free, the column needs about %d KB: the plain list instead\n", free_bytes / 1024, need / 1024);
+        memory_note_cut(MEMORY_CUT_VERSIONS_COLUMN);
+    }
+    return fits;
 }
 
 void versions_screen_open_pick (menu_t *menu, entry_t **entries, const char **names, int n, int selected_first,
