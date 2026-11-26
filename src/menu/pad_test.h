@@ -12,6 +12,12 @@
  * (Rumble Pak, Controller Pak, Transfer Pak), and with a Rumble Pak, Z + A
  * rumbles it for half a second.
  *
+ * A second page (C-left / C-right), Controller Ports: a card per port (what
+ * is plugged in: N64 controller, GameCube controller, mouse; and its
+ * accessory) and a rumble test: Short (0.2 s), Long (1.5 s) or Pulse (six
+ * buzzes), picked with left/right and run by A on the Rumble Pak of the
+ * controller that pressed it.
+ *
  * Every button is tested, so none of them leaves: holding B for two seconds
  * does, while a ring fills. Buttons are read straight from the controllers.
  *

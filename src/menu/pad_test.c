@@ -50,6 +50,26 @@ static bool b_was_down = false;
 static uint64_t rumble_until = 0;
 static bool both_were_down = false;     /* Z + A, so one press rumbles once */
 
+/* The second page, Controller Ports (C-left / C-right): all four ports and
+   a rumble test of three patterns, each run on the Rumble Pak of the
+   controller whose A started it. */
+typedef enum { PATTERN_SHORT, PATTERN_LONG, PATTERN_PULSE, PATTERNS } pattern_t;
+static const char *const pattern_names[PATTERNS] = { "Short", "Long", "Pulse" };
+#define SHORT_MS        (200)
+#define LONG_MS         (1500)
+#define PULSE_ON_MS     (120)
+#define PULSE_OFF_MS    (120)
+#define PULSES          (6)
+
+static int page = 0;                    /* 0 the controller, 1 the ports */
+static pattern_t pattern = PATTERN_SHORT;
+static int test_port = -1;              /* the port rumbling a pattern, or -1 */
+static pattern_t test_pattern;
+static uint64_t test_since = 0;
+static bool test_on = false;            /* what the motor was last told */
+static uint32_t pressed_before[PORTS];  /* each port's buttons last frame, for fresh presses */
+static int no_rumble_port = -1;         /* a port whose A found no Rumble Pak, for the note */
+
 void pad_test_open (void) {
     active = true;
     for (int p = 0; p < PORTS; p++) {
@@ -68,6 +88,13 @@ void pad_test_open (void) {
     b_was_down = true;      /* a B already down (none should be) isn't a hold */
     both_were_down = true;
     rumble_until = 0;
+    page = 0;
+    test_port = -1;
+    test_on = false;
+    no_rumble_port = -1;
+    for (int p = 0; p < PORTS; p++) {
+        pressed_before[p] = joypad_is_connected(p) ? joypad_get_buttons(p).raw : 0;    /* held on the way in: not a press */
+    }
 }
 
 bool pad_test_active (void) {
@@ -94,6 +121,73 @@ static void note_stick (int port, int x, int y) {
     int d = ((int) lroundf(a / ((float) M_PI / 4.0f)) + 8) % 8;
     if (m > reach[port][d]) {
         reach[port][d] = m;
+    }
+}
+
+/* Whether a pattern wants the motor on, `ms` after it started; false at the end too. */
+static bool pattern_on (pattern_t which, uint64_t ms, bool *done) {
+    *done = false;
+    switch (which) {
+        case PATTERN_SHORT: *done = ms >= SHORT_MS; return !*done;
+        case PATTERN_LONG: *done = ms >= LONG_MS; return !*done;
+        default: {
+            uint64_t period = PULSE_ON_MS + PULSE_OFF_MS;
+            *done = ms >= period * PULSES;
+            return !*done && (ms % period) < PULSE_ON_MS;
+        }
+    }
+}
+
+static void test_stop (void) {
+    if (test_port >= 0 && test_on && joypad_is_connected(test_port)) {
+        joypad_set_rumble_active(test_port, false);
+    }
+    test_port = -1;
+    test_on = false;
+}
+
+/* The ports page's buttons: C-left/right change page (in pad_test_process), left/right pick a pattern, A runs it. */
+static void ports_process (uint64_t now) {
+    for (int p = 0; p < PORTS; p++) {
+        if (!joypad_is_connected(p)) {
+            continue;
+        }
+        joypad_buttons_t btn = joypad_get_buttons(p);
+        uint32_t fresh = btn.raw & ~pressed_before[p];
+        joypad_buttons_t down = { .raw = fresh };
+        joypad_inputs_t in = joypad_get_inputs(p);
+        static int8_t stick_before[PORTS];
+        int dir = (down.d_left ? -1 : 0) + (down.d_right ? 1 : 0);
+        if (in.stick_x < -50 && stick_before[p] >= -50) dir = -1;
+        if (in.stick_x > 50 && stick_before[p] <= 50) dir = 1;
+        stick_before[p] = (int8_t) ((in.stick_x < -127) ? -127 : (in.stick_x > 127 ? 127 : in.stick_x));
+        if (dir) {
+            pattern = (pattern_t) ((pattern + dir + PATTERNS) % PATTERNS);
+            sound_play_effect(SFX_CURSOR);
+        }
+        if (down.a) {
+            if (joypad_get_rumble_supported(p)) {
+                test_stop();
+                test_port = p;
+                test_pattern = pattern;
+                test_since = now;
+                no_rumble_port = -1;
+                sound_play_effect(SFX_SETTING);
+            } else {
+                no_rumble_port = p;
+                sound_play_effect(SFX_ERROR);
+            }
+        }
+    }
+    if (test_port >= 0) {
+        bool done;
+        bool want = joypad_is_connected(test_port) && pattern_on(test_pattern, now - test_since, &done);
+        if (!joypad_is_connected(test_port) || done) {
+            test_stop();
+        } else if (want != test_on) {
+            joypad_set_rumble_active(test_port, want);
+            test_on = want;
+        }
     }
 }
 
@@ -132,9 +226,37 @@ void pad_test_process (menu_t *menu) {
     b_was_down = b_down;
     if (b_since && now - b_since >= LEAVE_MS) {
         pad_rumble_off();
+        test_stop();
         active = false;
         sound_play_effect(SFX_EXIT);
         return;
+    }
+
+    /* C-left / C-right, on any controller: the other page. */
+    for (int p = 0; p < PORTS; p++) {
+        if (!joypad_is_connected(p)) {
+            continue;
+        }
+        uint32_t raw = joypad_get_buttons(p).raw;
+        joypad_buttons_t down = { .raw = raw & ~pressed_before[p] };
+        if (down.c_left || down.c_right) {
+            page = 1 - page;
+            pad_rumble_off();
+            test_stop();
+            no_rumble_port = -1;
+            sound_play_effect(SFX_CURSOR);
+            break;
+        }
+    }
+    if (page == 1) {
+        ports_process(now);
+        for (int p = 0; p < PORTS; p++) {
+            pressed_before[p] = joypad_is_connected(p) ? joypad_get_buttons(p).raw : 0;
+        }
+        return;
+    }
+    for (int p = 0; p < PORTS; p++) {
+        pressed_before[p] = joypad_is_connected(p) ? joypad_get_buttons(p).raw : 0;
     }
 
     joypad_buttons_t btn = joypad_get_buttons(shown);
@@ -379,8 +501,98 @@ static void draw_ports (void) {
     }
 }
 
+static const char *style_name (int port) {
+    if (!joypad_is_connected(port)) {
+        return "Empty";
+    }
+    switch (joypad_get_style(port)) {
+        case JOYPAD_STYLE_N64: return "N64 Controller";
+        case JOYPAD_STYLE_GCN: return "GameCube Controller";
+        case JOYPAD_STYLE_MOUSE: return "N64 Mouse";
+        default: return "Unknown device";
+    }
+}
+
+/* The second page: a card per port, and the rumble test. */
+#define CARD_Y0         (PANEL_Y0)
+#define CARD_Y1         (262)
+#define CARD_GAP        (12)
+#define TEST_Y0         (CARD_Y1 + 12)
+
+static void draw_ports_page (const theme_t *t, color_t panel) {
+    int card_w = ((RIGHT_X1 - LEFT_X0) - (3 * CARD_GAP)) / 4;
+    for (int p = 0; p < PORTS; p++) {
+        int x0 = LEFT_X0 + p * (card_w + CARD_GAP), x1 = x0 + card_w;
+        bool in = joypad_is_connected(p);
+        if (p == shown && in) {
+            games_ui_round_fill(x0 - 3, CARD_Y0 - 3, x1 + 3, CARD_Y1 + 3, t->accent);
+        }
+        games_ui_round_fill(x0, CARD_Y0, x1, CARD_Y1, panel);
+        char label[12];
+        snprintf(label, sizeof(label), "Port %d", p + 1);
+        rdpq_text_printf(&(rdpq_textparms_t) { .width = card_w, .height = 32, .align = ALIGN_CENTER, .valign = VALIGN_CENTER,
+            .style_id = in ? STL_DEFAULT : STL_GRAY }, FNT_TITLE_MEDIUM, x0, CARD_Y0 + 10, "%s", label);
+        rdpq_mode_push();
+        disc(x0 + card_w / 2, CARD_Y0 + 68, 14, in ? t->accent : t->tab_inactive);
+        rdpq_mode_pop();
+        rdpq_text_printf(&(rdpq_textparms_t) { .width = card_w - 12, .height = 44, .align = ALIGN_CENTER, .valign = VALIGN_CENTER,
+            .wrap = WRAP_WORD, .style_id = in ? STL_DEFAULT : STL_GRAY }, FNT_DEFAULT, x0 + 6, CARD_Y0 + 92, "%s", style_name(p));
+        if (in) {
+            const char *pak = accessory_name(p);
+            bool rumble = joypad_get_accessory_type(p) == JOYPAD_ACCESSORY_TYPE_RUMBLE_PAK;
+            rdpq_text_printf(&(rdpq_textparms_t) { .width = card_w - 12, .height = 44, .align = ALIGN_CENTER, .valign = VALIGN_CENTER,
+                .wrap = WRAP_WORD, .style_id = rumble ? STL_GREEN : STL_GRAY }, FNT_DEFAULT, x0 + 6, CARD_Y0 + 140, "%s", pak);
+        }
+        if (p == test_port) {
+            rdpq_text_printf(&(rdpq_textparms_t) { .width = card_w, .height = 22, .align = ALIGN_CENTER, .valign = VALIGN_CENTER,
+                .style_id = STL_ORANGE }, FNT_DEFAULT, x0, CARD_Y1 - 30, "Rumbling");
+        }
+    }
+
+    /* The rumble test: the patterns, the chosen one in the accent color. */
+    games_ui_round_fill(LEFT_X0, TEST_Y0, RIGHT_X1, PANEL_Y1, panel);
+    text(LEFT_X0 + 16, TEST_Y0 + 10, 200, 22, ALIGN_LEFT, STL_DEFAULT, "Rumble test");
+    int pill_w = 120, gap = 16;
+    int px = RIGHT_X1 - 16 - (PATTERNS * pill_w) - ((PATTERNS - 1) * gap);
+    for (int i = 0; i < PATTERNS; i++) {
+        int x0 = px + i * (pill_w + gap);
+        bool chosen = ((int) pattern == i);
+        games_ui_round_fill(x0, TEST_Y0 + 8, x0 + pill_w, TEST_Y0 + 36, chosen ? t->accent : t->tab_inactive);
+        text(x0, TEST_Y0 + 8, pill_w, 28, ALIGN_CENTER, chosen ? STL_WHITE : STL_GRAY, pattern_names[i]);
+    }
+    const char *about = (pattern == PATTERN_SHORT) ? "A quick buzz, 0.2 seconds."
+        : (pattern == PATTERN_LONG) ? "A steady buzz, 1.5 seconds: the motor should keep its strength."
+        : "On and off six times: each buzz should start at once and be as strong as the first.";
+    char note[96];
+    if (no_rumble_port >= 0) {
+        snprintf(note, sizeof(note), "Port %d has no Rumble Pak plugged in.", no_rumble_port + 1);
+        about = note;
+    }
+    rdpq_text_printf(&(rdpq_textparms_t) { .width = RIGHT_X1 - LEFT_X0 - 32, .height = 52, .valign = VALIGN_CENTER,
+        .wrap = WRAP_WORD, .style_id = (no_rumble_port >= 0) ? STL_ORANGE : STL_GRAY }, FNT_DEFAULT, LEFT_X0 + 16, TEST_Y0 + 44, "%s", about);
+}
+
 void pad_test_draw (void) {
     const theme_t *t = theme_get();
+    if (page == 1) {
+        rdpq_text_printf(&(rdpq_textparms_t) { .width = 360, .height = 34, .valign = VALIGN_CENTER },
+            FNT_TITLE, TITLE_X, TITLE_Y, "Controller Ports");
+        color_t panel = RGBA32(t->panel.r, t->panel.g, t->panel.b, 0xD8);
+        draw_ports_page(t, panel);
+        games_ui_round_fill(LEFT_X0, HINTS_Y, RIGHT_X1, HINTS_Y + 32, panel);
+        float part = b_since ? (float) (get_ticks_ms() - b_since) / LEAVE_MS : 0.0f;
+        part = (part > 1.0f) ? 1.0f : part;
+        rdpq_mode_push();
+        disc(LEFT_X0 + 24, HINTS_Y + 16, 11, RGBA32(0x30, 0xB0, 0x40, 0xFF));
+        if (part > 0.0f) {
+            arc(LEFT_X0 + 24, HINTS_Y + 16, 13.5f, 3.0f, part, RGBA32(0xFF, 0xFF, 0xFF, 0xFF));
+        }
+        rdpq_mode_pop();
+        text(LEFT_X0 + 14, HINTS_Y + 6, 20, 20, ALIGN_CENTER, STL_WHITE, "B");
+        text(LEFT_X0 + 44, HINTS_Y + 6, 160, 20, ALIGN_LEFT, STL_DEFAULT, "Hold to leave");
+        text(RIGHT_X1 - 380, HINTS_Y + 6, 364, 20, ALIGN_RIGHT, STL_DEFAULT, "\u25C0\u25B6 Pattern   A Rumble   C Page");
+        return;
+    }
     bool connected = joypad_is_connected(shown);
     joypad_inputs_t in = connected ? joypad_get_inputs(shown) : (joypad_inputs_t) { 0 };
 
@@ -415,6 +627,8 @@ void pad_test_draw (void) {
     text(LEFT_X0 + 14, HINTS_Y + 6, 20, 20, ALIGN_CENTER, STL_WHITE, "B");
     text(LEFT_X0 + 44, HINTS_Y + 6, 200, 20, ALIGN_LEFT, STL_DEFAULT, "Hold to leave");
     if (connected && joypad_get_rumble_supported(shown)) {
-        text(RIGHT_X1 - 220, HINTS_Y + 6, 204, 20, ALIGN_RIGHT, STL_DEFAULT, "Z + A  Rumble");
+        text(RIGHT_X1 - 320, HINTS_Y + 6, 304, 20, ALIGN_RIGHT, STL_DEFAULT, "Z + A Rumble   C Ports");
+    } else {
+        text(RIGHT_X1 - 220, HINTS_Y + 6, 204, 20, ALIGN_RIGHT, STL_DEFAULT, "C Ports page");
     }
 }

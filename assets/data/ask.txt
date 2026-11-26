@@ -164,6 +164,7 @@ q My TV cuts off the picture's edges.
 a Settings > Console > Tools > Test Patterns shows lines 2.5, 5 and 10% in from the edge, a grid and a circle. The menu keeps inside the yellow 5% line. A second pattern, color bars and grey steps, helps set the TV's brightness and color.
 q Is my controller's stick worn?
 a Settings > Console > Tools > Controller Test: press every button and turn the stick round its edge. It says how far the stick reaches against a new one: Like new, Worn or Very worn.
+a C-left or C-right there shows all four ports and a rumble test: Short, Long or Pulse, run with A on your own Rumble Pak.
 a Z + A tests a Rumble Pak. Hold B for two seconds to leave.
 q How do I report a problem?
 a Open an issue on the project's GitHub page: the form asks for your setup. A photo of the screen and the debug log (from the cart's sc64deployer) help the most.
