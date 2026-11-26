@@ -57,6 +57,16 @@ roundTrip('Every color and setting changed, stock frame: still v1', {
 roundTrip('A frame color changed: v2', {border: '#123456'}, 2);
 roundTrip('A first-eight feature set: v2', {f_quick_launch: 1, f_updown_scroll: 0, f_see_through_covers: 1}, 2);
 
+console.log('A sky background goes in a v3 code (byte 51), with its drift speed');
+for (const drift of [0, 1, 3, 7, 10]) {
+  reset({bgType: 'sky', c1: '#0452EE', c2: '#0B1328', c3: '#6C86C8', useC3: true, drift: drift});
+  const r = tm.decodeTheme(tm.encodeTheme());
+  check(!r.error && r.version === 3, 'a sky is a v3 code (got ' + (r.error || 'v' + r.version) + ')');
+  check(r.theme && r.theme.bgType === 'sky', 'comes back as a sky (' + (r.theme && r.theme.bgType) + ')');
+  check(r.theme && r.theme.drift === drift, 'drift ' + drift + ' comes back (' + (r.theme && r.theme.drift) + ')');
+  check(r.theme && r.theme.c3.toUpperCase() === '#6C86C8', 'the clouds keep their color');
+}
+
 console.log('Frame Borders is gone: an old code that set it still loads, the switch ignored, the ones after it in place');
 reset({f_frame_borders: 1, f_updown_scroll: 1});
 const retired = tm.decodeTheme(tm.encodeTheme());

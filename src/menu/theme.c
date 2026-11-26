@@ -48,6 +48,7 @@ static void theme_set_defaults (theme_t *t) {
     t->color3 = RGBA32(0x3A, 0x2F, 0x6B, 0xFF);
     t->use_color3 = false;
     t->dither = true;
+    t->drift = THEME_DRIFT_USUAL;
     t->pattern = THEME_PATTERN_NONE;
     t->pattern_color = RGBA32(0xFF, 0xFF, 0xFF, 0xFF);
     t->pattern_size = 16;
@@ -72,6 +73,8 @@ static rgbf_t to_f (color_t c) {
 static rgbf_t lerp (rgbf_t a, rgbf_t b, float t) {
     return (rgbf_t) { a.r + (b.r - a.r) * t, a.g + (b.g - a.g) * t, a.b + (b.b - a.b) * t };
 }
+
+static rgbf_t sky_color (const theme_t *t, float u, float v);   /* the sky, further down */
 
 static float gradient_pos (const theme_t *t, int x, int y, int w, int h) {
     switch (t->direction) {
@@ -309,6 +312,8 @@ static void theme_build_background (const theme_t *t) {
                 c = gradient_color(t, x, y, w, h);
             } else if (type == THEME_BG_OCEAN) {
                 c = ocean_color(x, y, c1, c2);
+            } else if (type == THEME_BG_SKY) {
+                c = sky_color(t, (x + 0.5f) / w, (y + 0.5f) / h);
             } else {
                 c = c1;
             }
@@ -325,6 +330,58 @@ static void theme_build_background (const theme_t *t) {
     free(row);
     ocean_finish();
     debugf("theme: background \"%s\" built in %d ms\n", t->name, (int) (get_ticks_ms() - build_started));
+}
+
+/* ---------- sky ---------- */
+
+/* A night sky (type = sky): dark above, a glow at the bottom (color2 to
+   color1, most of the change near the bottom), with soft clouds in color3
+   that thin out toward the glow. The clouds are value noise in four
+   octaves, stretched sideways into wisps, and repeat exactly once across
+   the screen so they can drift without a seam. Checked first on the PC with
+   a Python copy of these sums (the owner's Ocarina of Time File Select-style
+   theme, 2026-11-26). */
+static uint32_t sky_hash (uint32_t x, uint32_t y, uint32_t seed) {
+    uint32_t n = x * 374761393u + y * 668265263u + seed * 2246822519u;
+    n = (n ^ (n >> 13)) * 1274126177u;
+    n = n ^ (n >> 16);
+    return n & 0xFFFF;
+}
+
+static float sky_smooth (float t) {
+    return t * t * (3.0f - 2.0f * t);
+}
+
+static float sky_noise (float u, float v, int cells_x, int cells_y, uint32_t seed) {
+    float gx = u * cells_x, gy = v * cells_y;
+    int ix = (int) floorf(gx), iy = (int) floorf(gy);
+    float fx = sky_smooth(gx - ix), fy = sky_smooth(gy - iy);
+    int x0 = ((ix % cells_x) + cells_x) % cells_x, x1 = (x0 + 1) % cells_x;
+    int y0 = ((iy % cells_y) + cells_y) % cells_y, y1 = (y0 + 1) % cells_y;
+    float a = sky_hash(x0, y0, seed) / 65535.0f, b = sky_hash(x1, y0, seed) / 65535.0f;
+    float c = sky_hash(x0, y1, seed) / 65535.0f, d = sky_hash(x1, y1, seed) / 65535.0f;
+    float top = a + (b - a) * fx, bottom = c + (d - c) * fx;
+    return top + (bottom - top) * fy;
+}
+
+/* u, v: 0-1 across and down the screen (u repeats every 1). */
+static rgbf_t sky_color (const theme_t *t, float u, float v) {
+    rgbf_t glow = to_f(t->color1), top = to_f(t->color2);
+    rgbf_t cloud = t->use_color3 ? to_f(t->color3) : lerp(top, (rgbf_t) { 255.0f, 255.0f, 255.0f }, 0.4f);
+    rgbf_t base = lerp(top, glow, powf(v, 2.6f));
+    float n = 0.0f, amp = 0.5f;
+    int cx = 3, cy = 6;
+    for (int o = 0; o < 4; o++) {
+        n += amp * sky_noise(u, v, cx, cy, 7 + o);
+        amp *= 0.5f;
+        cx *= 2;
+        cy *= 2;
+    }
+    n /= 0.9375f;
+    float a = (n - 0.42f) / 0.38f;
+    a = (a < 0.0f) ? 0.0f : (a > 1.0f) ? 1.0f : a;
+    a = sky_smooth(a) * 0.45f * (1.0f - 0.75f * v);
+    return lerp(base, cloud, a);
 }
 
 /* ---------- the live background ---------- */
@@ -381,13 +438,17 @@ static bool has_pattern (const theme_t *t) {
 }
 
 static bool needs_small (const theme_t *t) {
-    return t->bg_type == THEME_BG_GRADIENT
-        && (t->direction == THEME_DIR_RADIAL || (t->direction == THEME_DIR_DIAGONAL && t->use_color3));
+    return t->bg_type == THEME_BG_SKY
+        || (t->bg_type == THEME_BG_GRADIENT
+            && (t->direction == THEME_DIR_RADIAL || (t->direction == THEME_DIR_DIAGONAL && t->use_color3)));
 }
 
 static bool live_possible (const theme_t *t) {
     if (t->bg_type == THEME_BG_OCEAN) {
         return false;
+    }
+    if (t->bg_type == THEME_BG_SKY) {
+        return true;    /* the sky draws no pattern */
     }
     if (needs_small(t)) {
         return !has_pattern(t);
@@ -400,16 +461,18 @@ static void small_prepare (const theme_t *t) {
     int h = display_get_height();
     int sw = w / SMALL_SCALE;
     int sh = h / SMALL_SCALE;
-    gradient_small = surface_alloc(FMT_RGBA32, sw, sh);
+    bool sky = (t->bg_type == THEME_BG_SKY);
+    gradient_small = surface_alloc(FMT_RGBA32, sw + (sky ? 1 : 0), sh);    /* the sky's last column repeats its first, for the drift */
     if (!gradient_small.buffer) {
         debugf("theme: no memory for the small gradient, plain color instead\n");
         return;
     }
     for (int y = 0; y < sh; y++) {
         uint32_t *out = (uint32_t *) ((uint8_t *) gradient_small.buffer + y * gradient_small.stride);
-        for (int x = 0; x < sw; x++) {
+        for (int x = 0; x < gradient_small.width; x++) {
             /* Each value is the color at the middle of the 8 x 8 pixels it stands for. */
-            rgbf_t c = gradient_color(t, x * SMALL_SCALE + SMALL_SCALE / 2, y * SMALL_SCALE + SMALL_SCALE / 2, w, h);
+            rgbf_t c = sky ? sky_color(t, (x + 0.5f) / sw, (y + 0.5f) / sh)
+                           : gradient_color(t, x * SMALL_SCALE + SMALL_SCALE / 2, y * SMALL_SCALE + SMALL_SCALE / 2, w, h);
             out[x] = (to_byte(c.r) << 24) | (to_byte(c.g) << 16) | (to_byte(c.b) << 8) | 0xFF;
         }
     }
@@ -472,6 +535,69 @@ static void live_vertex (float *v, int x, int y, int w, int h, float bright) {
     v[8] = 1.0f;
 }
 
+/* The sky: its small picture twice side by side, moved left a little more
+   every frame, so the clouds drift; the picture's extra last column matches
+   its first, so the join is smooth. Speed `drift` crosses one screen width in
+   SKY_DRIFT_MS / drift (3, the usual: two minutes). The place is added up
+   from the time passed, so a change of speed (Edit Theme) carries on from
+   where the clouds are instead of jumping. */
+#define SKY_DRIFT_MS    (360000)
+
+static void sky_draw (int x0, int y0, int x1, int y1, int bright, int w, int h) {
+    static float shift = 0.0f;
+    static uint32_t shift_ms = 0;
+    uint32_t now = get_ticks_ms();
+    shift += (float) (uint32_t) (now - shift_ms) * w * theme.drift / SKY_DRIFT_MS;
+    shift_ms = now;
+    if (shift >= w) {
+        shift = fmodf(shift, (float) w);
+    }
+    int t0 = y0 / SMALL_SCALE;
+    int t1 = (y1 + SMALL_SCALE - 1) / SMALL_SCALE;
+    if (t1 > gradient_small.height) t1 = gradient_small.height;
+    if (t1 <= t0) {
+        return;
+    }
+    rdpq_set_mode_standard();
+    rdpq_mode_filter(FILTER_BILINEAR);
+    rdpq_mode_dithering(theme.dither ? DITHER_BAYER_NONE : DITHER_NONE_NONE);
+    if (bright < 255 || over_alpha < 255) {
+        rdpq_set_prim_color(RGBA32(bright, bright, bright, over_alpha));
+        rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);
+        if (over_alpha < 255) {
+            rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+        }
+    } else {
+        rdpq_mode_combiner(RDPQ_COMBINER_TEX);
+    }
+    rdpq_set_scissor(x0, y0, x1, y1);
+    for (int copy = 0; copy < 2; copy++) {
+        float left = copy * w - shift;     /* where this copy's first column starts */
+        float right = left + gradient_small.width * SMALL_SCALE;
+        if (right <= x0 || left >= x1) {
+            continue;
+        }
+        /* Only the columns over the part, one either side for the smoothing. */
+        int s0 = (int) floorf((x0 - left) / SMALL_SCALE) - 1;
+        int s1 = (int) ceilf((x1 - left) / SMALL_SCALE) + 1;
+        if (s0 < 0) s0 = 0;
+        if (s1 > gradient_small.width) s1 = gradient_small.width;
+        if (s1 <= s0) {
+            continue;
+        }
+        rdpq_tex_blit(&gradient_small, left + s0 * SMALL_SCALE, t0 * SMALL_SCALE, &(rdpq_blitparms_t) {
+            .s0 = s0,
+            .t0 = t0,
+            .width = s1 - s0,
+            .height = t1 - t0,
+            .scale_x = SMALL_SCALE,
+            .scale_y = SMALL_SCALE,
+            .filtering = true,
+        });
+    }
+    rdpq_set_scissor(0, 0, w, h);
+}
+
 /* Draws the part x0..x1, y0..y1 of the background, `bright` 0-255. */
 static void live_draw (int x0, int y0, int x1, int y1, int bright) {
     int w = display_get_width();
@@ -479,6 +605,10 @@ static void live_draw (int x0, int y0, int x1, int y1, int bright) {
     bool tiled = (pattern_tile.buffer != NULL);
     bool gradient = (theme.bg_type == THEME_BG_GRADIENT);
 
+    if (gradient_small.buffer && theme.bg_type == THEME_BG_SKY) {
+        sky_draw(x0, y0, x1, y1, bright, w, h);
+        return;
+    }
     if (gradient_small.buffer) {
         /* The tiny picture, stretched and smoothed; only the texels the part
            needs, cut to the part by the scissor. */

@@ -155,6 +155,15 @@ static void test_limits (void) {
         "[pattern]\nsize = 0\nopacity = 250\n")));
     CHECK(t.pattern_size == 2);
     CHECK(t.pattern_opacity == 100);
+    start(&t);
+    CHECK(theme_parse_file(&t, write_file(
+        "[background]\ntype = sky\ndrift = 99\n")));
+    CHECK(t.drift == THEME_DRIFT_MAX);
+    start(&t);
+    t.drift = THEME_DRIFT_USUAL;
+    CHECK(theme_parse_file(&t, write_file(
+        "[background]\ntype = sky\ndrift = -4\n")));
+    CHECK(t.drift == 0);
 }
 
 static void test_layout (void) {
@@ -290,13 +299,23 @@ static void test_write_read_back (void) {
         theme_parse_file(&b, "/tmp/theme_write_test.ini");
         CHECK(b.pattern == (theme_pattern_t) p);
     }
-    for (int bg = THEME_BG_SOLID; bg <= THEME_BG_OCEAN; bg++) {
+    for (int bg = THEME_BG_SOLID; bg <= THEME_BG_SKY; bg++) {
         a.bg_type = (theme_bg_type_t) bg;
         theme_write_file(&a, "/tmp/theme_write_test.ini");
         start(&b);
         b.bg_type = (bg == THEME_BG_SOLID) ? THEME_BG_OCEAN : THEME_BG_SOLID;
         theme_parse_file(&b, "/tmp/theme_write_test.ini");
         CHECK(b.bg_type == (theme_bg_type_t) bg);
+    }
+    /* The sky's drift speed, every step from still to the fastest. */
+    a.bg_type = THEME_BG_SKY;
+    for (int d = 0; d <= THEME_DRIFT_MAX; d++) {
+        a.drift = d;
+        theme_write_file(&a, "/tmp/theme_write_test.ini");
+        start(&b);
+        b.drift = (d == THEME_DRIFT_USUAL) ? 0 : THEME_DRIFT_USUAL;
+        theme_parse_file(&b, "/tmp/theme_write_test.ini");
+        CHECK(b.drift == d);
     }
 }
 

@@ -34,6 +34,7 @@ typedef enum {
     R_COLOR2,
     R_MIDDLE,
     R_COLOR3,
+    R_DRIFT,
     R_DIRECTION,
     R_PATTERN,
     R_PATTERN_COLOR,
@@ -80,17 +81,20 @@ static int start_choice = 0;
 
 static bool gradient (void) { return edit.bg_type == THEME_BG_GRADIENT; }
 static bool ocean (void) { return edit.bg_type == THEME_BG_OCEAN; }
+static bool sky (void) { return edit.bg_type == THEME_BG_SKY; }
 static bool patterned (void) { return edit.pattern != THEME_PATTERN_NONE; }
 
 static bool row_shown (row_t row) {
     switch (row) {
-        case R_COLOR2: return gradient() || ocean();
+        case R_COLOR2: return gradient() || ocean() || sky();
         case R_MIDDLE:
         case R_DIRECTION: return gradient();
-        case R_COLOR3: return gradient() && edit.use_color3;
+        case R_COLOR3: return (gradient() && edit.use_color3) || sky();
+        case R_DRIFT: return sky();
+        case R_PATTERN: return !sky();     /* the sky draws no pattern */
         case R_PATTERN_COLOR:
         case R_PATTERN_SIZE:
-        case R_PATTERN_STRENGTH: return patterned();
+        case R_PATTERN_STRENGTH: return patterned() && !sky();
         default: return true;
     }
 }
@@ -126,10 +130,11 @@ static const char *row_label (row_t row) {
         case R_TAB_BAR: return "Tab bar and badges";
         case R_OUTLINES: return "Outlines";
         case R_BACKGROUND: return "Background";
-        case R_COLOR1: return ocean() ? "Water" : gradient() ? "First color" : "Background color";
-        case R_COLOR2: return ocean() ? "Foam" : "Second color";
+        case R_COLOR1: return ocean() ? "Water" : sky() ? "Glow (bottom)" : gradient() ? "First color" : "Background color";
+        case R_COLOR2: return ocean() ? "Foam" : sky() ? "Sky (top)" : "Second color";
         case R_MIDDLE: return "Middle Color";
-        case R_COLOR3: return "Middle color";
+        case R_COLOR3: return sky() ? "Clouds" : "Middle color";
+        case R_DRIFT: return "Cloud drift";
         case R_DIRECTION: return "Direction";
         case R_PATTERN: return "Pattern";
         case R_PATTERN_COLOR: return "Pattern color";
@@ -143,7 +148,7 @@ static const char *row_label (row_t row) {
 
 /* ---------- choices ---------- */
 
-static const char *const BACKGROUNDS[] = { "Solid", "Gradient", "Picture", "Ocean" };
+static const char *const BACKGROUNDS[] = { "Solid", "Gradient", "Picture", "Ocean", "Sky" };
 static const char *const DIRECTIONS[] = { "Vertical", "Horizontal", "Diagonal", "Radial" };
 static const char *const PATTERNS[] = { "None", "Stripes", "Diagonal", "Checker", "Dots", "Grid", "Scanlines" };
 
@@ -185,6 +190,7 @@ static void row_value (row_t row, char *out, size_t size) {
         case R_BACKGROUND: snprintf(out, size, "%s", BACKGROUNDS[edit.bg_type]); break;
         case R_MIDDLE: snprintf(out, size, "%s", edit.use_color3 ? "On" : "Off"); break;
         case R_DIRECTION: snprintf(out, size, "%s", DIRECTIONS[edit.direction]); break;
+        case R_DRIFT: if (edit.drift == 0) snprintf(out, size, "Still"); else snprintf(out, size, "%d", edit.drift); break;
         case R_PATTERN: snprintf(out, size, "%s", PATTERNS[edit.pattern]); break;
         case R_PATTERN_SIZE: snprintf(out, size, "%d", edit.pattern_size); break;
         case R_PATTERN_STRENGTH: snprintf(out, size, "%d%%", edit.pattern_opacity); break;
@@ -200,18 +206,32 @@ static int wrap (int v, int count) {
 static bool row_step (row_t row, int way) {
     switch (row) {
         case R_BACKGROUND: {
-            /* Solid, Gradient, Ocean: "image" isn't drawn yet, so it isn't offered. */
-            static const theme_bg_type_t ORDER[] = { THEME_BG_SOLID, THEME_BG_GRADIENT, THEME_BG_OCEAN };
+            /* Solid, Gradient, Ocean, Sky: "image" isn't drawn yet, so it isn't offered. */
+            static const theme_bg_type_t ORDER[] = { THEME_BG_SOLID, THEME_BG_GRADIENT, THEME_BG_OCEAN, THEME_BG_SKY };
             int i = 1;
-            for (int k = 0; k < 3; k++) {
+            for (int k = 0; k < 4; k++) {
                 if (ORDER[k] == edit.bg_type) i = k;
             }
-            edit.bg_type = ORDER[wrap(i + way, 3)];
+            edit.bg_type = ORDER[wrap(i + way, 4)];
+            if (sky() && !edit.use_color3) {
+                /* The clouds' color: a light tint of the sky, which the Clouds row can change. */
+                edit.use_color3 = true;
+                edit.color3 = RGBA32(edit.color2.r + (255 - edit.color2.r) * 2 / 5, edit.color2.g + (255 - edit.color2.g) * 2 / 5,
+                                     edit.color2.b + (255 - edit.color2.b) * 2 / 5, 0xFF);
+            }
             return true;
         }
         case R_MIDDLE:
             edit.use_color3 = !edit.use_color3;
             return true;
+        case R_DRIFT: {
+            int v = edit.drift + way;
+            if (v < 0 || v > THEME_DRIFT_MAX) {
+                return false;
+            }
+            edit.drift = v;
+            return true;
+        }
         case R_DIRECTION:
             edit.direction = (theme_dir_t) wrap(edit.direction + way, 4);
             return true;

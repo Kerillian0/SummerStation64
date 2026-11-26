@@ -246,6 +246,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
           <button type="button" data-v="solid">Solid</button>
           <button type="button" data-v="gradient">Gradient</button>
           <button type="button" data-v="ocean">Ocean</button>
+          <button type="button" data-v="sky">Sky</button>
           <button type="button" data-v="image">PNG image</button>
         </div>
       </div>
@@ -258,7 +259,12 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
         <div class="row"><label class="l" for="c1-hex" id="c1-label">Top color</label><div class="color" data-key="c1"></div></div>
         <div class="row" id="c2row"><label class="l" for="c2-hex" id="c2-label">Bottom color</label><div class="color" data-key="c2"></div></div>
         <div class="row" id="c3toggle"><span class="l">Middle color</span><label class="check"><input type="checkbox" id="useC3"> Add a third stop</label></div>
-        <div class="row" id="c3row"><label class="l" for="c3-hex">Middle</label><div class="color" data-key="c3"></div></div>
+        <div class="row" id="c3row"><label class="l" for="c3-hex" id="c3-label">Middle</label><div class="color" data-key="c3"></div></div>
+      </div>
+      <div id="skyOnly">
+        <div class="row"><label class="l" for="skyDrift">Cloud drift</label><div class="range"><input type="range" id="skyDrift" min="0" max="10" step="1"><output id="skyDriftOut"></output></div></div>
+        <p class="hint">A night sky: dark above, a glow at the bottom, soft clouds that drift across. The menu draws it itself from a
+          tiny picture (19 KB), so it suits every console. It draws no pattern.</p>
       </div>
       <p class="hint" id="oceanOnly">Water seen from above, with a net of foam lines. The menu draws it itself; it takes a moment longer to appear than a gradient.</p>
       <div id="imageOnly">
@@ -267,7 +273,7 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
       </div>
     </section>
 
-    <section>
+    <section id="patternSection">
       <h2><i style="background:var(--n-green)"></i>Pattern</h2>
       <div class="row"><label class="l" for="pattern">Style</label>
         <select id="pattern">
@@ -733,6 +739,8 @@ h1.page-title{font-family:var(--display);font-weight:700;font-size:28px;margin:0
         <button class="go" id="sndMake" disabled>Download sound pack (.zip)</button>
         <span class="status" id="sndStatus">Pick at least one sound.</span>
       </div>
+      <div class="line"><label class="check"><input type="checkbox" id="sndWithIni"> Put the <a href="#themes">Theme Maker</a>'s
+        theme.ini in the zip too (<span id="sndIniName">its theme</span>), so the theme's look and sounds go on the card together</label></div>
       <p class="hint">Unzip it at the top of the SD card (on Windows, see <a href="#guide-unzip">Unzipping on Windows</a>): the files land in <code>menu/themes/<b>name</b>/</code>. Then choose
         the theme in <b>Settings &gt; Look &gt; Theme &gt; Theme</b>. A theme can also carry its own text font as
         <code>font.font64</code>, made with libdragon's mkfont (it applies after a restart). Limits and tips are in
@@ -1075,7 +1083,7 @@ short-desc = Mario explores Princess Peach's castle.</code></pre>
         make it, and a small sample of the Games screen sits beside the list.</p>
       <ul>
         <li><b>What it changes:</b> the colors (Text, Dim text, Accent, Panels and covers, Selected row, Tab bar and badges, Outlines), the background
-          (Solid, Gradient or Ocean, its colors, a middle color and the direction) and the pattern (style, color, size and strength). Switches and
+          (Solid, Gradient, Ocean or Sky, its colors, a middle color and the direction) and the pattern (style, color, size and strength). Switches and
           sounds stay as the theme had them.</li>
         <li><b>Picking a color:</b> press A on a color. Up top is a grid of ready colors; underneath are three sliders, <b>Hue</b> (round the
           rainbow), <b>Color</b> (grey to vivid) and <b>Light</b> (black to bright). Up and down move between them, left and right pick or slide.
@@ -1164,12 +1172,14 @@ rounded_corners = 1</code></pre>
       <div class="tablewrap"><table>
         <thead><tr><th>Key</th><th>Values</th><th>What it does</th></tr></thead>
         <tbody>
-          <tr><td><code>type</code></td><td><code>solid</code>, <code>gradient</code>, <code>ocean</code>, <code>image</code></td>
-            <td><b>solid</b> is one color. <b>gradient</b> blends two or three. <b>ocean</b> is water seen from above with a net of foam lines. <b>image</b> isn't read
-              yet: the menu shows <code>color1</code> as a plain color.</td></tr>
-          <tr><td><code>color1</code></td><td>a color</td><td>The solid color, the gradient's start (the top, on a vertical one), or the ocean's water.</td></tr>
-          <tr><td><code>color2</code></td><td>a color</td><td>The gradient's end, or the ocean's foam.</td></tr>
-          <tr><td><code>color3</code></td><td>a color, or <code>none</code></td><td>An optional middle color for a gradient.</td></tr>
+          <tr><td><code>type</code></td><td><code>solid</code>, <code>gradient</code>, <code>ocean</code>, <code>sky</code>, <code>image</code></td>
+            <td><b>solid</b> is one color. <b>gradient</b> blends two or three. <b>ocean</b> is water seen from above with a net of foam lines.
+              <b>sky</b> is a night sky: dark above, a glow along the bottom, and soft clouds drifting slowly across (it draws no pattern).
+              <b>image</b> isn't read yet: the menu shows <code>color1</code> as a plain color.</td></tr>
+          <tr><td><code>color1</code></td><td>a color</td><td>The solid color, the gradient's start (the top, on a vertical one), the ocean's water, or the sky's glow at the bottom.</td></tr>
+          <tr><td><code>color2</code></td><td>a color</td><td>The gradient's end, the ocean's foam, or the sky above.</td></tr>
+          <tr><td><code>color3</code></td><td>a color, or <code>none</code></td><td>An optional middle color for a gradient, or the sky's clouds (<code>none</code>: a light tint of the sky).</td></tr>
+          <tr><td><code>drift</code></td><td><code>0</code> to <code>10</code></td><td>Sky only: how fast the clouds drift. <code>3</code> (the usual) crosses one screen width in two minutes, <code>10</code> in 36 seconds; <code>0</code> keeps them still. Edit Theme on the console has it as Cloud drift.</td></tr>
           <tr><td><code>direction</code></td><td><code>vertical</code>, <code>horizontal</code>, <code>diagonal</code>, <code>radial</code></td>
             <td>Which way the gradient runs. <b>radial</b> starts with <code>color1</code> in the middle of the screen.</td></tr>
           <tr><td><code>dither</code></td><td><code>1</code> or <code>0</code></td><td>Fine grain that hides the steps in a gradient on the console's 16-bit picture. Leave it on: <code>0</code> hasn't
@@ -1280,6 +1290,7 @@ rounded_corners = 1</code></pre>
         <thead><tr><th>Part of the theme</th><th>Memory it takes</th></tr></thead>
         <tbody>
           <tr><td>Solid color or gradient</td><td>None (19 KB for a <code>radial</code> one, or <code>diagonal</code> with a middle color)</td></tr>
+          <tr><td>A sky background</td><td>19 KB</td></tr>
           <tr><td>A pattern at one of the sizes above</td><td>A few KB at most</td></tr>
           <tr><td>Most other pattern sizes, an ocean background, or a pattern over a <code>radial</code> gradient</td><td>300 KB</td></tr>
           <tr><td>Your own music</td><td>64 KB / 256 KB (without / with the Expansion Pak)</td></tr>
@@ -1497,7 +1508,7 @@ rounded_corners = 1</code></pre>
   ];
 
   var DEFAULTS = {name:'Midnight Gradient',author:'',bgType:'gradient',dir:'vertical',c1:'#1B2A4A',c2:'#0B0E14',useC3:false,c3:'#3A2F6B',
-    pattern:'none',pColor:'#FFFFFF',pSize:16,pOpacity:10,dither:true,crt:false,text:'#E9EDF2',textDim:'#A7B0BB',accent:'#F2B134',panel:'#1B2028',
+    pattern:'none',pColor:'#FFFFFF',pSize:16,pOpacity:10,dither:true,drift:3,crt:false,text:'#E9EDF2',textDim:'#A7B0BB',accent:'#F2B134',panel:'#1B2028',
     screen:'games'};
   FRAME_KEYS.forEach(function(k){ DEFAULTS[k] = FRAME_STOCK[k]; });
   FEATURES.forEach(function(f){ DEFAULTS['f_' + f.key] = -1; });   // -1 not set, 0 off, 1 on
@@ -1516,6 +1527,8 @@ rounded_corners = 1</code></pre>
       border:'#7FE0C3',highlight:'#1F5A50',tabActive:'#1F6A5C',tabInactive:'#0F3B36',tabActiveBorder:'#7FE0C3',tabInactiveBorder:'#2C6A5E'}},
     {label:'Grape',s:{bgType:'gradient',dir:'radial',c1:'#4A2A7A',c2:'#150B26',useC3:false,pattern:'checker',pColor:'#FFFFFF',pSize:24,pOpacity:5,text:'#F4EEFF',textDim:'#C7B9E4',accent:'#FF8AD8',panel:'#24163D',
       border:'#C7B9E4',highlight:'#5A3A8C',tabActive:'#6A3FA8',tabInactive:'#2E1B4E',tabActiveBorder:'#FF8AD8',tabInactiveBorder:'#5A4580'}},
+    {label:'Night Sky',s:{bgType:'sky',c1:'#0452EE',c2:'#0B1328',useC3:true,c3:'#6C86C8',drift:3,pattern:'none',text:'#FFFFFF',textDim:'#B8C8E8',accent:'#F2D060',panel:'#0A1A40',
+      highlight:'#2A4A9A',tabActive:'#2A4A9A',tabInactive:'#14244C'}},
     {label:'Plain',s:{bgType:'solid',c1:'#16191F',pattern:'dots',pColor:'#FFFFFF',pSize:20,pOpacity:6,text:'#E9EDF2',textDim:'#A7B0BB',accent:'#4FA3FF',panel:'#222731'}}
   ];
   var S = Object.assign({}, DEFAULTS);
@@ -1577,7 +1590,8 @@ rounded_corners = 1</code></pre>
     var full = Object.assign({}, DEFAULTS, p.s);
     var b = document.createElement('button'); b.type = 'button'; b.className = 'preset';
     var sw = document.createElement('span');
-    sw.style.background = (full.bgType === 'solid' || full.bgType === 'ocean') ? full.c1 : 'linear-gradient(135deg,' + full.c1 + ',' + full.c2 + ')';
+    sw.style.background = (full.bgType === 'solid' || full.bgType === 'ocean') ? full.c1
+      : full.bgType === 'sky' ? 'linear-gradient(180deg,' + full.c2 + ' 55%,' + full.c1 + ')' : 'linear-gradient(135deg,' + full.c1 + ',' + full.c2 + ')';
     sw.style.boxShadow = 'inset 0 0 0 3px ' + full.accent;
     b.appendChild(sw); b.appendChild(document.createTextNode(p.label));
     b.addEventListener('click', function(){
@@ -1603,6 +1617,7 @@ rounded_corners = 1</code></pre>
   $('pSize').addEventListener('input', function(e){ S.pSize = +e.target.value; syncInputs(); changed(); });
   $('pOpacity').addEventListener('input', function(e){ S.pOpacity = +e.target.value; syncInputs(); changed(); });
   $('dither').addEventListener('change', function(e){ S.dither = e.target.checked; changed(); });
+  $('skyDrift').addEventListener('input', function(e){ S.drift = +e.target.value; syncInputs(); changed(); });
   $('crt').addEventListener('change', function(e){ S.crt = e.target.checked; changed(true); render(); });
   $('name').addEventListener('input', function(e){ S.name = e.target.value; changed(true); });
   $('author').addEventListener('input', function(e){ S.author = e.target.value; changed(true); });
@@ -1617,18 +1632,28 @@ rounded_corners = 1</code></pre>
     r.readAsDataURL(f);
   });
 
+  function driftName(d){ return d === 0 ? 'Still' : String(d); }
   function syncInputs(){
     Object.keys(colorFields).forEach(function(k){ colorFields[k].pick.value = S[k]; colorFields[k].hex.value = S[k]; });
     document.querySelectorAll('#bgType button').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.v === S.bgType)); });
     document.querySelectorAll('#screen button').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.v === S.screen)); });
-    var grad = S.bgType === 'gradient', img = S.bgType === 'image', ocean = S.bgType === 'ocean';
+    var grad = S.bgType === 'gradient', img = S.bgType === 'image', ocean = S.bgType === 'ocean', sky = S.bgType === 'sky';
+    if (sky && !S.useC3) {
+      // The clouds' color: a light tint of the sky, which the Clouds color can change.
+      var n = parseInt(S.c2.slice(1), 16), t = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(function(v){ return v + Math.floor((255 - v) * 2 / 5); });
+      S.c3 = '#' + t.map(function(v){ return v.toString(16).padStart(2, '0'); }).join('').toUpperCase(); S.useC3 = true;
+      colorFields.c3.pick.value = S.c3; colorFields.c3.hex.value = S.c3;
+    }
     $('gradOnly').hidden = !grad;
+    $('skyOnly').hidden = !sky; $('skyDrift').value = S.drift; $('skyDriftOut').textContent = driftName(S.drift);
+    $('patternSection').hidden = sky;
     $('colorStops').hidden = img;
     $('imageOnly').hidden = !img;
     $('oceanOnly').hidden = !ocean;
-    $('c2row').hidden = !(grad || ocean); $('c3toggle').hidden = !grad; $('c3row').hidden = !(grad && S.useC3);
-    $('c1-label').textContent = ocean ? 'Water' : grad ? (S.dir === 'horizontal' ? 'Left color' : S.dir === 'radial' ? 'Center color' : 'Start color') : 'Color';
-    $('c2-label').textContent = ocean ? 'Foam' : (S.dir === 'horizontal' ? 'Right color' : S.dir === 'radial' ? 'Edge color' : 'End color');
+    $('c2row').hidden = !(grad || ocean || sky); $('c3toggle').hidden = !grad; $('c3row').hidden = !((grad && S.useC3) || sky);
+    $('c1-label').textContent = ocean ? 'Water' : sky ? 'Glow (bottom)' : grad ? (S.dir === 'horizontal' ? 'Left color' : S.dir === 'radial' ? 'Center color' : 'Start color') : 'Color';
+    $('c2-label').textContent = ocean ? 'Foam' : sky ? 'Sky (top)' : (S.dir === 'horizontal' ? 'Right color' : S.dir === 'radial' ? 'Edge color' : 'End color');
+    $('c3-label').textContent = sky ? 'Clouds' : 'Middle';
     $('dir').value = S.dir; $('useC3').checked = S.useC3; $('pattern').value = S.pattern;
     $('patternOpts').hidden = S.pattern === 'none';
     $('pSize').value = S.pSize; $('pSizeOut').textContent = S.pSize + ' px';
@@ -1645,6 +1670,9 @@ rounded_corners = 1</code></pre>
       c.drawImage(bgImg, (w - iw) / 2, (h - ih) / 2, iw, ih);
     } else if (S.bgType === 'ocean') {
       drawOcean(c, w, h);
+    } else if (S.bgType === 'sky') {
+      drawSky(c, w, h);
+      return;     // the sky draws no pattern
     } else if (S.bgType === 'gradient') {
       var g;
       if (S.dir === 'horizontal') g = c.createLinearGradient(0, 0, w, 0);
@@ -1657,6 +1685,48 @@ rounded_corners = 1</code></pre>
       c.fillStyle = S.bgType === 'image' ? '#202329' : S.c1; c.fillRect(0, 0, w, h);
     }
     drawPattern(c, w, h);
+  }
+
+  /* The sky background, with the same sums as the console (theme.c,
+     sky_color()): an 80x60 picture stretched smoothly, as the menu draws it. */
+  function skyHash(x, y, seed){
+    var n = (Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(seed, 2246822519 | 0)) >>> 0;
+    n = Math.imul((n ^ (n >>> 13)) >>> 0, 1274126177) >>> 0;
+    n = (n ^ (n >>> 16)) >>> 0;
+    return n & 0xFFFF;
+  }
+  function skySmooth(t){ return t * t * (3 - 2 * t); }
+  function skyNoise(u, v, cx, cy, seed){
+    var gx = u * cx, gy = v * cy, ix = Math.floor(gx), iy = Math.floor(gy);
+    var fx = skySmooth(gx - ix), fy = skySmooth(gy - iy);
+    var x0 = ((ix % cx) + cx) % cx, x1 = (x0 + 1) % cx, y0 = ((iy % cy) + cy) % cy, y1 = (y0 + 1) % cy;
+    var a = skyHash(x0, y0, seed) / 65535, b = skyHash(x1, y0, seed) / 65535, cc = skyHash(x0, y1, seed) / 65535, d = skyHash(x1, y1, seed) / 65535;
+    var top = a + (b - a) * fx, bottom = cc + (d - cc) * fx;
+    return top + (bottom - top) * fy;
+  }
+  function rgbOf(hex){ var n = parseInt(hex.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+  function skyColor(u, v){
+    var glow = rgbOf(S.c1), top = rgbOf(S.c2), cloud = S.useC3 ? rgbOf(S.c3) : top.map(function(x){ return x + (255 - x) * 0.4; });
+    var g = Math.pow(v, 2.6), n = 0, amp = 0.5, cx = 3, cy = 6;
+    for (var o = 0; o < 4; o++) { n += amp * skyNoise(u, v, cx, cy, 7 + o); amp *= 0.5; cx *= 2; cy *= 2; }
+    n /= 0.9375;
+    var a = Math.min(1, Math.max(0, (n - 0.42) / 0.38));
+    a = skySmooth(a) * 0.45 * (1 - 0.75 * v);
+    return [0, 1, 2].map(function(i){ var base = top[i] + (glow[i] - top[i]) * g; return base + (cloud[i] - base) * a; });
+  }
+  var skyBuf = null;
+  function drawSky(c, w, h){
+    var sw = 80, sh = 60;
+    if (!skyBuf) skyBuf = document.createElement('canvas');
+    skyBuf.width = sw; skyBuf.height = sh;
+    var sc = skyBuf.getContext('2d'), img = sc.createImageData(sw, sh), d = img.data;
+    for (var y = 0; y < sh; y++) for (var x = 0; x < sw; x++) {
+      var col = skyColor((x + 0.5) / sw, (y + 0.5) / sh), i = (y * sw + x) * 4;
+      d[i] = col[0]; d[i + 1] = col[1]; d[i + 2] = col[2]; d[i + 3] = 255;
+    }
+    sc.putImageData(img, 0, 0);
+    c.imageSmoothingEnabled = true;
+    c.drawImage(skyBuf, 0, 0, w, h);
   }
 
   /* The ocean background, with the same sums as the console (theme.c): water
@@ -2029,7 +2099,7 @@ rounded_corners = 1</code></pre>
   }
   function ratio(a, b){ var x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
   function updateContrast(){
-    var bgs = S.bgType === 'gradient' ? [S.c1, S.c2].concat(S.useC3 ? [S.c3] : []) : (S.bgType === 'solid' || S.bgType === 'ocean') ? [S.c1] : [];
+    var bgs = S.bgType === 'gradient' ? [S.c1, S.c2].concat(S.useC3 ? [S.c3] : []) : S.bgType === 'sky' ? [S.c1, S.c2] : (S.bgType === 'solid' || S.bgType === 'ocean') ? [S.c1] : [];
     var worstBg = bgs.length ? Math.min.apply(null, bgs.map(function(b){ return ratio(S.textDim, b); })) : null;
     var el = $('contrast'); el.textContent = '';
     function add(label, v){
@@ -2058,9 +2128,11 @@ rounded_corners = 1</code></pre>
       L.push('color2 = ' + hx(S.c2), 'color3 = ' + (S.useC3 ? hx(S.c3) : 'none'), 'direction = ' + S.dir);
     } else if (S.bgType === 'ocean') {
       L.push('color2 = ' + hx(S.c2));     // color1 is the water, color2 the foam
+    } else if (S.bgType === 'sky') {
+      L.push('color2 = ' + hx(S.c2), 'color3 = ' + hx(S.c3), 'drift = ' + S.drift);   // color1 the glow at the bottom, color2 the sky, color3 the clouds
     }
-    L.push('dither = ' + (S.dither ? 1 : 0), '', '[pattern]', 'style = ' + S.pattern);
-    if (S.pattern !== 'none') L.push('color = ' + hx(S.pColor), 'size = ' + S.pSize, 'opacity = ' + S.pOpacity);
+    L.push('dither = ' + (S.dither ? 1 : 0), '', '[pattern]', 'style = ' + (S.bgType === 'sky' ? 'none' : S.pattern));
+    if (S.pattern !== 'none' && S.bgType !== 'sky') L.push('color = ' + hx(S.pColor), 'size = ' + S.pSize, 'opacity = ' + S.pOpacity);
     var feats = FEATURES.filter(function(f){ return S['f_' + f.key] !== -1; });
     if (feats.length) {
       L.push('', '[features]');
@@ -2068,6 +2140,9 @@ rounded_corners = 1</code></pre>
     }
     return L.join('\n') + '\n';
   }
+
+  // For the Sounds tab: the theme as it stands, to go in the same zip as its sounds.
+  window.themeMaker = { buildIni: buildIni, name: function(){ return S.name; } };
 
   var raf = 0;
   function changed(textOnly){
@@ -2170,7 +2245,11 @@ rounded_corners = 1</code></pre>
    *      bits 0-7 as in v2, then 8 hide_extensions, 9 tidy_titles, 10 hide_tags,
    *      11 memory_badge, 12 button_icons, 13 favorite_heart, 14 rounded_corners
    *      (11-14 were added later; older v3 codes leave them unset)
-   * [51..52] reserved, 0
+   * [51] background extras (added later; older Theme Makers ignore it and read
+   *      the gradient written in byte 25): bit 0 sky (color1 glow, color2 sky,
+   *      color3 clouds; byte 25 says gradient), bits 1-4 the sky's drift speed
+   *      (0 still to 10, 3 the usual)
+   * [52] reserved, 0
    * [53..54] CRC-16/CCITT-FALSE of bytes 0..52, big-endian
    *
    * The shortest version that can hold the theme is written: v1 with stock
@@ -2204,7 +2283,7 @@ rounded_corners = 1</code></pre>
       FEATURES.some(function(f){ return S['f_' + f.key] !== -1; });
   }
   function needsV3(){
-    return FEATURES.some(function(f, i){ return i >= 8 && S['f_' + f.key] !== -1; });
+    return S.bgType === 'sky' || FEATURES.some(function(f, i){ return i >= 8 && S['f_' + f.key] !== -1; });
   }
   var CODE_BYTES = {1: 32, 2: 52, 3: 55};
   function encodeTheme(){
@@ -2213,7 +2292,9 @@ rounded_corners = 1</code></pre>
     var b = new Array(len).fill(0);
     b[0] = version;
     COLOR_KEYS.forEach(function(k, i){ putColor(b, 1 + i * 3, S[k]); });
-    b[25] = Math.max(0, BG_TYPES.indexOf(S.bgType)) | (Math.max(0, DIRS.indexOf(S.dir)) << 2) | (S.useC3 ? 16 : 0) | (S.dither ? 32 : 0);
+    var sky = S.bgType === 'sky';
+    b[25] = (sky ? 1 : Math.max(0, BG_TYPES.indexOf(S.bgType))) | (Math.max(0, DIRS.indexOf(S.dir)) << 2) | ((S.useC3 || sky) ? 16 : 0) | (S.dither ? 32 : 0);
+    if (sky) b[51] = 1 | (Math.max(0, Math.min(10, S.drift | 0)) << 1);
     b[26] = Math.max(0, PATTERNS.indexOf(S.pattern));
     b[27] = Math.min(128, Math.max(2, S.pSize));
     b[28] = Math.min(100, Math.max(0, S.pOpacity));
@@ -2255,6 +2336,8 @@ rounded_corners = 1</code></pre>
     var t = {};
     COLOR_KEYS.forEach(function(k, i){ t[k] = getColor(bytes, 1 + i * 3); });
     t.bgType = BG_TYPES[bytes[25] & 3] || 'gradient';
+    t.drift = 3;
+    if (version === 3 && (bytes[51] & 1)) { t.bgType = 'sky'; t.drift = Math.min(10, (bytes[51] >> 1) & 15); }
     t.dir = DIRS[(bytes[25] >> 2) & 3];
     t.useC3 = !!(bytes[25] & 16);
     t.dither = !!(bytes[25] & 32);
@@ -6752,8 +6835,11 @@ function status(text) { $('sndStatus').textContent = text; }
 
 function refresh() {
   var n = Object.keys(made).length, name = themeFolderName($('sndTheme').value);
-  $('sndMake').disabled = n === 0 || !name;
+  var ini = $('sndWithIni').checked && window.themeMaker;
+  $('sndIniName').textContent = window.themeMaker ? '"' + (window.themeMaker.name() || 'Untitled') + '"' : 'its theme';
+  $('sndMake').disabled = (n === 0 && !ini) || !name;
   if (!name) status('Type the theme\'s folder name.');
+  else if (n === 0 && ini) status('Only theme.ini so far: pick sounds to add them.');
   else if (n === 0) status('Pick at least one sound.');
   else {
     var bytes = Object.keys(made).reduce(function (s, k) { return s + made[k].bytes.length; }, 0);
@@ -6809,12 +6895,17 @@ SND_SLOTS.forEach(function (slot) {
 });
 
 $('sndTheme').addEventListener('input', refresh);
+$('sndWithIni').addEventListener('change', refresh);
+window.addEventListener('hashchange', refresh);     /* the Theme Maker's name may have changed meanwhile */
 $('sndMake').addEventListener('click', function () {
   var folder = 'menu/themes/' + themeFolderName($('sndTheme').value) + '/';
   var files = Object.keys(made).map(function (k) { return { path: folder + k, bytes: made[k].bytes }; });
+  if ($('sndWithIni').checked && window.themeMaker) {
+    files.unshift({ path: folder + 'theme.ini', bytes: new TextEncoder().encode(window.themeMaker.buildIni()) });
+  }
   var a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([T.zipStore(files, T.crcOf)], { type: 'application/zip' }));
-  a.download = themeFolderName($('sndTheme').value) + ' sounds.zip';
+  a.download = themeFolderName($('sndTheme').value) + ($('sndWithIni').checked && window.themeMaker ? ' theme.zip' : ' sounds.zip');
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
   status('Downloaded. Unzip it straight onto the top of the SD card, not into a new folder of its own.');

@@ -23,6 +23,7 @@ typedef enum {
     THEME_BG_GRADIENT,
     THEME_BG_IMAGE,
     THEME_BG_OCEAN,     /* water seen from above with a net of foam lines: color1 water, color2 foam */
+    THEME_BG_SKY,       /* a night sky with soft clouds drifting: color1 the glow at the bottom, color2 the sky above, color3 the clouds */
 } theme_bg_type_t;
 
 typedef enum {
@@ -41,6 +42,9 @@ typedef enum {
     THEME_PATTERN_GRID,
     THEME_PATTERN_SCANLINES,
 } theme_pattern_t;
+
+#define THEME_DRIFT_USUAL   (3)     /**< the sky's usual drift: one screen width every two minutes */
+#define THEME_DRIFT_MAX     (10)    /**< the fastest: a screen width every 36 seconds */
 
 typedef struct {
     char name[41];
@@ -66,6 +70,7 @@ typedef struct {
     color_t color3;
     bool use_color3;
     bool dither;
+    int drift;          /* sky: how fast the clouds drift (theme.ini `drift`), 0 still to THEME_DRIFT_MAX; THEME_DRIFT_USUAL by default */
     char image[64];
 
     theme_pattern_t pattern;

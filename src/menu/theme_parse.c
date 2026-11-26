@@ -75,6 +75,10 @@ static void apply_key (theme_t *t, const char *section, const char *key, const c
             else if (!strcasecmp(v, "gradient")) t->bg_type = THEME_BG_GRADIENT;
             else if (!strcasecmp(v, "image")) t->bg_type = THEME_BG_IMAGE;
             else if (!strcasecmp(v, "ocean")) t->bg_type = THEME_BG_OCEAN;
+            else if (!strcasecmp(v, "sky")) t->bg_type = THEME_BG_SKY;
+        } else if (!strcasecmp(key, "drift")) {
+            int d = atoi(v);
+            t->drift = (d < 0) ? 0 : ((d > THEME_DRIFT_MAX) ? THEME_DRIFT_MAX : d);
         } else if (!strcasecmp(key, "direction")) {
             if (!strcasecmp(v, "vertical")) t->direction = THEME_DIR_VERTICAL;
             else if (!strcasecmp(v, "horizontal")) t->direction = THEME_DIR_HORIZONTAL;
@@ -160,6 +164,7 @@ static const char *bg_type_name (theme_bg_type_t type) {
         case THEME_BG_SOLID: return "solid";
         case THEME_BG_IMAGE: return "image";
         case THEME_BG_OCEAN: return "ocean";
+        case THEME_BG_SKY: return "sky";
         case THEME_BG_GRADIENT:
         default: return "gradient";
     }
@@ -221,6 +226,9 @@ bool theme_write_file (const theme_t *t, const char *path) {
         fprintf(f, "color3 = none\n");
     }
     fprintf(f, "direction = %s\ndither = %d\n", direction_name(t->direction), t->dither ? 1 : 0);
+    if (t->bg_type == THEME_BG_SKY) {
+        fprintf(f, "drift = %d\n", t->drift);
+    }
     if (t->image[0]) {
         fprintf(f, "image = %s\n", t->image);
     }
