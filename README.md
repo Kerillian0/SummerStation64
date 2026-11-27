@@ -148,8 +148,8 @@ Each [release](https://github.com/Kerillian0/SummerStation64/releases) has two d
 - **v0.3c** ✅ released: box art without the scans' black frames, long names
   that slide, adding folders to Games (and the folders inside them) fixed,
   and a hack-badge fix.
-- **v0.4** themes: theme picker, sound and font packs, more seasonal themes.
-- **v0.5** polish: setup wizard, CRT test patterns, accessibility, and a
+- **v0.4** ✅️ released: themes: theme picker, sound and font packs, more seasonal themes.
+- **v0.5**b✅️ released: polish: setup wizard, CRT test patterns, accessibility, and a
   versions screen where a game's copies and hacks unfold into a column of
   covers with their names beside them.
 - **v1.0:** menu achievements: for finishing games (from time played) and
