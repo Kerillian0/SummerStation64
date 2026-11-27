@@ -430,9 +430,52 @@ static int pattern_period (const theme_t *t) {
         default:
             return 0;
     }
-    bool power_of_two = (p > 0) && ((p & (p - 1)) == 0);
-    return (power_of_two && p <= LIVE_TILE_MAX) ? p : 0;
+    return (p > 0 && p <= LIVE_TILE_MAX) ? p : 0;
 }
+
+/* The chip repeats a tile only if its size is a power of two. A pattern that
+   repeats every p pixels otherwise (Grape's 24 px checker: 48) is drawn into
+   the next power of two up (64) and the tile is stretched back to p pixels
+   as it is drawn (tile_scale), so it repeats every p pixels on screen. Edges
+   that fall on whole pixels stay sharp (the checker's squares). */
+static int tile_size (int p) {
+    int t = 1;
+    while (t < p) {
+        t <<= 1;
+    }
+    return t;
+}
+static float tile_scale = 1.0f;     /* tile texels per screen pixel */
+
+/* The tile for a period: the power of two below it when that still gives the
+   pattern exactly (Grape's 48 px checker from a 32 px tile: 1 KB, not 4),
+   else the one above. */
+static int tile_pick (const theme_t *t, int p) {
+    int up = tile_size(p);
+    int down = (up == p) ? p : up / 2;
+    if (down == p || down < 2) {
+        return up;
+    }
+    float k = (float) down / p;
+    for (int y = 0; y < p; y++) {
+        int ty = (int) ((y + 0.5f) * k);
+        int py = (int) ((ty + 0.5f) / k);
+        for (int x = 0; x < p; x++) {
+            int tx = (int) ((x + 0.5f) * k);
+            if (pattern_hit(t, (int) ((tx + 0.5f) / k), py) != pattern_hit(t, x, y)) {
+                return up;
+            }
+        }
+    }
+    return down;
+}
+
+/* A round or diagonal gradient with a pattern: both from small pictures in
+   one pass of the chip (two textures). The gradient picture shares the chip's
+   4 KB with the tile, so it is coarser than gradient_small (16-bit, a value
+   every 16-32 px) and scaled from the tile's coordinates by a power of two. */
+static surface_t gradient_coarse;
+static int coarse_log = 0;          /* the gradient's texels are the tile's divided by 2^coarse_log */
 
 static bool has_pattern (const theme_t *t) {
     return t->pattern != THEME_PATTERN_NONE && t->pattern_opacity > 0;
@@ -450,9 +493,6 @@ static bool live_possible (const theme_t *t) {
     }
     if (t->bg_type == THEME_BG_SKY) {
         return true;    /* the sky draws no pattern */
-    }
-    if (needs_small(t)) {
-        return !has_pattern(t);
     }
     return !has_pattern(t) || pattern_period(t) > 0;
 }
@@ -479,8 +519,73 @@ static void small_prepare (const theme_t *t) {
     }
 }
 
+static bool tile_prepare (const theme_t *t) {
+    int p = pattern_period(t);
+    int size = tile_pick(t, p);
+    tile_scale = (float) size / p;
+    pattern_tile = surface_alloc(FMT_I8, size, size);
+    if (!pattern_tile.buffer) {
+        debugf("theme: no memory for the pattern tile, pattern left out\n");
+        return false;
+    }
+    uint8_t strength = to_byte(t->pattern_opacity * 255.0f / 100.0f);
+    for (int y = 0; y < size; y++) {
+        uint8_t *out = (uint8_t *) pattern_tile.buffer + y * pattern_tile.stride;
+        int py = (int) ((y + 0.5f) / tile_scale);    /* the screen pixel this texel stands for */
+        for (int x = 0; x < size; x++) {
+            out[x] = pattern_hit(t, (int) ((x + 0.5f) / tile_scale), py) ? strength : 0;
+        }
+    }
+    return true;
+}
+
+static void coarse_prepare (const theme_t *t) {
+    int w = display_get_width();
+    int h = display_get_height();
+    int tile_bytes = pattern_tile.stride * pattern_tile.height;
+    for (coarse_log = 0; coarse_log <= 10; coarse_log++) {
+        float per_px = tile_scale / (float) (1 << coarse_log);     /* gradient texels per screen pixel */
+        if (1.0f / per_px < 16.0f) {
+            continue;
+        }
+        int gw = (int) ceilf(w * per_px) + 1;
+        int gh = (int) ceilf(h * per_px) + 1;
+        int stride = ((gw * 2) + 7) & ~7;
+        if (stride * gh + tile_bytes > 4096) {
+            continue;
+        }
+        gradient_coarse = surface_alloc(FMT_RGBA16, gw, gh);
+        if (!gradient_coarse.buffer) {
+            return;
+        }
+        for (int y = 0; y < gh; y++) {
+            uint16_t *out = (uint16_t *) ((uint8_t *) gradient_coarse.buffer + y * gradient_coarse.stride);
+            for (int x = 0; x < gw; x++) {
+                rgbf_t c = gradient_color(t, (int) ((x + 0.5f) / per_px), (int) ((y + 0.5f) / per_px), w, h);
+                out[x] = (uint16_t) (((to_byte(c.r) >> 3) << 11) | ((to_byte(c.g) >> 3) << 6) | ((to_byte(c.b) >> 3) << 1) | 1);
+            }
+        }
+        return;
+    }
+}
+
 static void live_prepare (const theme_t *t) {
     live = true;
+    tile_scale = 1.0f;
+    if (needs_small(t) && has_pattern(t)) {
+        if (tile_prepare(t)) {
+            coarse_prepare(t);
+        }
+        if (gradient_coarse.buffer) {
+            debugf("theme: background \"%s\" drawn live, a %dx%d gradient and a %dx%d pattern tile in one pass\n", t->name,
+                   gradient_coarse.width, gradient_coarse.height, pattern_tile.width, pattern_tile.height);
+            return;
+        }
+        if (pattern_tile.buffer) {      /* no room: the gradient alone */
+            surface_free(&pattern_tile);
+            memset(&pattern_tile, 0, sizeof(pattern_tile));
+        }
+    }
     if (needs_small(t)) {
         small_prepare(t);
         debugf("theme: background \"%s\" drawn live from a %dx%d picture\n", t->name, gradient_small.width, gradient_small.height);
@@ -490,20 +595,10 @@ static void live_prepare (const theme_t *t) {
         debugf("theme: background \"%s\" drawn live\n", t->name);
         return;
     }
-    int p = pattern_period(t);
-    pattern_tile = surface_alloc(FMT_I8, p, p);
-    if (!pattern_tile.buffer) {
-        debugf("theme: no memory for the pattern tile, pattern left out\n");
-        return;
+    if (tile_prepare(t)) {
+        debugf("theme: background \"%s\" drawn live, pattern every %d px from a %dx%d tile\n", t->name,
+               pattern_period(t), pattern_tile.width, pattern_tile.height);
     }
-    uint8_t strength = to_byte(t->pattern_opacity * 255.0f / 100.0f);
-    for (int y = 0; y < p; y++) {
-        uint8_t *out = (uint8_t *) pattern_tile.buffer + y * pattern_tile.stride;
-        for (int x = 0; x < p; x++) {
-            out[x] = pattern_hit(t, x, y) ? strength : 0;
-        }
-    }
-    debugf("theme: background \"%s\" drawn live, pattern tile %dx%d\n", t->name, p, p);
 }
 
 static void live_forget (void) {
@@ -514,6 +609,10 @@ static void live_forget (void) {
     if (pattern_tile.buffer) {
         surface_free(&pattern_tile);
         memset(&pattern_tile, 0, sizeof(pattern_tile));
+    }
+    if (gradient_coarse.buffer) {
+        surface_free(&gradient_coarse);
+        memset(&gradient_coarse, 0, sizeof(gradient_coarse));
     }
     live = false;
 }
@@ -531,8 +630,8 @@ static void live_vertex (float *v, int x, int y, int w, int h, float bright) {
     v[3] = c.g * k;
     v[4] = c.b * k;
     v[5] = over_alpha / 255.0f;
-    v[6] = x;
-    v[7] = y;
+    v[6] = x * tile_scale;
+    v[7] = y * tile_scale;
     v[8] = 1.0f;
 }
 
@@ -608,6 +707,26 @@ static void live_draw (int x0, int y0, int x1, int y1, int bright) {
 
     if (gradient_small.buffer && theme.bg_type == THEME_BG_SKY) {
         sky_draw(x0, y0, x1, y1, bright, w, h);
+        return;
+    }
+    if (gradient_coarse.buffer) {
+        /* The gradient (TEX0, smoothed) darkened by ENV, then the pattern color
+           mixed in by the tile (TEX1), in the chip's two-cycle mode. */
+        rdpq_set_mode_standard();
+        rdpq_mode_filter(FILTER_BILINEAR);
+        rdpq_mode_dithering(theme.dither ? DITHER_BAYER_NONE : DITHER_NONE_NONE);
+        rdpq_mode_combiner(RDPQ_COMBINER2((TEX0, 0, ENV, 0), (0, 0, 0, ENV), (PRIM, COMBINED, TEX1, COMBINED), (0, 0, 0, COMBINED)));
+        rdpq_set_env_color(RGBA32(bright, bright, bright, over_alpha));
+        rdpq_set_prim_color(RGBA32(theme.pattern_color.r * bright / 255, theme.pattern_color.g * bright / 255, theme.pattern_color.b * bright / 255, 0xFF));
+        if (over_alpha < 255) {
+            rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+        }
+        rdpq_tex_multi_begin();
+        rdpq_tex_upload(TILE0, &gradient_coarse, &(rdpq_texparms_t) { .s.scale_log = coarse_log, .t.scale_log = coarse_log });
+        rdpq_tex_upload(TILE1, &pattern_tile, &(rdpq_texparms_t) { .s.repeats = REPEAT_INFINITE, .t.repeats = REPEAT_INFINITE });
+        rdpq_tex_multi_end();
+        rdpq_texture_rectangle_scaled(TILE0, x0, y0, x1, y1,
+            x0 * tile_scale, y0 * tile_scale, x1 * tile_scale, y1 * tile_scale);
         return;
     }
     if (gradient_small.buffer) {
