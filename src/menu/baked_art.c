@@ -224,13 +224,21 @@ static bool pack_read (uint32_t offset, uint32_t bytes) {
     return true;
 }
 
+static bool baked_find_side (const char *game_code, file_image_type_t which, bool small, uint32_t *offset, uint32_t *size, char *name);
+
+/* Without the Expansion Pak the cover rows take the front's 256-colour copy
+   (side 'c', half the memory; make_baked_art.py), when the pack has one. */
 static bool baked_find (const char *game_code, file_image_type_t which, uint32_t *offset, uint32_t *size, char *name) {
+    return baked_find_side(game_code, which, false, offset, size, name);
+}
+
+static bool baked_find_side (const char *game_code, file_image_type_t which, bool small, uint32_t *offset, uint32_t *size, char *name) {
     if (!game_code || !code_is_plain(game_code, 4)) {
         return false;
     }
     char side;
     switch (which) {
-        case IMAGE_BOXART_FRONT: side = 'f'; break;
+        case IMAGE_BOXART_FRONT: side = small ? 'c' : 'f'; break;
         case IMAGE_BOXART_BACK: side = 'b'; break;
         case IMAGE_BOXART_TOP: side = 't'; break;
         case IMAGE_BOXART_LEFT: side = 'l'; break;
@@ -265,12 +273,28 @@ bool baked_art_has (const char *game_code, file_image_type_t which) {
     return baked_find(game_code, which, &offset, &size, NULL);
 }
 
+static component_boxart_t *load_found (uint32_t offset, uint32_t size, const char *name);
+
 component_boxart_t *baked_art_load (const char *game_code, file_image_type_t which) {
     uint32_t offset, size;
     char name[8];
     if (!baked_find(game_code, which, &offset, &size, name) || size == 0 || pad_sector(size) > PACK_STAGE_MAX) {
         return NULL;
     }
+    return load_found(offset, size, name);
+}
+
+component_boxart_t *baked_art_load_row (const char *game_code, file_image_type_t which) {
+    uint32_t offset, size;
+    char name[8];
+    if (which == IMAGE_BOXART_FRONT && !is_memory_expanded()
+            && baked_find_side(game_code, which, true, &offset, &size, name) && size > 0 && pad_sector(size) <= PACK_STAGE_MAX) {
+        return load_found(offset, size, name);
+    }
+    return baked_art_load(game_code, which);
+}
+
+static component_boxart_t *load_found (uint32_t offset, uint32_t size, const char *name) {
 
     int slot = -1;
     for (int i = 0; i < MAX_LOADED; i++) {
@@ -335,6 +359,25 @@ component_boxart_t *baked_art_load (const char *game_code, file_image_type_t whi
     loaded[slot].art = art;
     loaded[slot].sprite = sprite;
     return art;
+}
+
+const uint16_t *baked_art_palette (const surface_t *image) {
+    for (int i = 0; image && i < MAX_LOADED; i++) {
+        if (loaded[i].art && loaded[i].art->image == image) {
+            return sprite_get_palette(loaded[i].sprite);
+        }
+    }
+    return NULL;
+}
+
+void baked_art_tlut (const surface_t *image) {
+    const uint16_t *palette = (surface_get_format(image) == FMT_CI8) ? baked_art_palette(image) : NULL;
+    if (palette) {
+        rdpq_mode_tlut(TLUT_RGBA16);
+        rdpq_tex_upload_tlut((uint16_t *) palette, 0, 256);
+    } else {
+        rdpq_mode_tlut(TLUT_NONE);
+    }
 }
 
 bool baked_art_owns (component_boxart_t *art) {

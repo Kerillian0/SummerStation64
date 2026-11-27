@@ -22,6 +22,21 @@
  */
 component_boxart_t *baked_art_load (const char *game_code, file_image_type_t which);
 
+/**
+ * The same, for the cover rows: without the Expansion Pak a front comes in
+ * its 256-colour copy when the art file has one (half the memory; its colour
+ * table from baked_art_palette(), loaded for drawing by baked_art_tlut()).
+ */
+component_boxart_t *baked_art_load_row (const char *game_code, file_image_type_t which);
+
+/** The colour table of a 256-colour picture from baked_art_load_row(), else NULL. */
+const uint16_t *baked_art_palette (const surface_t *image);
+
+/** Before drawing a cover picture: load its colour table if it has one (and
+ *  switch the chip to look colours up), else switch looking up off. Call after
+ *  the drawing mode is set. */
+void baked_art_tlut (const surface_t *image);
+
 /** True if this picture of the game is baked in (nothing is loaded). */
 bool baked_art_has (const char *game_code, file_image_type_t which);
 

@@ -6,6 +6,7 @@
 #include <math.h>
 #include <string.h>
 
+#include "baked_art.h"
 #include "box3d.h"
 
 /* How deep a box is against its longest side when there is no top strip
@@ -132,13 +133,14 @@ static void vertex (float *v, point_t p, float s, float t) {
    @return false if the picture is in a format this can't draw. */
 static bool face_picture (const int *face, surface_t *image, float shade, int bright) {
     tex_format_t format = surface_get_format(image);
-    if (format != FMT_RGBA16 && format != FMT_RGBA32) {
+    if (format != FMT_RGBA16 && format != FMT_RGBA32 && format != FMT_CI8) {
         return false;
     }
     int iw = image->width;
     int ih = image->height;
-    int line_bytes = ((iw * 2) + 7) & ~7;           /* RGBA32 is split in two halves of 16 bits */
-    int capacity = (format == FMT_RGBA32) ? 2048 : 4096;
+    /* RGBA32 is split in two halves of 16 bits; a 256-colour front (4MB) shares the memory with its colour table */
+    int line_bytes = (format == FMT_CI8) ? ((iw + 7) & ~7) : (((iw * 2) + 7) & ~7);
+    int capacity = (format == FMT_RGBA16) ? 4096 : 2048;
     int band = (capacity / line_bytes) - 1;
     if (band < 1) {
         return false;
@@ -165,6 +167,7 @@ static bool face_picture (const int *face, surface_t *image, float shade, int br
             rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
         }
     }
+    baked_art_tlut(image);      /* a 256-colour picture's colour table (baked_art.h) */
     for (int t0 = 0; t0 < ih; t0 += band) {
         int t1 = (t0 + band < ih) ? (t0 + band) : ih;
         rdpq_tex_upload_sub(TILE0, image, NULL, 0, t0, iw, (t1 + 1 < ih) ? (t1 + 1) : ih);
@@ -178,6 +181,7 @@ static bool face_picture (const int *face, surface_t *image, float shade, int br
         rdpq_triangle(&TRIFMT_TEX, v0, v1, v2);
         rdpq_triangle(&TRIFMT_TEX, v0, v2, v3);
     }
+    rdpq_mode_tlut(TLUT_NONE);
     rdpq_mode_persp(false);
     return true;
 }

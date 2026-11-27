@@ -125,6 +125,18 @@ with tempfile.TemporaryDirectory() as work:
                 skipped.append(f"{code} {name}: {result.stderr.strip()}")
                 continue
             made += 1
+            if side == "f":
+                # The same front in 256 colours with an ordered dither (side 'c', half the
+                # memory), which the cover rows use without the Expansion Pak (baked_art.c).
+                # Not 'F': on a Windows drive NSME_F and NSME_f are the same file.
+                small8 = os.path.join(work, f"{code}_c.png")
+                shutil.copyfile(small, small8)
+                result = subprocess.run([MKSPRITE, "--format", "CI8", "--dither", "ORDERED", "--compress", "1",
+                                         "-o", bucket, small8], capture_output=True, text=True)
+                if result.returncode != 0:
+                    skipped.append(f"{code} {name} (256 colours): {result.stderr.strip()}")
+                else:
+                    made += 1
 
 total = sum(os.path.getsize(os.path.join(folder, f)) for folder, _, files in os.walk(OUT) for f in files)
 print(f"{made} pictures baked into {OUT}, {total / 1024 / 1024:.2f} MB.")

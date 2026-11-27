@@ -3,6 +3,7 @@
  * @brief Colors the ring round a cover to match the cover.
  */
 
+#include "baked_art.h"
 #include "art_tint.h"
 #include "menu_options.h"
 
@@ -29,7 +30,12 @@ bool art_tint_on_covers (void) {
 }
 
 bool art_tint_from (const surface_t *image, color_t *out) {
-    if (!image || !image->buffer || surface_get_format(image) != FMT_RGBA16) {
+    if (!image || !image->buffer) {
+        return false;
+    }
+    /* A 256-colour cover (the cover rows without the Expansion Pak): its pixels are places in its colour table. */
+    const uint16_t *palette = (surface_get_format(image) == FMT_CI8) ? baked_art_palette(image) : NULL;
+    if (surface_get_format(image) != FMT_RGBA16 && !palette) {
         return false;
     }
 
@@ -40,9 +46,9 @@ bool art_tint_from (const surface_t *image, color_t *out) {
 
     int width = image->width * (100 - STRIP_PERCENT) / 100;
     for (int y = 0; y < image->height; y += 2) {
-        const uint16_t *row = (const uint16_t *) ((const uint8_t *) image->buffer + y * image->stride);
+        const uint8_t *line = (const uint8_t *) image->buffer + y * image->stride;
         for (int x = 0; x < width; x += 2) {
-            uint16_t p = row[x];
+            uint16_t p = palette ? palette[line[x]] : ((const uint16_t *) line)[x];
             int r = ((p >> 11) & 0x1F) << 3;
             int g = ((p >> 6) & 0x1F) << 3;
             int b = ((p >> 1) & 0x1F) << 3;

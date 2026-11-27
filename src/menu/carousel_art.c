@@ -404,7 +404,7 @@ static component_boxart_t *art_load (menu_t *menu, int index, file_image_type_t 
 
     /* Art baked into the menu comes first: it needs no search of the card
        and no unpacking. */
-    component_boxart_t *art = baked_art_load(code, *which);
+    component_boxart_t *art = baked_art_load_row(code, *which);
     if (art) {
         baked_lately = true;
         return art;
@@ -413,7 +413,7 @@ static component_boxart_t *art_load (menu_t *menu, int index, file_image_type_t 
        no baked back means it has none: show the front again without
        searching the card (about 17 ms each time the box was turned). */
     if (*which != IMAGE_BOXART_FRONT) {
-        art = baked_art_load(code, IMAGE_BOXART_FRONT);
+        art = baked_art_load_row(code, IMAGE_BOXART_FRONT);
         if (art) {
             *which = IMAGE_BOXART_FRONT;
             baked_lately = true;
@@ -442,7 +442,7 @@ static component_boxart_t *art_load (menu_t *menu, int index, file_image_type_t 
     /* No picture of the back for this game: show the front again. */
     if (!art && *which != IMAGE_BOXART_FRONT) {
         *which = IMAGE_BOXART_FRONT;
-        art = baked_art_load(code, *which);
+        art = baked_art_load_row(code, *which);
         if (!art) {
             art = ui_components_boxart_init(menu->storage_prefix, code, title, *which);
         }
@@ -1299,6 +1299,7 @@ bool carousel_art_draw (menu_t *menu, int index, int x0, int y0, int w, int h, i
             rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);
             rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
         }
+        baked_art_tlut(image);      /* a 256-colour cover's colour table (baked_art.h) */
         rdpq_tex_blit(image, x0 + (w - draw_w) / 2, y0 + (h - draw_h) / 2, &(rdpq_blitparms_t) {
             .scale_x = scale_x,
             .scale_y = scale_y,
@@ -1326,7 +1327,7 @@ bool carousel_art_draw_angled (menu_t *menu, int index, int x0, int y0, int w, i
     }
     surface_t *image = slot->art->image;
     tex_format_t format = surface_get_format(image);
-    if (format != FMT_RGBA16 && format != FMT_RGBA32) {
+    if (format != FMT_RGBA16 && format != FMT_RGBA32 && format != FMT_CI8) {
         return carousel_art_draw(menu, index, x0, y0, w, h, alpha, false);
     }
     if (w < 2) {
@@ -1339,8 +1340,9 @@ bool carousel_art_draw_angled (menu_t *menu, int index, int x0, int y0, int w, i
        loads one row more than it draws, so smoothing has its neighbor. */
     int iw = image->width;
     int ih = image->height;
-    int line_bytes = ((iw * 2) + 7) & ~7;           /* RGBA32 is split in two halves of 16 bits */
-    int capacity = (format == FMT_RGBA32) ? 2048 : 4096;
+    /* RGBA32 is split in two halves of 16 bits; a 256-colour picture shares the memory with its colour table */
+    int line_bytes = (format == FMT_CI8) ? ((iw + 7) & ~7) : (((iw * 2) + 7) & ~7);
+    int capacity = (format == FMT_RGBA16) ? 4096 : 2048;
     int band = (capacity / line_bytes) - 1;
     if (band < 1) {
         return carousel_art_draw(menu, index, x0, y0, w, h, alpha, false);
@@ -1369,6 +1371,7 @@ bool carousel_art_draw_angled (menu_t *menu, int index, int x0, int y0, int w, i
             rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);
             rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
         }
+        baked_art_tlut(image);
         for (int t0 = 0; t0 < ih; t0 += band) {
             int t1 = (t0 + band < ih) ? (t0 + band) : ih;
             rdpq_tex_upload_sub(TILE0, image, NULL, 0, t0, iw, (t1 + 1 < ih) ? (t1 + 1) : ih);
