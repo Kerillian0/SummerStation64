@@ -24,9 +24,29 @@
 #include <minimp3/minimp3_ex.h>
 #include <minimp3/minimp3.h>
 
+/* SummerStation64: the FLAC decoder (66 KB, in memory on every console) is
+   left out: the Folders tab only opens .mp3 files as music (music_extensions
+   in views/browser.c), so no .flac file ever reached it. Build with
+   -DAUDIO_PLAYER_FLAC=1 to bring it back. Without it these stand-ins say a
+   FLAC file can't be opened. */
+#ifndef AUDIO_PLAYER_FLAC
+#define AUDIO_PLAYER_FLAC 0
+#endif
+#if AUDIO_PLAYER_FLAC
 #define DR_FLAC_IMPLEMENTATION
+#endif
 #define DR_FLAC_NO_STDIO  /* we use our own file I/O callbacks */
 #include <dr_libs/dr_flac.h>
+#if !AUDIO_PLAYER_FLAC
+drflac *drflac_open_with_metadata (drflac_read_proc onRead, drflac_seek_proc onSeek, drflac_tell_proc onTell, drflac_meta_proc onMeta, void *pUserData, const drflac_allocation_callbacks *pAllocationCallbacks) {
+    return NULL;
+}
+void drflac_close (drflac *pFlac) {}
+drflac_uint64 drflac_read_pcm_frames_s16 (drflac *pFlac, drflac_uint64 framesToRead, drflac_int16 *pBufferOut) { return 0; }
+drflac_bool32 drflac_seek_to_pcm_frame (drflac *pFlac, drflac_uint64 pcmFrameIndex) { return DRFLAC_FALSE; }
+void drflac_init_vorbis_comment_iterator (drflac_vorbis_comment_iterator *pIter, drflac_uint32 commentCount, const void *pComments) {}
+const char *drflac_next_vorbis_comment (drflac_vorbis_comment_iterator *pIter, drflac_uint32 *pCommentLengthOut) { return NULL; }
+#endif
 
 #define SEEK_PREDECODE_FRAMES   (5)
 #define FLAC_READ_FRAMES       (1152)  /* samples per wave_read iteration */

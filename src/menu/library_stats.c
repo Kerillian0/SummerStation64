@@ -105,7 +105,7 @@ typedef struct {
 } top_t;
 #define YEARS_MAX       (8)
 static top_t top;
-static top_t year_top[YEARS_MAX];
+static top_t *year_top = NULL;     /* YEARS_MAX of them (5 KB), only while the page is open */
 static int years[YEARS_MAX];        /* newest first: page 1 is years[0] */
 static int year_count = 0;
 static int page = 0;                /* 0 all time, then a year each */
@@ -140,13 +140,14 @@ void library_stats_open (menu_t *menu) {
     genre_count = genre_unknown = games = 0;
     bytes = 0;
     top.count = 0;
-    memset(year_top, 0, sizeof(year_top));
+    free(year_top);
+    year_top = calloc(YEARS_MAX, sizeof(top_t));
     page = 0;
 
     /* The years: any with play noted (play_years.h), or a game beaten in them. */
-    year_count = play_stats_years(years, YEARS_MAX);
+    year_count = year_top ? play_stats_years(years, YEARS_MAX) : 0;     /* no memory: all time only */
     int beaten_years[YEARS_MAX];
-    int n = game_status_beaten_years(beaten_years, YEARS_MAX);
+    int n = year_top ? game_status_beaten_years(beaten_years, YEARS_MAX) : 0;
     for (int i = 0; i < n; i++) {
         bool seen = false;
         for (int j = 0; j < year_count && !seen; j++) {
@@ -340,6 +341,8 @@ void library_stats_process (menu_t *menu) {
     if (menu->actions.back) {
         active = false;
         forget();
+        free(year_top);
+        year_top = NULL;
         sound_play_effect(SFX_EXIT);
         return;
     }

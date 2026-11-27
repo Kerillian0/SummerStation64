@@ -149,6 +149,7 @@ char *flashcart_convert_error_message (flashcart_err_t err) {
 flashcart_err_t flashcart_init (const char **storage_prefix) {
     flashcart_err_t err;
 
+#ifdef MENU_IQUE // SummerStation64: SummerCart64 only, and an iQue has no cartridge slot; its filesystem costs 39 KB of memory
     if (sys_bbplayer()) {
         // TODO: Add iQue callbacks
         *storage_prefix = "bbfs:/";
@@ -157,6 +158,7 @@ flashcart_err_t flashcart_init (const char **storage_prefix) {
         }
         return FLASHCART_OK;
     }
+#endif
 
     *storage_prefix = "sd:/";
     bool sd_card_initialized = debug_init_sdfs(*storage_prefix, -1);
