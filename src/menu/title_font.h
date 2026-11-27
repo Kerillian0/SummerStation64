@@ -3,7 +3,9 @@
  * @brief The larger font used for game titles.
  *
  * Same typeface as the body text at 26 px and at 20 px, with English
- * letters, digits, punctuation and Western European accents only.
+ * letters, digits, punctuation and Western European accents only. The 20 px
+ * size is loaded only with the Expansion Pak; without it FNT_TITLE_MEDIUM
+ * draws in the body font.
  */
 
 #ifndef TITLE_FONT_H__
