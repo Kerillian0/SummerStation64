@@ -16,7 +16,7 @@ Layout (all numbers big-endian, as the N64 reads them):
          record size 16
   512    index: count records of 16 bytes, sorted by key:
          key (8 bytes: the 3- or 4-letter code padded with zeros to 4, the
-         side letter f/b/t/l/r/p, or c for a front in 256 colours (used
+         side letter f/b/t/l/r/p, or c / k for a front / cartridge in 256 colours (used
          without the Expansion Pak), 3 zeros), offset (4), size (4)
   ...    each picture's .sprite file, unpacked (mkasset -c 0: unpacking
          took the console 6-9 ms a cover, reading the extra 10 KB about 1),
@@ -36,7 +36,7 @@ SECTOR = 512
 RECORD = 16
 VERSION = 2     # 1 held the pictures packed
 MKASSET = os.path.join(os.environ.get("N64_INST", "/opt/libdragon"), "bin", "mkasset")
-NAME = re.compile(r"^([0-9A-Z]{3,4})_([fbtlrpc])\.sprite$")
+NAME = re.compile(r"^([0-9A-Z]{3,4})_([fbtlrpck])\.sprite$")
 
 
 def pad(n):

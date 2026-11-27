@@ -248,7 +248,8 @@ static void cartridge_walls (const box3d_art_t *art, float bw, float bh, float b
 
     /* The plastic patch: a little of the picture's left grip. */
     surface_t *plastic = art->front;
-    bool textured = plastic && (surface_get_format(plastic) == FMT_RGBA16);
+    bool textured = plastic && (surface_get_format(plastic) == FMT_RGBA16
+                                || (surface_get_format(plastic) == FMT_CI8 && baked_art_palette(plastic)));
     int s0 = 0, s1 = 0, t0 = 0, t1 = 0;
     if (textured) {
         s0 = plastic->width * 3 / 100; s1 = plastic->width * 8 / 100;
@@ -278,6 +279,7 @@ static void cartridge_walls (const box3d_art_t *art, float bw, float bh, float b
             rdpq_set_prim_color(RGBA32(art->side.r * k / 255, art->side.g * k / 255, art->side.b * k / 255, draw_alpha));
         } else {
             if (loaded != 1) {
+                baked_art_tlut(plastic);    /* its colour table if it has one (a 256-colour cartridge), else none */
                 rdpq_tex_upload_sub(TILE0, plastic, NULL, s0, t0, s1, t1);
                 loaded = 1;
             }
@@ -302,6 +304,7 @@ static void cartridge_walls (const box3d_art_t *art, float bw, float bh, float b
             const float u0 = 0.13f, u1 = 0.87f, w0 = 0.22f, w1 = 0.82f;  /* along the bottom, and front to back */
             point_t near0 = mix(front[i], front[j], u0), near1 = mix(front[i], front[j], u1);
             point_t far0 = mix(back[i], back[j], u0), far1 = mix(back[i], back[j], u1);
+            rdpq_mode_tlut(TLUT_NONE);
             rdpq_tex_upload(TILE0, art->bottom, NULL);
             loaded = 2;
             float bw_ = art->bottom->width, bh_ = art->bottom->height;
@@ -313,6 +316,7 @@ static void cartridge_walls (const box3d_art_t *art, float bw, float bh, float b
             rdpq_triangle(&TRIFMT_TEX, v0, v2, v3);
         }
     }
+    rdpq_mode_tlut(TLUT_NONE);
     rdpq_mode_persp(false);
     memcpy(corners, saved, sizeof(saved));
 }

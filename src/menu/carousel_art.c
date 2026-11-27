@@ -189,6 +189,25 @@ static void cart_prepare (slot_t *slot) {
     surface_t *image = slot->art->image;
     slot->cart_ready = true;
     slot->body = RGBA32(0x80, 0x80, 0x84, 0xFF);    /* grey plastic, if the picture says nothing */
+    const uint16_t *palette = (surface_get_format(image) == FMT_CI8) ? baked_art_palette(image) : NULL;
+    if (palette) {
+        /* A baked cartridge in 256 colours (without the Expansion Pak): only its plastic colour is needed. */
+        int r = 0, g = 0, b = 0, n = 0;
+        for (int y = image->height * 35 / 100; y < image->height * 65 / 100; y += 2) {
+            const uint8_t *line = (const uint8_t *) image->buffer + y * image->stride;
+            for (int x = image->width * 2 / 100; x < image->width * 10 / 100; x++) {
+                uint16_t p = palette[line[x]];
+                if (p & 1) {
+                    r += (p >> 11) & 31; g += (p >> 6) & 31; b += (p >> 1) & 31; n++;
+                }
+            }
+        }
+        if (n > 0) {
+            slot->body = RGBA32(r * 255 / (31 * n), g * 255 / (31 * n), b * 255 / (31 * n), 0xFF);
+        }
+        slot->outline_points = 0;
+        return;
+    }
     if (surface_get_format(image) != FMT_RGBA16) {
         return;
     }

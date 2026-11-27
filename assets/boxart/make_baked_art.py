@@ -125,11 +125,12 @@ with tempfile.TemporaryDirectory() as work:
                 skipped.append(f"{code} {name}: {result.stderr.strip()}")
                 continue
             made += 1
-            if side == "f":
-                # The same front in 256 colours with an ordered dither (side 'c', half the
-                # memory), which the cover rows use without the Expansion Pak (baked_art.c).
-                # Not 'F': on a Windows drive NSME_F and NSME_f are the same file.
-                small8 = os.path.join(work, f"{code}_c.png")
+            if side in ("f", "p"):
+                # The same front or cartridge in 256 colours with an ordered dither (sides
+                # 'c' and 'k', half the memory), which the cover rows use without the
+                # Expansion Pak (baked_art.c). Not 'F': on a Windows drive NSME_F and
+                # NSME_f are the same file.
+                small8 = os.path.join(work, f"{code}_{'c' if side == 'f' else 'k'}.png")
                 shutil.copyfile(small, small8)
                 result = subprocess.run([MKSPRITE, "--format", "CI8", "--dither", "ORDERED", "--compress", "1",
                                          "-o", bucket, small8], capture_output=True, text=True)

@@ -23,8 +23,8 @@
 component_boxart_t *baked_art_load (const char *game_code, file_image_type_t which);
 
 /**
- * The same, for the cover rows: without the Expansion Pak a front comes in
- * its 256-colour copy when the art file has one (half the memory; its colour
+ * The same, for the cover rows: without the Expansion Pak a front or a
+ * cartridge comes in its 256-colour copy when the art file has one (half the memory; its colour
  * table from baked_art_palette(), loaded for drawing by baked_art_tlut()).
  */
 component_boxart_t *baked_art_load_row (const char *game_code, file_image_type_t which);

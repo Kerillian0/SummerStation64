@@ -226,8 +226,9 @@ static bool pack_read (uint32_t offset, uint32_t bytes) {
 
 static bool baked_find_side (const char *game_code, file_image_type_t which, bool small, uint32_t *offset, uint32_t *size, char *name);
 
-/* Without the Expansion Pak the cover rows take the front's 256-colour copy
-   (side 'c', half the memory; make_baked_art.py), when the pack has one. */
+/* Without the Expansion Pak the cover rows take the front's or the
+   cartridge's 256-colour copy (sides 'c' and 'k', half the memory;
+   make_baked_art.py), when the pack has one. */
 static bool baked_find (const char *game_code, file_image_type_t which, uint32_t *offset, uint32_t *size, char *name) {
     return baked_find_side(game_code, which, false, offset, size, name);
 }
@@ -243,7 +244,7 @@ static bool baked_find_side (const char *game_code, file_image_type_t which, boo
         case IMAGE_BOXART_TOP: side = 't'; break;
         case IMAGE_BOXART_LEFT: side = 'l'; break;
         case IMAGE_BOXART_RIGHT: side = 'r'; break;
-        case IMAGE_GAMEPAK_FRONT: side = 'p'; break;
+        case IMAGE_GAMEPAK_FRONT: side = small ? 'k' : 'p'; break;
         default: return false;
     }
 
@@ -287,7 +288,7 @@ component_boxart_t *baked_art_load (const char *game_code, file_image_type_t whi
 component_boxart_t *baked_art_load_row (const char *game_code, file_image_type_t which) {
     uint32_t offset, size;
     char name[8];
-    if (which == IMAGE_BOXART_FRONT && !is_memory_expanded()
+    if ((which == IMAGE_BOXART_FRONT || which == IMAGE_GAMEPAK_FRONT) && !is_memory_expanded()
             && baked_find_side(game_code, which, true, &offset, &size, name) && size > 0 && pad_sector(size) <= PACK_STAGE_MAX) {
         return load_found(offset, size, name);
     }
