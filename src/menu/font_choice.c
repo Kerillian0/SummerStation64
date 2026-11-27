@@ -5,8 +5,8 @@
 #include "menu_options.h"
 #include "memory_note.h"
 
-#define FONT_FULL_PATH  "rom:/Firple-Bold.font64"
-#define FONT_SMALL_PATH "rom:/Firple-Bold-Latin.font64"
+#define FONT_FULL_PATH  "rom:/menu/fonts/Firple-Bold.font64"
+#define FONT_SMALL_PATH "rom:/menu/fonts/Firple-Bold-Latin.font64"
 
 const char *font_choice_name (int choice) {
     switch (choice) {

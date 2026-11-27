@@ -1,32 +1,215 @@
+# This project is developed and maintained in free time. Please consider sponsoring it.
+
 # Release Notes
+Files are made available:
+- **For the SummerCart64**, download and use the `sc64menu.n64` file in the root of your SD card.
+- **For the 64Drive**, download and use the `menu.bin` file in the root of your SD card.
+- **For compatible Emulators**, download and use the `N64FlashcartMenu.n64` file.
 
-- For the SummerCart64, use the `sc64menu.n64` file in the root of your SD card.
-- For the 64Drive, use the `menu.bin` file in the root of your SD card.
-- For the ares emulator, use the `N64FlashcartMenu.n64` file.
-
-## Release Notes 202x-vNext
+## Release Notes 202x-vFuture
 
 - **New Features**
 	- Title logos: on Game info, the game's own logo takes the place of its name. Logos sit beside the box art as `menu/metadata/<code>/logo.sprite` and are made with `scripts/fetch_logos.py` from the `Named_Logos` of libretro's N64 thumbnails (408 of the 414 commercial games have one; `scripts/logo_overrides.txt` fixes the few it gets wrong, such as Super Mario 64 and Pokémon Stadium), sized to fit and kept in 32-bit color so their soft edges blend with the backdrop. One logo serves every region of a game unless a region's own differs. A game without one, or a hack, keeps its name as text; when memory is short the name is shown too (listed under Settings > System > Memory).
 	- Video previews: on Game info, a 10-30 second clip of the game fades in over its cover after a moment and loops (Expansion Pak; Settings > Video Previews, one switch for the whole console). Clips sit beside the box art as `menu/metadata/<code>/preview.h264` and are made with `scripts/make_preview_clip.py`, or all at once with `scripts/fetch_preview_clips.py` (one clip per game, shared by its regions, from the video snaps on archive.org). A game without a clip, or a hack of one, keeps its cover. The switch is console-wide (config.ini), so unlike the other display features a theme can't turn it off. The clip is read into memory first and decoded by libdragon's RSP H.264 decoder in the time the menu waits for each frame, a few pictures ahead, looping without a pause; measured in ares, the menu stays at 30 frames a second while it plays.
-	- ~~Browser now allows hiding files and folders with hidden attributes set (thanks [Xeroxxx](https://github.com/Xeroxxx)).~~ Awaiting performance enhancement.
 
 - **Bug Fixes**
+	- None.
 
 - **Documentation**
+	- None.
 
 - **Refactor**
+	- None.
 
 - **Other**
+	- None.
 
 ### Breaking changes
 - None.
 
 ### Notes
-- None.
+- dragonminded/libdragon was archived. As a stepping stone, the links were changed to n64brew/libdragon.
 
 ### Current known Issues
-- Fast Rebooting a 64DD disk once will result in a blank screen. Twice will return to menu. This is expected until disk swapping is fully implemented.
+- SC64: Fast Rebooting a 64DD disk once will result in a blank screen. Twice will return to menu.
+- PixelFX HDMI mods may need to be updated to latest FW to support display.
+
+### Deprecation notices
+- None.
+
+
+## Release Notes 202x-vNext
+
+- **New Features**
+	- Enable ROM info to show full ROM descriptions (rather than just short descriptions) when available.
+
+- **Bug Fixes**
+	- None.
+
+- **Documentation**
+	- None.
+
+- **Refactor**
+	- Advanced ROM description info to show libdragon based ROMs correctly.
+
+- **Other**
+	- None.
+
+### Breaking changes
+- None.
+
+### Notes
+- dragonminded/libdragon was archived. As a stepping stone, the links were changed to n64brew/libdragon.
+
+### Current known Issues
+- SC64: Fast Rebooting a 64DD disk once will result in a blank screen. Twice will return to menu.
+- PixelFX HDMI mods may need to be updated to latest FW to support display.
+
+### Deprecation notices
+- None.
+
+
+## Release Notes 2026-11-20 - Tagged 0.3.9
+
+- **New Features**
+	- Added four selectable built-in background music tracks.
+
+- **Bug Fixes**
+	- Fix: Long nested folder names cause the menu path buffer to grow, pointing to freed memory.
+	- Fix: Memory allocation issues with background images on consoles using a Jumper Pak.
+
+- **Documentation**
+	- None.
+
+- **Refactor**
+	- Menu Credits, Flashcart Information and N64 Information are now shown as tabs within the Device Information screen. 
+	- Controller Pak Manager has been improved to align with the rest of the menu.
+	- Improve Settings Editor, splitting options list into into tabs and making it directly editable.
+	- Improve UI responsiveness when loading or unloading ROM's with embedded metadata.
+
+- **Other**
+	- None.
+
+### Breaking changes
+- None.
+
+### Notes
+- dragonminded/libdragon was archived. As a stepping stone, the links were changed to n64brew/libdragon.
+
+### Current known Issues
+- SC64: Fast Rebooting a 64DD disk once will result in a blank screen. Twice will return to menu.
+- PixelFX HDMI mods may need to be updated to preview FW to support display.
+
+### Deprecation notices
+- None.
+
+## Release Notes 2026-11-15 - Tagged 0.3.8
+
+- **New Features**
+	- Browser items that are too long now ticker.
+	- audio player tracks that are too long now ticker.
+
+- **Bug Fixes**
+	- Preserve alpha transparency in decoded boxart.
+	- Fix music player track queue UI overflow.
+	- Close the current track's SD file handle before reconfiguring audio
+
+- **Documentation**
+	- Menu credits were updated to n64brew.
+	- Manual was improved for boxart
+
+- **Refactor**
+	- Menu action bar items for tabs.
+
+- **Other**
+	- None.
+
+### Breaking changes
+- Minimum SC64 Firmware is now 2.18.0.
+
+### Notes
+- dragonminded/libdragon was archived. As a stepping stone, the links were changed to n64brew/libdragon.
+
+### Current known Issues
+- Fast Rebooting a 64DD disk once will result in a blank screen. Twice will return to menu.
+- PixelFX HDMI mods may need to be updated to latest FW to support display.
+- Setting Background Images (for consoles with a Jumper Pak) is more restrictive due to other features taking priority.
+- SC64 firmware 2.18.0 and below may experience issues.
+
+### Deprecation notices
+- None.
+
+
+## Release Notes 2026-11-01 - Tagged 0.3.7
+
+- **New Features**
+	- Improve homebrew ROM detection text for "region free", and "Expansion Pak".
+	- Add JPEG decoding support.
+
+- **Bug Fixes**
+	- None
+
+- **Documentation**
+	- Updated for JPEG support.
+
+- **Refactor**
+	- None.
+
+- **Other**
+	- None.
+
+### Breaking changes
+- None.
+
+### Notes
+- dragonminded/libdragon was archived. As a stepping stone, the links were changed to n64brew/libdragon.
+
+### Current known Issues
+- Fast Rebooting a 64DD disk once will result in a blank screen. Twice will return to menu.
+- PixelFX HDMI mods may need to be updated to latest FW to support display.
+- Setting Background Images (for consoles with a Jumper Pak) is more restrictive due to other features taking priority.
+
+### Deprecation notices
+- None.
+
+
+## Release Notes 2026-10-30 - Tagged 0.3.6
+
+- **New Features**
+	- Add low voltage warning on startup for flashcarts that support it.
+	- Add metadata for the menu ROM.
+	- Add embedded homebrew ROM metadata support.
+
+- **Bug Fixes**
+	- Fix Datel Code Types:
+		- `DE` cheat codes no longer consume the next cheat line like other conditional opcodes (`D0`, `D1`, `D2`, `D3`).
+  		- `DE` opcodes are still ignored by the cheat engine, but they don't prevent the next line from executing anymore.
+  		- E.g., `DE000400 0000` followed by `EE000000 0000` (for 1080° Snowboarding) would previously skip the `EE` line, causing the game to freeze at startup.
+	- Fix (opt-in flag) autoload feature failing to load paths correctly.
+	
+
+- **Documentation**
+	- None.
+
+- **Refactor**
+	- DFS: Each asset type is now contained within a subdirectory rather than a flat file system.
+	- Improve Expansion pak use wording to align with n64brew header support.
+
+- **Other**
+	- Removed deprecated boxart compatibility (it has been an opt-in build flag since V0.3.0)
+	- Update libdragon submodule to latest version.
+	- Update dr_libs submodule to latest version.
+	- Update libspng submodule to latest version.
+	- Update miniz submodule to latest version.
+
+### Breaking changes
+- None.
+
+### Notes
+- dragonminded/libdragon was archived. As a stepping stone, the links were changed to n64brew/libdragon.
+
+### Current known Issues
+- Fast Rebooting a 64DD disk once will result in a blank screen. Twice will return to menu.
 - PixelFX HDMI mods may need to be updated to latest FW to support display.
 
 ### Deprecation notices
@@ -35,10 +218,10 @@
 ## Release Notes 2026-10-17 - Tagged 0.3.5
 
 - **New Features**
-	- ~~Browser now allows hiding files and folders with hidden attributes set (thanks [Xeroxxx](https://github.com/Xeroxxx)).~~ Awaiting performance enhancement.
+	- None.
 
 - **Bug Fixes**
-	- Fix: Certain libdragon ROMs between August 2023 and April 2025 stopped working. Added Add VI->CR reset to boot.c
+	- Fix: Certain libdragon ROMs between August 2023 and April 2025 stopped working. Added VI->CR reset to boot.c
 	- Fix: Certain Aleck64 conversions not working. Added checksum match to boot.c
 
 - **Documentation**
@@ -57,7 +240,7 @@
 - None.
 
 ### Current known Issues
-- Fast Rebooting a 64DD disk once will result in a blank screen. Twice will return to menu. This is expected until disk swapping is fully implemented.
+- Fast Rebooting a 64DD disk once will result in a blank screen. Twice will return to menu.
 - PixelFX HDMI mods may need to be updated to latest FW to support display.
 
 ### Deprecation notices
@@ -66,7 +249,7 @@
 ## Release Notes 2026-09-12 - Tagged 0.3.4
 
 - **New Features**
-	- ~~Browser now allows hiding files and folders with hidden attributes set (thanks [Xeroxxx](https://github.com/Xeroxxx)).~~ Awaiting performance enhancement.
+	- None.
 
 - **Bug Fixes**
 	- Fix potential crashes in Zelda OOT, The boot function now resets the VI (mainly H-Sync) registers to fix the issue.

@@ -9,9 +9,41 @@
 #define ROM_INFO_H__
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #include "path.h"
+
+#define ROM_METADATA_MAX_SCREENSHOTS 8
+
+/** @brief Base directory (relative to the storage prefix) of the shared ROM metadata database. */
+#define METADATA_BASE_DIRECTORY   "menu/metadata"
+/** @brief Subdirectory (relative to a metadata base directory) used for homebrew ROM IDs, matched by title. */
+#define HOMEBREW_ID_SUBDIRECTORY  "homebrew"
+
+/**
+ * @brief Resolve the metadata directory for a ROM.
+ *
+ * Builds the path as <base_directory>/<game_code[0]>/<game_code[1]>/<game_code[2]>/<game_code[3]>
+ * (one directory level per character), falling back to the 3-character, region-less
+ * directory (e.g. N/G/E instead of N/G/E/E) if the 4-character directory doesn't exist,
+ * since metadata for some ROMs is only provided without the region letter.
+ *
+ * ROMs using the Advanced Homebrew ROM Header Game ID (xEDx) are instead matched by ROM
+ * title, under "<base_directory>/homebrew/<title>".
+ *
+ * @param storage_prefix Storage prefix (e.g. "sd:/").
+ * @param base_directory Base directory relative to the storage prefix (e.g. METADATA_BASE_DIRECTORY).
+ * @param game_code The 4-character game code.
+ * @param rom_title Title of the ROM; only read for homebrew IDs (may be NULL otherwise).
+ * @param used_region_code Optional (may be NULL). Set to true if the full 4-character,
+ *                         region-specific directory was used, false if the region-less
+ *                         fallback (or the homebrew title directory) was used instead.
+ * @return A newly allocated path_t* pointing at the resolved directory. Caller must path_free() it.
+ */
+path_t *rom_info_resolve_metadata_directory (const char *storage_prefix, const char *base_directory,
+                                             const char *game_code, const char *rom_title,
+                                             bool *used_region_code);
 
 /** @brief ROM error enumeration. */
 typedef enum {
@@ -154,6 +186,7 @@ typedef struct {
         bool transfer_pak;          /**< Supports Transfer Pak */
         bool voice_recognition_unit; /**< Supports Voice Recognition Unit */
         bool real_time_clock;       /**< Supports Real Time Clock */
+        bool region_free;           /**< Homebrew ROM is configured as region-free */
         bool disk_conversion;       /**< Supports Disk Conversion */
         bool combo_rom_disk_game;   /**< Supports Combo ROM/Disk Game */
         rom_expansion_pak_t expansion_pak; /**< Expansion Pak requirements */
@@ -175,9 +208,47 @@ typedef struct {
         uint32_t num_players;       /**< The number of players supported */
         char *short_description;    /**< The short game description */
         char *long_description_fn;  /**< The long game description file name */
+        char *metadata_zip_path;    /**< ZIP containing metadata images, if any */
+        char *boxart[6];            /**< Spec-defined boxart filenames: front, back, top, bottom, left, right */
+        char *cartart[2];           /**< Spec-defined boxart filenames: front, back */
+        char *screenshots[ROM_METADATA_MAX_SCREENSHOTS]; /**< Spec-defined screenshot filenames */
+        uint8_t screenshot_count;   /**< Number of screenshot filenames */
         bool size_limit_exceeded;   /**< Metadata was skipped because metadata.ini exceeded size cap */
     } meta;                         /**< The ROM metadata */
 } rom_info_t;
+
+/** Extract a metadata image from the associated ZIP into a heap buffer. */
+bool rom_info_extract_metadata_image(const rom_info_t *rom_info, const char *filename,
+                                     uint8_t **data, size_t *size);
+
+/** Check which named embedded ZIP entries are supported PNG/JPEG images. */
+bool rom_info_metadata_images_supported(const rom_info_t *rom_info,
+                                        const char *const *filenames, size_t count,
+                                        bool *supported);
+
+/** @brief Libdragon SDK version info embedded in a ROM's ROM-Pak table of contents, if present. */
+typedef struct {
+    bool found;             /**< True if a "libdragon.version" ROM-Pak entry was located */
+    char branch[32];        /**< Git branch name the SDK was built from */
+    char hash[16];          /**< Short git commit hash */
+    char commit_date[32];   /**< Git commit date */
+    bool dirty;             /**< True if the SDK working tree had uncommitted changes at build time */
+} rom_libdragon_version_t;
+
+/**
+ * @brief Read the libdragon SDK version embedded in a ROM file's ROM-Pak, if present.
+ *
+ * Libdragon embeds a small "libdragon.version" entry in a ROM-Pak table of contents (the
+ * same mechanism used for embedded filesystems/symbols/debug info), located directly from
+ * the ROM file on disk without needing to execute it.
+ *
+ * @param rom_path Path to the ROM file.
+ * @param version Output: populated with version info; version->found is false if no
+ *                "libdragon.version" entry could be located (e.g. older libdragon builds,
+ *                or ROMs not built with libdragon at all).
+ * @return true if the ROM file could be opened and read, false on I/O error.
+ */
+bool rom_info_read_libdragon_version(path_t *rom_path, rom_libdragon_version_t *version);
 
 /**
  * @brief Get the CIC seed for the ROM.

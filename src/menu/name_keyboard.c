@@ -456,7 +456,7 @@ void name_keyboard_draw (const char *prompt, const char *text, int cursor, int l
     const theme_t *t = theme_get();
     labels_make();
     if (!corner) {
-        corner = sprite_load("rom:/corner.sprite");
+        corner = sprite_load("rom:/menu/sprites/corner.sprite");
     }
     rounded = features_enabled(FEATURE_ROUNDED_CORNERS);
 

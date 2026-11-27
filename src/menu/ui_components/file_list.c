@@ -5,7 +5,9 @@
  */
 
 #include <stdlib.h>
+#include <limits.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "../ui_components.h"
 #include "../fonts.h"
@@ -23,6 +25,19 @@ static const char *directory_icon = "[DIR] ";
 // static const char *image_icon = "[Png] ";
 // static const char *save_icon = "[Save] ";
 // static const char *other_icon = "[?] ";
+
+#define FILE_ENTRY_TICKER_SCROLL_SPEED  (0.5f)
+#define FILE_ENTRY_TICKER_START_DELAY   (20)
+
+static float file_list_ticker_offset = 0.0f;
+static int file_list_ticker_delay_frames = FILE_ENTRY_TICKER_START_DELAY;
+static int file_list_ticker_selected = -1;
+static char *file_list_ticker_name = NULL;
+static bool file_list_ticker_widths_valid = false;
+static const rdpq_font_t *file_list_ticker_font = NULL;
+static menu_font_style_t file_list_ticker_style = STL_DEFAULT;
+static int file_list_ticker_name_width = 0;
+static int file_list_ticker_padding_width = 0;
 
 static rdpq_paragraph_t *file_list_layout_buffer;
 static size_t file_list_layout_capacity;
@@ -69,6 +84,10 @@ void ui_components_file_list_free(void) {
     free(file_list_layout_buffer);
     file_list_layout_buffer = NULL;
     file_list_layout_capacity = 0;
+    free(file_list_ticker_name);
+    file_list_ticker_name = NULL;
+    file_list_ticker_selected = -1;
+    file_list_ticker_widths_valid = false;
 }
 
 /**
@@ -100,37 +119,112 @@ static int format_file_size(char *buffer, int64_t size) {
  * @param list Pointer to the list of file entries.
  * @param entries Number of entries in the list.
  * @param selected Index of the currently selected entry.
+ * @param visible_items Maximum number of entries to display.
+ * @param show_size Whether to draw the size column.
+ * @param column_header Optional column labels drawn above the scrolling entries.
+ * @param empty_message Optional message to draw when the list is empty.
  */
-void ui_components_file_list_draw(entry_t *list, int entries, int selected) {
+void ui_components_file_list_draw(
+    entry_t *list,
+    int entries,
+    int selected,
+    int visible_items,
+    bool show_size,
+    const char *column_header,
+    const char *empty_message
+) {
     int starting_position = 0;
+    int header_height = column_header ? TAB_HEIGHT : 0;
+    int name_x = VISIBLE_AREA_X0 + TEXT_MARGIN_HORIZONTAL;
+    int header_y = VISIBLE_AREA_Y0 + TEXT_MARGIN_VERTICAL + TAB_HEIGHT + TEXT_OFFSET_VERTICAL;
+    int name_y = header_y + header_height;
+    int name_width = (show_size ? FILE_LIST_MAX_WIDTH : VISIBLE_AREA_WIDTH - LIST_SCROLLBAR_WIDTH)
+        - (TEXT_MARGIN_HORIZONTAL * 2);
 
-    if (entries > LIST_ENTRIES && selected >= (LIST_ENTRIES / 2)) {
-        starting_position = selected - (LIST_ENTRIES / 2);
-        if (starting_position >= entries - LIST_ENTRIES) {
-            starting_position = entries - LIST_ENTRIES;
+    if (selected < 0 || selected >= entries) {
+        file_list_ticker_selected = -1;
+        free(file_list_ticker_name);
+        file_list_ticker_name = NULL;
+        file_list_ticker_widths_valid = false;
+    } else if (selected != file_list_ticker_selected ||
+               !file_list_ticker_name ||
+               strcmp(list[selected].name, file_list_ticker_name) != 0) {
+        char *new_name = strdup(list[selected].name);
+        free(file_list_ticker_name);
+        file_list_ticker_name = new_name;
+        file_list_ticker_selected = selected;
+        file_list_ticker_offset = 0.0f;
+        file_list_ticker_delay_frames = FILE_ENTRY_TICKER_START_DELAY;
+        file_list_ticker_widths_valid = false;
+    }
+
+    if (entries > visible_items && selected >= (visible_items / 2)) {
+        starting_position = selected - (visible_items / 2);
+        if (starting_position >= entries - visible_items) {
+            starting_position = entries - visible_items;
         }
     }
 
-    ui_components_list_scrollbar_draw(selected, entries, LIST_ENTRIES);
+    if (column_header) {
+        rdpq_text_print(
+            &(rdpq_textparms_t) {
+                .style_id = STL_GRAY,
+                .width = name_width,
+                .height = header_height,
+                .wrap = WRAP_NONE,
+            },
+            FNT_DEFAULT,
+            name_x,
+            header_y,
+            column_header
+        );
+        ui_components_scrollbar_draw(
+            LIST_SCROLLBAR_X,
+            LIST_SCROLLBAR_Y + header_height,
+            LIST_SCROLLBAR_WIDTH,
+            LIST_SCROLLBAR_HEIGHT - header_height,
+            selected,
+            entries,
+            visible_items
+        );
+    } else {
+        ui_components_list_scrollbar_draw(selected, entries, visible_items);
+    }
 
     if (entries == 0) {
-        ui_components_main_text_draw(
-            STL_DEFAULT,
-            ALIGN_LEFT, VALIGN_TOP,
-            "\n"
-            "^%02X** empty directory **",
-            STL_GRAY
-        );
+        if (column_header || empty_message) {
+            rdpq_text_print(
+                &(rdpq_textparms_t) {
+                    .style_id = STL_GRAY,
+                    .width = name_width,
+                    .height = TAB_HEIGHT,
+                    .wrap = WRAP_NONE,
+                },
+                FNT_DEFAULT,
+                name_x,
+                name_y,
+                empty_message ? empty_message : "** no entries **"
+            );
+        } else {
+            ui_components_main_text_draw(
+                STL_DEFAULT,
+                ALIGN_LEFT, VALIGN_TOP,
+                "\n"
+                "^%02X** empty directory **",
+                STL_GRAY
+            );
+        }
     } else {
         rdpq_paragraph_t *file_list_layout;
         rdpq_paragraph_t *layout;
         int visible_entries = entries - starting_position;
-        if (visible_entries > LIST_ENTRIES) {
-            visible_entries = LIST_ENTRIES;
+        if (visible_entries > visible_items) {
+            visible_entries = visible_items;
         }
 
         size_t name_lengths[LIST_ENTRIES];
         size_t total_length = 1;
+        menu_font_style_t selected_style = STL_DEFAULT;
 
         for (int i = 0; i < visible_entries; i++) {
             int entry_index = starting_position + i;
@@ -153,8 +247,8 @@ void ui_components_file_list_draw(entry_t *list, int entries, int selected) {
 
         rdpq_paragraph_builder_begin(
             &(rdpq_textparms_t) {
-                .width = FILE_LIST_MAX_WIDTH - (TEXT_MARGIN_HORIZONTAL * 2),
-                .height = LAYOUT_ACTIONS_SEPARATOR_Y - VISIBLE_AREA_Y0  - (TEXT_MARGIN_VERTICAL * 2),
+                .width = name_width,
+                .height = LAYOUT_ACTIONS_SEPARATOR_Y - VISIBLE_AREA_Y0  - (TEXT_MARGIN_VERTICAL * 2) - header_height,
                 .wrap = WRAP_ELLIPSES,
                 .line_spacing = TEXT_LINE_SPACING_ADJUST,
             },
@@ -189,6 +283,10 @@ void ui_components_file_list_draw(entry_t *list, int entries, int selected) {
 
             rdpq_paragraph_builder_style(style);
 
+            if (entry_index == selected) {
+                selected_style = style;
+            }
+
             rdpq_paragraph_builder_span(entry->name, name_lengths[i]);
 
             if ((i + 1) >= visible_entries) {
@@ -201,7 +299,7 @@ void ui_components_file_list_draw(entry_t *list, int entries, int selected) {
         layout = rdpq_paragraph_builder_end();
 
         int highlight_height = (layout->bbox.y1 - layout->bbox.y0) / layout->nlines;
-        int highlight_y = VISIBLE_AREA_Y0 + TAB_HEIGHT + TEXT_MARGIN_VERTICAL + TEXT_OFFSET_VERTICAL + ((selected - starting_position) * highlight_height);
+        int highlight_y = name_y + ((selected - starting_position) * highlight_height);
 
         ui_components_box_draw(
             FILE_LIST_HIGHLIGHT_X,
@@ -213,50 +311,130 @@ void ui_components_file_list_draw(entry_t *list, int entries, int selected) {
 
         rdpq_paragraph_render(
             layout,
-            VISIBLE_AREA_X0 + TEXT_MARGIN_HORIZONTAL,
-            VISIBLE_AREA_Y0 + TEXT_MARGIN_VERTICAL + TAB_HEIGHT + TEXT_OFFSET_VERTICAL
+            name_x,
+            name_y
         );
 
-        rdpq_paragraph_builder_begin(
-            &(rdpq_textparms_t) {
-                .width = VISIBLE_AREA_WIDTH - LIST_SCROLLBAR_WIDTH - (TEXT_MARGIN_HORIZONTAL * 2),
-                .height = LAYOUT_ACTIONS_SEPARATOR_Y - VISIBLE_AREA_Y0  - (TEXT_MARGIN_VERTICAL * 2),
-                .align = ALIGN_RIGHT,
-                .wrap = WRAP_ELLIPSES,
-                .line_spacing = TEXT_LINE_SPACING_ADJUST,
-            },
-            FNT_DEFAULT,
-            NULL
-        );
+        if (selected >= starting_position && selected < starting_position + visible_entries) {
+            const char *selected_name = list[selected].name;
+            const char *wrap_pad = "     ";
+            const rdpq_font_t *font = rdpq_text_get_font(FNT_DEFAULT);
 
-        char file_size[16];
+            if (file_list_ticker_name && (!file_list_ticker_widths_valid ||
+                strcmp(selected_name, file_list_ticker_name) != 0 ||
+                font != file_list_ticker_font || selected_style != file_list_ticker_style)) {
+                file_list_ticker_widths_valid = false;
+                int name_bytes = (int)strlen(selected_name);
+                int padding_bytes = (int)strlen(wrap_pad);
+                rdpq_paragraph_t *name_layout = rdpq_paragraph_build(
+                    &(rdpq_textparms_t) { .style_id = selected_style, .wrap = WRAP_NONE },
+                    FNT_DEFAULT,
+                    selected_name, &name_bytes
+                );
+                rdpq_paragraph_t *padding_layout = rdpq_paragraph_build(
+                    &(rdpq_textparms_t) { .style_id = selected_style, .wrap = WRAP_NONE },
+                    FNT_DEFAULT,
+                    wrap_pad, &padding_bytes
+                );
 
-        for (int i = 0; i < visible_entries; i++) {
-            entry_t *entry = &list[starting_position + i];
+                if (name_layout && padding_layout) {
+                    file_list_ticker_name_width = (int)name_layout->advance_x;
+                    file_list_ticker_padding_width = (int)padding_layout->advance_x;
+                    file_list_ticker_font = font;
+                    file_list_ticker_style = selected_style;
+                    file_list_ticker_widths_valid = true;
+                }
 
-            if (entry->type != ENTRY_TYPE_DIR) {
-                // TODO: add option to use font icons instead of file sizes.
-                rdpq_paragraph_builder_span(file_size, format_file_size(file_size, entry->size));
+                if (name_layout) rdpq_paragraph_free(name_layout);
+                if (padding_layout) rdpq_paragraph_free(padding_layout);
             }
-            else {
-                rdpq_paragraph_builder_span(directory_icon, 5);
-            }
 
-            if ((i + 1) >= visible_entries) {
-                break;
-            }
+            if (file_list_ticker_widths_valid && file_list_ticker_name_width > name_width) {
+                int first_baseline = INT_MAX;
+                for (int i = 0; i < layout->nchars; i++) {
+                    if (layout->chars[i].y < first_baseline) {
+                        first_baseline = layout->chars[i].y;
+                    }
+                }
 
-            rdpq_paragraph_builder_newline();
+                int line_step = layout->nlines > 1
+                    ? (int)((layout->advance_y - first_baseline) / (layout->nlines - 1))
+                    : 0;
+                int row = selected - starting_position;
+                int ticker_y = name_y + first_baseline + row * line_step;
+                char scroll_name[576];
+                snprintf(scroll_name, sizeof(scroll_name), "%s%s%s%s",
+                         selected_name, wrap_pad, selected_name, wrap_pad);
+                size_t scroll_len = strlen(scroll_name);
+                int cycle_width = file_list_ticker_name_width + file_list_ticker_padding_width;
+
+                if (file_list_ticker_delay_frames > 0) {
+                    file_list_ticker_delay_frames--;
+                } else {
+                    file_list_ticker_offset += FILE_ENTRY_TICKER_SCROLL_SPEED;
+                }
+                if ((int)file_list_ticker_offset >= cycle_width) {
+                    file_list_ticker_offset -= (float)cycle_width;
+                }
+
+                ui_components_box_draw(
+                    name_x, highlight_y,
+                    name_x + name_width, highlight_y + highlight_height,
+                    FILE_LIST_HIGHLIGHT_COLOR
+                );
+                rdpq_set_scissor(name_x, highlight_y, name_x + name_width, highlight_y + highlight_height);
+                rdpq_text_printn(
+                    &(rdpq_textparms_t) { .style_id = selected_style },
+                    FNT_DEFAULT,
+                    name_x - (int)file_list_ticker_offset, ticker_y,
+                    scroll_name, scroll_len
+                );
+                rdpq_set_scissor(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+            }
         }
 
-        layout = rdpq_paragraph_builder_end();
+        if (show_size) {
+            rdpq_paragraph_builder_begin(
+                &(rdpq_textparms_t) {
+                    .width = VISIBLE_AREA_WIDTH - LIST_SCROLLBAR_WIDTH - (TEXT_MARGIN_HORIZONTAL * 2),
+                    .height = LAYOUT_ACTIONS_SEPARATOR_Y - VISIBLE_AREA_Y0  - (TEXT_MARGIN_VERTICAL * 2) - header_height,
+                    .align = ALIGN_RIGHT,
+                    .wrap = WRAP_ELLIPSES,
+                    .line_spacing = TEXT_LINE_SPACING_ADJUST,
+                },
+                FNT_DEFAULT,
+                NULL
+            );
 
-        rdpq_paragraph_render(
-            layout,
-            VISIBLE_AREA_X0 + TEXT_MARGIN_HORIZONTAL,
-            VISIBLE_AREA_Y0 + TEXT_MARGIN_VERTICAL + TAB_HEIGHT + TEXT_OFFSET_VERTICAL
-        );
+            char file_size[16];
 
-        rdpq_paragraph_free(layout);
+            for (int i = 0; i < visible_entries; i++) {
+                entry_t *entry = &list[starting_position + i];
+
+                if (entry->type != ENTRY_TYPE_DIR) {
+                    // TODO: add option to use font icons instead of file sizes.
+                    rdpq_paragraph_builder_span(file_size, format_file_size(file_size, entry->size));
+                }
+                else {
+                    rdpq_paragraph_builder_span(directory_icon, 5);
+                }
+
+                if ((i + 1) >= visible_entries) {
+                    break;
+                }
+
+                rdpq_paragraph_builder_newline();
+            }
+
+            layout = rdpq_paragraph_builder_end();
+
+            rdpq_paragraph_render(
+                layout,
+                VISIBLE_AREA_X0 + TEXT_MARGIN_HORIZONTAL,
+                name_y
+            );
+
+            rdpq_paragraph_free(layout);
+        }
     }
 }

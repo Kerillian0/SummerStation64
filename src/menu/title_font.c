@@ -39,17 +39,17 @@ void title_font_restyle (void) {
 
 void title_font_init (void) {
     int before = memory_log_used();
-    load(FNT_TITLE, "rom:/Firple-Bold-Title.font64");
+    load(FNT_TITLE, "rom:/menu/fonts/Firple-Bold-Title.font64");
     /* The 20 px size (44 KB) only with the Expansion Pak. Without it, its
        slot points at the body font: a long name goes from 26 px straight to
        15 px, and headings drawn in it come out at the body size. */
     medium = is_memory_expanded();
     if (medium) {
-        load(FNT_TITLE_MEDIUM, "rom:/Firple-Bold-Title20.font64");
+        load(FNT_TITLE_MEDIUM, "rom:/menu/fonts/Firple-Bold-Title20.font64");
     } else {
         rdpq_text_register_font(FNT_TITLE_MEDIUM, rdpq_text_get_font(FNT_DEFAULT));
     }
-    load(FNT_SMALL, "rom:/Firple-Bold-Small.font64");
+    load(FNT_SMALL, "rom:/menu/fonts/Firple-Bold-Small.font64");
     loaded = true;
     memory_log_since(before, "title and small fonts");
 }

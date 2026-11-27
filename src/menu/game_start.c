@@ -53,7 +53,7 @@
 #define HOME_TOP        (416.0f)    /* clicked in: its top this far down the screen, the rest below the edge */
 #define STAGE_BRIGHT    (0x58)      /* the backdrop as Game info draws it */
 #define CART_MIN_FREE   (160 * 1024)
-#define THUNK_PATH      "rom:/thunk.wav64"  /* assets/sounds/make_thunk.py */
+#define THUNK_PATH      "rom:/menu/sounds/thunk.wav64"  /* assets/sounds/make_thunk.py */
 
 
 static enum { IDLE, OPENING, LOADING } stage = IDLE;

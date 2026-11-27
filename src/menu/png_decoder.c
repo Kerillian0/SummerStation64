@@ -18,6 +18,7 @@ typedef struct {
     spng_ctx *ctx; /**< SPNG context */
     struct spng_ihdr ihdr; /**< SPNG image header */
     surface_t *image; /**< Image surface */
+    surface_t *output_buffer; /**< Optional caller-owned output buffer */
     uint8_t *row_buffer; /**< Row buffer */
     int dst_w, dst_h; /**< Output dimensions (may be scaled down) */
     int decoded_rows; /**< Number of decoded rows */
@@ -59,7 +60,7 @@ static png_err_t png_decoder_setup (int max_width, int max_height) {
         return PNG_ERR_INT;
     }
 
-    /* Allow large source PNGs — we scale down to fit available memory.
+    /* Allow large source PNGs — output dimensions are bounded by the caller.
      * Cap at 4096 to reject corrupt headers without blocking real images. */
     if (spng_set_image_limits(decoder->ctx, 4096, 4096) != SPNG_OK) {
         png_decoder_deinit(false);
@@ -80,12 +81,13 @@ static png_err_t png_decoder_setup (int max_width, int max_height) {
 
     size_t image_size;
 
-    if (spng_decoded_image_size(decoder->ctx, SPNG_FMT_RGB8, &image_size) != SPNG_OK) {
+    if (spng_decoded_image_size(decoder->ctx, SPNG_FMT_RGBA8, &image_size) != SPNG_OK) {
         png_decoder_deinit(false);
         return PNG_ERR_BAD_FILE;
     }
 
-    if (spng_decode_image(decoder->ctx, NULL, image_size, SPNG_FMT_RGB8, SPNG_DECODE_PROGRESSIVE) != SPNG_OK) {
+    if (spng_decode_image(decoder->ctx, NULL, image_size, SPNG_FMT_RGBA8,
+                         SPNG_DECODE_PROGRESSIVE | SPNG_DECODE_TRNS) != SPNG_OK) {
         png_decoder_deinit(false);
         return PNG_ERR_BAD_FILE;
     }
@@ -95,8 +97,7 @@ static png_err_t png_decoder_setup (int max_width, int max_height) {
         return PNG_ERR_BAD_FILE;
     }
 
-    /* Start at caller's max dimensions (or source size if smaller),
-     * then scale down by powers of 2 until it fits in available memory. */
+    /* Start at caller's max dimensions (or source size if smaller). */
     int src_w = decoder->ihdr.width;
     int src_h = decoder->ihdr.height;
     decoder->dst_w = (src_w < max_width) ? src_w : max_width;
@@ -109,21 +110,33 @@ static png_err_t png_decoder_setup (int max_width, int max_height) {
         decoder->dst_w = (src_w * decoder->dst_h) / src_h;
     }
 
-    while (decoder->dst_w > 1 && decoder->dst_h > 1) {
-        size_t row_size  = (size_t)src_w * 3;
-        size_t surf_size = (size_t)decoder->dst_w * decoder->dst_h * 2;
+    if (decoder->output_buffer == NULL) {
+        while (decoder->dst_w > 1 && decoder->dst_h > 1) {
+            size_t row_size  = (size_t)src_w * 4;
+            size_t surf_size = (size_t)decoder->dst_w * decoder->dst_h * 2;
 
-        heap_stats_t heap;
-        sys_get_heap_stats(&heap);
-        size_t available = heap.total - heap.used;
+            heap_stats_t heap;
+            sys_get_heap_stats(&heap);
+            size_t available = heap.total - heap.used;
 
-        if (row_size + surf_size + 64 * 1024 <= available) break;
+            if (row_size + surf_size + 64 * 1024 <= available) break;
 
-        decoder->dst_w /= 2;
-        decoder->dst_h /= 2;
+            decoder->dst_w /= 2;
+            decoder->dst_h /= 2;
+        }
     }
     if (decoder->dst_w < 1) decoder->dst_w = 1;
     if (decoder->dst_h < 1) decoder->dst_h = 1;
+
+    if (decoder->output_buffer != NULL
+            && (decoder->output_buffer->buffer == NULL
+                || surface_get_format(decoder->output_buffer) != FMT_RGBA16
+                || decoder->output_buffer->stride < decoder->dst_w * 2
+                || decoder->dst_w > decoder->output_buffer->width
+                || decoder->dst_h > decoder->output_buffer->height)) {
+        png_decoder_deinit(false);
+        return PNG_ERR_OUT_OF_MEM;
+    }
 
     decoder->image = calloc(1, sizeof(surface_t));
     if (decoder->image == NULL) {
@@ -131,13 +144,19 @@ static png_err_t png_decoder_setup (int max_width, int max_height) {
         return PNG_ERR_OUT_OF_MEM;
     }
 
-    *decoder->image = surface_alloc(FMT_RGBA16, decoder->dst_w, decoder->dst_h);
+    if (decoder->output_buffer != NULL) {
+        *decoder->image = surface_make(decoder->output_buffer->buffer, FMT_RGBA16,
+                                       decoder->dst_w, decoder->dst_h,
+                                       decoder->output_buffer->stride);
+    } else {
+        *decoder->image = surface_alloc(FMT_RGBA16, decoder->dst_w, decoder->dst_h);
+    }
     if (decoder->image->buffer == NULL) {
         png_decoder_deinit(true);
         return PNG_ERR_OUT_OF_MEM;
     }
 
-    if ((decoder->row_buffer = malloc(src_w * 3)) == NULL) {
+    if ((decoder->row_buffer = malloc(src_w * 4)) == NULL) {
         png_decoder_deinit(true);
         return PNG_ERR_OUT_OF_MEM;
     }
@@ -146,12 +165,15 @@ static png_err_t png_decoder_setup (int max_width, int max_height) {
     return PNG_OK;
 }
 
-png_err_t png_decoder_start (char *path, int max_width, int max_height, png_callback_t *callback, void *callback_data) {
+static png_err_t png_decoder_start_file (char *path, int max_width, int max_height,
+                                         surface_t *output_buffer,
+                                         png_callback_t *callback, void *callback_data) {
     if (decoder != NULL) return PNG_ERR_BUSY;
 
     decoder = calloc(1, sizeof(png_decoder_t));
     if (decoder == NULL) return PNG_ERR_OUT_OF_MEM;
 
+    decoder->output_buffer = output_buffer;
     decoder->callback = callback;
     decoder->callback_data = callback_data;
 
@@ -169,12 +191,34 @@ png_err_t png_decoder_start (char *path, int max_width, int max_height, png_call
     return png_decoder_setup(max_width, max_height);
 }
 
-png_err_t png_decoder_start_mem (void *buf, size_t buf_size, int max_width, int max_height, png_callback_t *callback, void *callback_data) {
+png_err_t png_decoder_start (char *path, int max_width, int max_height,
+                             png_callback_t *callback, void *callback_data) {
+    return png_decoder_start_file(path, max_width, max_height, NULL,
+                                  callback, callback_data);
+}
+
+png_err_t png_decoder_start_into (char *path, int max_width, int max_height,
+                                  surface_t *output_buffer,
+                                  png_callback_t *callback, void *callback_data) {
+    if (output_buffer == NULL) return PNG_ERR_OUT_OF_MEM;
+    return png_decoder_start_file(path, max_width, max_height, output_buffer,
+                                  callback, callback_data);
+}
+
+static png_err_t png_decoder_start_mem_internal (void *buf, size_t buf_size,
+                                                 int max_width, int max_height,
+                                                 surface_t *output_buffer,
+                                                 png_callback_t *callback,
+                                                 void *callback_data) {
     if (decoder != NULL) return PNG_ERR_BUSY;
 
     decoder = calloc(1, sizeof(png_decoder_t));
-    if (decoder == NULL) return PNG_ERR_OUT_OF_MEM;
+    if (decoder == NULL) {
+        free(buf);
+        return PNG_ERR_OUT_OF_MEM;
+    }
 
+    decoder->output_buffer = output_buffer;
     decoder->callback = callback;
     decoder->callback_data = callback_data;
 
@@ -187,6 +231,24 @@ png_err_t png_decoder_start_mem (void *buf, size_t buf_size, int max_width, int 
     }
 
     return png_decoder_setup(max_width, max_height);
+}
+
+png_err_t png_decoder_start_mem (void *buf, size_t buf_size, int max_width,
+                                 int max_height, png_callback_t *callback,
+                                 void *callback_data) {
+    return png_decoder_start_mem_internal(buf, buf_size, max_width, max_height,
+                                          NULL, callback, callback_data);
+}
+
+png_err_t png_decoder_start_mem_into (void *buf, size_t buf_size, int max_width,
+                                      int max_height, surface_t *output_buffer,
+                                      png_callback_t *callback, void *callback_data) {
+    if (output_buffer == NULL) {
+        free(buf);
+        return PNG_ERR_OUT_OF_MEM;
+    }
+    return png_decoder_start_mem_internal(buf, buf_size, max_width, max_height,
+                                          output_buffer, callback, callback_data);
 }
 
 /**
@@ -228,7 +290,7 @@ void png_decoder_poll (void) {
         return;
     }
 
-    err = spng_decode_row(decoder->ctx, decoder->row_buffer, decoder->ihdr.width * 3);
+    err = spng_decode_row(decoder->ctx, decoder->row_buffer, decoder->ihdr.width * 4);
 
     if (err == SPNG_OK || err == SPNG_EOI) {
         decoder->decoded_rows += 1;
@@ -242,18 +304,23 @@ void png_decoder_poll (void) {
                                              + dst_y * decoder->image->stride);
             for (int dx = 0; dx < decoder->dst_w; dx++) {
                 int sx = (dx * src_w) / decoder->dst_w;
-                uint8_t *p = decoder->row_buffer + sx * 3;
+                uint8_t *p = decoder->row_buffer + sx * 4;
                 uint8_t r = p[0] >> 3;
                 uint8_t g = p[1] >> 3;
                 uint8_t b = p[2] >> 3;
-                dst_row[dx] = (r << 11) | (g << 6) | (b << 1) | 1;
+                uint8_t a = p[3] >= 128;
+                dst_row[dx] = (r << 11) | (g << 6) | (b << 1) | a;
             }
         }
     }
 
     if (err == SPNG_EOI) {
-        decoder->callback(PNG_OK, decoder->image, decoder->callback_data);
+        png_callback_t *callback = decoder->callback;
+        void *callback_data = decoder->callback_data;
+        surface_t *image = decoder->image;
+        decoder->image = NULL;
         png_decoder_deinit(false);
+        callback(PNG_OK, image, callback_data);
     } else if (err != SPNG_OK) {
         png_callback_t *callback = decoder->callback;
         void *callback_data = decoder->callback_data;

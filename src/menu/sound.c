@@ -26,8 +26,12 @@ static bool bgm_card = false;
 static bool sound_initialized = false;
 static bool sfx_enabled = false;
 static bool bgm_enabled = false;
+static bgm_track_t bgm_track = BGM_TRACK_FLYING_DREAMS;
 static bool sfx_opened = false;
 static bool bgm_opened = false;
+// SummerStation64 builds one menu song (bgm.wav64; the owner, 2026-11-27: upstream's
+// four built-in tracks are left out to keep the menu file small). A card theme's
+// music.wav64 replaces it. bgm_track (config.ini) is kept but changes nothing.
 
 /**
  * @brief Reconfigure the sound system with the specified frequency.
@@ -89,11 +93,11 @@ void sound_init_audioplayer_playback (void) {
 void sound_init_sfx (void) {
     mixer_ch_set_vol(SOUND_SFX_CHANNEL, volume_effects(), volume_effects());   // SummerStation64: Settings > Sound
     // SummerStation64: a card theme may bring its own sounds (theme_pack.h)
-    sfx_cursor = theme_pack_effect("move.wav64", "rom:/cursorsound.wav64");
-    sfx_exit = theme_pack_effect("back.wav64", "rom:/back.wav64");
-    sfx_setting = theme_pack_effect("setting.wav64", "rom:/settings.wav64");
-    sfx_enter = theme_pack_effect("select.wav64", "rom:/enter.wav64");
-    sfx_error = theme_pack_effect("error.wav64", "rom:/error.wav64");
+    sfx_cursor = theme_pack_effect("move.wav64", "rom:/menu/sounds/cursorsound.wav64");
+    sfx_exit = theme_pack_effect("back.wav64", "rom:/menu/sounds/back.wav64");
+    sfx_setting = theme_pack_effect("setting.wav64", "rom:/menu/sounds/settings.wav64");
+    sfx_enter = theme_pack_effect("select.wav64", "rom:/menu/sounds/enter.wav64");
+    sfx_error = theme_pack_effect("error.wav64", "rom:/menu/sounds/error.wav64");
     sfx_tab = theme_pack_effect_own("tab.wav64");
     sfx_enabled = true;
     sfx_opened = true;
@@ -103,7 +107,7 @@ void sound_init_sfx (void) {
  * @brief Initialize the background music.
  */
 void sound_init_bgm (void) {
-    const char *path = theme_pack_sound("music.wav64", "rom:/bgm.wav64");
+    const char *path = theme_pack_sound("music.wav64", "rom:/menu/sounds/bgm.wav64");
     bgm_card = strncmp(path, "rom:", 4) != 0 && card_music_open(path);
     if (bgm_card) {
         bgm_wave = card_music_wave();
@@ -123,6 +127,23 @@ static void sound_close_bgm (void) {
     } else {
         wav64_close(&bgm);
     }
+}
+
+/**
+ * @brief Select the background music track.
+ *
+ * Reopens the current track so the selection takes effect immediately.
+ */
+void sound_set_bgm_track(bgm_track_t track) {
+    if ((unsigned int)track >= BGM_TRACK_AVAILABLE_COUNT) {
+        debugf("[SOUND] Invalid background music track: %d\n", track);
+        return;
+    }
+    if (bgm_track == track) {
+        return;
+    }
+
+    bgm_track = track;  // SummerStation64: one song only (see above)
 }
 
 /**

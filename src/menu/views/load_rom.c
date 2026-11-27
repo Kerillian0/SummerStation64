@@ -38,6 +38,8 @@
 #include <sys/stat.h>
 
 static bool show_extra_info_message = false;
+static bool advanced_homebrew_info_computed = false;   // upstream #484: libdragon homebrew shows its own SDK version
+static rom_libdragon_version_t advanced_homebrew_libdragon_version;
 static bool show_advanced_info_message = false;
 static bool show_expansion_pak_warning = false;
 static component_boxart_t *boxart;
@@ -233,7 +235,7 @@ static const char *format_rom_expansion_pak_info (rom_expansion_pak_t expansion_
     switch (expansion_pak_info) {
         case EXPANSION_PAK_REQUIRED: return "Required"; // This ROM requires the Expansion Pak to run.
         case EXPANSION_PAK_RECOMMENDED: return "Recommended"; // This ROM will run without the Expansion Pak, but will have limited functionality or performance.
-        case EXPANSION_PAK_UNUSED: return "Unused"; // This ROM will does not use the Expansion Pak.
+        case EXPANSION_PAK_UNUSED: return "Not used"; // This ROM will does not use the Expansion Pak.
         case EXPANSION_PAK_FAULTY: return "May require ROM patch";
         default: return "Unspecified"; // This ROM will probably run without the Expansion Pak, and will have full functionality.
     }
@@ -397,6 +399,15 @@ static void add_favorite (menu_t *menu, void *arg) {
 
 static void iterate_metadata_image(menu_t *menu, int direction) {
     scan_metadata_images(menu);
+    bool has_available_image = false;   // upstream: nothing to step through
+    for (uint16_t i = 0; i < metadata_image_filename_cache_length; i++) {
+        if (metadata_image_available[i]) {
+            has_available_image = true;
+            break;
+        }
+    }
+    if (!has_available_image) return;
+
     bool low_memory_mode = !is_memory_expanded();
     int16_t previous_metadata_image_index = current_metadata_image_index;
 
@@ -765,6 +776,20 @@ static bool z_pressed (void) {
     return false;
 }
 
+/* Upstream #484: the Advanced Homebrew ROM Header ID convention (xEDx) is
+   only a hint; libdragon's embedded version entry decides. */
+static bool rom_is_homebrew_id (menu_t *menu) {
+    return (menu->load.rom_info.game_code[1] == 'E' && menu->load.rom_info.game_code[2] == 'D');
+}
+
+static void compute_advanced_homebrew_info (menu_t *menu) {
+    if (advanced_homebrew_info_computed) {
+        return;
+    }
+    advanced_homebrew_info_computed = true;
+    rom_info_read_libdragon_version(menu->load.rom_path, &advanced_homebrew_libdragon_version);
+}
+
 static void process (menu_t *menu) {
     if (game_start_opening()) {
         return; // the game is starting (game_start.h)
@@ -914,7 +939,7 @@ static void draw (menu_t *menu, surface_t *d) {
         ui_components_actions_bar_text_draw(
             STL_DEFAULT,
             ALIGN_LEFT, VALIGN_TOP,
-            "A: Load and run ROM\n"
+            "A: Launch ROM\n"
             "B: Back\n"
         );
 
@@ -940,6 +965,26 @@ static void draw (menu_t *menu, surface_t *d) {
         // One details pop-up: the stock "extra" and "advanced" ones together,
         // less what the page already shows (players, release date, author).
         if (show_extra_info_message) {
+            // Upstream #484: a libdragon homebrew game (xEDx code with libdragon's
+            // version inside) has no real SDK version, clock rate or check code.
+            char sdk_lines[192];
+            bool show_libdragon_info = false;
+            if (rom_is_homebrew_id(menu)) {
+                compute_advanced_homebrew_info(menu);
+                show_libdragon_info = advanced_homebrew_libdragon_version.found;
+            }
+            if (show_libdragon_info) {
+                snprintf(sdk_lines, sizeof(sdk_lines), "SDK version: libdragon %s%s (%s, %.7s)\n",
+                    advanced_homebrew_libdragon_version.branch,
+                    advanced_homebrew_libdragon_version.dirty ? "*" : "",
+                    advanced_homebrew_libdragon_version.commit_date,
+                    advanced_homebrew_libdragon_version.hash);
+            } else {
+                snprintf(sdk_lines, sizeof(sdk_lines), "SDK version: %.1f%c\nClock Rate: %.2fMHz\nCheck code: 0x%016llX\n",
+                    (menu->load.rom_info.libultra.version / 10.0f), menu->load.rom_info.libultra.revision,
+                    menu->load.rom_info.clock_rate,
+                    menu->load.rom_info.check_code);
+            }
             ui_components_messagebox_draw(
                 "GAME DETAILS\n"
                 "\n"
@@ -953,9 +998,7 @@ static void draw (menu_t *menu, surface_t *d) {
                 "Version: %hhu\n"
                 "CIC: %s\n"
                 "Boot address: 0x%08lX\n"
-                "SDK version: %.1f%c\n"
-                "Clock Rate: %.2fMHz\n"
-                "Check code: 0x%016llX\n"
+                "%s"
                 "Endianness: %s\n\n"
                 "START or B: Close\n",
                 menu->load.rom_info.title,
@@ -968,9 +1011,7 @@ static void draw (menu_t *menu, surface_t *d) {
                 menu->load.rom_info.version,
                 format_cic_type(rom_info_get_cic_type(&menu->load.rom_info)),
                 menu->load.rom_info.boot_address,
-                (menu->load.rom_info.libultra.version / 10.0f), menu->load.rom_info.libultra.revision,
-                menu->load.rom_info.clock_rate,
-                menu->load.rom_info.check_code,
+                sdk_lines,
                 format_rom_endianness(menu->load.rom_info.endianness)
             );
         }
@@ -1143,6 +1184,8 @@ void view_load_rom_init (menu_t *menu) {
             rom_info_free_meta(&menu->load.rom_info);
             path_free(menu->load.rom_path);
         }
+        advanced_homebrew_info_computed = false;
+        memset(&advanced_homebrew_libdragon_version, 0, sizeof(advanced_homebrew_libdragon_version));
 
         if(menu->load.load_history_id != -1) {
             menu->load.rom_path = path_clone(menu->bookkeeping.history_items[menu->load.load_history_id].primary_path);

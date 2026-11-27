@@ -1531,7 +1531,7 @@ static void draw_text (int x, int y, int width, rdpq_align_t align, menu_font_st
 static void draw_page_icon (int index, int x, int y) {
     static sprite_t *icons = NULL;
     if (!icons) {
-        icons = sprite_load("rom:/settings_icons.sprite");     /* 3.4 KB, kept */
+        icons = sprite_load("rom:/menu/sprites/settings_icons.sprite");     /* 3.4 KB, kept */
     }
     rdpq_mode_push();
         rdpq_set_mode_standard();

@@ -80,7 +80,7 @@ static void round_fill (int x0, int y0, int x1, int y1, color_t color) {
         return;
     }
     if (!disc) {
-        disc = sprite_load("rom:/corner.sprite");
+        disc = sprite_load("rom:/menu/sprites/corner.sprite");
     }
 
     rdpq_mode_push();
@@ -162,7 +162,7 @@ static void memory_badge_draw (void) {
        Only the one this console has is ever loaded. */
     static sprite_t *pak = NULL;
     if (!pak) {
-        pak = sprite_load(expanded ? "rom:/expansion_pak.sprite" : "rom:/jumper_pak.sprite");
+        pak = sprite_load(expanded ? "rom:/menu/sprites/expansion_pak.sprite" : "rom:/menu/sprites/jumper_pak.sprite");
     }
     x0 = x1 - MEMORY_TEXT - pak->width;
     rdpq_mode_push();
@@ -201,7 +201,7 @@ static bool ports_shown (void) {
 static void controller_marks_draw (void) {
     static sprite_t *port_icon = NULL;
     if (!port_icon) {
-        port_icon = sprite_load("rom:/port.sprite");
+        port_icon = sprite_load("rom:/menu/sprites/port.sprite");
     }
     const theme_t *t = theme_get();
     int x = VISIBLE_AREA_X1 - TOPBAR_INSET - PORTS_WIDTH;
@@ -445,7 +445,7 @@ int games_ui_badge (int x, int y, const char *label, menu_font_style_t style, bo
 static void heart_draw (int x, int y) {
     static sprite_t *heart = NULL;
     if (!heart) {
-        heart = sprite_load("rom:/heart.sprite");
+        heart = sprite_load("rom:/menu/sprites/heart.sprite");
     }
     rdpq_mode_push();
         rdpq_set_mode_standard();
@@ -461,10 +461,10 @@ static int text_width (const char *string);    /* further down, with the hints *
 void games_ui_dump_mark_draw (int x, int y, int state) {
     static sprite_t *disc = NULL, *check = NULL, *question = NULL, *cross = NULL;
     if (!disc) {
-        disc = sprite_load("rom:/button.sprite");
-        check = sprite_load("rom:/mark_check.sprite");
-        question = sprite_load("rom:/mark_question.sprite");
-        cross = sprite_load("rom:/mark_cross.sprite");
+        disc = sprite_load("rom:/menu/sprites/button.sprite");
+        check = sprite_load("rom:/menu/sprites/mark_check.sprite");
+        question = sprite_load("rom:/menu/sprites/mark_question.sprite");
+        cross = sprite_load("rom:/menu/sprites/mark_cross.sprite");
     }
     sprite_t *symbol;
     color_t color;
@@ -859,7 +859,7 @@ static int button_width (const char *button) {
 static void button_icon_draw (int x, int y, const char *button) {
     static sprite_t *disc = NULL;
     if (!disc) {
-        disc = sprite_load("rom:/button.sprite");
+        disc = sprite_load("rom:/menu/sprites/button.sprite");
     }
 
     int width = button_width(button);

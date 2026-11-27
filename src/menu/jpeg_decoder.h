@@ -1,6 +1,7 @@
 /**
  * @file jpeg_decoder.h
- * @brief JPEG decoder component stub - For now, we only support PNG, so this is a stub to avoid linker errors.
+ * @brief JPEG decoder component.
+ * @ingroup ui_components
  */
 
 #ifndef JPEG_DECODER_H__
@@ -21,7 +22,16 @@ typedef enum {
 
 typedef void jpeg_callback_t (jpeg_err_t err, surface_t *decoded_image, void *callback_data);
 
+jpeg_err_t jpeg_decoder_start (char *path, int max_width, int max_height, jpeg_callback_t *callback, void *callback_data);
+/** Decode into a caller-owned RGBA16 surface buffer large enough for the output. */
+jpeg_err_t jpeg_decoder_start_into (char *path, int max_width, int max_height,
+                                    surface_t *output_buffer,
+                                    jpeg_callback_t *callback, void *callback_data);
 jpeg_err_t jpeg_decoder_start_mem (void *buf, size_t buf_size, int max_width, int max_height, jpeg_callback_t *callback, void *callback_data);
+/** Decode a JPEG from memory into a caller-owned RGBA16 output surface. */
+jpeg_err_t jpeg_decoder_start_mem_into (void *buf, size_t buf_size, int max_width, int max_height,
+                                        surface_t *output_buffer, jpeg_callback_t *callback,
+                                        void *callback_data);
 void jpeg_decoder_abort (void);
 float jpeg_decoder_get_progress (void);
 void jpeg_decoder_poll (void);

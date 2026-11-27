@@ -481,7 +481,7 @@ static component_boxart_t *art_load (menu_t *menu, int index, file_image_type_t 
    cartridge (a gold Zelda gets a gold back); the label keeps its own grey.
    Loaded the first time a cartridge is turned over, loaded again for one
    of another color, let go when the covers are left. */
-#define CART_BACK_PATH      "rom:/cart_back.sprite"
+#define CART_BACK_PATH      "rom:/menu/sprites/cart_back.sprite"
 #define CART_BACK_PLASTIC   (176)           /* the picture's own plastic grey */
 #define CART_BACK_MIN_FREE  (160 * 1024)
 /* The label and its rim, across the picture (make_icons.py draws it there). */
@@ -556,7 +556,7 @@ static bool cart_back_load (slot_t *slot) {
 
 /* A cartridge's bottom with its circuit board (rom:/cart_bottom.sprite, 2 KB),
    loaded the first time a 3D cartridge is drawn. */
-#define CART_BOTTOM_PATH    "rom:/cart_bottom.sprite"
+#define CART_BOTTOM_PATH    "rom:/menu/sprites/cart_bottom.sprite"
 static sprite_t *cart_bottom_sprite = NULL;
 static surface_t cart_bottom_surface;
 static bool cart_bottom_tried = false;

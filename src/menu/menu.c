@@ -24,6 +24,7 @@
 #include "menu_state.h"
 #include "menu.h"
 #include "audio_player.h"
+#include "jpeg_decoder.h"
 #include "png_decoder.h"
 #include "settings.h"
 #include "safe_mode.h"
@@ -142,6 +143,14 @@ static void menu_init (boot_params_t *boot_params) {
     display_set_fps_limit(FPS_LIMIT);
     frame_rate_apply(); // the player's choice of 30 or 60
 
+    path_push(path, MENU_CACHE_DIRECTORY);
+    directory_create(path_get(path));
+
+    path_push(path, BACKGROUND_CACHE_FILE);
+    ui_components_background_init(path_get(path));
+    path_pop(path);
+    path_pop(path);
+
     path_push(path, MENU_CUSTOM_FONT_FILE);
     fonts_init(path_get(path));
     path_pop(path);
@@ -151,15 +160,10 @@ static void menu_init (boot_params_t *boot_params) {
     // bgm_init(path_get(path));
     // path_pop(path);
 
-    path_push(path, MENU_CACHE_DIRECTORY);
-    directory_create(path_get(path));
-
-    path_push(path, BACKGROUND_CACHE_FILE);
-    ui_components_background_init(path_get(path));
-
     path_free(path);
 
     sound_use_sfx(menu->settings.soundfx_enabled);
+    sound_set_bgm_track(menu->settings.bgm_track);  // SummerStation64: noted only; the music was opened above
     sound_use_bgm(menu->settings.bgm_enabled);
     video_preview_enable(menu->settings.video_previews_enabled);
 
@@ -314,6 +318,7 @@ void menu_run (boot_params_t *boot_params) {
         sound_poll();
 
         png_decoder_poll();
+        jpeg_decoder_poll();
 
         video_preview_poll(); // Game info's clip decodes ahead while the menu waits for the next frame
 

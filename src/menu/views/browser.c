@@ -18,6 +18,7 @@
 #include "../debug_stats.h"
 #include "../cart_load.h"
 #include "../fonts.h"
+#include "../ui_components/constants.h"
 #include "../zip_entry_count.h"
 #include "utils/fs.h"
 #include "views.h"
@@ -66,7 +67,7 @@ static const char *archive_extensions[] = { "zip", NULL };
 static const char *cheat_extensions[] = {"cht", "cheats", "datel", "gameshark", NULL};
 static const char *disk_extensions[] = { "ndd", NULL };
 static const char *emulator_extensions[] = { "nes", "sfc", "smc", "gb", "gbc", "sms", "gg", "sg", "chf", "rzx", "mx1", "mx2", "emu", NULL };
-static const char *image_extensions[] = { "png", NULL };
+static const char *image_extensions[] = { "png", "jpg", "jpeg", NULL };
 static const char *music_extensions[] = { "mp3", NULL };
 static const char *n64_rom_extensions[] = { "z64", "n64", "v64", "rom", NULL };
 static const char *patch_extensions[] = { "bps", "ips", "aps", "ups", "xdelta", NULL };
@@ -1547,9 +1548,7 @@ static component_context_menu_t settings_context_menu = {
         { .text = "Controller Pak manager", .action = set_menu_next_mode, .arg = (void *) (MENU_MODE_CONTROLLER_PAKFS) },
         { .text = "Menu settings", .action = set_menu_next_mode, .arg = (void *) (MENU_MODE_SETTINGS_EDITOR) },
         { .text = "Time (RTC) settings", .action = set_menu_next_mode, .arg = (void *) (MENU_MODE_RTC) },
-        { .text = "Menu information", .action = set_menu_next_mode, .arg = (void *) (MENU_MODE_CREDITS) },
-        { .text = "Flashcart information", .action = set_menu_next_mode, .arg = (void *) (MENU_MODE_FLASHCART) },
-        { .text = "N64 information", .action = set_menu_next_mode, .arg = (void *) (MENU_MODE_SYSTEM_INFO) },
+        { .text = "Device information", .action = set_menu_next_mode, .arg = (void *) (MENU_MODE_CREDITS) },
         COMPONENT_CONTEXT_MENU_LIST_END,
     }
 };
@@ -1903,6 +1902,8 @@ static void process (menu_t *menu) {
                 menu->next_mode = MENU_MODE_FILE_INFO; // FIXME: Implement MENU_MODE_LOAD_ROM_PATCH.
                 break;
             case ENTRY_TYPE_TEXT:
+                menu->text_viewer.return_mode = MENU_MODE_BROWSER;
+                menu->text_viewer.content = NULL;
                 menu->next_mode = MENU_MODE_TEXT_VIEWER;
                 break;
             case ENTRY_TYPE_ROM_META:
@@ -2841,7 +2842,8 @@ static void draw (menu_t *menu, surface_t *d) {
 #else
     ui_components_tabs_common_draw(0);
     ui_components_layout_draw_tabbed();
-    ui_components_file_list_draw(menu->browser.list, menu->browser.entries, menu->browser.selected);
+
+    ui_components_file_list_draw(menu->browser.list, menu->browser.entries, menu->browser.selected, LIST_ENTRIES, true, NULL, NULL);
 #endif
 
 #if BROWSER_CAROUSEL
@@ -2879,13 +2881,22 @@ static void draw (menu_t *menu, surface_t *d) {
         menu->browser.entries == 0 ? STL_GRAY : STL_DEFAULT
     );
 
-    // The clock moved to the tab bar at the top.
-    ui_components_actions_bar_text_draw(
-        STL_DEFAULT,
-        ALIGN_CENTER, VALIGN_TOP,
-        "C: Fast\n"
-        "\n"
-    );
+    if (menu->current_time >= 0) {
+        ui_components_actions_bar_text_draw(
+            STL_DEFAULT,
+            ALIGN_CENTER, VALIGN_TOP,
+            "C-▼/▲ Fast Scroll | ◀ Tabs ▶ \n"
+            "%s",
+            ctime(&menu->current_time)
+        );
+    } else {
+        ui_components_actions_bar_text_draw(
+            STL_DEFAULT,
+            ALIGN_CENTER, VALIGN_TOP,
+            "C-▼/▲ Fast Scroll | ◀ Tabs ▶ \n"
+            "\n"
+        );
+    }
 #endif
 
     ui_components_context_menu_draw(menu->browser.archive ? &archive_context_menu : &entry_context_menu);

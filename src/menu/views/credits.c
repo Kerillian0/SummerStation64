@@ -1,5 +1,6 @@
 #include "views.h"
 #include "settings_menu.h"
+#include "info_tabs.h"
 #include "../sound.h"
 
 #ifndef MENU_VERSION
@@ -17,7 +18,16 @@ static void process (menu_t *menu) {
     if (menu->actions.back && show_oss_lib_info_message) {
         show_oss_lib_info_message = false;      // B closes the pop-up first
         sound_play_effect(SFX_SETTING);
+    } else if (menu->actions.go_right) {
+        show_oss_lib_info_message = false;
+        sound_play_effect(SFX_SETTING);
+        menu->next_mode = MENU_MODE_FLASHCART;
+    } else if (menu->actions.go_left) {
+        show_oss_lib_info_message = false;
+        sound_play_effect(SFX_SETTING);
+        menu->next_mode = MENU_MODE_SYSTEM_INFO;
     } else if (menu->actions.back) {
+        show_oss_lib_info_message = false;
         sound_play_effect(SFX_EXIT);
         menu->next_mode = settings_menu_back_mode(); // Settings, if opened from there 
     } else if (menu->actions.lz_context) {
@@ -35,13 +45,8 @@ static void draw (menu_t *menu, surface_t *d) {
 
     ui_components_background_draw();
 
-    ui_components_layout_draw();
-
-    ui_components_main_text_draw(
-        STL_DEFAULT,
-        ALIGN_CENTER, VALIGN_TOP,
-        "MENU INFORMATION"
-    );
+    ui_components_tabs_draw(info_tabs, 3, 0, 162.0f);
+    ui_components_layout_draw_tabbed();
 
     ui_components_main_text_draw(
         STL_DEFAULT,
@@ -76,7 +81,7 @@ static void draw (menu_t *menu, surface_t *d) {
             "libdragon (Unlicense)\n"
             "libspng (BSD 2-Clause)\n"
             "minimp3 (CC0 1.0)\n"
-            "miniz (MIT), dr_flac (MIT)\n"
+            "miniz, dr_flac (MIT), TJpgDec (ChaN)\n"
             "\n"
             "Sound effects: Lokif (CC0)\n"
             "Genres and players: libretro-database\n"
@@ -99,6 +104,13 @@ static void draw (menu_t *menu, surface_t *d) {
         ALIGN_LEFT, VALIGN_TOP,
         "\n"
         "B: Exit"
+    );
+
+    ui_components_actions_bar_text_draw(
+        STL_DEFAULT,
+        ALIGN_CENTER, VALIGN_TOP,
+        "\n"
+        "◀ Tabs ▶"
     );
 
     ui_components_actions_bar_text_draw(

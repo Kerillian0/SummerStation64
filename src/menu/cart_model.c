@@ -6,8 +6,8 @@
 #include "cart_model.h"
 
 #define MIN_FREE            (160 * 1024)    /* sprite_load stops the menu when memory runs out */
-#define BACK_PATH           "rom:/cart_back.sprite"
-#define BOTTOM_PATH         "rom:/cart_bottom.sprite"
+#define BACK_PATH           "rom:/menu/sprites/cart_back.sprite"
+#define BOTTOM_PATH         "rom:/menu/sprites/cart_bottom.sprite"
 /* The shared back's grey plastic (make_icons.py draws it), and its label, which keeps its own colours. */
 #define BACK_PLASTIC        (176)
 #define LABEL_X0            (0.14f)

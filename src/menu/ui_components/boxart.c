@@ -5,17 +5,18 @@
  */
 
 #include <stdlib.h>
+#include <stdint.h>
 
 #include "../ui_components.h"
 #include "../path.h"
+#include "../jpeg_decoder.h"
 #include "../png_decoder.h"
+#include "../rom_info.h"
 #include "constants.h"
 #include "../art_trim.h"
 #include "utils/fs.h"
 
 #define OLD_BOXART_DIRECTORY       "menu/boxart"
-#define METADATA_BASE_DIRECTORY    "menu/metadata"
-#define HOMEBREW_ID_SUBDIRECTORY   "homebrew"
 
 /**
  * @brief PNG decoder callback for boxart image loading.
@@ -33,6 +34,89 @@ static void png_decoder_callback(png_err_t err, surface_t *decoded_image, void *
     art_trim_decoded(err, decoded_image);   // SummerStation64: the scan's black frame left out
 }
 
+static void jpeg_decoder_callback(jpeg_err_t err, surface_t *decoded_image, void *callback_data) {
+    component_boxart_t *b = (component_boxart_t *)(callback_data);
+    b->loading = false;
+    b->image = (err == JPEG_OK) ? decoded_image : NULL;
+}
+
+/**
+ * @brief Initialize a boxart component from an in-memory image buffer.
+ *
+ * Used to decode images (e.g. box/cart art, screenshots) extracted directly from a ROM's
+ * embedded metadata ZIP, rather than loaded from an SD card file path.
+ *
+ * @note The image format is detected from the content signature, not the filename, since
+ * an embedded ZIP entry's actual filename may not reflect its real content.
+ *
+ * @param filename Filename of the image within the ZIP; kept for API compatibility, not
+ * used to decide the decoding format.
+ * @param data Heap buffer containing the raw image data; ownership is transferred to this function.
+ * @param size Size of `data` in bytes.
+ * @param max_width Maximum width to decode the image to.
+ * @param max_height Maximum height to decode the image to.
+ * @return Pointer to the initialized boxart component, or NULL on failure (in which case `data` is freed).
+ */
+static component_boxart_t *ui_components_boxart_init_mem_internal(
+    const char *filename, void *data, size_t size, int max_width, int max_height,
+    surface_t *output_buffer) {
+    component_boxart_t *b = calloc(1, sizeof(component_boxart_t));
+    if (!b) {
+        free(data);
+        return NULL;
+    }
+    b->loading = true;
+
+    (void)filename;
+    const uint8_t *image_data = data;
+    bool is_jpeg = image_data != NULL && size >= 3 && image_data[0] == 0xFF &&
+                   image_data[1] == 0xD8 && image_data[2] == 0xFF;
+    bool is_png = image_data != NULL && size >= 8 && image_data[0] == 0x89 &&
+                  image_data[1] == 0x50 && image_data[2] == 0x4E && image_data[3] == 0x47 &&
+                  image_data[4] == 0x0D && image_data[5] == 0x0A && image_data[6] == 0x1A &&
+                  image_data[7] == 0x0A;
+    if (!is_jpeg && !is_png) {
+        free(data);
+        free(b);
+        return NULL;
+    }
+
+    if (is_jpeg) {
+        jpeg_err_t jpeg_err = output_buffer != NULL
+            ? jpeg_decoder_start_mem_into(data, size, max_width, max_height,
+                                          output_buffer, jpeg_decoder_callback, b)
+            : jpeg_decoder_start_mem(data, size, max_width, max_height,
+                                     jpeg_decoder_callback, b);
+        if (jpeg_err == JPEG_OK) return b;
+    } else {
+        png_err_t png_err = output_buffer != NULL
+            ? png_decoder_start_mem_into(data, size, max_width, max_height,
+                                         output_buffer, png_decoder_callback, b)
+            : png_decoder_start_mem(data, size, max_width, max_height,
+                                    png_decoder_callback, b);
+        if (png_err == PNG_OK) return b;
+        if (png_err == PNG_ERR_BUSY) free(data);
+    }
+
+    free(b);
+    return NULL;
+}
+
+component_boxart_t *ui_components_boxart_init_mem(const char *filename, void *data,
+                                                  size_t size, int max_width,
+                                                  int max_height) {
+    return ui_components_boxart_init_mem_internal(filename, data, size, max_width,
+                                                  max_height, NULL);
+}
+
+component_boxart_t *ui_components_boxart_init_mem_into(const char *filename, void *data,
+                                                       size_t size, int max_width,
+                                                       int max_height,
+                                                       surface_t *output_buffer) {
+    return ui_components_boxart_init_mem_internal(filename, data, size, max_width,
+                                                  max_height, output_buffer);
+}
+
 /**
  * @brief Initialize and load the boxart component for a game.
  *
@@ -46,7 +130,6 @@ static void png_decoder_callback(png_err_t err, surface_t *decoded_image, void *
  */
 component_boxart_t *ui_components_boxart_init(const char *storage_prefix, const char *game_code, const char *rom_title, file_image_type_t current_image_view) {
     component_boxart_t *b;
-    char boxart_path[32];
 
     if ((b = calloc(1, sizeof(component_boxart_t))) == NULL) {
         return NULL;
@@ -54,40 +137,18 @@ component_boxart_t *ui_components_boxart_init(const char *storage_prefix, const 
 
     b->loading = true;
 
-    path_t *path = path_init(storage_prefix, METADATA_BASE_DIRECTORY);
+    bool is_homebrew = (game_code[1] == 'E' && game_code[2] == 'D');
 
-    if (game_code[1] == 'E' && game_code[2] == 'D') {
-        // This is using a homebrew ROM ID, use the title for the file name instead.
-        // Create a null-terminated copy of the title for safe string operations
-        char safe_title[21];  // 20 chars + null terminator
-        memcpy(safe_title, rom_title, 20);
-        safe_title[20] = '\0';
-        
-        snprintf(boxart_path, sizeof(boxart_path), HOMEBREW_ID_SUBDIRECTORY"/%s", safe_title);
-        path_push(path, boxart_path);
-    }
-    else {
-        snprintf(boxart_path, sizeof(boxart_path), "%c/%c/%c/%c", game_code[0], game_code[1], game_code[2], game_code[3]);
-        path_push(path, boxart_path);
+    path_t *path = rom_info_resolve_metadata_directory(storage_prefix, METADATA_BASE_DIRECTORY, game_code, rom_title, NULL);
 
-        if (!directory_exists(path_get(path))) { // Allow boxart to not specify the region code.
-            path_pop(path);
-        }
-
-        if (!directory_exists(path_get(path))) { // Fallback to the old boxart directory if metadata directory doesn't exist.
-            
-            // TODO: As a deprecated path, eventually this should be removed.
-            path_free(path);
-            path = path_init(storage_prefix, OLD_BOXART_DIRECTORY);
-            path_push(path, boxart_path);
-
-            if (!directory_exists(path_get(path))) { // Allow boxart to not specify the region code.
-                path_pop(path);
-            }
-        }
+    if (!is_homebrew && !directory_exists(path_get(path))) {
+        // Fallback to the old boxart directory if metadata directory doesn't exist.
+        // TODO: As a deprecated path, eventually this should be removed.
+        path_free(path);
+        path = rom_info_resolve_metadata_directory(storage_prefix, OLD_BOXART_DIRECTORY, game_code, rom_title, NULL);
     }
 
-    debugf("Boxart: Using path %s\n", boxart_path);
+    debugf("Boxart: Using path %s\n", path_get(path));
 
     if (directory_exists(path_get(path))) {
         art_trim_next(current_image_view);   // SummerStation64
@@ -125,48 +186,6 @@ component_boxart_t *ui_components_boxart_init(const char *storage_prefix, const 
             }
         }
     }
-#ifdef FEATURE_DEPRECATED_FUNCTIONALITY
-    else { // deprecated compatibility mode
-
-        char file_name[9];
-
-        // reset the directory path used for boxart.
-        path_free(path);
-        path = path_init(storage_prefix, OLD_BOXART_DIRECTORY);
-
-        snprintf(file_name, sizeof(file_name), "%c%c%c%c.png", game_code[0], game_code[1], game_code[2], game_code[3]);
-        path_push(path, file_name);
-
-        if (file_exists(path_get(path))) {
-            if (png_decoder_start(path_get(path), BOXART_WIDTH_MAX, BOXART_HEIGHT_MAX, png_decoder_callback, b) == PNG_OK) {
-                path_free(path);
-                return b;
-            }
-        }
-
-        path_pop(path);
-        snprintf(file_name, sizeof(file_name), "%c%c%c.png", game_code[0], game_code[1], game_code[2]);
-        path_push(path, file_name);
-
-        if (file_exists(path_get(path))) {
-            if (png_decoder_start(path_get(path), BOXART_WIDTH_MAX, BOXART_HEIGHT_MAX, png_decoder_callback, b) == PNG_OK) {
-                path_free(path);
-                return b;
-            }
-        } else {
-            path_pop(path);
-
-            snprintf(file_name, sizeof(file_name), "%c%c.png", game_code[1], game_code[2]);
-            path_push(path, file_name);
-            if (file_exists(path_get(path))) {
-                if (png_decoder_start(path_get(path), BOXART_WIDTH_MAX, BOXART_HEIGHT_MAX, png_decoder_callback, b) == PNG_OK) {
-                    path_free(path);
-                    return b;
-                }
-            }
-        }
-    }
-#endif
     // TODO: return default image.
 
     path_free(path);
@@ -184,8 +203,13 @@ void ui_components_boxart_free(component_boxart_t *b) {
     if (b) {
         if (b->loading) {
             png_decoder_abort();
+            jpeg_decoder_abort();
         }
         if (b->image) {
+            // Wait for any queued RDP draw commands referencing this surface (e.g. from
+            // ui_components_boxart_draw()) to finish before freeing it, since the pending
+            // double-buffering swap can free the previously-displayed image.
+            rspq_wait();
             surface_free(b->image);
             free(b->image);
         }
@@ -205,7 +229,7 @@ void ui_components_boxart_draw(component_boxart_t *b) {
     int box_y = BOXART_Y;
     if (b && b->image && b->image->width <= BOXART_WIDTH_MAX && b->image->height <= BOXART_HEIGHT_MAX) {
         rdpq_mode_push();
-            rdpq_set_mode_copy(false);
+            rdpq_set_mode_copy(true);
             if (b->image->height == BOXART_HEIGHT_MAX) {
                 box_x = BOXART_X_JP;
                 box_y = BOXART_Y_JP;
@@ -215,13 +239,5 @@ void ui_components_boxart_draw(component_boxart_t *b) {
             }
             rdpq_tex_blit(b->image, box_x, box_y, NULL);
         rdpq_mode_pop();
-    } else {
-        ui_components_box_draw(
-            BOXART_X,
-            BOXART_Y,
-            BOXART_X + BOXART_WIDTH,
-            BOXART_Y + BOXART_HEIGHT,
-            BOXART_LOADING_COLOR
-        );
     }
 }

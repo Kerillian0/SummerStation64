@@ -5,7 +5,7 @@
 #include "../setup_wizard.h"
 #include "../whats_new.h"
 #include "../tabs.h"
-#include "../flashcart/flashcart.h"
+#include "../../flashcart/flashcart.h"
 #include "views.h"
 #include <stdlib.h>
 #include <string.h>

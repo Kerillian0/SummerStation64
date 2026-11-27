@@ -202,8 +202,8 @@ static void face_draw (const face_t *face, int quarter, logo_color_t color) {
 void intro_logo_open (intro_logo_t which) {
     look = (which == INTRO_LOGO_CLASSIC) ? INTRO_LOGO_CLASSIC : INTRO_LOGO_VAPORWAVE;
     if (look == INTRO_LOGO_VAPORWAVE) {
-        if (!pattern[0]) pattern[0] = sprite_load("rom:/logo_holo.sprite");
-        if (!pattern[1]) pattern[1] = sprite_load("rom:/logo_stripes.sprite");
+        if (!pattern[0]) pattern[0] = sprite_load("rom:/menu/sprites/logo_holo.sprite");
+        if (!pattern[1]) pattern[1] = sprite_load("rom:/menu/sprites/logo_stripes.sprite");
     }
 }
 

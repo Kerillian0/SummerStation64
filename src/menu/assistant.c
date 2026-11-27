@@ -32,8 +32,8 @@
 #define FILE_TMP_NAME   "assistant.tmp"
 #define FILE_HEADER     "assistant 1"
 
-#define FAIRY_PATH      "rom:/fairy.sprite"
-#define SPARKLE_PATH    "rom:/sparkle.sprite"     /* a 16 px star, tinted (make_fairy.py) */
+#define FAIRY_PATH      "rom:/menu/sprites/fairy.sprite"
+#define SPARKLE_PATH    "rom:/menu/sprites/sparkle.sprite"     /* a 16 px star, tinted (make_fairy.py) */
 #define FAIRY_SIZE      (40)        /* each of its two pictures (wings up, wings down) */
 #define FAIRY_NAME      "Vee"
 #define FAIRY_COLOR     RGBA32(0xFF, 0x7A, 0x6A, 0xFF)  /* its own coral: the edge of its text box */
@@ -1728,7 +1728,7 @@ static void burst_draw (sprite_t *star, float x, float y, int size, float e) {
 
 /* The fairy's picture, its middle at x, y, `size` pixels high: a skin turns
    back and forth like a coin, Vee flaps its wings. */
-#define GLOW_PATH       "rom:/glow.sprite"  /* a soft round glow, tinted (make_fairy.py) */
+#define GLOW_PATH       "rom:/menu/sprites/glow.sprite"  /* a soft round glow, tinted (make_fairy.py) */
 #define GLOW_SCALE      (1.9f)              /* across, against the fairy's size */
 #define GLOW_ALPHA      (140)
 

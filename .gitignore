@@ -13,8 +13,7 @@
 /filesystem/Firple-Bold-Title.font64
 /filesystem/Firple-Bold-Title20.font64
 /filesystem/FiraMonoBold.font64
-/filesystem/*.wav64
-/filesystem/*.sprite
+/filesystem/menu/**
 
 # Box art the user bakes into their own build (see assets/boxart/README.md)
 /filesystem/art/

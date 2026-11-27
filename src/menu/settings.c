@@ -22,6 +22,7 @@ static settings_t init = {
     .show_rom_configuration_files = false,
     .soundfx_enabled = false,
     .bgm_enabled = false,
+    .bgm_track = BGM_TRACK_FLYING_DREAMS,
 #ifdef FEATURE_AUTOLOAD_ROM_ENABLED
     .rom_autoload_enabled = false,
     .rom_autoload_path = "",
@@ -36,6 +37,7 @@ static settings_t init = {
     .wrap_file_list_scrolling = true,      /* SummerStation64: on by default (the owner, 2026-11-14) */
     .rumble_enabled = false,
     .video_previews_enabled = true,
+    .show_full_rom_descriptions = false,
 };
 
 
@@ -68,6 +70,12 @@ void settings_load (settings_t *settings) {
     settings->soundfx_enabled = ini_get_bool(ini, "menu", "soundfx_enabled", init.soundfx_enabled);
     settings->bgm_enabled = ini_get_bool(ini, "menu", "bgm_enabled", init.bgm_enabled);
     settings->video_previews_enabled = ini_get_bool(ini, "menu", "video_previews", init.video_previews_enabled);
+    int bgm_track = ini_get_int(ini, "menu", "bgm_track",
+        ini_get_bool(ini, "menu", "bgm_alternative", false) ? BGM_TRACK_WARM_WAVES : BGM_TRACK_FLYING_DREAMS);
+    if (bgm_track < BGM_TRACK_FLYING_DREAMS || bgm_track >= BGM_TRACK_AVAILABLE_COUNT) {
+        bgm_track = BGM_TRACK_FLYING_DREAMS;
+    }
+    settings->bgm_track = (bgm_track_t)bgm_track;
 
 #ifdef FEATURE_AUTOLOAD_ROM_ENABLED
     settings->rom_autoload_enabled = ini_get_bool(ini, "menu", "autoload_rom_enabled", init.rom_autoload_enabled);
@@ -84,6 +92,7 @@ void settings_load (settings_t *settings) {
     settings->show_browser_rom_tags = ini_get_bool(ini, "menu", "show_browser_rom_tags", init.show_browser_rom_tags);
     settings->wrap_file_list_scrolling = ini_get_bool(ini, "menu", "wrap_file_list_scrolling", init.wrap_file_list_scrolling);
     settings->rumble_enabled = ini_get_bool(ini, "menu_beta_flag", "rumble_enabled", init.rumble_enabled);
+    settings->show_full_rom_descriptions = ini_get_bool(ini, "menu", "show_full_rom_descriptions", init.show_full_rom_descriptions);
 
     ini_free(ini);
 }
@@ -105,6 +114,7 @@ void settings_save (settings_t *settings) {
     ini_set_bool(ini, "menu", "soundfx_enabled", settings->soundfx_enabled);
     ini_set_bool(ini, "menu", "bgm_enabled", settings->bgm_enabled);
     ini_set_bool(ini, "menu", "video_previews", settings->video_previews_enabled);
+    ini_set_int(ini, "menu", "bgm_track", settings->bgm_track);
 #ifdef FEATURE_AUTOLOAD_ROM_ENABLED
     ini_set_bool(ini, "menu", "autoload_rom_enabled", settings->rom_autoload_enabled);
     ini_set_string(ini, "autoload", "rom_path", settings->rom_autoload_path);
@@ -118,6 +128,7 @@ void settings_save (settings_t *settings) {
     // ini_set_bool(ini, "menu", "show_browser_file_extensions", settings->show_browser_file_extensions);
     // ini_set_bool(ini, "menu", "show_browser_rom_tags", settings->show_browser_rom_tags);
     ini_set_bool(ini, "menu", "wrap_file_list_scrolling", settings->wrap_file_list_scrolling);
+    ini_set_bool(ini, "menu", "show_full_rom_descriptions", settings->show_full_rom_descriptions);
     // ini_set_bool(ini, "menu_beta_flag", "rumble_enabled", settings->rumble_enabled);
 
     if (!ini_save(ini, settings_path)) {

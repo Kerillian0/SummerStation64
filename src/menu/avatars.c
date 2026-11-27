@@ -299,7 +299,7 @@ static void shape_fill (int x, int y, int size, color_t color) {
         return;
     }
     if (!disc) {
-        disc = sprite_load("rom:/avatar_disc.sprite");
+        disc = sprite_load("rom:/menu/sprites/avatar_disc.sprite");
     }
     rdpq_mode_push();
         /* The disc's shades say how much of each pixel is covered, which

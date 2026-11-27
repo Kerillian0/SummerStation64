@@ -52,6 +52,7 @@ SRCS = \
 	libs/miniz/miniz_tinfl.c \
 	libs/miniz/miniz_zip.c \
 	libs/miniz/miniz.c \
+	libs/tjpgd/tjpgd.c \
 	menu/ini_parser.c \
 	menu/actions.c \
 	menu/controls.c \
@@ -247,23 +248,23 @@ IMAGES = \
 
 # The smallest formats that hold them: 16 colors for the paks, 16 shades for the button disc.
 MKSPRITE_FLAGS ?= --format CI4
-$(FILESYSTEM_DIR)/button.sprite: MKSPRITE_FLAGS=--format I4
-$(FILESYSTEM_DIR)/heart.sprite: MKSPRITE_FLAGS=--format I4
-$(FILESYSTEM_DIR)/port.sprite: MKSPRITE_FLAGS=--format I4
-$(FILESYSTEM_DIR)/mark_check.sprite: MKSPRITE_FLAGS=--format I4
-$(FILESYSTEM_DIR)/mark_cross.sprite: MKSPRITE_FLAGS=--format I4
-$(FILESYSTEM_DIR)/mark_question.sprite: MKSPRITE_FLAGS=--format I4
-$(FILESYSTEM_DIR)/corner.sprite: MKSPRITE_FLAGS=--format I4
-$(FILESYSTEM_DIR)/settings_icons.sprite: MKSPRITE_FLAGS=--format I4
-$(FILESYSTEM_DIR)/avatar_disc.sprite: MKSPRITE_FLAGS=--format I4
-$(FILESYSTEM_DIR)/logo_holo.sprite: MKSPRITE_FLAGS=--format RGBA16
-$(FILESYSTEM_DIR)/logo_stripes.sprite: MKSPRITE_FLAGS=--format RGBA16
-$(FILESYSTEM_DIR)/cart_back.sprite: MKSPRITE_FLAGS=--format RGBA16
-$(FILESYSTEM_DIR)/cart_bottom.sprite: MKSPRITE_FLAGS=--format RGBA16
+$(FILESYSTEM_DIR)/menu/sprites/button.sprite: MKSPRITE_FLAGS=--format I4
+$(FILESYSTEM_DIR)/menu/sprites/heart.sprite: MKSPRITE_FLAGS=--format I4
+$(FILESYSTEM_DIR)/menu/sprites/port.sprite: MKSPRITE_FLAGS=--format I4
+$(FILESYSTEM_DIR)/menu/sprites/mark_check.sprite: MKSPRITE_FLAGS=--format I4
+$(FILESYSTEM_DIR)/menu/sprites/mark_cross.sprite: MKSPRITE_FLAGS=--format I4
+$(FILESYSTEM_DIR)/menu/sprites/mark_question.sprite: MKSPRITE_FLAGS=--format I4
+$(FILESYSTEM_DIR)/menu/sprites/corner.sprite: MKSPRITE_FLAGS=--format I4
+$(FILESYSTEM_DIR)/menu/sprites/settings_icons.sprite: MKSPRITE_FLAGS=--format I4
+$(FILESYSTEM_DIR)/menu/sprites/avatar_disc.sprite: MKSPRITE_FLAGS=--format I4
+$(FILESYSTEM_DIR)/menu/sprites/logo_holo.sprite: MKSPRITE_FLAGS=--format RGBA16
+$(FILESYSTEM_DIR)/menu/sprites/logo_stripes.sprite: MKSPRITE_FLAGS=--format RGBA16
+$(FILESYSTEM_DIR)/menu/sprites/cart_back.sprite: MKSPRITE_FLAGS=--format RGBA16
+$(FILESYSTEM_DIR)/menu/sprites/cart_bottom.sprite: MKSPRITE_FLAGS=--format RGBA16
 # The assistant's fairy: shades of white with soft edges, painted in its colour by the menu; its glow in 256 shades.
-$(FILESYSTEM_DIR)/fairy.sprite: MKSPRITE_FLAGS=--format IA16
-$(FILESYSTEM_DIR)/glow.sprite: MKSPRITE_FLAGS=--format I8
-$(FILESYSTEM_DIR)/sparkle.sprite: MKSPRITE_FLAGS=--format I4
+$(FILESYSTEM_DIR)/menu/sprites/fairy.sprite: MKSPRITE_FLAGS=--format IA16
+$(FILESYSTEM_DIR)/menu/sprites/glow.sprite: MKSPRITE_FLAGS=--format I8
+$(FILESYSTEM_DIR)/menu/sprites/sparkle.sprite: MKSPRITE_FLAGS=--format I4
 
 OBJS = $(addprefix $(BUILD_DIR)/, $(addsuffix .o,$(basename $(SRCS))))
 MINIZ_OBJS = $(filter $(BUILD_DIR)/libs/miniz/%.o,$(OBJS))
@@ -282,32 +283,36 @@ $(SPEED_OBJS): N64_CFLAGS += -O2
 DEPS = $(OBJS:.o=.d)
 
 FILESYSTEM = \
-	$(addprefix $(FILESYSTEM_DIR)/, $(notdir $(FONTS:%.ttf=%.font64))) \
-	$(addprefix $(FILESYSTEM_DIR)/, $(notdir $(SOUNDS_WAV:%.wav=%.wav64))) \
-	$(addprefix $(FILESYSTEM_DIR)/, $(notdir $(SOUNDS_XM:%.xm=%.xm64))) \
-	$(addprefix $(FILESYSTEM_DIR)/, $(notdir $(IMAGES:%.png=%.sprite)))
+	$(addprefix $(FILESYSTEM_DIR)/menu/fonts/, $(notdir $(FONTS:%.ttf=%.font64))) \
+	$(addprefix $(FILESYSTEM_DIR)/menu/sounds/, $(notdir $(SOUNDS_WAV:%.wav=%.wav64))) \
+	$(addprefix $(FILESYSTEM_DIR)/menu/sounds/, $(notdir $(SOUNDS_XM:%.xm=%.xm64))) \
+	$(addprefix $(FILESYSTEM_DIR)/menu/sprites/, $(notdir $(IMAGES:%.png=%.sprite)))
 
 $(MINIZ_OBJS): N64_CFLAGS+=-Wno-unused-function -fcompare-debug-second
 $(SPNG_OBJS): N64_CFLAGS+=-DSPNG_USE_MINIZ -fcompare-debug-second
-$(FILESYSTEM_DIR)/Firple-Bold.font64: MKFONT_FLAGS+=--compress 1 --outline 1 --size 15 --charset $(ASSETS_DIR)/fonts/charset.txt --ellipsis 2026,1
-$(FILESYSTEM_DIR)/%.wav64: AUDIOCONV_FLAGS=--wav-compress 1
+$(FILESYSTEM_DIR)/menu/fonts/Firple-Bold.font64: MKFONT_FLAGS+=--compress 1 --outline 1 --size 15 --charset $(ASSETS_DIR)/fonts/charset.txt --ellipsis 2026,1
+$(FILESYSTEM_DIR)/menu/sounds/%.wav64: AUDIOCONV_FLAGS=--wav-compress 1
 
 $(@info $(shell mkdir -p ./$(FILESYSTEM_DIR) &> /dev/null))
 
-$(FILESYSTEM_DIR)/%.font64: $(ASSETS_DIR)/fonts/%.ttf
-	@echo "    [FONT] $@"
-	@$(N64_MKFONT) $(MKFONT_FLAGS) -o $(FILESYSTEM_DIR) "$<"
+$(FILESYSTEM_DIR)/menu/fonts/%.font64: $(ASSETS_DIR)/fonts/%.ttf
+	@echo " [FONT] $@"
+	@mkdir -p $(dir $@)
+	@$(N64_MKFONT) $(MKFONT_FLAGS) -o $(dir $@) "$<"
 
-$(FILESYSTEM_DIR)/%.wav64: $(ASSETS_DIR)/sounds/%.wav
-	@echo "    [AUDIO WAV] $@"
-	@$(N64_AUDIOCONV) $(AUDIOCONV_FLAGS) -o $(FILESYSTEM_DIR) "$<"
+$(FILESYSTEM_DIR)/menu/sounds/%.wav64: $(ASSETS_DIR)/sounds/%.wav
+	@echo " [AUDIO WAV] $@"
+	@mkdir -p $(dir $@)
+	@$(N64_AUDIOCONV) $(AUDIOCONV_FLAGS) -o $(dir $@) "$<"
 
-$(FILESYSTEM_DIR)/%.xm64: $(ASSETS_DIR)/sounds/%.xm
-	@echo "    [AUDIO XM] $@"
-	@$(N64_AUDIOCONV) $(AUDIOCONV_FLAGS) -o $(FILESYSTEM_DIR) "$<"
+$(FILESYSTEM_DIR)/menu/sounds/%.xm64: $(ASSETS_DIR)/sounds/%.xm
+	@echo " [AUDIO XM] $@"
+	@mkdir -p $(dir $@)
+	@$(N64_AUDIOCONV) $(AUDIOCONV_FLAGS) -o $(dir $@) "$<"
 
-$(FILESYSTEM_DIR)/%.sprite: $(ASSETS_DIR)/images/%.png
-	@echo "    [SPRITE] $@"
+$(FILESYSTEM_DIR)/menu/sprites/%.sprite: $(ASSETS_DIR)/images/%.png
+	@echo " [SPRITE] $@"
+	@mkdir -p $(dir $@)
 	@$(N64_MKSPRITE) $(MKSPRITE_FLAGS) -o $(dir $@) "$<"
 
 $(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM)
@@ -345,37 +350,41 @@ $(FILESYSTEM_DIR)/series.txt: $(ASSETS_DIR)/data/series.txt
 
 # Small font for consoles without the Expansion Pak: the same typeface with
 # Latin characters only (about 64 KB in RAM instead of 760 KB).
-$(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM_DIR)/Firple-Bold-Latin.font64
-$(FILESYSTEM_DIR)/Firple-Bold-Latin.font64: $(ASSETS_DIR)/fonts/Firple-Bold.ttf $(ASSETS_DIR)/fonts/charset-latin.txt
+$(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM_DIR)/menu/fonts/Firple-Bold-Latin.font64
+$(FILESYSTEM_DIR)/menu/fonts/Firple-Bold-Latin.font64: $(ASSETS_DIR)/fonts/Firple-Bold.ttf $(ASSETS_DIR)/fonts/charset-latin.txt
 	@echo "    [FONT] $@"
 	@mkdir -p $(BUILD_DIR)/font-latin
 	@$(N64_MKFONT) --compress 1 --outline 1 --size 15 --charset $(ASSETS_DIR)/fonts/charset-latin.txt --ellipsis 2026,1 -o $(BUILD_DIR)/font-latin "$<"
+	@mkdir -p $(dir $@)
 	@cp $(BUILD_DIR)/font-latin/Firple-Bold.font64 $@
 
 # Larger font for game titles: the same typeface at 26 px with English and
 # Western European characters only (about 69 KB in RAM).
-$(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM_DIR)/Firple-Bold-Title.font64
-$(FILESYSTEM_DIR)/Firple-Bold-Title.font64: $(ASSETS_DIR)/fonts/Firple-Bold.ttf $(ASSETS_DIR)/fonts/charset-title.txt
+$(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM_DIR)/menu/fonts/Firple-Bold-Title.font64
+$(FILESYSTEM_DIR)/menu/fonts/Firple-Bold-Title.font64: $(ASSETS_DIR)/fonts/Firple-Bold.ttf $(ASSETS_DIR)/fonts/charset-title.txt
 	@echo "    [FONT] $@"
 	@mkdir -p $(BUILD_DIR)/font-title
 	@$(N64_MKFONT) --compress 1 --outline 1 --size 26 --charset $(ASSETS_DIR)/fonts/charset-title.txt --ellipsis 2026,1 -o $(BUILD_DIR)/font-title "$<"
+	@mkdir -p $(dir $@)
 	@cp $(BUILD_DIR)/font-title/Firple-Bold.font64 $@
 
 # A small one (12 px, English letters only, about 10 KB in RAM) for the few
 # places a second line has to fit under another, such as "Detected".
-$(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM_DIR)/Firple-Bold-Small.font64
-$(FILESYSTEM_DIR)/Firple-Bold-Small.font64: $(ASSETS_DIR)/fonts/Firple-Bold.ttf $(ASSETS_DIR)/fonts/charset-small.txt
+$(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM_DIR)/menu/fonts/Firple-Bold-Small.font64
+$(FILESYSTEM_DIR)/menu/fonts/Firple-Bold-Small.font64: $(ASSETS_DIR)/fonts/Firple-Bold.ttf $(ASSETS_DIR)/fonts/charset-small.txt
 	@echo "    [FONT] $@"
 	@mkdir -p $(BUILD_DIR)/font-small
 	@$(N64_MKFONT) --compress 1 --outline 1 --size 12 --charset $(ASSETS_DIR)/fonts/charset-small.txt -o $(BUILD_DIR)/font-small "$<"
+	@mkdir -p $(dir $@)
 	@cp $(BUILD_DIR)/font-small/Firple-Bold.font64 $@
 
 # The same at 20 px, for titles too long for the 26 px one.
-$(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM_DIR)/Firple-Bold-Title20.font64
-$(FILESYSTEM_DIR)/Firple-Bold-Title20.font64: $(ASSETS_DIR)/fonts/Firple-Bold.ttf $(ASSETS_DIR)/fonts/charset-title.txt
+$(BUILD_DIR)/$(PROJECT_NAME).dfs: $(FILESYSTEM_DIR)/menu/fonts/Firple-Bold-Title20.font64
+$(FILESYSTEM_DIR)/menu/fonts/Firple-Bold-Title20.font64: $(ASSETS_DIR)/fonts/Firple-Bold.ttf $(ASSETS_DIR)/fonts/charset-title.txt
 	@echo "    [FONT] $@"
 	@mkdir -p $(BUILD_DIR)/font-title20
 	@$(N64_MKFONT) --compress 1 --outline 1 --size 20 --charset $(ASSETS_DIR)/fonts/charset-title.txt --ellipsis 2026,1 -o $(BUILD_DIR)/font-title20 "$<"
+	@mkdir -p $(dir $@)
 	@cp $(BUILD_DIR)/font-title20/Firple-Bold.font64 $@
 
 $(BUILD_DIR)/menu/views/credits.o: .FORCE
@@ -431,7 +440,7 @@ all: $(OUTPUT_DIR)/$(PROJECT_NAME).n64 64drive ed64 ed64-clone sc64
 
 clean:
 	@rm -f ./$(FILESYSTEM)
-	@find ./$(FILESYSTEM_DIR) -type d -empty -delete
+	@if [ -d "./$(FILESYSTEM_DIR)/menu" ]; then find "./$(FILESYSTEM_DIR)/menu" -type d -empty -delete; fi
 	@rm -rf ./$(BUILD_DIR) ./$(OUTPUT_DIR)
 .PHONY: clean
 

@@ -212,7 +212,7 @@ static bool open_wheel (menu_t *menu) {
         pointed = (first >= 'A' && first <= 'Z') ? (first - 'A' + 1) : 0;
     }
     if (!disc) {
-        disc = sprite_load("rom:/corner.sprite");
+        disc = sprite_load("rom:/menu/sprites/corner.sprite");
     }
     open = true;
     assistant_note_used(ASSISTANT_USED_LETTER_DIAL);
@@ -359,7 +359,7 @@ static void name_begin (const char *prompt, const char *start, int limit, void (
     if (keyboard) {
         name_keyboard_begin(name_text);
     } else if (!disc) {
-        disc = sprite_load("rom:/corner.sprite");
+        disc = sprite_load("rom:/menu/sprites/corner.sprite");
     }
 }
 

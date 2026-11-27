@@ -182,7 +182,7 @@ static bool intro_from_card (const char *path, long most) {
 
 waveform_t *theme_pack_intro (void) {
     theme_pack_intro_free();
-    const char *path = theme_pack_sound("intro.wav64", "rom:/intro.wav64");
+    const char *path = theme_pack_sound("intro.wav64", "rom:/menu/sounds/intro.wav64");
     if (strncmp(path, "rom:", 4) != 0) {
         long most = (get_memory_size() > 0x400000) ? INTRO_MAX_8MB : INTRO_MAX_4MB;
         if (intro_from_card(path, most)) {
@@ -193,7 +193,7 @@ waveform_t *theme_pack_intro (void) {
             intro_wav = wav64_load(path, &(wav64_loadparms_t) { .streaming_mode = WAV64_STREAMING_NONE });   /* compressed: small */
         }
         if (!intro_wav) {
-            path = "rom:/intro.wav64";
+            path = "rom:/menu/sounds/intro.wav64";
         }
     }
     if (!intro_wav) {
